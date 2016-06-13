@@ -7,10 +7,13 @@ import os
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI,USERNAME,PASSWORD
-from scilifelab_epps.epp import attach_file, EppLogger
 from genologics.entities import *
+from scilifelab_epps.epp import attach_file, EppLogger
 
 DESC="""EPP used to parse csv files from the Tecan plate reader"""
+
+# Display error message if any measurement has a CV above this number (%):
+CV_LIMIT = 20
 
 def parse(iterable):
     # Pattern for matching "Layout" ID:
@@ -82,9 +85,6 @@ def dictionnarize(datalist):
 
     return data_to_upload
 
-
-
-
 def main(args, lims):
     pro=Process(lims, id=args.pid)
     for output in pro.all_outputs():
@@ -99,7 +99,7 @@ def main(args, lims):
     file_contents=lims.get_file_contents(id=fid)
     with open('{0}_tecan.out'.format(out_id), 'w') as outf:
         data=convert(file_contents, outf)
-                
+
     di=dictionnarize(data)
 
     for iom in pro.input_output_maps:
@@ -109,6 +109,11 @@ def main(args, lims):
             iom[1]['uri'].udf['Concentration']=float(di[poskey]['conc'])
             iom[1]['uri'].udf['%CV']=float(di[poskey]['cv'])
             iom[1]['uri'].put()
+
+    if any(float(x["cv"]) > CV_LIMIT for x in di.values()):
+        sys.stderr.write("One or several samples has a CV above {:d}%. "
+            "Check the output file for details.".format(CV_LIMIT))
+        sys.exit(2)
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
