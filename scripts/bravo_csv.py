@@ -3,7 +3,7 @@ DESC="""EPP used to create csv files for the bravo robot"""
 
 from argparse import ArgumentParser
 from genologics.lims import Lims
-sfrom genologics.config import BASEURI,USERNAME,PASSWORD
+from genologics.config import BASEURI,USERNAME,PASSWORD
 from scilifelab_epps.epp import attach_file, EppLogger
 import logging
 import os
