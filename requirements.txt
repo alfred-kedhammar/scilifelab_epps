@@ -1,1 +1,4 @@
 genologics
+couchdb
+numpy
+click
