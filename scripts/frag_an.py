@@ -79,10 +79,8 @@ def main(lims, args):
                 log.append("Error updating {} with fragment analyzer data : {}".format(io[1]['uri'].name, e))
 
         if log:
-            log_id
             with open("{}_frag_analyzer.log".format(log_art.id), "w") as logContext:
                 logContext.write("\n".join(log))
-            sys.exit(' '.join(log))
             
 
 if __name__=="__main__":
