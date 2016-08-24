@@ -12,6 +12,7 @@ from genologics.entities import *
 
 def main(lims, args):
     process=Process(lims, id=args.pid)
+    log_art=None
     log=[]
     fid=None
     #first, read the fragment analyzer results
@@ -21,6 +22,9 @@ def main(lims, args):
                 fid=o.files[0].id
             except:
                 sys.exit("Please upload a CSV result file.")
+        if o.name == 'Calculation Log':
+            log_art=o
+
     file_contents=lims.get_file_contents(id=fid)
     frag_data={}
     keys=[]
@@ -45,7 +49,7 @@ def main(lims, args):
             try:
                 concentration_step=lims.get_processes(type=conc_process_name, inputartifactlimsid=io[0]['limsid'])[0]
             except IndexError:
-                log.append("Cannot find a {} step starting with {}".format(concentration_step.id, io[0]['limsid']))
+                log.append("Cannot find a {} step starting with {}".format(conc_process_name, io[0]['limsid']))
             else:
                 for io2 in concentration_step.input_output_maps:
                     if io2[0]['limsid']==io[0]['limsid'] and "Concentration" in io2[1]['uri'].udf:
@@ -74,6 +78,11 @@ def main(lims, args):
             except Exception as e:
                 log.append("Error updating {} with fragment analyzer data : {}".format(io[1]['uri'].name, e))
 
+        if log:
+            log_id
+            with open("{}_frag_analyzer.log".format(log_art.id), "w") as logContext:
+                logContext.write("\n".join(log))
+            sys.exit(' '.join(log))
             
 
 if __name__=="__main__":
