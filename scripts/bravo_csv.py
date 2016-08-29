@@ -8,6 +8,7 @@ from scilifelab_epps.epp import attach_file, EppLogger
 import logging
 import os
 import sys
+import re
 from genologics.entities import *
 
 
