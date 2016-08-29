@@ -15,7 +15,6 @@ Written by Isak Sylvin; isak.sylvin@scilifelab.se"""
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from genologics.epp import EppLogger
 import flowcell_parser.classes as classes
 from manage_demux_stats_thresholds import Thresholds
 
