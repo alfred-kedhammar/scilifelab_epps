@@ -25,16 +25,17 @@ import click
 import csv
 import sys
 import logging
+logger = logging.getLogger('demux_logger')
 
 def problem_handler(type, message):
     if type == "exit":
-        logging.warning(message)
+        logger.error(message)
         sys.exit(message)
     elif type == "warning":
-        logging.warning(message)
+        logger.warning(message)
         sys.stderr.write(message)
     else:
-        logging.info(message)
+        logger.info(message)
 
 """Fetches overarching workflow info"""
 def manipulate_workflow(demux_process):
@@ -68,7 +69,8 @@ def manipulate_workflow(demux_process):
                 proc_stats["Instrument"] = "hiseqx"
             else:
                 problem_handler("exit", "Unhandled prior workflow step (run type)")
-            logging.info("Run type set to {}".format(proc_stats["Chemistry"]))
+            logger.info("Run type/chemistry set to {}".format(proc_stats["Chemistry"]))
+            logger.info("Instrument set to {}".format(proc_stats["Instrument"]))
             break
     
     try:
@@ -77,12 +79,13 @@ def manipulate_workflow(demux_process):
         problem_handler("exit", "Unable to fetch workflow information.")
     if "Read 2 Cycles" in proc_stats:
         proc_stats["Paired"] = True
-    logging.info("Paired libraries: {}".format(str(proc_stats["Paired"])))  
+    logger.info("Paired libraries: {}".format(str(proc_stats["Paired"])))  
     #Assignment to make usage more explicit
     try:
         proc_stats["Read Length"] = proc_stats["Read 1 Cycles"]
     except:
         problem_handler("exit", "Read 1 Cycles not found. Unable to read Read Length")
+    logger.info("Read length set to {}".format(proc_stats["Read Length"]))
     return proc_stats
 
 """Sets run thresholds"""
@@ -90,16 +93,20 @@ def manipulate_process(demux_process, proc_stats):
     thresholds = Thresholds(proc_stats["Instrument"], proc_stats["Chemistry"], proc_stats["Paired"], proc_stats["Read Length"])
         
     if not "Threshold for % bases >= Q30" in demux_process.udf:
+        thresholds.set_Q30()
         try:
             demux_process.udf["Threshold for % bases >= Q30"] = thresholds.Q30
-            logging.info("Q30 threshold set to {}".format(str(demux_process.udf["Threshold for % bases >= Q30"])))
+            logger.info("Q30 threshold set to {}".format(str(demux_process.udf["Threshold for % bases >= Q30"])))
         except:
+            import pdb
+            pdb.set_trace()
             problem_handler("exit", "Udf improperly formatted. Unable to set Q30 threshold")
     #Would REALLY prefer "Minimum Reads per Lane" over "Threshold for # Reads"
     if not "Minimum Reads per Lane" in demux_process.udf:
+        thresholds.set_exp_lane_clust()
         try:
             demux_process.udf["Minimum Reads per Lane"] = thresholds.exp_lane_clust
-            logging.info("Minimum clusters per lane set to {}".format(str(demux_process.udf["Minimum Reads per Lane"])))
+            logger.info("Minimum clusters per lane set to {}".format(str(demux_process.udf["Minimum Reads per Lane"])))
         except:
             problem_handler("exit", "Udf improperly formatted. Unable to set # Reads threshold")
     
@@ -107,7 +114,7 @@ def manipulate_process(demux_process, proc_stats):
     if not "Maximum % Undetermined Reads per Lane" in demux_process.udf:
         try:
             demux_process.udf["Maximum % Undetermined Reads per Lane"] = thresholds.undet_indexes_perc
-            logging.info("Maximum percentage of undetermined per lane set to {} %".\
+            logger.info("Maximum percentage of undetermined per lane set to {} %".\
                          format(str(demux_process.udf["Maximum % Undetermined Reads per Lane"])))
         except:
             problem_handler("exit", "Udf improperly formatted. Unable to set Undemultiplexed Index Yield threshold")
@@ -117,10 +124,11 @@ def manipulate_process(demux_process, proc_stats):
         try:
             demux_process.udf["Run ID"] = proc_stats["Run ID"]
         except:
-            logging.info("Unable to automatically regenerate Run ID")
+            logger.info("Unable to automatically regenerate Run ID")
     #Checks for document version
     if not "Document Version" in demux_process.udf:
         problem_handler("exit", "No Document Version set. Please set one.")
+        
     try:
         demux_process.put()
     except:
@@ -140,9 +148,9 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 lane_no = pool.location[1][0]
             except:
                 problem_handler("exit", "Unable to determine lane number. Incorrect location variable in process.")
-        logging.info("Lane number set to {}".format(lane_no))
+        logger.info("Lane number set to {}".format(lane_no))
         exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/float(len(outarts_per_lane)), 0)
-        logging.info("Expected sample clusters for this lane: {}".format(str(exp_smp_per_lne)))
+        logger.info("Expected sample clusters for this lane: {}".format(str(exp_smp_per_lne)))
         
         assign_lane_reads = 0
         undet_lane_reads = 0
@@ -155,22 +163,22 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 if lane_no == entry["Lane"]:
                     sample = entry["Sample"]
                     if sample == current_name:
-                        logging.info("Added the following set of values to {} of lane {}:".format(sample,lane_no))
+                        logger.info("Added the following set of values to {} of lane {}:".format(sample,lane_no))
                         try:
                             target_file.udf["%PF"] = float(entry["% PFClusters"])
-                            logging.info("{}% PF".format(str(target_file.udf["%PF"])))
+                            logger.info("{}% PF".format(str(target_file.udf["%PF"])))
                             target_file.udf["% One Mismatch Reads (Index)"] = float(entry["% One mismatchbarcode"])
-                            logging.info("{}% One Mismatch Reads (Index)".format(str(target_file.udf["% One Mismatch Reads (Index)"])))
+                            logger.info("{}% One Mismatch Reads (Index)".format(str(target_file.udf["% One Mismatch Reads (Index)"])))
                             target_file.udf["% of Raw Clusters Per Lane"] = float(entry["% of thelane"])
-                            logging.info("{}% of Raw Clusters Per Lane".format(str(target_file.udf["% of Raw Clusters Per Lane"])))
+                            logger.info("{}% of Raw Clusters Per Lane".format(str(target_file.udf["% of Raw Clusters Per Lane"])))
                             target_file.udf["Ave Q Score"] = float(entry["Mean QualityScore"])
-                            logging.info("{}Ave Q Score".format(str(target_file.udf["Ave Q Score"])))
+                            logger.info("{}Ave Q Score".format(str(target_file.udf["Ave Q Score"])))
                             target_file.udf["% Perfect Index Read"] = float(entry["% Perfectbarcode"])
-                            logging.info("{}% Perfect Index Read".format(str(target_file.udf["% Perfect Index Read"])))
+                            logger.info("{}% Perfect Index Read".format(str(target_file.udf["% Perfect Index Read"])))
                             target_file.udf["Yield PF (Gb)"] = float(entry["Yield (Mbases)"].replace(",",""))/1000
-                            logging.info("{} Yield (Mbases)".format(str(target_file.udf["Yield PF (Gb)"])))
+                            logger.info("{} Yield (Mbases)".format(str(target_file.udf["Yield PF (Gb)"])))
                             target_file.udf["% Bases >=Q30"] = float(entry["% >= Q30bases"])
-                            logging.info("{}% Bases >=Q30".format(str(target_file.udf["% Bases >=Q30"])))
+                            logger.info("{}% Bases >=Q30".format(str(target_file.udf["% Bases >=Q30"])))
                         except:
                             problem_handler("exit", "Unable to set general artifact values")
                         try:
@@ -190,8 +198,8 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             assign_lane_reads = assign_lane_reads + target_file.udf["# Reads"]
                         except:
                             problem_handler("exit", "Unable to set values for #Reads and #Read Pairs.")
-                        logging.info("{}# Reads".format(str(target_file.udf["# Reads"])))
-                        logging.info("{}# Reads Pairs".format(str(target_file.udf["# Read Pairs"])))
+                        logger.info("{}# Reads".format(str(target_file.udf["# Reads"])))
+                        logger.info("{}# Reads Pairs".format(str(target_file.udf["# Read Pairs"])))
                         
                         try:
                             if (demux_process.udf["Threshold for % bases >= Q30"] <= float(entry["% >= Q30bases"]) and 
@@ -201,10 +209,10 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             else:
                                 target_file.udf["Include reads"] = "NO"
                                 target_file.qc_flag = "FAILED"
-                            logging.info("Q30 %: {}% found, minimum at {}%".\
+                            logger.info("Q30 %: {}% found, minimum at {}%".\
                                          format(str(float(entry["% >= Q30bases"])), str(demux_process.udf["Threshold for % bases >= Q30"])))
-                            logging.info("Expected reads: {} found, minimum at {}".format(str(target_file.udf["# Reads"]), str(int(exp_smp_per_lne)))) 
-                            logging.info("Sample QC status set to {}".format(target_file.qc_flag))
+                            logger.info("Expected reads: {} found, minimum at {}".format(str(target_file.udf["# Reads"]), str(int(exp_smp_per_lne)))) 
+                            logger.info("Sample QC status set to {}".format(target_file.qc_flag))
                         except:
                             problem_handler("exit", "Unable to set QC status for sample")
                     #Counts undetermined per lane
@@ -234,13 +242,13 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
             problem_handler("warning", "Undemultiplexed reads for lane {} was {} ({})% thus exceeding \
              defined limit.\t".format(lane_no, undet_lane_reads, found_undet))
         else:
-            logging.info("Found {} ({}%) undemultiplexed reads for lane {}.".format(undet_lane_reads, found_undet, lane_no))
+            logger.info("Found {} ({}%) undemultiplexed reads for lane {}.".format(undet_lane_reads, found_undet, lane_no))
 
 """Creates demux_{FCID}.csv and attaches it to process"""
 def write_demuxfile(proc_stats, demux_id):
     #Includes windows drive letter support
     datafolder = "{}_data".format(proc_stats["Instrument"])
-    lanebc_path = os.path.join(os.sep,"srv","mfs", "taca_test",datafolder,proc_stats["Run ID"],"laneBarcode.html")
+    lanebc_path = os.path.join(os.sep,"srv","mfs", datafolder,proc_stats["Run ID"],"laneBarcode.html")
     try:
         laneBC = classes.LaneBarcodeParser(lanebc_path)
     except:
@@ -271,15 +279,27 @@ def write_demuxfile(proc_stats, demux_id):
     return laneBC.sample_data
 
 @click.command()
-@click.option("--project_lims_id", required=True,help="Lims ID of project. Example:24-92373")
+@click.option("--process_lims_id", required=True,help="Lims ID of process. Example:24-92373")
 @click.option("--demux_id", required=True,help="Id prefix for demux output.")
 @click.option("--log_id", required=True,help="Id prefix for logfile")
-def main(project_lims_id, demux_id, log_id ):
-    #Sets up logging
+def main(process_lims_id, demux_id, log_id ):
+    #Sets up logger
     basic_name = "{}_logfile.txt".format(log_id)
-    logging.basicConfig(filename=basic_name,level=logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler("{}_logfile.txt".format(log_id))
+    fh.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+
+    #logger.basicConfig(filename=basic_name,level=logging.DEBUG)
+    logger.info("--process_lims_id {} --demux_id {} --log_id {}".format(process_lims_id, demux_id, log_id))
     
-    demux_process = Process(lims,id = project_lims_id)
+    demux_process = Process(lims,id = process_lims_id)
     #Fetches info on "workflow" level
     proc_stats = manipulate_workflow(demux_process)
     #Sets up the process values
