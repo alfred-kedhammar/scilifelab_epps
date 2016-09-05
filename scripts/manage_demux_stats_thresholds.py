@@ -11,7 +11,7 @@ class Thresholds():
         self.undet_indexes_perc = None
         
         #Checks that only supported values are entered
-        self.valid_instruments = ["miseq", "hiseq", "hiseqx"]
+        self.valid_instruments = ["miseq", "hiseq", "HiSeq_X"]
         self.valid_chemistry = ["MiSeq", "HiSeq Rapid Flow Cell v1","HiSeq Rapid Flow Cell v2", 
                              "TruSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v3", "HiSeq Flow Cell v4", "HiSeqX v2.5"]
         
@@ -66,7 +66,7 @@ class Thresholds():
                 if self.read_length >= 125:
                     self.Q30 = 80
                         
-        elif self.instrument == "hiseqx":
+        elif self.instrument == "HiSeq_X":
             if self.chemistry == "HiSeqX v2.5":
                 if self.read_length >= 150:
                     self.Q30 = 75
@@ -92,7 +92,7 @@ class Thresholds():
             #v4
             elif self.chemistry == "HiSeq Flow Cell v4":
                 self.exp_lane_clust = 188000000
-        elif self.instrument == "hiseqx":
+        elif self.instrument == "HiSeq_X":
             #HiSeqX runs are always paired!
             if self.paired:
                 #X v2.5 (common)

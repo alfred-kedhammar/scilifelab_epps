@@ -66,7 +66,7 @@ def manipulate_workflow(demux_process):
                 proc_stats["Instrument"] = "hiseq"
             elif "Illumina Sequencing (HiSeq X) 1.0" in k:
                 proc_stats["Chemistry"] ="HiSeqX v2.5"
-                proc_stats["Instrument"] = "hiseqx"
+                proc_stats["Instrument"] = "HiSeq_X"
             else:
                 problem_handler("exit", "Unhandled prior workflow step (run type)")
             logger.info("Run type/chemistry set to {}".format(proc_stats["Chemistry"]))
