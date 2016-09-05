@@ -167,6 +167,8 @@ class EppLogger(object):
                 if log_artifact.files:
                     log_path = log_artifact.files[0].content_location.split(
                         self.lims.baseuri.split(':')[1])[1]
+                    if not log_path.startswith("/"):
+                        log_path="/{}".format(log_path)
                     copy(log_path, local_log_path)
                     with open(local_log_path,'a') as f:
                         f.write('='*80+'\n')
