@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 DESC="""EPP diluting the concentration of samples in the fragment analyzer step"""
 
 from argparse import ArgumentParser
@@ -7,7 +6,7 @@ from genologics.config import BASEURI,USERNAME,PASSWORD
 from scilifelab_epps.epp import attach_file, EppLogger
 import sys
 import csv
-from genologics.entities import *
+from genologics.entities import Process
 
 
 def main(lims, args):
