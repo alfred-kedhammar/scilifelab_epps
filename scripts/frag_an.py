@@ -10,6 +10,7 @@ from genologics.entities import Process
 
 
 def main(lims, args):
+    conc_is_local=True
     process=Process(lims, id=args.pid)
     log_art=None
     log=[]
@@ -37,37 +38,43 @@ def main(lims, args):
                 frag_data[values[0]][keys[i]]=values[i]
     #Then, read the concentration from the step defined in the process udf
     try:
+
         conc_process_name=process.udf['Concentration Source']
+        conc_is_local=False
     except KeyError:
-        log.append("Concentration Source is not defined.")
+        conc_is_local=True
+        
+
 
     for io in process.input_output_maps:
         if 'Fragment Analyzer' in io[1]['uri'].name:
             base_concentration=None
             base_conc_unit=None
-            try:
-                concentration_step=lims.get_processes(type=conc_process_name, inputartifactlimsid=io[0]['limsid'])[0]
-            except IndexError:
-                log.append("Cannot find a {} step starting with {}".format(conc_process_name, io[0]['limsid']))
-            else:
-                for io2 in concentration_step.input_output_maps:
-                    if io2[0]['limsid']==io[0]['limsid'] and "Concentration" in io2[1]['uri'].udf:
-                        base_concentration=io2[1]['uri'].udf['Concentration']
-                        base_conc_unit=io2[1]['uri'].udf['Conc. Units']
-
-
-
-
             well=io[0]['uri'].location[1].replace(":","")
+            if conc_is_local:
+                base_concentration=float(frag_data[well]['ng/uL'])
+                base_conc_unit='ng/uL'
+            else:
+                try:
+                    concentration_step=lims.get_processes(type=conc_process_name, inputartifactlimsid=io[0]['limsid'])[0]
+                except IndexError:
+                    log.append("Cannot find a {} step starting with {}".format(conc_process_name, io[0]['limsid']))
+                else:
+                    for io2 in concentration_step.input_output_maps:
+                        if io2[0]['limsid']==io[0]['limsid'] and "Concentration" in io2[1]['uri'].udf:
+                            base_concentration=io2[1]['uri'].udf['Concentration']
+                            base_conc_unit=io2[1]['uri'].udf['Conc. Units']
+
             try:
                 io[1]['uri'].udf['Min Size (bp)']=int(frag_data[well]['Range'].split('to')[0].split('bp')[0].strip())
                 io[1]['uri'].udf['Max Size (bp)']=int(frag_data[well]['Range'].split('to')[1].split('bp')[0].strip())
-                io[1]['uri'].udf['Ratio (%)']=float(frag_data[well]['% Total'])
+                if 'Ratio (%)' not in io[1]['uri'].udf:
+                    io[1]['uri'].udf['Ratio (%)']=float(frag_data[well]['% Total'])
                 io[1]['uri'].udf['Size (bp)']=int(frag_data[well]['Avg. Size'])
                 io[1]['uri'].put()
 
                 if base_concentration and base_conc_unit:
-                    io[1]['uri'].udf['Concentration']=base_concentration * (float(frag_data[well]['% Total']) / 100)
+                    io[1]['uri'].udf['Concentration']=base_concentration * (io[1]['uri'].udf['Ratio (%)'] / 100)
                     io[1]['uri'].udf['Conc. Units']=base_conc_unit
                     io[1]['uri'].put()
                     log.append("Updated values for output {}".format(io[1]['uri'].name))
