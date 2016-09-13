@@ -61,18 +61,22 @@ def gen_X_lane_data(pro):
             l_data.insert(6, line['idx2'])
 
         str_data = str_data + ",".join(l_data) + "\n"
-        
 
     return "{}{}".format(header, str_data)
 
-        
 def find_barcode(sample, process):
     #print "trying to find {} barcode in {}".format(sample.name, process.name)
     idx_pat=re.compile("([ATCG]+)-?([ATCG]*)")
     for art in process.all_inputs():
         if sample in art.samples:
             if len(art.samples)==1 and art.reagent_labels:
-                idxs=idx_pat.findall(art.reagent_labels[0])[0]
+                try:
+                    idxs=idx_pat.findall(art.reagent_labels[0])[0]
+                except IndexError:
+                    #we only have the reagent label name.
+                    rt=lims.get_reagent_types(name=art.reagent_labels[0])[0]
+                    idxs=idx_pat.findall(rt.sequence)[0]
+
                 return idxs
             else:
                 if art == sample.artifact:
@@ -80,9 +84,6 @@ def find_barcode(sample, process):
                 else:
                     return find_barcode(sample, art.parent_process)
 
-
-
-    
 
 def main(lims, args):
     content=None
@@ -103,6 +104,8 @@ def main(lims, args):
             with open("{}_{}.csv".format(ss_rfid, fc_name), "w") as f:
                 f.write(content)
 
+        else:
+            print content
 
 
 
