@@ -78,7 +78,7 @@ class Thresholds():
     def set_exp_lane_clust(self):
         if self.instrument == "miseq":
             if self.chemistry == "MiSeq":
-                if self.read_length >= 75 and self.read_length <= 300:  
+                if self.read_length >= 76 and self.read_length <= 301:  
                     self.exp_lane_clust = 18000000
                 else:                               
                     self.exp_lane_clust = 10000000

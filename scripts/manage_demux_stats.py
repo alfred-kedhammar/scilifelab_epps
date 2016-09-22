@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""
+DESC = """
 This file together with manage_demux_stats_thresholds.py performs the "bclconversion" step of LIMS workflow.
 In common tongue, it:
  
@@ -21,10 +21,10 @@ from manage_demux_stats_thresholds import Thresholds
 #Standard packages
 from shutil import move
 import os 
-import click
 import csv
 import sys
 import logging
+from argparse import ArgumentParser
 logger = logging.getLogger('demux_logger')
 
 def problem_handler(type, message):
@@ -40,38 +40,29 @@ def problem_handler(type, message):
 """Fetches overarching workflow info"""
 def manipulate_workflow(demux_process):
     try:
-        demux_container = demux_process.all_inputs()[0].location[0].name    
+        workflow = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id)
     except:
-        problem_handler("exit", "Container name not found")
-        
-    workflow_types = {"MiSeq Run (MiSeq) 4.0":"Reagent Cartridge ID", "Illumina Sequencing (Illumina SBS) 4.0":"Flow Cell ID",
-              "Illumina Sequencing (HiSeq X) 1.0":"Flow Cell ID"}
-    for k,v in workflow_types.items():
-        #Sequencing step is null if it doesn"t exist
-        workflow = lims.get_processes(udf = {v : demux_container}, type = k)
-        #If sequencing step key exists
-        if(workflow):
-            #Copies LIMS sequencing step content
-            proc_stats = dict(workflow[0].udf.items())
-            #Instrument is denoted the way it is since it is also used to find
-            #the folder of the laneBarcode.html file
-            if "MiSeq Run (MiSeq) 4.0" in k:
-                proc_stats["Chemistry"] ="MiSeq"
-                proc_stats["Instrument"] = "miseq"
-            elif "Illumina Sequencing (Illumina SBS) 4.0" in k:
-                try:
-                    proc_stats["Chemistry"] = workflow[0].udf["Flow Cell Version"]
-                except:
-                    problem_handler("exit", "No flowcell version set in sequencing step.")
-                proc_stats["Instrument"] = "hiseq"
-            elif "Illumina Sequencing (HiSeq X) 1.0" in k:
-                proc_stats["Chemistry"] ="HiSeqX v2.5"
-                proc_stats["Instrument"] = "HiSeq_X"
-            else:
-                problem_handler("exit", "Unhandled prior workflow step (run type)")
-            logger.info("Run type/chemistry set to {}".format(proc_stats["Chemistry"]))
-            logger.info("Instrument set to {}".format(proc_stats["Instrument"]))
-            break
+        problem_handler("exit", "Undefined prior workflow step (run type)")
+    #Copies LIMS sequencing step content
+    proc_stats = dict(workflow[0].udf.items())
+    #Instrument is denoted the way it is since it is also used to find
+    #the folder of the laneBarcode.html file
+    if "MiSeq Run (MiSeq) 4.0" == workflow[0].type.name:
+        proc_stats["Chemistry"] ="MiSeq"
+        proc_stats["Instrument"] = "miseq"
+    elif "Illumina Sequencing (Illumina SBS) 4.0" == workflow[0].type.name:
+        try:
+            proc_stats["Chemistry"] = workflow[0].udf["Flow Cell Version"]
+        except:
+            problem_handler("exit", "No flowcell version set in sequencing step.")
+        proc_stats["Instrument"] = "hiseq"
+    elif "Illumina Sequencing (HiSeq X) 1.0" == workflow[0].type.name:
+        proc_stats["Chemistry"] ="HiSeqX v2.5"
+        proc_stats["Instrument"] = "HiSeq_X"
+    else:
+        problem_handler("exit", "Unhandled workflow step (run type)")
+    logger.info("Run type/chemistry set to {}".format(proc_stats["Chemistry"]))
+    logger.info("Instrument set to {}".format(proc_stats["Instrument"]))
     
     try:
         proc_stats["Paired"] = False
@@ -98,8 +89,6 @@ def manipulate_process(demux_process, proc_stats):
             demux_process.udf["Threshold for % bases >= Q30"] = thresholds.Q30
             logger.info("Q30 threshold set to {}".format(str(demux_process.udf["Threshold for % bases >= Q30"])))
         except:
-            import pdb
-            pdb.set_trace()
             problem_handler("exit", "Udf improperly formatted. Unable to set Q30 threshold")
     #Would REALLY prefer "Minimum Reads per Lane" over "Threshold for # Reads"
     if not "Minimum Reads per Lane" in demux_process.udf:
@@ -278,15 +267,11 @@ def write_demuxfile(proc_stats, demux_id):
                 problem_handler("exit", "Flowcell parser is unable to fetch all necessary fields for demux file.")
     return laneBC.sample_data
 
-@click.command()
-@click.option("--process_lims_id", required=True,help="Lims ID of process. Example:24-92373")
-@click.option("--demux_id", required=True,help="Id prefix for demux output.")
-@click.option("--log_id", required=True,help="Id prefix for logfile")
 def main(process_lims_id, demux_id, log_id ):
     #Sets up logger
     basic_name = "{}_logfile.txt".format(log_id)
     logger.setLevel(logging.DEBUG)
-    fh = logging.FileHandler("{}_logfile.txt".format(log_id))
+    fh = logging.FileHandler(basic_name)
     fh.setLevel(logging.DEBUG)
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
@@ -313,7 +298,15 @@ def main(process_lims_id, demux_id, log_id ):
     new_name = "{}_logfile_{}.txt".format(log_id, proc_stats["Flow Cell ID"])
     move(basic_name, new_name)
     
-if __name__ == "__main__":
+if __name__ =="__main__":
+    parser = ArgumentParser(description=DESC)
+    parser.add_argument('--process_lims_id',required=True,dest = 'process_lims_id',
+                        help="Lims ID of process. Example:24-92373")
+    parser.add_argument('--demux_id',required=True,dest = 'demux_id',
+                        help=("Id prefix for demux output."))
+    parser.add_argument('--log_id',required=True,dest = 'log_id',                 
+                        help=("Id prefix for logfile"))
+    args = parser.parse_args()
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
-    main()
+    main(args.process_lims_id, args.demux_id, args.log_id)
