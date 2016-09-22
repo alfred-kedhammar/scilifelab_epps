@@ -39,29 +39,25 @@ def problem_handler(type, message):
 
 """Fetches overarching workflow info"""
 def manipulate_workflow(demux_process):
+    run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0"}
     try:
-        workflow = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id)
-        for elem in workflow:
-            if elem.type.name in {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0",\
-                                   "Illumina Sequencing (HiSeq X) 1.0"}:
-                sequencing_name = elem.type.name
-                #Copies LIMS sequencing step content
-                proc_stats = dict(elem.udf.items())
+        workflow = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id, type=run_types)[0]
     except:
         problem_handler("exit", "Undefined prior workflow step (run type)")
-    
+    #Copies LIMS sequencing step content
+    proc_stats = dict(workflow.udf.items())
     #Instrument is denoted the way it is since it is also used to find
     #the folder of the laneBarcode.html file
-    if "MiSeq Run (MiSeq) 4.0" == sequencing_name:
+    if "MiSeq Run (MiSeq) 4.0" == workflow.type.name:
         proc_stats["Chemistry"] ="MiSeq"
         proc_stats["Instrument"] = "miseq"
-    elif "Illumina Sequencing (Illumina SBS) 4.0" == sequencing_name:
+    elif "Illumina Sequencing (Illumina SBS) 4.0" == workflow.type.name:
         try:
             proc_stats["Chemistry"] = workflow[0].udf["Flow Cell Version"]
         except:
             problem_handler("exit", "No flowcell version set in sequencing step.")
         proc_stats["Instrument"] = "hiseq"
-    elif "Illumina Sequencing (HiSeq X) 1.0" == sequencing_name:
+    elif "Illumina Sequencing (HiSeq X) 1.0" == workflow.type.name:
         proc_stats["Chemistry"] ="HiSeqX v2.5"
         proc_stats["Instrument"] = "HiSeq_X"
     else:
