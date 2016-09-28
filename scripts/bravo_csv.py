@@ -334,7 +334,7 @@ def main(lims, args):
 def calc_vol(art_tuple, logContext, checkTheLog):
     try:
         # not handling different units yet. Might be needed at some point.
-        assert art_tuple[0]['uri'].udf['Conc. Units'] == "ng/ul"
+        assert art_tuple[0]['uri'].udf['Conc. Units'] in ["ng/ul", "ng/uL"]
         amount_ng = art_tuple[1]['uri'].udf['Amount taken (ng)']
         conc = art_tuple[0]['uri'].udf['Concentration']
         volume = float(amount_ng) / float(conc)
@@ -360,7 +360,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         logContext.write("ERROR : The input artifact is lacking a field : {0}\n".format(e))
         checkTheLog[0] = True
     except AssertionError:
-        logContext.write("ERROR : This script expects the concentration to be in ng/ul, this does not seem to be the case.\n")
+        logContext.write("ERROR : This script expects the concentration to be in ng/ul or ng/uL, this does not seem to be the case.\n")
         checkTheLog[0] = True
     except ZeroDivisionError:
         logContext.write("ERROR: Sample {0} has a concentration of 0\n".format(art_tuple[1]['uri'].samples[0].name))
