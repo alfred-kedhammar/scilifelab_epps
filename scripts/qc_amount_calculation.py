@@ -75,7 +75,7 @@ def check_udf_has_value(artifacts, udf, value):
     filtered_artifacts = []
     incorrect_artifacts = []
     for artifact in artifacts:
-        if udf in artifact.udf and (artifact.udf[udf] == value):
+        if udf in artifact.udf and (artifact.udf[udf] in value):
             filtered_artifacts.append(artifact)
         elif udf in artifact.udf:
             incorrect_artifacts.append(artifact)
@@ -91,7 +91,7 @@ def check_udf_has_value(artifacts, udf, value):
 def main(lims,args,epp_logger):
     p = Process(lims,id = args.pid)
     udf_check = 'Conc. Units'
-    value_check = 'ng/ul'
+    value_check = ['ng/ul', 'ng/uL']
     udf_factor1 = 'Concentration'
     udf_factor2 = 'Volume (ul)'
     result_udf = 'Amount (ng)'
