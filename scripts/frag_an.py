@@ -43,10 +43,10 @@ def main(lims, args):
         conc_is_local = True
 
     for io in process.input_output_maps:
-        if 'Fragment Analyzer' in io[1]['uri'].name:
+        if 'Fragment Analyzer' in io[1]['uri'].name and io[1]['output-generation-type']== 'PerInput':
             base_concentration = None
             base_conc_unit = None
-            well = io[0]['uri'].location[1].replace(":", "")
+            well = io[1]['uri'].location[1].replace(":", "")
             if conc_is_local:
                 base_concentration = float(frag_data[well]['ng/uL'])
                 base_conc_unit = 'ng/uL'
