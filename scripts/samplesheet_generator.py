@@ -10,6 +10,33 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 DESC = """EPP used to create HiseqX samplesheets"""
 
 
+def check_index_distance(data, log):
+    lanes=set([x['lane'] for x in data])
+    for l in lanes:
+        indexes = [x['idx1']+x.get('idx2','') for x in data if x['lane'] == l]
+        for i,b in enumerate(indexes[:-1]):
+            start=i+1
+            for b2 in indexes[start:]:
+                d=my_distance(b,b2)
+                if d<2:
+                    log.append("Found indexes {} and {} in lane {}, indexes are too close".format(b,b2,l))
+
+
+
+def my_distance(idx1, idx2):
+    short=min((idx1, idx2), key=len)
+    lon= idx1 if short == idx2 else idx2
+
+    diffs=0
+    for  i, c in enumerate(short):
+        if c != lon[i]:
+            diffs+=1
+    return diffs
+
+
+
+
+
 def gen_X_header(pro):
     header = "[Header]\nInvestigator Name,{}\nDate,{}\n".format(pro.technician.name, pro.date_run)
     if "Experiment Name" in pro.udf:
@@ -64,7 +91,48 @@ def gen_X_lane_data(pro):
 
         str_data = str_data + ",".join(l_data) + "\n"
 
-    return "{}{}".format(header, str_data)
+    return ("{}{}".format(header, str_data), data)
+
+def gen_Hiseq_lane_data(pro):
+    data=[]
+    header_ar = ["FCID","Lane","SampleID","SampleRef","Index","Description","Control","Recipe","Operator","SampleProject"]
+    for out in pro.all_outputs():
+        if  out.type != "Analyte":
+            continue
+        for sample in out.samples:
+            sp_obj = {}
+            sp_obj['lane'] = out.location[1].split(':')[0]
+            sp_obj['sid'] = "Sample_{}".format(sample.name)
+            sp_obj['sn'] = sample.name
+            try:
+                sp_obj['pj'] = sample.project.name.replace('.','__')
+            except:
+                #control samples have no project
+                continue
+            try:
+                sp_obj['rc'] = pro.udf['Run Recipe']
+            except:
+                sp_obj['rc'] = ''
+            sp_obj['ct'] = 'N'
+            sp_obj['op'] = pro.technician.name.replace(" ","_")
+            sp_obj['fc'] = out.location[0].name
+            sp_obj['sw'] = out.location[1]
+            try:
+                sp_obj['ref'] = sample.project.udf['Reference genome']
+            except:
+                sp_obj['ref']=''
+            idxs = find_barcode(sample, pro)
+            sp_obj['idx1'] = idxs[0]
+            if idxs[1]:
+                sp_obj['idx1']="{}-{}".format(idxs[0], idxs[1])
+            data.append(sp_obj)
+    header = "{}\n".format(",".join(header_ar))
+    str_data = ""
+    for line in sorted(data, key=lambda x: x['lane']):
+        l_data = [line['fc'], line['lane'], line['sn'], line['ref'],line['idx1'], line['pj'], line['ct'], line['rc'], line['op'], line['pj']]
+        str_data = str_data + ",".join(l_data) + "\n"
+
+    return ("{}{}".format(header, str_data), data)
 
 
 def find_barcode(sample, process):
@@ -88,27 +156,48 @@ def find_barcode(sample, process):
                     return find_barcode(sample, art.parent_process)
 
 
+def test():
+    log=[]
+    d=[{'lane':1,'idx1':'ATTT', 'idx2':''},{'lane':1,'idx1':'ATCTATCG', 'idx2':''},{'lane':1,'idx1':'ATCG', 'idx2':'ATCG'},]
+    check_index_distance(d, log)
+    print log
+
 def main(lims, args):
+    log=[]
     content = None
-    process = Process(lims, id=args.pid)
-    if process.type.name == 'Cluster Generation (HiSeq X) 1.0':
-        header = gen_X_header(process)
-        reads = gen_X_reads_info(process)
-        data = gen_X_lane_data(process)
-        content = "{}{}{}".format(header, reads, data)
+    if args.mytest:
+        test()
+    else:
+        process = Process(lims, id=args.pid)
+        if process.type.name == 'Cluster Generation (HiSeq X) 1.0':
+            header = gen_X_header(process)
+            reads = gen_X_reads_info(process)
+            (data, obj) = gen_X_lane_data(process)
+            check_index_distance(obj, log)
+            content = "{}{}{}".format(header, reads, data)
+        elif process.type.name == 'Cluster Generation (Illumina SBS) 4.0':
+            (content, obj) = gen_Hiseq_lane_data(process)
+            check_index_distance(obj, log)
 
         if not args.test:
             for out in process.all_outputs():
-                if out.name == "bcl2fastq Sample Sheet":
+                if out.name in ["bcl2fastq Sample Sheet", "SampleSheet csv"] :
                     ss_rfid = out.id
                 elif out.type == "Analyte":
                     fc_name = out.location[0].name
 
             with open("{}_{}.csv".format(ss_rfid, fc_name), "w") as f:
                 f.write(content)
+            if log:
+                with open("{}_Error.log".format(fc_name), "w") as f:
+                    f.write('\n'.join('log'))
+
+                sys.stderr.write("Errors were met, check the log.")
+                sys.exit(1)
 
         else:
             print content
+            print log
 
 
 if __name__ == "__main__":
@@ -117,6 +206,8 @@ if __name__ == "__main__":
                         help='Lims id for current Process')
     parser.add_argument('--test', action="store_true",
                         help='do not upload the samplesheet')
+    parser.add_argument('--mytest', action="store_true",
+                        help='mytest')
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
