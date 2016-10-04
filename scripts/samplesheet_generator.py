@@ -121,10 +121,13 @@ def gen_Hiseq_lane_data(pro):
                 sp_obj['ref'] = sample.project.udf['Reference genome']
             except:
                 sp_obj['ref']=''
-            idxs = find_barcode(sample, pro)
-            sp_obj['idx1'] = idxs[0]
-            if idxs[1]:
-                sp_obj['idx1']="{}-{}".format(idxs[0], idxs[1])
+            if 'use NoIndex' in pro.udf and pro.udf['use NoIndex'] == True:
+                sp_obj['idx1'] = "NoIndex"
+            else:
+                idxs = find_barcode(sample, pro)
+                sp_obj['idx1'] = idxs[0]
+                if idxs[1]:
+                    sp_obj['idx1']="{}-{}".format(idxs[0], idxs[1])
             data.append(sp_obj)
     header = "{}\n".format(",".join(header_ar))
     str_data = ""
@@ -133,6 +136,61 @@ def gen_Hiseq_lane_data(pro):
         str_data = str_data + ",".join(l_data) + "\n"
 
     return ("{}{}".format(header, str_data), data)
+
+def gen_Miseq_header(pro):
+    project_name=pro.all_inputs()[0].samples[0].project.name
+    header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=pro.date_run, wf=pro.udf["Experiment Name"], ass="null", dsc=pro.udf['Description'], chem="amplicon")
+    return header
+
+def gen_Miseq_reads(pro):
+    reads="[Reads]\n"
+    if pro.udf["Read 1 Cycles"]:
+        reads=reads + "{}\n".format(pro.udf["Read 1 Cycles"])
+    if pro.udf["Read 2 Cycles"]:
+        reads=reads + "{}\n".format(pro.udf["Read 2 Cycles"])
+    return reads
+
+def gen_Miseq_settings(pro):
+    ogf=1 if pro.udf["OnlyGenerateFASTQ"] else 0
+    fpdcrd=1 if pro.udf["FilterPCRDuplicates"] else 0
+    settings="[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n".format(ogf=ogf,fpdcrd=fpdcrd)
+    return settings
+
+def gen_Miseq_data(pro):
+    data=[]
+    header_ar=["Sample_ID","Sample_Name","Sample_Plate","Sample_Well","Sample_Project","index","I7_Index_ID","index2","I5_Index_ID","Description", "GenomeFolder"]
+    for io in pro.input_output_maps:
+        out=io[1]["uri"]
+        if  out.type != "Analyte":
+            continue
+        for sample in out.samples:
+            sp_obj = {}
+            sp_obj['lane'] = "1"
+            sp_obj['sid'] = "Sample_{}".format(sample.name)
+            sp_obj['sn'] = sample.name
+            sp_obj['fc'] = "{}-{}".format(io[0]['uri'].location[0].id, out.location[1])
+            sp_obj['sw'] = "A1"
+            sp_obj['gf'] = pro.udf['GenomeFolder']
+            try:
+                sp_obj['pj'] = sample.project.name.replace('.','_')
+            except:
+                #control samples have no project
+                continue
+            idxs = find_barcode(sample, pro)
+            sp_obj['idx1'] = idxs[0]
+            sp_obj['idx1ref'] = idxs[0]
+            sp_obj['idx2']=idxs[1]
+            sp_obj['idx2ref']=idxs[1]
+
+            data.append(sp_obj)
+    header = "[Data]\n{}\n".format(",".join(header_ar))
+    str_data = ""
+    for line in data:
+        l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], line['idx2'], line['idx2ref'], pro.udf['Description'], line['gf']]
+        str_data = str_data + ",".join(l_data) + "\n"
+
+    return ("{}{}".format(header, str_data), data)
+
 
 
 def find_barcode(sample, process):
@@ -146,7 +204,10 @@ def find_barcode(sample, process):
                 except IndexError:
                     # we only have the reagent label name.
                     rt = lims.get_reagent_types(name=art.reagent_labels[0])[0]
-                    idxs = idx_pat.findall(rt.sequence)[0]
+                    try:
+                        idxs = idx_pat.findall(rt.sequence)[0]
+                    except:
+                        return ("NoIndex","")
 
                 return idxs
             else:
@@ -178,6 +239,13 @@ def main(lims, args):
         elif process.type.name == 'Cluster Generation (Illumina SBS) 4.0':
             (content, obj) = gen_Hiseq_lane_data(process)
             check_index_distance(obj, log)
+        elif process.type.name == 'Denature, Dilute and Load Sample (MiSeq) 4.0':
+            header = gen_Miseq_header(process)
+            reads = gen_Miseq_reads(process)
+            settings = gen_Miseq_settings(process)
+            (data, obj) = gen_Miseq_data(process)
+            check_index_distance(obj, log)
+            content = "{}{}{}{}".format(header, reads, settings, data)
 
         if not args.test:
             for out in process.all_outputs():
