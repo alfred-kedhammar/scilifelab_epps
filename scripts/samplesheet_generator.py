@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import re
+import osoi
 
 from argparse import ArgumentParser
+from datetime import datetime
 from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
@@ -225,6 +227,7 @@ def test():
 
 def main(lims, args):
     log=[]
+    thisyear=datetime.now.year
     content = None
     if args.mytest:
         test()
@@ -236,9 +239,22 @@ def main(lims, args):
             (data, obj) = gen_X_lane_data(process)
             check_index_distance(obj, log)
             content = "{}{}{}".format(header, reads, data)
+            if os.path.exists("/srv/mfs/samplesheets/HiseqX/{}".format(thisyear)):
+                try:
+                    with open("/srv/mfs/samplesheets/HiseqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
+                        sf.write(content)
+                except Exception as e:
+                    log.append(e)
+
         elif process.type.name == 'Cluster Generation (Illumina SBS) 4.0':
             (content, obj) = gen_Hiseq_lane_data(process)
             check_index_distance(obj, log)
+            if os.path.exists("/srv/mfs/samplesheets/{}".format(thisyear)):
+                try:
+                    with open("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
+                        sf.write(content)
+                except Exception as e:
+                    log.append(e)
         elif process.type.name == 'Denature, Dilute and Load Sample (MiSeq) 4.0':
             header = gen_Miseq_header(process)
             reads = gen_Miseq_reads(process)
@@ -249,15 +265,17 @@ def main(lims, args):
 
         if not args.test:
             for out in process.all_outputs():
-                if out.name in ["bcl2fastq Sample Sheet", "SampleSheet csv"] :
+                if out.name == "Scilifelab SampleSheet" :
                     ss_rfid = out.id
+                elif out.name == "Scilifelab Log" :
+                    log_id= out.id
                 elif out.type == "Analyte":
                     fc_name = out.location[0].name
 
             with open("{}_{}.csv".format(ss_rfid, fc_name), "w") as f:
                 f.write(content)
             if log:
-                with open("{}_Error.log".format(fc_name), "w") as f:
+                with open("{}_{}_Error.log".format(log_id, fc_name), "w") as f:
                     f.write('\n'.join('log'))
 
                 sys.stderr.write("Errors were met, check the log.")
