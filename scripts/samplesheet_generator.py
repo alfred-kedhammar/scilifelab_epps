@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import re
-import osoi
+import os
 
 from argparse import ArgumentParser
 from datetime import datetime
@@ -227,7 +227,7 @@ def test():
 
 def main(lims, args):
     log=[]
-    thisyear=datetime.now.year
+    thisyear=datetime.now().year
     content = None
     if args.mytest:
         test()
@@ -239,9 +239,9 @@ def main(lims, args):
             (data, obj) = gen_X_lane_data(process)
             check_index_distance(obj, log)
             content = "{}{}{}".format(header, reads, data)
-            if os.path.exists("/srv/mfs/samplesheets/HiseqX/{}".format(thisyear)):
+            if os.path.exists("/srv/mfs/samplesheets/HiSeqX/{}".format(thisyear)):
                 try:
-                    with open("/srv/mfs/samplesheets/HiseqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
+                    with open("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
                         sf.write(content)
                 except Exception as e:
                     log.append(e)
