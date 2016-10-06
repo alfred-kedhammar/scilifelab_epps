@@ -53,7 +53,7 @@ def manipulate_workflow(demux_process):
         proc_stats["Instrument"] = "miseq"
     elif "Illumina Sequencing (Illumina SBS) 4.0" == workflow.type.name:
         try:
-            proc_stats["Chemistry"] = workflow[0].udf["Flow Cell Version"]
+            proc_stats["Chemistry"] = workflow.udf["Flow Cell Version"]
         except:
             problem_handler("exit", "No flowcell version set in sequencing step.")
         proc_stats["Instrument"] = "hiseq"
@@ -311,3 +311,4 @@ if __name__ =="__main__":
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
     main(args.process_lims_id, args.demux_id, args.log_id)
+
