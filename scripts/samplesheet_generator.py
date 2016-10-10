@@ -61,14 +61,17 @@ def gen_X_reads_info(pro):
 def gen_X_lane_data(pro):
     data = []
     single_end = True
-    for inp in pro.all_inputs():
+    for io in pro.input_output_maps:
+        if not io[1]['output-generation-type']=='PerInput':
+            continue
+        inp=io[0]['uri']
         for sample in inp.samples:
             sp_obj = {}
             sp_obj['lane'] = inp.location[1].split(':')[0]
             sp_obj['sid'] = "Sample_{}".format(sample.name)
             sp_obj['sn'] = sample.name
             sp_obj['pj'] = sample.project.name
-            sp_obj['fc'] = inp.location[1].name
+            sp_obj['fc'] = inp.location[0].name
             sp_obj['sw'] = inp.location[1]
             idxs = find_barcode(sample, pro)
             sp_obj['idx1'] = idxs[0]
@@ -117,7 +120,7 @@ def gen_Hiseq_lane_data(pro):
                 sp_obj['rc'] = ''
             sp_obj['ct'] = 'N'
             sp_obj['op'] = pro.technician.name.replace(" ","_")
-            sp_obj['fc'] = out.location[1].name
+            sp_obj['fc'] = out.location[0].name
             sp_obj['sw'] = out.location[1]
             try:
                 sp_obj['ref'] = sample.project.udf['Reference genome']
@@ -170,7 +173,7 @@ def gen_Miseq_data(pro):
             sp_obj['lane'] = "1"
             sp_obj['sid'] = "Sample_{}".format(sample.name)
             sp_obj['sn'] = sample.name
-            sp_obj['fc'] = "{}-{}".format(io[0]['uri'].location[1].name, out.location[1])
+            sp_obj['fc'] = "{}-{}".format(io[1]['uri'].location[0].name, out.location[1])
             sp_obj['sw'] = "A1"
             sp_obj['gf'] = pro.udf['GenomeFolder']
             try:
