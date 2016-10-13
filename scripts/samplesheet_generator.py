@@ -70,7 +70,7 @@ def gen_X_lane_data(pro):
             sp_obj['lane'] = inp.location[1].split(':')[0]
             sp_obj['sid'] = "Sample_{}".format(sample.name)
             sp_obj['sn'] = sample.name
-            sp_obj['pj'] = sample.project.name
+            sp_obj['pj'] = sample.project.name.replace('.','_')
             sp_obj['fc'] = io[1]['uri'].location[0].name
             sp_obj['sw'] = inp.location[1]
             idxs = find_barcode(sample, pro)
