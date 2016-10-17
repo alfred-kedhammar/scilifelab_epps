@@ -145,7 +145,7 @@ def gen_Hiseq_lane_data(pro):
 
 def gen_Miseq_header(pro):
     project_name=pro.all_inputs()[0].samples[0].project.name
-    header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=datetime.now().strptime("%m/%d/%Y"), wf=pro.udf["Workflow"], ass="null", dsc=pro.udf['Description'], chem="amplicon")
+    header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=datetime.now().strftime("%m/%d/%Y"), wf=pro.udf["Workflow"], ass="null", dsc=pro.udf['Description'], chem="amplicon")
     return header
 
 def gen_Miseq_reads(pro):
