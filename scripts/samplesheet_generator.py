@@ -275,7 +275,7 @@ def main(lims, args):
                 elif out.type == "Analyte":
                     fc_name = out.location[0].name
 
-            with open("{}_{}.csv".format(ss_rfid, fc_name), "w") as f:
+            with open("{}_{}.csv".format(ss_rfid, fc_name), "w", 0o664) as f:
                 f.write(content)
             if log:
                 with open("{}_{}_Error.log".format(log_id, fc_name), "w") as f:
