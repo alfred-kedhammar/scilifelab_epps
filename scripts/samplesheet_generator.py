@@ -192,7 +192,7 @@ def gen_Miseq_data(pro):
                 dualindex=True
 
             data.append(sp_obj)
-    if dualindex:
+    if not dualindex:
         header_ar.remove('index2')
         header_ar.remove('I5_Index_ID')
     header = "[Data]\n{}\n".format(",".join(header_ar))
