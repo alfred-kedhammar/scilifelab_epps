@@ -199,9 +199,9 @@ def gen_Miseq_data(pro):
     str_data = ""
     for line in data:
         if dualindex:
-            l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], line['idx2'], line['idx2ref'], pro.udf['Description'], line['gf']]
+            l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], line['idx2'], line['idx2ref'], pro.udf['Description'].replace('.','_'), line['gf']]
         else:
-            l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], pro.udf['Description'], line['gf']]
+            l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], pro.udf['Description'].replace('.','_'), line['gf']]
         str_data = str_data + ",".join(l_data) + "\n"
 
     return ("{}{}".format(header, str_data), data)
