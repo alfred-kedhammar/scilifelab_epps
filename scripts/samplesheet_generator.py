@@ -145,7 +145,7 @@ def gen_Hiseq_lane_data(pro):
 
 def gen_Miseq_header(pro):
     project_name=pro.all_inputs()[0].samples[0].project.name
-    header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=pro.date_run, wf=pro.udf["Experiment Name"], ass="null", dsc=pro.udf['Description'], chem="amplicon")
+    header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=datetime.now().strftime("%m/%d/%Y"), wf=pro.udf["Workflow"], ass="null", dsc=pro.udf['Description'], chem="amplicon")
     return header
 
 def gen_Miseq_reads(pro):
@@ -164,6 +164,7 @@ def gen_Miseq_settings(pro):
 
 def gen_Miseq_data(pro):
     data=[]
+    dualindex=False
     header_ar=["Sample_ID","Sample_Name","Sample_Plate","Sample_Well","Sample_Project","index","I7_Index_ID","index2","I5_Index_ID","Description", "GenomeFolder"]
     for io in pro.input_output_maps:
         out=io[1]["uri"]
@@ -187,12 +188,20 @@ def gen_Miseq_data(pro):
             sp_obj['idx1ref'] = idxs[0]
             sp_obj['idx2']=idxs[1]
             sp_obj['idx2ref']=idxs[1]
+            if idxs[1]:
+                dualindex=True
 
             data.append(sp_obj)
+    if not dualindex:
+        header_ar.remove('index2')
+        header_ar.remove('I5_Index_ID')
     header = "[Data]\n{}\n".format(",".join(header_ar))
     str_data = ""
     for line in data:
-        l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], line['idx2'], line['idx2ref'], pro.udf['Description'], line['gf']]
+        if dualindex:
+            l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], line['idx2'], line['idx2ref'], pro.udf['Description'].replace('.','_'), line['gf']]
+        else:
+            l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], pro.udf['Description'].replace('.','_'), line['gf']]
         str_data = str_data + ",".join(l_data) + "\n"
 
     return ("{}{}".format(header, str_data), data)
