@@ -254,7 +254,7 @@ def main(lims, args):
             content = "{}{}{}".format(header, reads, data)
             if os.path.exists("/srv/mfs/samplesheets/HiSeqX/{}".format(thisyear)):
                 try:
-                    with open("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
+                    with open("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w', 0o664) as sf:
                         sf.write(content)
                 except Exception as e:
                     log.append(e)
@@ -264,7 +264,7 @@ def main(lims, args):
             check_index_distance(obj, log)
             if os.path.exists("/srv/mfs/samplesheets/{}".format(thisyear)):
                 try:
-                    with open("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
+                    with open("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w', 0o664) as sf:
                         sf.write(content)
                 except Exception as e:
                     log.append(e)
