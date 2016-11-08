@@ -20,6 +20,7 @@ from manage_demux_stats_thresholds import Thresholds
 
 #Standard packages
 from shutil import move
+import re
 import os 
 import csv
 import sys
@@ -126,9 +127,15 @@ def manipulate_process(demux_process, proc_stats):
     
 """Sets artifact = samples values """
 def set_sample_values(demux_process, parser_struct, proc_stats):
-    samples_failed = 0
+    failed_entries = 0
+    undet_included = False
     
     for pool in demux_process.all_inputs():
+        undet_reads = 0
+        undet_pairs = 0
+        assign_lane_reads = 0
+        undet_lane_reads = 0
+        
         try:
             outarts_per_lane = demux_process.outputs_per_input(pool.id, ResultFile = True)
         except Exception as e:
@@ -144,8 +151,6 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
         exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/float(len(outarts_per_lane)), 0)
         logger.info("Expected sample clusters for this lane: {}".format(str(exp_smp_per_lne)))
         
-        assign_lane_reads = 0
-        undet_lane_reads = 0
         for target_file in outarts_per_lane:
             try:
                 current_name = target_file.samples[0].name
@@ -153,7 +158,40 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 problem_handler("exit", "Unable to determine sample name. Incorrect sample variable in process: {}".format(e.message))
             for entry in parser_struct:
                 if lane_no == entry["Lane"]:
+                    lane_no = int(lane_no)
                     sample = entry["Sample"]
+                    
+                    if "Lanes to include undetermined" in demux_process.udf:
+                        try:
+                            undet_lanes= re.split('[ ,.]', demux_process.udf["Lanes to include undetermined"])
+                            undet_lanes = [int(i) for i in undet_lanes]
+                        except:
+                            problem_handler("exit", "Unable to typecast included undetermined lanes. Possibly non-number in list")
+                        if lane_no in undet_lanes:
+                            undet_included = True
+                            #Sanity check for including undetermined
+                            #Next entry is undetermined and previous is for a different lane
+                            current_index = parser_struct.index(entry)
+                            undet = parser_struct[current_index + 1]
+                            if undet['Sample'] == 'Undetermined' and parser_struct[current_index - 1]['Lane'] != lane_no:
+                                try:
+                                    clusterType = None
+                                    if "PF Clusters" in undet:
+                                        clusterType = "PF Clusters"
+                                    else:
+                                        clusterType = "Clusters"
+                                    #Paired runs are divided by two within flowcell parser
+                                    if proc_stats["Paired"]:
+                                        undet_reads = int(undet[clusterType].replace(",",""))*2
+                                        undet_pairs = int(undet[clusterType].replace(",",""))
+                                    #Since a single ended run has no pairs, pairs is set to equal reads
+                                    else:
+                                        undet_reads = int(undet[clusterType].replace(",",""))
+                                        undet_pairs = int(undet[clusterType].replace(",",""))
+                                    logger.info("Included undetermined for lane number {}".format(lane_no))
+                                except Exception as e:
+                                    problem_handler("exit", "Unable to set values for undetermined #Reads and #Read Pairs: {}".format(e.message))
+                        
                     if sample == current_name:
                         logger.info("Added the following set of values to {} of lane {}:".format(sample,lane_no))
                         try:
@@ -188,12 +226,12 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 clusterType = "Clusters"
                             #Paired runs are divided by two within flowcell parser
                             if proc_stats["Paired"]:
-                                target_file.udf["# Reads"] = int(entry[clusterType].replace(",",""))*2
-                                target_file.udf["# Read Pairs"] = int(entry[clusterType].replace(",",""))
+                                target_file.udf["# Reads"] = int(entry[clusterType].replace(",",""))*2 + undet_reads
+                                target_file.udf["# Read Pairs"] = int(entry[clusterType].replace(",","")) + undet_pairs
                             #Since a single ended run has no pairs, pairs is set to equal reads
                             else:
-                                target_file.udf["# Reads"] = int(entry[clusterType].replace(",",""))
-                                target_file.udf["# Read Pairs"] = int(entry[clusterType].replace(",",""))
+                                target_file.udf["# Reads"] = int(entry[clusterType].replace(",","")) + undet_reads
+                                target_file.udf["# Read Pairs"] = int(entry[clusterType].replace(",","")) + undet_pairs
                             assign_lane_reads = assign_lane_reads + target_file.udf["# Reads"]
                         except Exception as e:
                             problem_handler("exit", "Unable to set values for #Reads and #Read Pairs: {}".format(e.message))
@@ -208,13 +246,14 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             else:
                                 target_file.udf["Include reads"] = "NO"
                                 target_file.qc_flag = "FAILED"
-                                samples_failed = samples_failed + 1
+                                failed_entries = failed_entries + 1
                             logger.info("Q30 %: {}% found, minimum at {}%".\
                                          format(str(float(entry["% >= Q30bases"])), str(demux_process.udf["Threshold for % bases >= Q30"])))
                             logger.info("Expected reads: {} found, minimum at {}".format(str(target_file.udf["# Reads"]), str(int(exp_smp_per_lne)))) 
                             logger.info("Sample QC status set to {}".format(target_file.qc_flag))
                         except Exception as e:
                             problem_handler("exit", "Unable to set QC status for sample: {}".format(e.message))
+                    
                     #Counts undetermined per lane
                     elif sample == "Undetermined":
                         clusterType = None
@@ -235,17 +274,19 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
             except Exception as e:
                 problem_handler("exit", "Failed to apply artifact data to LIMS. Possibly due to data in laneBarcode.html; {}".format(e.message))
             
-        #If undetermined reads are greater than threshold*reads_in_lane
-        found_undet = round(float(undet_lane_reads)/(assign_lane_reads+undet_lane_reads)*100, 2)
-        if  found_undet > demux_process.udf["Maximum % Undetermined Reads per Lane"]:
-            #This looks kind of bad in lims, but \n can't be used.
-            problem_handler("warning", "Undemultiplexed reads for lane {} was {} ({})% thus exceeding \
-             defined limit.\t".format(lane_no, undet_lane_reads, found_undet))
-        else:
-            logger.info("Found {} ({}%) undemultiplexed reads for lane {}.".format(undet_lane_reads, found_undet, lane_no))
-        
-        if samples_failed > 0:
-            logger.info("Warning: {} entries failed automatic QC".format(samples_failed))
+        if not undet_included:
+            #If undetermined reads are greater than threshold*reads_in_lane
+            found_undet = round(float(undet_lane_reads)/(assign_lane_reads+undet_lane_reads)*100, 2)
+            if  found_undet > demux_process.udf["Maximum % Undetermined Reads per Lane"]:
+                #This looks kind of bad in lims, but \n can't be used.
+                problem_handler("warning", "Undemultiplexed reads for lane {} was {} ({})% thus exceeding \
+                 defined limit.\t".format(lane_no, undet_lane_reads, found_undet))
+            else:
+                logger.info("Found {} ({}%) undemultiplexed reads for lane {}.".format(undet_lane_reads, found_undet, lane_no))
+    if undet_included:
+        problem_handler("warning", "Undetermined reads included in read count!")
+    if failed_entries > 0:
+        problem_handler("warning", "{} entries failed automatic QC".format(failed_entries))
 
 """Creates demux_{FCID}.csv and attaches it to process"""
 def write_demuxfile(proc_stats, demux_id):
