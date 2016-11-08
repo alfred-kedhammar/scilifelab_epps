@@ -68,16 +68,16 @@ def gen_X_lane_data(pro):
         inp=io[0]['uri']
         for sample in inp.samples:
             sp_obj = {}
-            sp_obj['lane'] = inp.location[1].split(':')[0]
-            sp_obj['sid'] = "Sample_{}".format(sample.name)
-            sp_obj['sn'] = sample.name
-            sp_obj['pj'] = sample.project.name.replace('.','_')
-            sp_obj['fc'] = io[1]['uri'].location[0].name
-            sp_obj['sw'] = inp.location[1]
+            sp_obj['lane'] = inp.location[1].split(':')[0].replace(',','')
+            sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
+            sp_obj['sn'] = sample.name.replace(',','')
+            sp_obj['pj'] = sample.project.name.replace('.','_').replace(',','')
+            sp_obj['fc'] = io[1]['uri'].location[0].name.replace(',','')
+            sp_obj['sw'] = inp.location[1].replace(',','')
             idxs = find_barcode(sample, pro)
-            sp_obj['idx1'] = idxs[0]
+            sp_obj['idx1'] = idxs[0].replace(',','')
             try:
-                sp_obj['idx2'] = idxs[1]
+                sp_obj['idx2'] = idxs[1].replace(',','')
                 single_end = False
             except KeyError:
                 sp_obj['idx2'] = ''
@@ -107,33 +107,33 @@ def gen_Hiseq_lane_data(pro):
             continue
         for sample in out.samples:
             sp_obj = {}
-            sp_obj['lane'] = out.location[1].split(':')[0]
-            sp_obj['sid'] = "Sample_{}".format(sample.name)
-            sp_obj['sn'] = sample.name
+            sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
+            sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
+            sp_obj['sn'] = sample.name.replace(',','')
             try:
-                sp_obj['pj'] = sample.project.name.replace('.','__')
+                sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
             except:
                 #control samples have no project
                 continue
             try:
-                sp_obj['rc'] = pro.udf['Run Recipe']
+                sp_obj['rc'] = pro.udf['Run Recipe'].replace(',','')
             except:
                 sp_obj['rc'] = ''
             sp_obj['ct'] = 'N'
-            sp_obj['op'] = pro.technician.name.replace(" ","_")
-            sp_obj['fc'] = out.location[0].name
-            sp_obj['sw'] = out.location[1]
+            sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
+            sp_obj['fc'] = out.location[0].name.replace(',','')
+            sp_obj['sw'] = out.location[1].replace(',','')
             try:
-                sp_obj['ref'] = sample.project.udf['Reference genome']
+                sp_obj['ref'] = sample.project.udf['Reference genome'].replace(',','')
             except:
                 sp_obj['ref']=''
             if 'use NoIndex' in pro.udf and pro.udf['use NoIndex'] == True:
                 sp_obj['idx1'] = "NoIndex"
             else:
                 idxs = find_barcode(sample, pro)
-                sp_obj['idx1'] = idxs[0]
+                sp_obj['idx1'] = idxs[0].replace(',','')
                 if idxs[1]:
-                    sp_obj['idx1']="{}-{}".format(idxs[0], idxs[1])
+                    sp_obj['idx1']="{}-{}".format(idxs[0].replace(',',''), idxs[1])
             data.append(sp_obj)
     header = "{}\n".format(",".join(header_ar))
     str_data = ""
@@ -173,21 +173,21 @@ def gen_Miseq_data(pro):
         for sample in out.samples:
             sp_obj = {}
             sp_obj['lane'] = "1"
-            sp_obj['sid'] = "Sample_{}".format(sample.name)
-            sp_obj['sn'] = sample.name
-            sp_obj['fc'] = "{}-{}".format(io[1]['uri'].location[0].name, out.location[1])
+            sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
+            sp_obj['sn'] = sample.name.replace(',','')
+            sp_obj['fc'] = "{}-{}".format(io[1]['uri'].location[0].name.replace(',',''), out.location[1].replace(',',''))
             sp_obj['sw'] = "A1"
-            sp_obj['gf'] = pro.udf['GenomeFolder']
+            sp_obj['gf'] = pro.udf['GenomeFolder'].replace(',','')
             try:
-                sp_obj['pj'] = sample.project.name.replace('.','_')
+                sp_obj['pj'] = sample.project.name.replace('.','_').replace(',','')
             except:
                 #control samples have no project
                 continue
             idxs = find_barcode(sample, pro)
-            sp_obj['idx1'] = idxs[0]
-            sp_obj['idx1ref'] = idxs[0]
-            sp_obj['idx2']=idxs[1]
-            sp_obj['idx2ref']=idxs[1]
+            sp_obj['idx1'] = idxs[0].replace(',','')
+            sp_obj['idx1ref'] = idxs[0].replace(',','')
+            sp_obj['idx2']=idxs[1].replace(',','')
+            sp_obj['idx2ref']=idxs[1].replace(',','')
             if idxs[1]:
                 dualindex=True
 
