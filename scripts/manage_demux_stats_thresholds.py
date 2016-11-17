@@ -71,7 +71,7 @@ class Thresholds():
                 if self.read_length >= 150:
                     self.Q30 = 75
         if not self.Q30:
-            self.problem_handler("exit", "Can't set Q30. No defined threshold. Chemistry: {}, Instrument: {}, Read Length: {}".\
+            self.problem_handler("exit", "No predefined Q30 threshold (see doc 1244). Instrument: {}, Chemistry: {}, Read Length: {}".\
                                  format(self.instrument, self.chemistry, self.read_length))
     
     """Expected lanes per cluster are derived from undemultiplex_index.py"""
@@ -104,7 +104,7 @@ class Thresholds():
             else:
                 self.problem_handler("exit", "HiSeqX runs should always be paired but script has detected otherwise. Something has gone terribly wrong.")
         if not self.exp_lane_clust:
-            self.problem_handler("exit", "Can't set Clusters per lane. No defined threshold.Chemistry: {}, Instrument: {}, Read Length: {}".\
+            self.problem_handler("exit", "No predefined clusters per lane threshold. Instrument: {}, Chemistry: {}, Read Length: {}".\
                                  format(self.instrument, self.chemistry, self.read_length))
             
     """Maximum undetermined per lane are derived from the current taca.yaml"""      
