@@ -218,7 +218,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             target_file.udf["% Bases >=Q30"] = float(entry["% >= Q30bases"])
                             logger.info("{}% Bases >=Q30".format(target_file.udf["% Bases >=Q30"]))
                         except Exception as e:
-                            problem_handler("exit", "Unable to set general artifact values: {}".format(e.message))
+                            problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
                         try:
                             clusterType = None
                             if "PF Clusters" in entry:
