@@ -210,7 +210,7 @@ def gen_Miseq_data(pro):
 
 def find_barcode(sample, process):
     # print "trying to find {} barcode in {}".format(sample.name, process.name)
-    idx_pat = re.compile("([ATCG]+)-?([ATCG]*)")
+    idx_pat = re.compile("([ATCG]{4,})-?([ATCG]*)")
     for art in process.all_inputs():
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
