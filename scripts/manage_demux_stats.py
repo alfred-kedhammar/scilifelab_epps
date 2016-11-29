@@ -130,6 +130,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
     failed_entries = 0
     undet_included = False
     undet_lanes = list()
+    proj_pattern = re.compile('(P\w+_\d+)')
     
     if "Lanes to include undetermined" in demux_process.udf:
         try:
@@ -168,7 +169,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                     sample = entry["Sample"]
                     if sample != "Undetermined":
                         #Finds name subset "P Anything Underscore Digits"
-                        sample = re.search('(P\w+_\d+)',sample).group(0)
+                        sample = proj_pattern.search(sample).group(0)
 
                     if undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
                         undet_included = True
