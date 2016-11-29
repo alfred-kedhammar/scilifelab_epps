@@ -130,6 +130,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
     failed_entries = 0
     undet_included = False
     undet_lanes = list()
+    proj_pattern = re.compile('(P\w+_\d+)')
     
     if "Lanes to include undetermined" in demux_process.udf:
         try:
@@ -140,7 +141,6 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
     
     for pool in demux_process.all_inputs():
         undet_reads = 0
-        undet_pairs = 0
         lane_reads = 0
         undet_lane_reads = 0
         
@@ -167,6 +167,9 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
             for entry in parser_struct:
                 if lane_no == entry["Lane"]:
                     sample = entry["Sample"]
+                    if sample != "Undetermined":
+                        #Finds name subset "P Anything Underscore Digits"
+                        sample = proj_pattern.search(sample).group(0)
 
                     if undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
                         undet_included = True
@@ -227,10 +230,12 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 clusterType = "Clusters"
                             #Paired runs are divided by two within flowcell parser
                             if proc_stats["Paired"]:
+                                #Undet always 0 unless manually included
                                 target_file.udf["# Reads"] = int(entry[clusterType].replace(",",""))*2 + undet_reads
                                 target_file.udf["# Read Pairs"] = int(entry[clusterType].replace(",","")) + undet_reads/2
                             #Since a single ended run has no pairs, pairs is set to equal reads
                             else:
+                                #Undet always 0 unless manually included
                                 target_file.udf["# Reads"] = int(entry[clusterType].replace(",","")) + undet_reads
                                 target_file.udf["# Read Pairs"] = int(entry[clusterType].replace(",","")) + undet_reads
                             lane_reads = lane_reads + target_file.udf["# Reads"]
@@ -265,10 +270,8 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             
                         if proc_stats["Paired"]:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))*2
-                            undet_read_pairs= undet_lane_reads/2
                         else:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))
-                            undet_read_pairs = undet_lane_reads
                         
             try: 
                 target_file.put()
