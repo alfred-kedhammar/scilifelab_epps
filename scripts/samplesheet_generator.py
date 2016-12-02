@@ -256,7 +256,7 @@ def main(lims, args):
                 try:
                     with open("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
                         sf.write(content)
-                    os.chmod("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc'], 0664)
+                    os.chmod("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc'], 0664))
                 except Exception as e:
                     log.append(e)
 
@@ -267,7 +267,7 @@ def main(lims, args):
                 try:
                     with open("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
                         sf.write(content)
-                    os.chmod("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc'], 0664)
+                    os.chmod("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc'], 0664))
                 except Exception as e:
                     log.append(e)
         elif process.type.name == 'Denature, Dilute and Load Sample (MiSeq) 4.0':
