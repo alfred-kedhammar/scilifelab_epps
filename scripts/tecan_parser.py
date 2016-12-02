@@ -86,6 +86,7 @@ def dictionnarize(datalist):
     return data_to_upload
 
 def main(args, lims):
+    err_out=""
     pro=Process(lims, id=args.pid)
     for output in pro.all_outputs():
         if output.name == "Tecan output file":
@@ -110,9 +111,11 @@ def main(args, lims):
             iom[1]['uri'].udf['%CV']=float(di[poskey]['cv'])
             iom[1]['uri'].put()
 
-    if any(float(x["cv"]) > CV_LIMIT for x in di.values()):
-        sys.stderr.write("One or several samples has a CV above {:d}%. "
-            "Check the output file for details.".format(CV_LIMIT))
+            if float(di[poskey]['cv']) > CV_LIMIT:
+                err_out="One or several samples has a CV above {:d}%. Check the output file for details.".format(CV_LIMIT)
+
+    if output:
+        sys.stderr.write(err_out)
         sys.exit(2)
 
 if __name__ == "__main__":

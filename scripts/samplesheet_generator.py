@@ -262,8 +262,9 @@ def main(lims, args):
             content = "{}{}{}".format(header, reads, data)
             if os.path.exists("/srv/mfs/samplesheets/HiSeqX/{}".format(thisyear)):
                 try:
-                    with open("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w', 0o664) as sf:
+                    with open("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
                         sf.write(content)
+                    os.chmod("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc'], 0664)
                 except Exception as e:
                     log.append(e)
 
@@ -272,8 +273,9 @@ def main(lims, args):
             check_index_distance(obj, log)
             if os.path.exists("/srv/mfs/samplesheets/{}".format(thisyear)):
                 try:
-                    with open("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w', 0o664) as sf:
+                    with open("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
                         sf.write(content)
+                    os.chmod("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc'], 0664)
                 except Exception as e:
                     log.append(e)
         elif process.type.name == 'Denature, Dilute and Load Sample (MiSeq) 4.0':
@@ -295,6 +297,7 @@ def main(lims, args):
 
             with open("{}_{}.csv".format(ss_rfid, fc_name), "w", 0o664) as f:
                 f.write(content)
+            os.chmod("{}_{}.csv".format(ss_rfid, fc_name),0664)
             if log:
                 with open("{}_{}_Error.log".format(log_id, fc_name), "w") as f:
                     f.write('\n'.join('log'))
