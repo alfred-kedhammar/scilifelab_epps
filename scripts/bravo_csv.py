@@ -273,14 +273,27 @@ def normalization(current_step):
                 # Source sample:
                 src_plate = src.location[0].id
                 src_well = src.location[1]
-                src_tot_volume = float(src.udf["Volume (ul)"])
+                try:
+                    src_tot_volume = float(src.udf["Volume (ul)"])
+                except:
+                    src_tot_volume = 999999
+                    log.append("WARNING: No volume found for input sample {0}".format(src.samples[0].name))
                 try:
                     src_volume = float(dest.udf["Volume to take (uL)"])
                 except:
                     sys.stderr.write("Field 'Volume to take (uL)' is empty for artifact {0}\n".format(dest.name))
                     sys.exit(2)
+                if "Concentration" in src.udf:
+                    src_conc = src.udf["Concentration"]
+                    if src.udf["Conc. Units"] != "nM":
+                        log.append("ERROR: No valid concentration found for sample {0}".format(src.samples[0].name))
+                elif "Normalized conc. (nM)" in src.udf:
+                    src_conc = src.udf["Normalized conc. (nM)"]
+                else:
+                    sys.stderr.write("Non input concentration found for sample {0}\n".format(dest.name))
+                    sys.exit(2)
 
-                src_conc = src.udf["Concentration"]
+
                 # Diluted sample:
                 dest_plate = dest.location[0].id
                 dest_well = dest.location[1]
@@ -289,9 +302,7 @@ def normalization(current_step):
                 except:
                     sys.stderr.write("Field 'Normalized conc. (nM)' is empty for artifact {0}\n".format(dest.name))
                     sys.exit(2)
-                if src.udf["Conc. Units"] != "nM":
-                    log.append("ERROR: No valid concentration found for sample {0}".format(src.samples[0].name))
-                elif src_conc < dest_conc:
+                if src_conc < dest_conc:
                     log.append("ERROR: Too low concentration for sample {0}".format(src.samples[0].name))
                 else:
                     # Warn if volume to take > volume available or max volume is
