@@ -114,7 +114,7 @@ def main(args, lims):
             if float(di[poskey]['cv']) > CV_LIMIT:
                 err_out="One or several samples has a CV above {:d}%. Check the output file for details.".format(CV_LIMIT)
 
-    if output:
+    if err_out:
         sys.stderr.write(err_out)
         sys.exit(2)
 
