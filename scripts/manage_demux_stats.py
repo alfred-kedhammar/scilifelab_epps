@@ -202,20 +202,33 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             target_file.udf["%PF"] = float(entry["% PFClusters"])
                             logger.info("{}% PF".format(target_file.udf["%PF"]))
                             
-                            #["% One mismatchbarcode"] can hold NaN. Treating it as 0.0
-                            if entry["% One mismatchbarcode"] == "NaN":
+                            #["% One mismatchbarcode"] can hold NaN or blank. Treating it as 0.0
+                            if entry["% One mismatchbarcode"] == "NaN" or entry["% One mismatchbarcode"] == "":
                                 target_file.udf["% One Mismatch Reads (Index)"] = 0.0
-                                logger.info("'NaN' One Mismatch Reads (Index), treating as {}".format(target_file.udf["% One Mismatch Reads (Index)"]))
+                                logger.info("No One Mismatch Reads (Index), treating as {}".format(target_file.udf["% One Mismatch Reads (Index)"]))
                             else:
                                 target_file.udf["% One Mismatch Reads (Index)"] = float(entry["% One mismatchbarcode"])
                                 logger.info("{}% One Mismatch Reads (Index)".format(target_file.udf["% One Mismatch Reads (Index)"]))
                                 
-                            target_file.udf["% of Raw Clusters Per Lane"] = float(entry["% of thelane"])
-                            logger.info("{}% of Raw Clusters Per Lane".format(target_file.udf["% of Raw Clusters Per Lane"]))
+                            #["% of thelane"] can hold blank. Treating as 100.0%
+                            if entry["% of thelane"] == "":
+                                target_file.udf["% of Raw Clusters Per Lane"] = 100.0
+                                logger.info("No % of Raw Clusters Per Lane, treating as {}%".format(target_file.udf["% of Raw Clusters Per Lane"]))
+                            else:
+                                target_file.udf["% of Raw Clusters Per Lane"] = float(entry["% of thelane"])
+                                logger.info("{}% of Raw Clusters Per Lane".format(target_file.udf["% of Raw Clusters Per Lane"]))
+                        
                             target_file.udf["Ave Q Score"] = float(entry["Mean QualityScore"])
                             logger.info("{} Ave Q Score".format(target_file.udf["Ave Q Score"]))
-                            target_file.udf["% Perfect Index Read"] = float(entry["% Perfectbarcode"])
-                            logger.info("{}% Perfect Index Read".format(target_file.udf["% Perfect Index Read"]))
+                            
+                            #["% Perfectbarcode"] can hold blank. Treating as 0.0%
+                            if entry["% Perfectbarcode"] == "":
+                                target_file.udf["% Perfect Index Read"] = 0.0
+                                logger.info("No Perfect Index Read, treating as {}%".format(target_file.udf["% Perfect Index Read"]))
+                            else:
+                                target_file.udf["% Perfect Index Read"] = float(entry["% Perfectbarcode"])
+                                logger.info("{}% Perfect Index Read".format(target_file.udf["% Perfect Index Read"]))
+                            
                             target_file.udf["Yield PF (Gb)"] = float(entry["Yield (Mbases)"].replace(",",""))/1000
                             logger.info("{} Yield (Mbases)".format(target_file.udf["Yield PF (Gb)"]))
                             target_file.udf["% Bases >=Q30"] = float(entry["% >= Q30bases"])
