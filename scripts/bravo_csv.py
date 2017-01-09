@@ -114,7 +114,11 @@ def make_datastructure(currentStep, lims, log):
             elif obj['src_fc_id'] in samples_volumes:
                 obj['vol'] = samples_volumes[obj['src_fc_id']][obj['src_well']]
             else:
-                obj['vol'] = samples_volumes[obj['src_fc']][obj['src_well']]
+                try:
+                    obj['vol'] = samples_volumes[obj['src_fc']][obj['src_well']]
+                except KeyError:
+                    log.append("Unable to find previous volume for {}".format(obj["name"]))
+
             data.append(obj)
 
     return data
