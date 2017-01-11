@@ -226,9 +226,9 @@ def find_barcode(sample, process):
                     try:
                         idxs = IDX_PAT.findall(reagent_label_name)[0]
                     except IndexError:
-                        # we only have the reagent label name.
-                        rt = lims.get_reagent_types(name=reagent_label_name)[0]
                         try:
+                            # we only have the reagent label name.
+                            rt = lims.get_reagent_types(name=reagent_label_name)[0]
                             idxs = IDX_PAT.findall(rt.sequence)[0]
                         except:
                             return ("NoIndex","")
