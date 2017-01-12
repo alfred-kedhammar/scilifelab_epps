@@ -131,6 +131,12 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
     undet_included = False
     undet_lanes = list()
     proj_pattern = re.compile('(P\w+_\d+)')
+    #Necessary for noindexruns, should always resolve
+    try:
+        run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0"}
+        seqstep = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id, type=run_types)[0]
+    except Exception as e:
+        problem_handler("exit", "Undefined prior workflow step (run type): {}".format(e.message))
     
     if "Lanes to include undetermined" in demux_process.udf:
         try:
@@ -170,8 +176,10 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                     if sample != "Undetermined":
                         #Finds name subset "P Anything Underscore Digits"
                         sample = proj_pattern.search(sample).group(0)
-
-                    if undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
+                                                                                                                   
+                    #Bracket for adding undetermined to results   
+                    #Elif since noindex runs can't have undetermined
+                    elif undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
                         undet_included = True
                         #Sanity check for including undetermined
                         #Next entry is undetermined and previous is for a different lane
@@ -235,25 +243,45 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             logger.info("{}% Bases >=Q30".format(target_file.udf["% Bases >=Q30"]))
                         except Exception as e:
                             problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
-                        try:
-                            clusterType = None
-                            if "PF Clusters" in entry:
-                                clusterType = "PF Clusters"
-                            else:
-                                clusterType = "Clusters"
-                            #Paired runs are divided by two within flowcell parser
-                            if proc_stats["Paired"]:
-                                #Undet always 0 unless manually included
-                                target_file.udf["# Reads"] = int(entry[clusterType].replace(",",""))*2 + undet_reads
-                                target_file.udf["# Read Pairs"] = int(entry[clusterType].replace(",","")) + undet_reads/2
-                            #Since a single ended run has no pairs, pairs is set to equal reads
-                            else:
-                                #Undet always 0 unless manually included
-                                target_file.udf["# Reads"] = int(entry[clusterType].replace(",","")) + undet_reads
-                                target_file.udf["# Read Pairs"] = int(entry[clusterType].replace(",","")) + undet_reads
-                            lane_reads = lane_reads + target_file.udf["# Reads"]
-                        except Exception as e:
-                            problem_handler("exit", "Unable to set values for #Reads and #Read Pairs: {}".format(e.message))
+                            
+                        #Correctly resolves clusters for noindex runs  
+                        if entry['Barcode sequence'] == "unknown":
+                            #Assumes all lanes of a project's FC are noindex, which is reasonable
+                            noIndex = True
+                            try:
+                                for inp in seqstep.all_inputs():
+                                    #If reads in seq step, and the lane is equal to the current lane
+                                    if inp.location[1][0] == lane_no and "Clusters PF R1" in inp.udf:
+                                        if proc_stats["Paired"]:
+                                            target_file.udf["# Reads"] = inp.udf["Clusters PF R1"]
+                                            target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
+                                        else:
+                                            target_file.udf["# Reads"] = inp.udf["Clusters PF R1"]*2
+                                            target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
+                            except Exception as e:
+                                problem_handler("exit", "Unable to set values for #Reads and #Read Pairs for perceived noIndex lane: {}".format(e.message))
+                                        
+                        if not noIndex:
+                            try:
+                                clusterType = None
+                                if "PF Clusters" in entry:
+                                    clusterType = "PF Clusters"
+                                else:
+                                    clusterType = "Clusters"
+                                #Paired runs are divided by two within flowcell parser
+                                basenumber = int(entry[clusterType].replace(",",""))
+                                if proc_stats["Paired"]:
+                                    #Undet always 0 unless manually included
+                                    target_file.udf["# Reads"] = basenumber*2 + undet_reads
+                                    target_file.udf["# Read Pairs"] = basenumber + undet_reads/2
+                                #Since a single ended run has no pairs, pairs is set to equal reads
+                                else:
+                                    #Undet always 0 unless manually included
+                                    target_file.udf["# Reads"] = basenumber + undet_reads
+                                    target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]
+                            except Exception as e:
+                                problem_handler("exit", "Unable to set values for #Reads and #Read Pairs: {}".format(e.message))
+                        lane_reads = lane_reads + target_file.udf["# Reads"]
                         logger.info("{}# Reads".format(target_file.udf["# Reads"]))
                         logger.info("{}# Read Pairs".format(target_file.udf["# Read Pairs"]))
                         
@@ -290,17 +318,26 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 target_file.put()
             except Exception as e:
                 problem_handler("exit", "Failed to apply artifact data to LIMS. Possibly due to data in laneBarcode.html; {}".format(e.message))
-            
+        
+        #Ran for each lane
         if not undet_included:
+            try:
+                found_undet = round(float(undet_lane_reads)/(lane_reads+undet_lane_reads)*100, 2) 
+            #Only plausible error situation. Avoids zero division
+            except Exception as e:
+                problem_handler("error", "BCLConverter parsing error. No reads detected for lane {}.".format(lane_no))
             #If undetermined reads are greater than threshold*reads_in_lane
-            found_undet = round(float(undet_lane_reads)/(lane_reads+undet_lane_reads)*100, 2)
-            if  found_undet > demux_process.udf["Maximum % Undetermined Reads per Lane"]:
-                problem_handler("warning", "Undemultiplexed reads for lane {} was {} ({})% thus exceeding defined limit." \
-                                .format(lane_no, undet_lane_reads, found_undet))
-            else:
-                logger.info("Found {} ({}%) undemultiplexed reads for lane {}.".format(undet_lane_reads, found_undet, lane_no))
+            if not noIndex:
+                if found_undet > demux_process.udf["Maximum % Undetermined Reads per Lane"]:
+                    problem_handler("warning", "Undemultiplexed reads for lane {} was {} ({})% thus exceeding defined limit." \
+                                   .format(lane_no, undet_lane_reads, found_undet))
+                else:   
+                    logger.info("Found {} ({}%) undemultiplexed reads for lane {}.".format(undet_lane_reads, found_undet, lane_no))
     if undet_included:
-        problem_handler("warning", "Undetermined reads included in read count!")
+        if noIndex:
+            problem_handler("error", "Logical error, undetermined cannot be included for a noIndex lane!")
+        else:
+            problem_handler("warning", "Undetermined reads included in read count!")
     if failed_entries > 0:
         problem_handler("warning", "{} entries failed automatic QC".format(failed_entries))
 
@@ -351,8 +388,7 @@ def main(process_lims_id, demux_id, log_id):
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     logger.addHandler(fh)
-
-    #logger.basicConfig(filename=basic_name,level=logging.DEBUG)
+    
     logger.info("--process_lims_id {} --demux_id {} --log_id {}".format(process_lims_id, demux_id, log_id))
     
     demux_process = Process(lims,id = process_lims_id)
