@@ -172,14 +172,14 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 problem_handler("exit", "Unable to determine sample name. Incorrect sample variable in process: {}".format(e.message))
             for entry in parser_struct:
                 if lane_no == entry["Lane"]:
+                    
                     sample = entry["Sample"]
+                    #Finds name subset "P Anything Underscore Digits"
                     if sample != "Undetermined":
-                        #Finds name subset "P Anything Underscore Digits"
                         sample = proj_pattern.search(sample).group(0)
                                                                                                                    
                     #Bracket for adding undetermined to results   
-                    #Elif since noindex runs can't have undetermined
-                    elif undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
+                    if undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
                         undet_included = True
                         #Sanity check for including undetermined
                         #Next entry is undetermined and previous is for a different lane
@@ -203,7 +203,8 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 problem_handler("exit", "Unable to set values for undetermined #Reads and #Read Pairs: {}".format(e.message))
                         else:
                             problem_handler("exit", "Undetermined for lane {} requested, which has more than one sample".format(lane_no))
-                            
+                    
+                    #Bracket for adding typical sample info        
                     if sample == current_name:
                         logger.info("Added the following set of values to {} of lane {}:".format(sample,lane_no))
                         try:
@@ -244,7 +245,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         except Exception as e:
                             problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
                             
-                        #Correctly resolves clusters for noindex runs  
+                        #Fetches clusters for noIndex runs from sequencing step
                         if entry['Barcode sequence'] == "unknown":
                             #Assumes all lanes of a project's FC are noindex, which is reasonable
                             noIndex = True
@@ -261,7 +262,8 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             except Exception as e:
                                 problem_handler("exit", "Unable to set values for #Reads and #Read Pairs for perceived noIndex lane: {}".format(e.message))
                                         
-                        if not noIndex:
+                        #Fetches clusters from laneBarcode.html file
+                        elif not noIndex:
                             try:
                                 clusterType = None
                                 if "PF Clusters" in entry:
@@ -285,6 +287,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         logger.info("{}# Reads".format(target_file.udf["# Reads"]))
                         logger.info("{}# Read Pairs".format(target_file.udf["# Read Pairs"]))
                         
+                        #Applies thresholds to samples
                         try:
                             if (demux_process.udf["Threshold for % bases >= Q30"] <= float(entry["% >= Q30bases"]) and 
                             int(exp_smp_per_lne) <= target_file.udf["# Reads"] ):
@@ -301,7 +304,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         except Exception as e:
                             problem_handler("exit", "Unable to set QC status for sample: {}".format(e.message))
                     
-                    #Counts undetermined per lane
+                    #Counts undetermined
                     elif sample == "Undetermined":
                         clusterType = None
                         if "PF Clusters" in entry:
@@ -319,7 +322,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
             except Exception as e:
                 problem_handler("exit", "Failed to apply artifact data to LIMS. Possibly due to data in laneBarcode.html; {}".format(e.message))
         
-        #Ran for each lane
+        #Counts undetermined per lane
         if not undet_included:
             try:
                 found_undet = round(float(undet_lane_reads)/(lane_reads+undet_lane_reads)*100, 2) 
