@@ -117,6 +117,7 @@ def make_datastructure(currentStep, lims, log):
                 try:
                     obj['vol'] = samples_volumes[obj['src_fc']][obj['src_well']]
                 except KeyError:
+                    obj['vol'] = None
                     log.append("Unable to find previous volume for {}".format(obj["name"]))
 
             data.append(obj)
