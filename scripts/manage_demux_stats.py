@@ -129,6 +129,7 @@ def manipulate_process(demux_process, proc_stats):
 def set_sample_values(demux_process, parser_struct, proc_stats):
     failed_entries = 0
     undet_included = False
+    noIndex = False
     undet_lanes = list()
     proj_pattern = re.compile('(P\w+_\d+)')
     #Necessary for noindexruns, should always resolve
@@ -177,9 +178,14 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                     #Finds name subset "P Anything Underscore Digits"
                     if sample != "Undetermined":
                         sample = proj_pattern.search(sample).group(0)
+                        
+                    if entry['Barcode sequence'] == "unknown":
+                        noIndex = True
+                        if undet_included:
+                            problem_handler("error", "Logical error, undetermined cannot be included for a noIndex lane!")
                                                                                                                    
                     #Bracket for adding undetermined to results   
-                    if undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
+                    if noIndex and undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
                         undet_included = True
                         #Sanity check for including undetermined
                         #Next entry is undetermined and previous is for a different lane
@@ -246,9 +252,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
                             
                         #Fetches clusters for noIndex runs from sequencing step
-                        if entry['Barcode sequence'] == "unknown":
-                            #Assumes all lanes of a project's FC are noindex, which is reasonable
-                            noIndex = True
+                        if noIndex:                         
                             try:
                                 for inp in seqstep.all_inputs():
                                     #If reads in seq step, and the lane is equal to the current lane
@@ -337,10 +341,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 else:   
                     logger.info("Found {} ({}%) undemultiplexed reads for lane {}.".format(undet_lane_reads, found_undet, lane_no))
     if undet_included:
-        if noIndex:
-            problem_handler("error", "Logical error, undetermined cannot be included for a noIndex lane!")
-        else:
-            problem_handler("warning", "Undetermined reads included in read count!")
+        problem_handler("warning", "Undetermined reads included in read count!")
     if failed_entries > 0:
         problem_handler("warning", "{} entries failed automatic QC".format(failed_entries))
 
