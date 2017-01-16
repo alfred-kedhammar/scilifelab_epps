@@ -129,6 +129,7 @@ def manipulate_process(demux_process, proc_stats):
 def set_sample_values(demux_process, parser_struct, proc_stats):
     failed_entries = 0
     undet_included = False
+    noIndex = False
     undet_lanes = list()
     proj_pattern = re.compile('(P\w+_\d+)')
     #Necessary for noindexruns, should always resolve
