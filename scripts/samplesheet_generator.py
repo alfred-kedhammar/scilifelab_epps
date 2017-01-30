@@ -216,18 +216,19 @@ def find_barcode(sample, process):
     for art in process.all_inputs():
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
-                idxs = TENX_PAT.findall(art.reagent_labels[0])
+                reagent_label_name=art.reagent_labels[0].upper()
+                idxs = TENX_PAT.findall(reagent_label_name)
                 if idxs:
                     # Put in tuple with empty string as second index to
                     # match expected type:
                     idxs = (idxs[0], "")
                 else:
                     try:
-                        idxs = IDX_PAT.findall(art.reagent_labels[0])[0]
+                        idxs = IDX_PAT.findall(reagent_label_name)[0]
                     except IndexError:
-                        # we only have the reagent label name.
-                        rt = lims.get_reagent_types(name=art.reagent_labels[0])[0]
                         try:
+                            # we only have the reagent label name.
+                            rt = lims.get_reagent_types(name=reagent_label_name)[0]
                             idxs = IDX_PAT.findall(rt.sequence)[0]
                         except:
                             return ("NoIndex","")
