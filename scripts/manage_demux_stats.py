@@ -169,6 +169,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
         for target_file in outarts_per_lane:
             try:
                 current_name = target_file.samples[0].name
+                current_name.replace('P6201','P6202')
             except Exception as e:
                 problem_handler("exit", "Unable to determine sample name. Incorrect sample variable in process: {}".format(e.message))
             for entry in parser_struct:
@@ -214,40 +215,31 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                     if sample == current_name:
                         logger.info("Added the following set of values to {} of lane {}:".format(sample,lane_no))
                         try:
-                            target_file.udf["%PF"] = float(entry["% PFClusters"])
-                            logger.info("{}% PF".format(target_file.udf["%PF"]))
-                            
-                            #["% One mismatchbarcode"] can hold NaN or blank. Treating it as 0.0
-                            if entry["% One mismatchbarcode"] == "NaN" or entry["% One mismatchbarcode"] == "":
-                                target_file.udf["% One Mismatch Reads (Index)"] = 0.0
-                                logger.info("No One Mismatch Reads (Index), treating as {}".format(target_file.udf["% One Mismatch Reads (Index)"]))
-                            else:
-                                target_file.udf["% One Mismatch Reads (Index)"] = float(entry["% One mismatchbarcode"])
-                                logger.info("{}% One Mismatch Reads (Index)".format(target_file.udf["% One Mismatch Reads (Index)"]))
-                                
-                            #["% of thelane"] can hold blank. Treating as 100.0%
-                            if entry["% of thelane"] == "":
-                                target_file.udf["% of Raw Clusters Per Lane"] = 100.0
-                                logger.info("No % of Raw Clusters Per Lane, treating as {}%".format(target_file.udf["% of Raw Clusters Per Lane"]))
-                            else:
-                                target_file.udf["% of Raw Clusters Per Lane"] = float(entry["% of thelane"])
-                                logger.info("{}% of Raw Clusters Per Lane".format(target_file.udf["% of Raw Clusters Per Lane"]))
-                        
-                            target_file.udf["Ave Q Score"] = float(entry["Mean QualityScore"])
-                            logger.info("{} Ave Q Score".format(target_file.udf["Ave Q Score"]))
-                            
-                            #["% Perfectbarcode"] can hold blank. Treating as 0.0%
-                            if entry["% Perfectbarcode"] == "":
-                                target_file.udf["% Perfect Index Read"] = 0.0
-                                logger.info("No Perfect Index Read, treating as {}%".format(target_file.udf["% Perfect Index Read"]))
-                            else:
-                                target_file.udf["% Perfect Index Read"] = float(entry["% Perfectbarcode"])
-                                logger.info("{}% Perfect Index Read".format(target_file.udf["% Perfect Index Read"]))
-                            
-                            target_file.udf["Yield PF (Gb)"] = float(entry["Yield (Mbases)"].replace(",",""))/1000
-                            logger.info("{} Yield (Mbases)".format(target_file.udf["Yield PF (Gb)"]))
-                            target_file.udf["% Bases >=Q30"] = float(entry["% >= Q30bases"])
-                            logger.info("{}% Bases >=Q30".format(target_file.udf["% Bases >=Q30"]))
+                            def_atr = {"% of thelane":"% of Raw Clusters Per Lane", "% Perfectbarcode":"% Perfect Index Read", 
+                                       "% One mismatchbarcode":"% One Mismatch Reads (Index)", "Yield (Mbases)":"Yield PF (Gb)", 
+                                       "% PFClusters":"%PF", "Ave Q Score":"Mean QualityScore"}
+                            for odl_attr, attr in def_atr.items():
+                                #Sets default value for unwritten fields
+                                if entry[old_attr] == "" or entry[old_attr] == "NaN":
+                                    if old_attr == "% of Raw Clusters Per Lane":
+                                        default_value = 100.0
+                                    else:
+                                        default_value = 0.0
+                                    target_file.udf[attr] = default_value
+                                    logger.info("{} field not found. Setting default value: {}".format(attr, default_value))
+                                else:
+                                    #Yields needs division by 1K, is also non-percentage
+                                    if old_attr == "Yield (Mbases)":
+                                        target_file.udf[attr] = float(entry[old_attr].replace(",",""))/1000
+                                        logger.info("{} {}".format(target_file.udf[attr],attr))
+                                    else:
+                                        target_file.udf[attr] = float(entry[old_attr])
+                                        #Non-percentage attribute
+                                        if old_attr == "Ave Q Score":
+                                            logger.info("{} {}".format(target_file.udf[attr], attr))
+                                        else:
+                                            logger.info("{}% {}".format(target_file.udf[attr], attr))
+
                         except Exception as e:
                             problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
                             
