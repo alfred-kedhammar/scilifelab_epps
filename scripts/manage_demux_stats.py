@@ -218,7 +218,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             def_atr = {"% of thelane":"% of Raw Clusters Per Lane", "% Perfectbarcode":"% Perfect Index Read", 
                                        "% One mismatchbarcode":"% One Mismatch Reads (Index)", "Yield (Mbases)":"Yield PF (Gb)", 
                                        "% PFClusters":"%PF", "Ave Q Score":"Mean QualityScore"}
-                            for odl_attr, attr in def_atr.items():
+                            for old_attr, attr in def_atr.items():
                                 #Sets default value for unwritten fields
                                 if entry[old_attr] == "" or entry[old_attr] == "NaN":
                                     if old_attr == "% of Raw Clusters Per Lane":
