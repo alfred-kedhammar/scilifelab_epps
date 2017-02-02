@@ -130,6 +130,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
     failed_entries = 0
     noIndex = False
     undet_included = False
+    noIndex = False
     undet_lanes = list()
     proj_pattern = re.compile('(P\w+_\d+)')
     #Necessary for noindexruns, should always resolve
@@ -178,9 +179,14 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                     #Finds name subset "P Anything Underscore Digits"
                     if sample != "Undetermined":
                         sample = proj_pattern.search(sample).group(0)
+                        
+                    if entry['Barcode sequence'] == "unknown":
+                        noIndex = True
+                        if undet_included:
+                            problem_handler("error", "Logical error, undetermined cannot be included for a noIndex lane!")
                                                                                                                    
                     #Bracket for adding undetermined to results   
-                    if undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
+                    if noIndex and undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
                         undet_included = True
                         #Sanity check for including undetermined
                         #Next entry is undetermined and previous is for a different lane
@@ -209,47 +215,32 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                     if sample == current_name:
                         logger.info("Added the following set of values to {} of lane {}:".format(sample,lane_no))
                         try:
-                            target_file.udf["%PF"] = float(entry["% PFClusters"])
-                            logger.info("{}% PF".format(target_file.udf["%PF"]))
-                            
-                            #["% One mismatchbarcode"] can hold NaN or blank. Treating it as 0.0
-                            if entry["% One mismatchbarcode"] == "NaN" or entry["% One mismatchbarcode"] == "":
-                                target_file.udf["% One Mismatch Reads (Index)"] = 0.0
-                                logger.info("No One Mismatch Reads (Index), treating as {}".format(target_file.udf["% One Mismatch Reads (Index)"]))
-                            else:
-                                target_file.udf["% One Mismatch Reads (Index)"] = float(entry["% One mismatchbarcode"])
-                                logger.info("{}% One Mismatch Reads (Index)".format(target_file.udf["% One Mismatch Reads (Index)"]))
-                                
-                            #["% of thelane"] can hold blank. Treating as 100.0%
-                            if entry["% of thelane"] == "":
-                                target_file.udf["% of Raw Clusters Per Lane"] = 100.0
-                                logger.info("No % of Raw Clusters Per Lane, treating as {}%".format(target_file.udf["% of Raw Clusters Per Lane"]))
-                            else:
-                                target_file.udf["% of Raw Clusters Per Lane"] = float(entry["% of thelane"])
-                                logger.info("{}% of Raw Clusters Per Lane".format(target_file.udf["% of Raw Clusters Per Lane"]))
-                        
-                            target_file.udf["Ave Q Score"] = float(entry["Mean QualityScore"])
-                            logger.info("{} Ave Q Score".format(target_file.udf["Ave Q Score"]))
-                            
-                            #["% Perfectbarcode"] can hold blank. Treating as 0.0%
-                            if entry["% Perfectbarcode"] == "":
-                                target_file.udf["% Perfect Index Read"] = 0.0
-                                logger.info("No Perfect Index Read, treating as {}%".format(target_file.udf["% Perfect Index Read"]))
-                            else:
-                                target_file.udf["% Perfect Index Read"] = float(entry["% Perfectbarcode"])
-                                logger.info("{}% Perfect Index Read".format(target_file.udf["% Perfect Index Read"]))
-                            
-                            target_file.udf["Yield PF (Gb)"] = float(entry["Yield (Mbases)"].replace(",",""))/1000
-                            logger.info("{} Yield (Mbases)".format(target_file.udf["Yield PF (Gb)"]))
-                            target_file.udf["% Bases >=Q30"] = float(entry["% >= Q30bases"])
-                            logger.info("{}% Bases >=Q30".format(target_file.udf["% Bases >=Q30"]))
+                            def_atr = {"% of thelane":"% of Raw Clusters Per Lane", "% Perfectbarcode":"% Perfect Index Read", 
+                                       "% One mismatchbarcode":"% One Mismatch Reads (Index)", "Yield (Mbases)":"Yield PF (Gb)", 
+                                       "% PFClusters":"%PF", "Mean QualityScore":"Ave Q Score"}
+                            for old_attr, attr in def_atr.items():
+                                #Sets default value for unwritten fields
+                                if entry[old_attr] == "" or entry[old_attr] == "NaN":
+                                    if old_attr == "% of Raw Clusters Per Lane":
+                                        default_value = 100.0
+                                    else:
+                                        default_value = 0.0
+                                    target_file.udf[attr] = default_value
+                                    logger.info("{} field not found. Setting default value: {}".format(attr, default_value))
+                                else:
+                                    #Yields needs division by 1K, is also non-percentage
+                                    if old_attr == "Yield (Mbases)":
+                                        target_file.udf[attr] = float(entry[old_attr].replace(",",""))/1000
+                                        logger.info("{} {}".format(target_file.udf[attr],attr))
+                                    else:
+                                        target_file.udf[attr] = float(entry[old_attr])
+                                        logger.info("{} {}".format(target_file.udf[attr], attr))
+
                         except Exception as e:
                             problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
                             
                         #Fetches clusters for noIndex runs from sequencing step
-                        if entry['Barcode sequence'] == "unknown":
-                            #Assumes all lanes of a project's FC are noindex, which is reasonable
-                            noIndex = True
+                        if noIndex:                         
                             try:
                                 for inp in seqstep.all_inputs():
                                     #If reads in seq step, and the lane is equal to the current lane
@@ -338,10 +329,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 else:   
                     logger.info("Found {} ({}%) undemultiplexed reads for lane {}.".format(undet_lane_reads, found_undet, lane_no))
     if undet_included:
-        if noIndex:
-            problem_handler("error", "Logical error, undetermined cannot be included for a noIndex lane!")
-        else:
-            problem_handler("warning", "Undetermined reads included in read count!")
+        problem_handler("warning", "Undetermined reads included in read count!")
     if failed_entries > 0:
         problem_handler("warning", "{} entries failed automatic QC".format(failed_entries))
 
