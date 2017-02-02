@@ -169,7 +169,6 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
         for target_file in outarts_per_lane:
             try:
                 current_name = target_file.samples[0].name
-                current_name.replace('P6201','P6202')
             except Exception as e:
                 problem_handler("exit", "Unable to determine sample name. Incorrect sample variable in process: {}".format(e.message))
             for entry in parser_struct:
