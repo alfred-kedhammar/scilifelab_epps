@@ -234,11 +234,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                         logger.info("{} {}".format(target_file.udf[attr],attr))
                                     else:
                                         target_file.udf[attr] = float(entry[old_attr])
-                                        #Non-percentage attribute
-                                        if old_attr == "Ave Q Score":
-                                            logger.info("{} {}".format(target_file.udf[attr], attr))
-                                        else:
-                                            logger.info("{}% {}".format(target_file.udf[attr], attr))
+                                        logger.info("{} {}".format(target_file.udf[attr], attr))
 
                         except Exception as e:
                             problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
