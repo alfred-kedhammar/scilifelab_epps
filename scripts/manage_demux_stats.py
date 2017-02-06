@@ -179,7 +179,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                     if sample != "Undetermined":
                         sample = proj_pattern.search(sample).group(0)
                         
-                    if entry['Barcode sequence'] == "unknown":
+                    if entry['Barcode sequence'] == "unknown" and sample != "Undetermined":
                         noIndex = True
                         if undet_included:
                             problem_handler("error", "Logical error, undetermined cannot be included for a noIndex lane!")
