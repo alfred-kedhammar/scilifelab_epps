@@ -180,7 +180,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                     if sample != "Undetermined":
                         sample = proj_pattern.search(sample).group(0)
                         
-                    if entry['Barcode sequence'] == "unknown":
+                    if entry['Barcode sequence'] == "unknown" and sample != "Undetermined":
                         noIndex = True
                         if undet_included:
                             problem_handler("error", "Logical error, undetermined cannot be included for a noIndex lane!")
@@ -217,7 +217,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         try:
                             def_atr = {"% of thelane":"% of Raw Clusters Per Lane", "% Perfectbarcode":"% Perfect Index Read", 
                                        "% One mismatchbarcode":"% One Mismatch Reads (Index)", "Yield (Mbases)":"Yield PF (Gb)", 
-                                       "% PFClusters":"%PF", "Mean QualityScore":"Ave Q Score"}
+                                       "% PFClusters":"%PF", "Mean QualityScore":"Ave Q Score", "% >= Q30bases":"% Bases >=Q30"}
                             for old_attr, attr in def_atr.items():
                                 #Sets default value for unwritten fields
                                 if entry[old_attr] == "" or entry[old_attr] == "NaN":
