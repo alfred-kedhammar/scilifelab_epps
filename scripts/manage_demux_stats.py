@@ -185,7 +185,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             problem_handler("error", "Logical error, undetermined cannot be included for a noIndex lane!")
                                                                                                                    
                     #Bracket for adding undetermined to results   
-                    if noIndex and undet_lanes and not sample == 'Undetermined' and int(lane_no) in undet_lanes:
+                    if not sample == 'Undetermined' and int(lane_no) in undet_lanes:
                         undet_included = True
                         #Sanity check for including undetermined
                         #Next entry is undetermined and previous is for a different lane
