@@ -99,7 +99,10 @@ def make_datastructure(currentStep, lims, log):
             obj = {}
             obj['name'] = inp['uri'].samples[0].name
             obj['id'] = inp['uri'].id
-            obj['conc'] = inp['uri'].udf['Normalized conc. (nM)']
+            if "Normalized conc. (nM)" in inp['uri'].udf:
+                obj['conc'] = inp['uri'].udf['Normalized conc. (nM)']
+            else:
+                obj['conc'] = inp['uri'].udf['Concentration']
             obj['pool_id'] = out['uri'].id
             # obj['pool_conc']=out['uri'].udf['Normalized conc. (nM)']
             obj['src_fc'] = inp['uri'].location[0].name
@@ -113,6 +116,8 @@ def make_datastructure(currentStep, lims, log):
             # Try to match container ID first then name:
             elif obj['src_fc_id'] in samples_volumes:
                 obj['vol'] = samples_volumes[obj['src_fc_id']][obj['src_well']]
+            elif "Volume (ul)" in inp['uri'].udf:
+                obj['vol']=inp['uri'].udf["Volume (ul)"]
             else:
                 try:
                     obj['vol'] = samples_volumes[obj['src_fc']][obj['src_well']]
@@ -337,7 +342,7 @@ def normalization(current_step):
 
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
-    if currentStep.type.name in ['Pre-Pooling (MiSeq) 4.0', 'Pre-Pooling (Illumina SBS) 4.0', 'Library Pooling (RAD-seq) v1.0']:
+    if currentStep.type.name in ['Pre-Pooling (MiSeq) 4.0', 'Pre-Pooling (Illumina SBS) 4.0', 'Library Pooling (RAD-seq) v1.0', 'Library Pooling (HiSeq X) 1.0']:
         prepooling(currentStep, lims)
     elif currentStep.type.name in ['Library Normalization (HiSeq X) 1.0', 'Library Normalization (Illumina SBS) 4.0', 'Library Normalization (MiSeq) 4.0']:
         normalization(currentStep)
