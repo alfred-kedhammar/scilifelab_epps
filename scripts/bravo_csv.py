@@ -15,6 +15,9 @@ DESC = """EPP used to create csv files for the bravo robot"""
 MAX_WARNING_VOLUME = 150.0
 MIN_WARNING_VOLUME = 2.0
 
+# Pre-compile regexes in global scope:
+IDX_PAT = re.compile("([ATCG]{4,})-?([ATCG]*)")
+TENX_PAT = re.compile("SI-GA-[A-H][1-9][0-2]?")
 
 def obtain_previous_volumes(currentStep, lims):
     samples_volumes = {}
@@ -342,7 +345,10 @@ def normalization(current_step):
 
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
-    if currentStep.type.name in ['Pre-Pooling (MiSeq) 4.0', 'Pre-Pooling (Illumina SBS) 4.0', 'Library Pooling (RAD-seq) v1.0', 'Library Pooling (HiSeq X) 1.0']:
+    if currentStep.type.name == 'Library Pooling (HiSeq X) 1.0':
+        check_barcode_collision(currentStep)
+        prepooling(currentStep, lims)
+    elif currentStep.type.name in ['Pre-Pooling (MiSeq) 4.0', 'Pre-Pooling (Illumina SBS) 4.0', 'Library Pooling (RAD-seq) v1.0']:
         prepooling(currentStep, lims)
     elif currentStep.type.name in ['Library Normalization (HiSeq X) 1.0', 'Library Normalization (Illumina SBS) 4.0', 'Library Normalization (MiSeq) 4.0']:
         normalization(currentStep)
@@ -388,6 +394,49 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         checkTheLog[0] = True
     # this allows to still write the file. Won't be readable though
     return "#ERROR#"
+
+def check_barcode_collision(step):
+    for output in step.all_outputs():
+        barcodes=[]
+        if output.type == "Analyte":
+            for io in step.input_output_maps:
+                if io[1]['limsid'] == output.id:
+                    barcode=find_barcode(io[0]['uri'])
+                    if barcode not in barcodes:
+                        barcodes.append(find_barcode(io[0]['uri']))
+                    else:
+                        raise Exception("Similar barcodes {0} in pool {}".format(barcode, output.id))
+
+def find_barcode(artifact):
+        if len(artifact.samples) == 1 and artifact.reagent_labels:
+            reagent_label_name=artifact.reagent_labels[0].upper()
+            idxs = TENX_PAT.findall(reagent_label_name)
+            if idxs:
+                # Put in tuple with empty string as second index to
+                # match expected type:
+                idxs = (idxs[0], "")
+            else:
+                try:
+                    idxs = IDX_PAT.findall(reagent_label_name)[0]
+                except IndexError:
+                    try:
+                        # we only have the reagent label name.
+                        rt = lims.get_reagent_types(name=reagent_label_name)[0]
+                        idxs = IDX_PAT.findall(rt.sequence)[0]
+                    except:
+                        return ("NoIndex","")
+
+            return idxs
+        else:
+            if artifact == artifact.samples[0].artifact:
+                return None
+            else:
+                next_artifact=None
+                for iomap in artifact.parent_process.iomaps:
+                    if iomap[1]['uri'].id == artifact.id:
+                        next_artifact=iomap[0]['uri']
+                return find_barcode(next_artifact)
+
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
