@@ -148,7 +148,13 @@ def gen_Hiseq_lane_data(pro):
 
 def gen_Miseq_header(pro):
     project_name=pro.all_inputs()[0].samples[0].project.name
-    header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=datetime.now().strftime("%m/%d/%Y"), wf=pro.udf["Workflow"], ass="null", dsc=pro.udf['Description'], chem="amplicon")
+    chem = "Default"
+    for io in pro.input_output_maps:
+        idxs = find_barcode(io[1]["uri"].samples[0], pro)
+        if idxs[1]:
+           chem="amplicon" 
+
+    header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=datetime.now().strftime("%m/%d/%Y"), wf=pro.udf["Workflow"], ass="null", dsc=pro.udf['Description'], chem=chem)
     return header
 
 def gen_Miseq_reads(pro):
@@ -178,7 +184,7 @@ def gen_Miseq_data(pro):
             sp_obj['lane'] = "1"
             sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
             sp_obj['sn'] = sample.name.replace(',','')
-            sp_obj['fc'] = "{}-{}".format(io[1]['uri'].location[0].name.replace(',',''), out.location[1].replace(',',''))
+            sp_obj['fc'] = "{}-{}".format(io[0]['uri'].location[0].name.replace(',',''), out.location[1].replace(':',''))
             sp_obj['sw'] = "A1"
             sp_obj['gf'] = pro.udf['GenomeFolder'].replace(',','')
             try:
@@ -301,7 +307,7 @@ def main(lims, args):
             os.chmod("{}_{}.csv".format(ss_rfid, fc_name),0664)
             if log:
                 with open("{}_{}_Error.log".format(log_id, fc_name), "w") as f:
-                    f.write('\n'.join('log'))
+                    f.write('\n'.join(log))
 
                 sys.stderr.write("Errors were met, check the log.")
                 sys.exit(1)
