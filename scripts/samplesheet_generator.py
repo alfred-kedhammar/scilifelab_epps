@@ -296,15 +296,18 @@ def main(lims, args):
         if not args.test:
             for out in process.all_outputs():
                 if out.name == "Scilifelab SampleSheet" :
-                    ss_rfid = out.id
+                    ss_art = out.id
                 elif out.name == "Scilifelab Log" :
                     log_id= out.id
                 elif out.type == "Analyte":
                     fc_name = out.location[0].name
 
-            with open("{}_{}.csv".format(ss_rfid, fc_name), "w", 0o664) as f:
+            with open("{}.csv".format(fc_name), "w", 0o664) as f:
                 f.write(content)
-            os.chmod("{}_{}.csv".format(ss_rfid, fc_name),0664)
+            os.chmod("{}.csv".format(fc_name),0664)
+            for f in ss_art.files:
+                lims.delete(f.uri)
+            lims.upload_new_file(s_art, "{}.csv".format(fc_name)) 
             if log:
                 with open("{}_{}_Error.log".format(log_id, fc_name), "w") as f:
                     f.write('\n'.join(log))
