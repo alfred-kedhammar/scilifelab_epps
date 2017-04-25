@@ -224,8 +224,6 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
 			    tenX = True 
 
                         try:
-			    #import pdb 
-                            #pdb.set_trace()
 			    def_atr = {"% of thelane":"% of Raw Clusters Per Lane", "% Perfectbarcode":"% Perfect Index Read",
                                        "% One mismatchbarcode":"% One Mismatch Reads (Index)", "Yield (Mbases)":"Yield PF (Gb)",
                                        "% PFClusters":"%PF", "Mean QualityScore":"Ave Q Score", "% >= Q30bases":"% Bases >=Q30"}
