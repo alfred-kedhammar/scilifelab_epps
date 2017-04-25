@@ -334,9 +334,9 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
 	        #Average for percentages
 	        for k,v in samplesum[sample].items():
 	            if k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF', '% of Raw Clusters Per Lane', '% Bases >=Q30']:
-		        samplesum[sample][k] = v/4.0
+		        samplesum[sample][k] = v/samplesum[sample]["count"]
                     if k is not "count":
-                        target_file.udf[k] = v
+                        target_file.udf[k] = samplesum[sample][k]
                     logger.info("Pooled total for {} of sample {} is {}".format(k, sample, v))
 
                 #Applies thresholds to samples
