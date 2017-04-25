@@ -125,12 +125,12 @@ def manipulate_process(demux_process, proc_stats):
     except Exception as e:
         problem_handler("exit", "Failed to apply process thresholds to LIMS: {}".format(e.message))
     
-"""Sets artifact = samples values """
+"""Sets artifact = sample values """
 def set_sample_values(demux_process, parser_struct, proc_stats):
     failed_entries = 0
-    noIndex = False
     undet_included = False
     noIndex = False
+    tenX = False
     undet_lanes = list()
     proj_pattern = re.compile('(P\w+_\d+)')
     #Necessary for noindexruns, should always resolve
@@ -166,7 +166,9 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
         logger.info("Lane number set to {}".format(lane_no))
         exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/float(len(outarts_per_lane)), 0)
         logger.info("Expected sample clusters for this lane: {}".format(exp_smp_per_lne))
-        
+
+	#Artifacts in each lane
+	samplesum = dict()        
         for target_file in outarts_per_lane:
             try:
                 current_name = target_file.samples[0].name
@@ -213,34 +215,42 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                     
                     #Bracket for adding typical sample info        
                     if sample == current_name:
-                        logger.info("Added the following set of values to {} of lane {}:".format(sample,lane_no))
+                        #Sample samplesum construction
+			if not sample in samplesum:
+			    samplesum[sample] = dict()
+			    samplesum[sample]['count'] = 1
+			else:
+			    samplesum[sample]['count'] += 1
+			    tenX = True 
+
                         try:
-                            def_atr = {"% of thelane":"% of Raw Clusters Per Lane", "% Perfectbarcode":"% Perfect Index Read", 
-                                       "% One mismatchbarcode":"% One Mismatch Reads (Index)", "Yield (Mbases)":"Yield PF (Gb)", 
+			    def_atr = {"% of thelane":"% of Raw Clusters Per Lane", "% Perfectbarcode":"% Perfect Index Read",
+                                       "% One mismatchbarcode":"% One Mismatch Reads (Index)", "Yield (Mbases)":"Yield PF (Gb)",
                                        "% PFClusters":"%PF", "Mean QualityScore":"Ave Q Score", "% >= Q30bases":"% Bases >=Q30"}
                             for old_attr, attr in def_atr.items():
+
                                 #Sets default value for unwritten fields
                                 if entry[old_attr] == "" or entry[old_attr] == "NaN":
                                     if old_attr == "% of Raw Clusters Per Lane":
                                         default_value = 100.0
                                     else:
                                         default_value = 0.0
-                                    target_file.udf[attr] = default_value
-                                    logger.info("{} field not found. Setting default value: {}".format(attr, default_value))
-                                else:
-                                    #Yields needs division by 1K, is also non-percentage
+			            target_file.udf[attr] = default_value
+				    logger.info("{} field not found. Setting default value: {}".format(attr, default_value))
+				else:
+				    #Yields needs division by 1K, is also non-percentage
                                     if old_attr == "Yield (Mbases)":
                                         target_file.udf[attr] = float(entry[old_attr].replace(",",""))/1000
-                                        logger.info("{} {}".format(target_file.udf[attr],attr))
                                     else:
                                         target_file.udf[attr] = float(entry[old_attr])
-                                        logger.info("{} {}".format(target_file.udf[attr], attr))
+
+				samplesum[sample][attr] = target_file.udf[attr] if not attr in samplesum[sample] else \
+				samplesum[sample][attr] + target_file.udf[attr]
 
                         except Exception as e:
                             problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
-                            
-                        #Fetches clusters for noIndex runs from sequencing step
-                        if noIndex:                         
+                        #Fetches clusters from laneBarcode.html file
+                        if noIndex:
                             try:
                                 for inp in seqstep.all_inputs():
                                     #If reads in seq step, and the lane is equal to the current lane
@@ -251,10 +261,12 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                         else:
                                             target_file.udf["# Reads"] = inp.udf["Clusters PF R1"]*2
                                             target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
+                                logger.info("{}# Reads".format(target_file.udf["# Reads"]))
+                                logger.info("{}# Read Pairs".format(target_file.udf["# Read Pairs"]))
+
                             except Exception as e:
                                 problem_handler("exit", "Unable to set values for #Reads and #Read Pairs for perceived noIndex lane: {}".format(e.message))
-                                        
-                        #Fetches clusters from laneBarcode.html file
+
                         elif not noIndex:
                             try:
                                 clusterType = None
@@ -266,36 +278,42 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 basenumber = int(entry[clusterType].replace(",",""))
                                 if proc_stats["Paired"]:
                                     #Undet always 0 unless manually included
-                                    target_file.udf["# Reads"] = basenumber*2 + undet_reads
-                                    target_file.udf["# Read Pairs"] = basenumber + undet_reads/2
+				    samplesum[sample]["# Reads"] = basenumber*2 + undet_reads if not "# Reads" in samplesum[sample] \
+                                    else samplesum[sample]["# Reads"] + basenumber*2 + undet_reads 
+				    samplesum[sample]["# Read Pairs"] = basenumber + undet_reads/2 if not "# Read Pairs" in samplesum[sample] \
+				    else samplesum[sample]["# Read Pairs"] + basenumber + undet_reads/2
                                 #Since a single ended run has no pairs, pairs is set to equal reads
                                 else:
                                     #Undet always 0 unless manually included
-                                    target_file.udf["# Reads"] = basenumber + undet_reads
-                                    target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]
-                            except Exception as e:
+				    samplesum[sample]["# Reads"] = basenumber + undet_reads if not "# Reads" in samplesum[sample] \
+				    else samplesum[sample]["# Reads"] + basenumber + undet_reads
+				    samplesum[sample]["# Read Pairs"] = target_file.udf["# Reads"] if not "# Read Pairs" in samplesum[sample] \
+			            else samplesum[sample]["# Read Pairs"] + target_file.udf["# Reads"]
+				target_file.udf["# Reads"] = samplesum[sample]["# Reads"]
+				target_file.udf["# Read Pairs"] = samplesum[sample]["# Reads"]
+			    except Exception as e:
                                 problem_handler("exit", "Unable to set values for #Reads and #Read Pairs: {}".format(e.message))
-                        lane_reads = lane_reads + target_file.udf["# Reads"]
-                        logger.info("{}# Reads".format(target_file.udf["# Reads"]))
-                        logger.info("{}# Read Pairs".format(target_file.udf["# Read Pairs"]))
-                        
-                        #Applies thresholds to samples
-                        try:
-                            if (demux_process.udf["Threshold for % bases >= Q30"] <= float(entry["% >= Q30bases"]) and 
-                            int(exp_smp_per_lne) <= target_file.udf["# Reads"] ):
-                                target_file.udf["Include reads"] = "YES"
-                                target_file.qc_flag = "PASSED"           
-                            else:
-                                target_file.udf["Include reads"] = "NO"
-                                target_file.qc_flag = "FAILED"
-                                failed_entries = failed_entries + 1
-                            logger.info("Q30 %: {}% found, minimum at {}%".\
+
+			#Applies thresholds to samples
+			if not tenX:
+			    logger.info("Added the following set of keys for {} of lane {}:".format(sample,lane_no))
+                            try:
+                                if (demux_process.udf["Threshold for % bases >= Q30"] <= float(entry["% >= Q30bases"]) and 
+                                    int(exp_smp_per_lne) <= target_file.udf["# Reads"] ):
+                                    target_file.udf["Include reads"] = "YES"
+                                    target_file.qc_flag = "PASSED"           
+                                else:
+                                    target_file.udf["Include reads"] = "NO"
+                                    target_file.qc_flag = "FAILED"
+                                    failed_entries = failed_entries + 1
+                                logger.info("Q30 %: {}% found, minimum at {}%".\
                                          format(float(entry["% >= Q30bases"]), demux_process.udf["Threshold for % bases >= Q30"]))
-                            logger.info("Expected reads: {} found, minimum at {}".format(target_file.udf["# Reads"], int(exp_smp_per_lne))) 
-                            logger.info("Sample QC status set to {}".format(target_file.qc_flag))
-                        except Exception as e:
-                            problem_handler("exit", "Unable to set QC status for sample: {}".format(e.message))
-                    
+                                logger.info("Expected reads: {} found, minimum at {}".format(target_file.udf["# Reads"], int(exp_smp_per_lne))) 
+                                logger.info("Sample QC status set to {}".format(target_file.qc_flag))
+                            except Exception as e:
+                                problem_handler("exit", "Unable to set QC status for sample: {}".format(e.message))
+
+                        lane_reads = lane_reads + target_file.udf["# Reads"] 
                     #Counts undetermined
                     elif sample == "Undetermined":
                         clusterType = None
@@ -308,12 +326,43 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             undet_lane_reads = int(entry[clusterType].replace(",",""))*2
                         else:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))
-                        
-            try: 
-                target_file.put()
-            except Exception as e:
-                problem_handler("exit", "Failed to apply artifact data to LIMS. Possibly due to data in laneBarcode.html; {}".format(e.message))
-        
+
+        if tenX:
+	    logger.info("10X samples detected. Pooling sample reads")
+        #Spools samplesum into samples
+            for sample in samplesum:
+	        #Average for percentages
+	        for k,v in samplesum[sample].items():
+	            if k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF', '% of Raw Clusters Per Lane', '% Bases >=Q30']:
+		        samplesum[sample][k] = v/4.0
+                    if k is not "count":
+                        target_file.udf[k] = v
+                    logger.info("Pooled total for {} of sample {} is {}".format(k, sample, v))
+
+                #Applies thresholds to samples
+                try:
+		    logger.info("10X samples detected. Reapplying thresholds")
+                    if (demux_process.udf["Threshold for % bases >= Q30"] <= float(entry["% >= Q30bases"]) and
+                        int(exp_smp_per_lne) <= target_file.udf["# Reads"] ):
+                        target_file.udf["Include reads"] = "YES"
+                        target_file.qc_flag = "PASSED"
+                    else:
+                        target_file.udf["Include reads"] = "NO"
+                        target_file.qc_flag = "FAILED"
+                        failed_entries = failed_entries + 1
+                    logger.info("Q30 %: {}% found, minimum at {}%".\
+		    format(float(entry["% >= Q30bases"]), demux_process.udf["Threshold for % bases >= Q30"]))
+                    logger.info("Expected reads: {} found, minimum at {}".format(target_file.udf["# Reads"], int(exp_smp_per_lne)))
+                    logger.info("Sample QC status set to {}".format(target_file.qc_flag))
+                except Exception as e:
+                    problem_handler("exit", "Unable to set QC status for sample: {}".format(e.message))
+
+        #Push lane into lims
+        try:
+            target_file.put()
+        except Exception as e:
+            problem_handler("exit", "Failed to apply artifact data to LIMS. Possibly due to data in laneBarcode.html; {}".format(e.message))
+
         #Counts undetermined per lane
         if not undet_included:
             try:
