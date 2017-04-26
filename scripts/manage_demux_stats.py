@@ -292,24 +292,26 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
 			    except Exception as e:
                                 problem_handler("exit", "Unable to set values for #Reads and #Read Pairs: {}".format(e.message))
 
-                        if samplesum[sample]["count"] > 1:
-                            try:
+			#Spools samplesum into samples
+                        try:
+			    if samplesum[sample]["count"] > 1:
                                 logger.info("Iteratively pooling samples in same lane.")
-                                #Spools samplesum into samples
-                                for thing in samplesum:
-                                #Average for percentages
-                                    for k,v in samplesum[thing].items():
-					if thing == sample and thing == current_name:
-                                            if k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF',\
-                                            '% of Raw Clusters Per Lane', '% Bases >=Q30']:
-                                                target_file.udf[k] = v/samplesum[thing]["count"]
-                                            elif k is not "count":
+                            for thing in samplesum:
+                            #Average for percentages
+                                for k,v in samplesum[thing].items():
+        			    if thing == sample and thing == current_name:
+                                        if k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF',\
+                                        '% of Raw Clusters Per Lane', '% Bases >=Q30']:
+                                            target_file.udf[k] = v/samplesum[thing]["count"]
+                                        elif k is not "count":
                                                 target_file.udf[k] = samplesum[thing][k]
-                                            logger.info("Pooled total for {} of sample {} is {}".format(k, thing, v))
-                            except Exception as e:
-                                problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
+					if samplesum[sample]["count"] > 1:
+                                            logger.info("Pooled total for {} of sample {} is set to {}".format(k, thing, v))
+					else:
+					    logger.info("Attribute {} of sample {} is set to {}".format(k, thing, v))
+                        except Exception as e:
+                            problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
 
-			    logger.info("Multiple identical samples in same lane detected. Reapplying thresholds")
                         #Applies thresholds to samples
                         try:
                             if (demux_process.udf["Threshold for % bases >= Q30"] <= float(entry["% >= Q30bases"]) and
