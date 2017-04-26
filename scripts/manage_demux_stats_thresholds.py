@@ -57,20 +57,20 @@ class Thresholds():
                     self.Q30 = 85
             #v3
             elif self.chemistry == "HiSeq Flow Cell v3":
-                if self.read_length >= 100 and paired:
+                if self.read_length >= 100 and self.paired:
                     self.Q30 = 80
-                elif self.read_length >= 50 and paired:
+                elif self.read_length >= 50 and self.paired:
                     self.Q30 = 85
             #v4
             elif self.chemistry == "HiSeq Flow Cell v4":
-                if self.read_length >= 125 and paired:
+                if self.read_length >= 125 and self.paired:
                     self.Q30 = 80
                 elif self.read_length >= 50:
                     self.Q30 = 85
                         
         elif self.instrument == "HiSeq_X":
             if self.chemistry == "HiSeqX v2.5":
-                if self.read_length >= 150 and paired:
+                if self.read_length >= 150 and self.paired:
                     self.Q30 = 75
         if not self.Q30:
             self.problem_handler("exit", "No predefined Q30 threshold (see doc 1244). Instrument: {}, Chemistry: {}, Read Length: {}".\
