@@ -246,8 +246,6 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
 					samplesum[sample][attr] = float(entry[old_attr]) if not attr in samplesum[sample] \
                                         else samplesum[sample][attr] + float(entry[old_attr])
 			
-				target_file.udf[attr] = samplesum[sample][attr]
-				
                         except Exception as e:
                             problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
 
@@ -291,8 +289,6 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
 				    else samplesum[sample]["# Reads"] + basenumber + undet_reads
 				    samplesum[sample]["# Read Pairs"] = target_file.udf["# Reads"] if not "# Read Pairs" in samplesum[sample] \
 			            else samplesum[sample]["# Read Pairs"] + target_file.udf["# Reads"]
-				target_file.udf["# Reads"] = samplesum[sample]["# Reads"]
-				target_file.udf["# Read Pairs"] = samplesum[sample]["# Reads"]
 			    except Exception as e:
                                 problem_handler("exit", "Unable to set values for #Reads and #Read Pairs: {}".format(e.message))
 
@@ -300,15 +296,16 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             try:
                                 logger.info("Iteratively pooling samples in same lane.")
                                 #Spools samplesum into samples
-                                for sample in samplesum:
+                                for thing in samplesum:
                                 #Average for percentages
-                                    for k,v in samplesum[sample].items():
-                                        if k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF',\
-                                        '% of Raw Clusters Per Lane', '% Bases >=Q30']:
-                                            target_file.udf[k] = v/samplesum[sample]["count"]
-                                        elif k is not "count":
-                                            target_file.udf[k] = samplesum[sample][k]
-                                        logger.info("Pooled total for {} of sample {} is {}".format(k, sample, v))
+                                    for k,v in samplesum[thing].items():
+					if thing == sample and thing == current_name:
+                                            if k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF',\
+                                            '% of Raw Clusters Per Lane', '% Bases >=Q30']:
+                                                target_file.udf[k] = v/samplesum[thing]["count"]
+                                            elif k is not "count":
+                                                target_file.udf[k] = samplesum[thing][k]
+                                            logger.info("Pooled total for {} of sample {} is {}".format(k, thing, v))
                             except Exception as e:
                                 problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
 
