@@ -300,10 +300,12 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
 			    if samplesum[sample]["count"] > 1:
                                 logger.info("Iteratively pooling samples in same lane.")
                             for thing in samplesum:
-                            #Average for percentages
                                 for k,v in samplesum[thing].items():
         			    if thing == sample and thing == current_name:
-                                        if k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF',\
+					if k is "count":
+					    logger.info("Setting values for sample {} of lane {}".format(thing, lane_no))
+					#Average for percentages
+                                        elif k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF',\
                                         '% of Raw Clusters Per Lane', '% Bases >=Q30']:
                                             target_file.udf[k] = v/samplesum[thing]["count"]
                                         elif k is not "count":
@@ -335,7 +337,6 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         lane_reads = lane_reads + target_file.udf["# Reads"] 
                     #Counts undetermined
                     elif sample == "Undetermined":
-                        clusterType = None
                         if "PF Clusters" in entry:
                             clusterType = "PF Clusters"
                         else:
@@ -345,6 +346,12 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             undet_lane_reads = int(entry[clusterType].replace(",",""))*2
                         else:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))
+
+#	    if lane_no == "2":
+#		import pdb
+#		pdb.set_trace()
+	    if target_file.udf.items() == [] and current_name != "Undetermined":
+	        problem_handler("exit", "Lanebarcode mismatch. Expected sample \"{}\" of lane \"{}\", found \"{}\"".format(current_name, lane_no, sample))
 
             #Push lane into lims
             try:
