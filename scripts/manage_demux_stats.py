@@ -287,8 +287,8 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                     #Undet always 0 unless manually included
 				    samplesum[sample]["# Reads"] = basenumber + undet_reads if not "# Reads" in samplesum[sample] \
 				    else samplesum[sample]["# Reads"] + basenumber + undet_reads
-				    samplesum[sample]["# Read Pairs"] = target_file.udf["# Reads"] if not "# Read Pairs" in samplesum[sample] \
-			            else samplesum[sample]["# Read Pairs"] + target_file.udf["# Reads"]
+				    samplesum[sample]["# Read Pairs"] = samplesum[sample]["# Reads"] if not "# Read Pairs" in samplesum[sample] \
+			            else samplesum[sample]["# Read Pairs"] + samplesum[sample]["# Reads"]
 			    except Exception as e:
                                 problem_handler("exit", "Unable to set values for #Reads and #Read Pairs: {}".format(e.message))
 
