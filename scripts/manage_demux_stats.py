@@ -164,7 +164,10 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
             except Exception as e:
                 problem_handler("exit", "Unable to determine lane number. Incorrect location variable in process: {}".format(e.message))
         logger.info("Lane number set to {}".format(lane_no))
-        exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/float(len(outarts_per_lane)), 0)
+	try:
+            exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/float(len(outarts_per_lane)), 0)
+	except ZeroDivisionError as e:
+	    problem_handler("exit", "Faulty LIMS setup. Pool in lane {} has no samples: {}".format(lane_no, e))
         logger.info("Expected sample clusters for this lane: {}".format(exp_smp_per_lne))
 
 	#Artifacts in each lane
@@ -287,8 +290,8 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                     #Undet always 0 unless manually included
 				    samplesum[sample]["# Reads"] = basenumber + undet_reads if not "# Reads" in samplesum[sample] \
 				    else samplesum[sample]["# Reads"] + basenumber + undet_reads
-				    samplesum[sample]["# Read Pairs"] = target_file.udf["# Reads"] if not "# Read Pairs" in samplesum[sample] \
-			            else samplesum[sample]["# Read Pairs"] + target_file.udf["# Reads"]
+				    samplesum[sample]["# Read Pairs"] = samplesum[sample]["# Reads"] if not "# Read Pairs" in samplesum[sample] \
+			            else samplesum[sample]["# Read Pairs"] + samplesum[sample]["# Reads"]
 			    except Exception as e:
                                 problem_handler("exit", "Unable to set values for #Reads and #Read Pairs: {}".format(e.message))
 
@@ -297,10 +300,12 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
 			    if samplesum[sample]["count"] > 1:
                                 logger.info("Iteratively pooling samples in same lane.")
                             for thing in samplesum:
-                            #Average for percentages
                                 for k,v in samplesum[thing].items():
         			    if thing == sample and thing == current_name:
-                                        if k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF',\
+					if k is "count":
+					    logger.info("Setting values for sample {} of lane {}".format(thing, lane_no))
+					#Average for percentages
+                                        elif k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF',\
                                         '% of Raw Clusters Per Lane', '% Bases >=Q30']:
                                             target_file.udf[k] = v/samplesum[thing]["count"]
                                         elif k is not "count":
@@ -332,7 +337,6 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         lane_reads = lane_reads + target_file.udf["# Reads"] 
                     #Counts undetermined
                     elif sample == "Undetermined":
-                        clusterType = None
                         if "PF Clusters" in entry:
                             clusterType = "PF Clusters"
                         else:
@@ -342,6 +346,9 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             undet_lane_reads = int(entry[clusterType].replace(",",""))*2
                         else:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))
+
+	    if target_file.udf.items() == [] and current_name != "Undetermined":
+	        problem_handler("exit", "Lanebarcode mismatch. Expected sample \"{}\" of lane \"{}\", found \"{}\"".format(current_name, lane_no, sample))
 
             #Push lane into lims
             try:
