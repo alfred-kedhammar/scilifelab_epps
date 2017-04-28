@@ -164,7 +164,10 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
             except Exception as e:
                 problem_handler("exit", "Unable to determine lane number. Incorrect location variable in process: {}".format(e.message))
         logger.info("Lane number set to {}".format(lane_no))
-        exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/float(len(outarts_per_lane)), 0)
+	try:
+            exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/float(len(outarts_per_lane)), 0)
+	except ZeroDivisionError as e:
+	    problem_handler("exit", "Faulty LIMS setup. Pool in lane {} has no samples: {}".format(lane_no, e))
         logger.info("Expected sample clusters for this lane: {}".format(exp_smp_per_lne))
 
 	#Artifacts in each lane
