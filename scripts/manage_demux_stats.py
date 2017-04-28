@@ -347,9 +347,6 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         else:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))
 
-#	    if lane_no == "2":
-#		import pdb
-#		pdb.set_trace()
 	    if target_file.udf.items() == [] and current_name != "Undetermined":
 	        problem_handler("exit", "Lanebarcode mismatch. Expected sample \"{}\" of lane \"{}\", found \"{}\"".format(current_name, lane_no, sample))
 
