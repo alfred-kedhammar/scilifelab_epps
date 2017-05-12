@@ -296,7 +296,7 @@ def main(lims, args):
         if not args.test:
             for out in process.all_outputs():
                 if out.name == "Scilifelab SampleSheet" :
-                    ss_art = out.id
+                    ss_art = out
                 elif out.name == "Scilifelab Log" :
                     log_id= out.id
                 elif out.type == "Analyte":
@@ -307,7 +307,7 @@ def main(lims, args):
             os.chmod("{}.csv".format(fc_name),0664)
             for f in ss_art.files:
                 lims.delete(f.uri)
-            lims.upload_new_file(s_art, "{}.csv".format(fc_name)) 
+            lims.upload_new_file(ss_art, "{}.csv".format(fc_name)) 
             if log:
                 with open("{}_{}_Error.log".format(log_id, fc_name), "w") as f:
                     f.write('\n'.join(log))
