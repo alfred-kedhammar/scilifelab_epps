@@ -19,7 +19,9 @@ TENX_PAT = re.compile("SI-GA-[A-H][1-9][0-2]?")
 def check_index_distance(data, log):
     lanes=set([x['lane'] for x in data])
     for l in lanes:
-        indexes = [x['idx1']+x.get('idx2','') for x in data if x['lane'] == l]
+        indexes = [x.get('idx1','')+x.get('idx2','') for x in data if x['lane'] == l]
+        if not indexes or len(indexes) == 1:
+            return None
         for i,b in enumerate(indexes[:-1]):
             start=i+1
             for b2 in indexes[start:]:
