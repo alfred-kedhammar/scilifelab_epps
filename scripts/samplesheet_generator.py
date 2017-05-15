@@ -151,7 +151,7 @@ def gen_Miseq_header(pro):
     chem = "Default"
     for io in pro.input_output_maps:
         idxs = find_barcode(io[1]["uri"].samples[0], pro)
-        if idxs[1]:
+        if len(idxs) == 2:
            chem="amplicon" 
 
     header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=datetime.now().strftime("%m/%d/%Y"), wf=pro.udf["Workflow"], ass="null", dsc=pro.udf['Description'], chem=chem)
@@ -174,6 +174,7 @@ def gen_Miseq_settings(pro):
 def gen_Miseq_data(pro):
     data=[]
     dualindex=False
+    noindex=False
     header_ar=["Sample_ID","Sample_Name","Sample_Plate","Sample_Well","Sample_Project","index","I7_Index_ID","index2","I5_Index_ID","Description", "GenomeFolder"]
     for io in pro.input_output_maps:
         out=io[1]["uri"]
@@ -193,21 +194,30 @@ def gen_Miseq_data(pro):
                 #control samples have no project
                 continue
             idxs = find_barcode(sample, pro)
-            sp_obj['idx1'] = idxs[0].replace(',','')
-            sp_obj['idx1ref'] = idxs[0].replace(',','')
-            sp_obj['idx2']=idxs[1].replace(',','')
-            sp_obj['idx2ref']=idxs[1].replace(',','')
-            if idxs[1]:
-                dualindex=True
+            if not idxs:
+                noindex = True
+                header_ar.remove('index')
+                header_ar.remove('I7_Index_ID')
+                header_ar.remove('index2')
+                header_ar.remove('I5_Index_ID')
+            else:
+                sp_obj['idx1'] = idxs[0].replace(',','')
+                sp_obj['idx1ref'] = idxs[0].replace(',','')
+                if len(idxs) == 2:
+                    dualindex=True
+                    sp_obj['idx2']=idxs[1].replace(',','')
+                    sp_obj['idx2ref']=idxs[1].replace(',','')
+                else:
+                    header_ar.remove('index2')
+                    header_ar.remove('I5_Index_ID')
 
             data.append(sp_obj)
-    if not dualindex:
-        header_ar.remove('index2')
-        header_ar.remove('I5_Index_ID')
     header = "[Data]\n{}\n".format(",".join(header_ar))
     str_data = ""
     for line in data:
-        if dualindex:
+        if noindex:
+            l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], pro.udf['Description'].replace('.','_'), line['gf']]
+        elif dualindex:
             l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], line['idx2'], line['idx2ref'], pro.udf['Description'].replace('.','_'), line['gf']]
         else:
             l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], pro.udf['Description'].replace('.','_'), line['gf']]
@@ -241,8 +251,8 @@ def find_barcode(sample, process):
 
                 return idxs
             else:
-                if art == sample.artifact:
-                    return None
+                if art == sample.artifact or not art.parent_process:
+                    return []
                 else:
                     return find_barcode(sample, art.parent_process)
 
