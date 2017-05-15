@@ -318,7 +318,7 @@ def main(lims, args):
                 f.write(content)
             os.chmod("{}.csv".format(fc_name),0664)
             for f in ss_art.files:
-                lims.delete(f.uri)
+                lims.request_session.delete(f.uri)
             lims.upload_new_file(ss_art, "{}.csv".format(fc_name)) 
             if log:
                 with open("{}_{}_Error.log".format(log_id, fc_name), "w") as f:
