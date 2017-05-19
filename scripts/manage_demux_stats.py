@@ -236,8 +236,8 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                     else:
                                         default_value = 0.0
 					
-               			    samplesum[sample][attr] = default if not attr in samplesum[sample] \
-                                    else samplesum[sample][attr] + default
+               			    samplesum[sample][attr] = default_value if not attr in samplesum[sample] \
+                                    else samplesum[sample][attr] + default_value
                                     logger.info("{} field not found. Setting default value: {}".format(attr, default_value))
 
                                 else:
