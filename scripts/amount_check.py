@@ -21,19 +21,19 @@ def update_output_values(inp, out, amount_left):
 
     if amount_left < 100:
         out.udf["Amount to take (ng)"] = 0
-        out.udf["Final Volume (ul)"] = 0
+        out.udf["Total Volume (uL)"] = 0
         out.qc_flag = "FAILED"
     elif out.udf["Concentration"] < 52 or amount_left < 200:
         out.udf["Amount to take (ng)"] = 100
-        out.udf["Final Volume (ul)"] = 25
+        out.udf["Total Volume (uL)"] = 25
         out.qc_flag = "PASSED"
     elif out.udf["Concentration"] < 104 or amount_left < 300:
         out.udf["Amount to take (ng)"] = 200
-        out.udf["Final Volume (ul)"] = 50
+        out.udf["Total Volume (uL)"] = 50
         out.qc_flag = "PASSED"
     else:
         out.udf["Amount to take (ng)"] = 300
-        out.udf["Final Volume (ul)"] = 75
+        out.udf["Total Volume (uL)"] = 75
         out.qc_flag = "PASSED"
 
     out.put()
