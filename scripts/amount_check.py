@@ -13,11 +13,29 @@ def obtain_amount(artifact):
     else:
         raise Exception("Cannot identify the amount of material for artifact {}, sample {}".format(artifact.id))
 
-def update_output_values(inp, out, amount):
+def update_output_values(inp, out, amount_left):
     for field in ["Conc. Units", "Concentration"]:
         out.udf[field] = inp.udf[field]
 
-    out.udf["Amount Left (ng)"] = amount
+    out.udf["Amount Left (ng)"] = amount_left
+
+    if amount_left < 100:
+        out.udf["Amount to take (ng)"] = 0
+        out.udf["Final Volume (ul)"] = 0
+        out.qc_flag = "FAILED"
+    elif out.udf["Concentration"] < 52 or amount_left < 200:
+        out.udf["Amount to take (ng)"] = 100
+        out.udf["Final Volume (ul)"] = 25
+        out.qc_flag = "PASSED"
+    elif out.udf["Concentration"] < 104 or amount_left < 300:
+        out.udf["Amount to take (ng)"] = 200
+        out.udf["Final Volume (ul)"] = 50
+        out.qc_flag = "PASSED"
+    else:
+        out.udf["Amount to take (ng)"] = 300
+        out.udf["Final Volume (ul)"] = 75
+        out.qc_flag = "PASSED"
+
     out.put()
 
 
@@ -54,13 +72,6 @@ def main(args):
             log.append("Estimated amount for sample {} is {}, correcting to zero".format(io[0]['uri'].samples[0].name, current_amount))
             current_amount = 0
 
-        if "Amount taken (ng)" not in io[1]['uri'].udf:
-            log.append("No amount taken filled in for sample {}, skipping QC".format(io[1]['uri'].samples[0].name))
-        else:
-            if current_amount < io[1]['uri'].udf["Amount taken (ng)"]:
-                io[1]['uri'].qc_flag = "FAILED"
-            else:
-                io[1]['uri'].qc_flag = "PASSED"
         update_output_values(io[0]['uri'], io[1]['uri'], current_amount)
 
         with open("amount_check_log.txt", "w") as f:
