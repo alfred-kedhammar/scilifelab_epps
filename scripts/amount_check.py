@@ -54,10 +54,13 @@ def main(args):
             log.append("Estimated amount for sample {} is {}, correcting to zero".format(io[0]['uri'].samples[0].name, current_amount))
             current_amount = 0
 
-        if current_amount < io[1]['uri'].udf["Amount taken (ng)"]:
-            io[1]['uri'].qc_flag = "FAILED"
+        if "Amount taken (ng)" not in io[1]['uri'].udf:
+            log.append("No amount taken filled in for sample {}, skipping QC".format(io[1]['uri'].samples[0].name))
         else:
-            io[1]['uri'].qc_flag = "PASSED"
+            if current_amount < io[1]['uri'].udf["Amount taken (ng)"]:
+                io[1]['uri'].qc_flag = "FAILED"
+            else:
+                io[1]['uri'].qc_flag = "PASSED"
         update_output_values(io[0]['uri'], io[1]['uri'], current_amount)
 
         with open("amount_check_log.txt", "w") as f:
