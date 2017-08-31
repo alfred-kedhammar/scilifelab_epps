@@ -281,16 +281,18 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 basenumber = int(entry[clusterType].replace(",",""))
                                 if proc_stats["Paired"]:
                                     #Undet always 0 unless manually included
-                				    samplesum[sample]["# Reads"] = basenumber*2 + undet_reads if not "# Reads" in samplesum[sample] \
-                                    else samplesum[sample]["# Reads"] + basenumber*2 + undet_reads 
-                				    samplesum[sample]["# Read Pairs"] = basenumber + undet_reads/2 if not "# Read Pairs" in samplesum[sample] \
-                				    else samplesum[sample]["# Read Pairs"] + basenumber + undet_reads/2
+                                    samplesum[sample]["# Reads"] = basenumber*2 + undet_reads if not "# Reads" in samplesum[sample] \
+                                    else samplesum[sample]["# Reads"] + basenumber*2 + undet_reads
+                                    
+                                    samplesum[sample]["# Read Pairs"] = basenumber + undet_reads/2 if not "# Read Pairs" in samplesum[sample] \
+                                    else samplesum[sample]["# Read Pairs"] + basenumber + undet_reads/2
                                 #Since a single ended run has no pairs, pairs is set to equal reads
                                 else:
                                     #Undet always 0 unless manually included
-                				    samplesum[sample]["# Reads"] = basenumber + undet_reads if not "# Reads" in samplesum[sample] \
-                				    else samplesum[sample]["# Reads"] + basenumber + undet_reads
-                				    samplesum[sample]["# Read Pairs"] = samplesum[sample]["# Reads"] if not "# Read Pairs" in samplesum[sample] \
+                                    samplesum[sample]["# Reads"] = basenumber + undet_reads if not "# Reads" in samplesum[sample] \
+                                    else samplesum[sample]["# Reads"] + basenumber + undet_reads
+                                    
+                                    samplesum[sample]["# Read Pairs"] = samplesum[sample]["# Reads"] if not "# Read Pairs" in samplesum[sample] \
                                     else samplesum[sample]["# Read Pairs"] + samplesum[sample]["# Reads"]
 			    except Exception as e:
                                 problem_handler("exit", "Unable to set values for #Reads and #Read Pairs: {}".format(e.message))
