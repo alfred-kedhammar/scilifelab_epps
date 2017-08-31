@@ -263,7 +263,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                             target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
                                         else:
                                             target_file.udf["# Reads"] = inp.udf["Clusters PF R1"]
-                                            target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
+                                            target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]
                                 logger.info("{}# Reads".format(target_file.udf["# Reads"]))
                                 logger.info("{}# Read Pairs".format(target_file.udf["# Read Pairs"]))
 
