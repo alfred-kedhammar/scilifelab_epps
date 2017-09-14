@@ -50,16 +50,22 @@ def main(lims, args, epp_logger):
         # Well is typed without colon in filename:
         i_w = ''.join(i_w.split(':'))
         
-        info = {'well':i_w,
-                'container_id':i_c.id,
-                'input_artifact_id':i_a.id}
 
         # Use a reguluar expression to find the file name given
         # the container and sample. This is all assuming the driver template name ends with:
         # ${INPUT.CONTAINER.PLACEMENT}_${INPUT.NAME}_${INPUT.CONTAINER.LIMSID}_${INPUT.LIMSID}
         # However, names are excluded to improve robustness.
-        re_str = '.*{well}_.*_.*{container_id}_.*{input_artifact_id}'\
-                                   .format(**info)
+        if args.instrument == "fragment_analyzer":
+            info = {'well':i_w,
+                'input_artifact_name':i_a.samples[0].name}
+            re_str = '.*{well}.*{input_artifact_name}'\
+                                       .format(**info)
+        else:
+            info = {'well':i_w,
+                'container_id':i_c.id,
+                'container_id':i_c.id,
+            re_str = '.*{well}_.*_.*{container_id}_.*{input_artifact_id}'\
+                                       .format(**info)
 
         im_file_r = re.compile(re_str)
         fns = filter(im_file_r.match, file_list)
@@ -105,6 +111,8 @@ if __name__ == "__main__":
                         help='Log file for runtime info and errors')
     parser.add_argument('--path',
                         help='Path where image files are located')
+    parser.add_argument('--instrument',default="caliper",
+                        help='instrument deciding the file regex format')
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
