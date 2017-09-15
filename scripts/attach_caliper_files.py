@@ -56,8 +56,8 @@ def main(lims, args, epp_logger):
         # ${INPUT.CONTAINER.PLACEMENT}_${INPUT.NAME}_${INPUT.CONTAINER.LIMSID}_${INPUT.LIMSID}
         # However, names are excluded to improve robustness.
         if args.instrument == "fragment_analyzer":
-            info = {'well':i_w,
-                'input_artifact_name':i_a.samples[0].name}
+            info = {'well':o_a.location[1],
+                'output_artifact_name':o_a.samples[0].name}
             re_str = '.*{well}.*{input_artifact_name}'\
                                        .format(**info)
         else:
@@ -66,11 +66,11 @@ def main(lims, args, epp_logger):
                 'container_id':i_c.id,
             re_str = '.*{well}_.*_.*{container_id}_.*{input_artifact_id}'\
                                        .format(**info)
+            logging.info(("Looking for file for artifact id: {input_artifact_id} "
+                      "from container with id: {container_id}.").format(**info))
 
         im_file_r = re.compile(re_str)
         fns = filter(im_file_r.match, file_list)
-        logging.info(("Looking for file for artifact id: {input_artifact_id} "
-                      "from container with id: {container_id}.").format(**info))
 
         if len(fns) == 0:
             logging.warning("No image file found for artifact with id {0}".format(i_a.id))
