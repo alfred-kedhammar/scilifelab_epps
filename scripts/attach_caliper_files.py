@@ -56,14 +56,14 @@ def main(lims, args, epp_logger):
         # ${INPUT.CONTAINER.PLACEMENT}_${INPUT.NAME}_${INPUT.CONTAINER.LIMSID}_${INPUT.LIMSID}
         # However, names are excluded to improve robustness.
         if args.instrument == "fragment_analyzer":
-            info = {'well':o_a.location[1],
+            info = {'well':o_a.location[1].replace(":", ""),
                 'output_artifact_name':o_a.samples[0].name}
-            re_str = '.*{well}.*{input_artifact_name}'\
+            re_str = '.*{well}.*{output_artifact_name}'\
                                        .format(**info)
         else:
             info = {'well':i_w,
                 'container_id':i_c.id,
-                'container_id':i_c.id,
+                'input_artifact_id':i_a.id}
             re_str = '.*{well}_.*_.*{container_id}_.*{input_artifact_id}'\
                                        .format(**info)
             logging.info(("Looking for file for artifact id: {input_artifact_id} "
