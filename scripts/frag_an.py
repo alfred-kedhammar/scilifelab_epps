@@ -69,7 +69,7 @@ def main(lims, args):
                 io[1]['uri'].put()
 
                 if base_concentration and base_conc_unit:
-                    io[1]['uri'].udf['Concentration'] = base_concentration * (io[1]['uri'].udf['Ratio (%)'] / 100)
+                    io[1]['uri'].udf['Concentration'] = base_concentration * (float(io[1]['uri'].udf['Ratio (%)']) / 100.0)
                     io[1]['uri'].udf['Conc. Units'] = base_conc_unit
                     io[1]['uri'].put()
                     log.append("Updated values for output {}".format(io[1]['uri'].name))

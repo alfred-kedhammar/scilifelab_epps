@@ -345,12 +345,12 @@ def normalization(current_step):
 
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
-    if currentStep.type.name == 'Library Pooling (HiSeq X) 1.0':
+    if currentStep.type.name in ['Library Pooling (HiSeq X) 1.0', 'Library Pooling (NovaSeq) 2.0']:
         check_barcode_collision(currentStep)
         prepooling(currentStep, lims)
     elif currentStep.type.name in ['Pre-Pooling (MiSeq) 4.0', 'Pre-Pooling (Illumina SBS) 4.0', 'Library Pooling (RAD-seq) v1.0', 'Library Pooling (TruSeq Small RNA) 1.0']:
         prepooling(currentStep, lims)
-    elif currentStep.type.name in ['Library Normalization (HiSeq X) 1.0', 'Library Normalization (Illumina SBS) 4.0', 'Library Normalization (MiSeq) 4.0']:
+    elif currentStep.type.name in ['Library Normalization (HiSeq X) 1.0', 'Library Normalization (Illumina SBS) 4.0', 'Library Normalization (MiSeq) 4.0', 'Library Normalization (NovaSeq) 2.0']:
         normalization(currentStep)
     elif currentStep.type.name == 'Library Pooling (RAD-seq) 1.0':
         default_bravo(currentStep, False)

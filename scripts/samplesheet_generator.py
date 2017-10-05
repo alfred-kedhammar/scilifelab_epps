@@ -285,7 +285,7 @@ def main(lims, args):
                         sf.write(content)
                     os.chmod("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 0664)
                 except Exception as e:
-                    log.append(e)
+                    log.append(str(e))
 
         elif process.type.name == 'Cluster Generation (Illumina SBS) 4.0':
             (content, obj) = gen_Hiseq_lane_data(process)
@@ -296,7 +296,7 @@ def main(lims, args):
                         sf.write(content)
                     os.chmod("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc']), 0664)
                 except Exception as e:
-                    log.append(e)
+                    log.append(str(e))
         elif process.type.name == 'Denature, Dilute and Load Sample (MiSeq) 4.0':
             header = gen_Miseq_header(process)
             reads = gen_Miseq_reads(process)
