@@ -2,7 +2,7 @@
 DESC = """
 This file together with manage_demux_stats_thresholds.py performs the "bclconversion" step of LIMS workflow.
 In common tongue, it:
- 
+
 Fetches info from the sequencing process (RunID, FCID; derives instrument and data type)
 Assigns (Q30, Clust per Lane) thresholds to the process (workflow step)
 Reformats laneBarcode.html to "demuxstats_FCID.csv" for usage of other applications
@@ -21,12 +21,18 @@ from manage_demux_stats_thresholds import Thresholds
 #Standard packages
 from shutil import move
 import re
-import os 
+import os
 import csv
 import sys
 import logging
 from argparse import ArgumentParser
 logger = logging.getLogger('demux_logger')
+
+def my_float(value):
+    if value == '':
+        return 0.0
+    else:
+        return float(value)
 
 def problem_handler(type, message):
     if type == "exit":
@@ -65,14 +71,14 @@ def manipulate_workflow(demux_process):
         problem_handler("exit", "Unhandled workflow step (run type)")
     logger.info("Run type/chemistry set to {}".format(proc_stats["Chemistry"]))
     logger.info("Instrument set to {}".format(proc_stats["Instrument"]))
-    
+
     try:
         proc_stats["Paired"] = False
     except Exception as e:
         problem_handler("exit", "Unable to fetch workflow information: {}".format(e.message))
     if "Read 2 Cycles" in proc_stats:
         proc_stats["Paired"] = True
-    logger.info("Paired libraries: {}".format(proc_stats["Paired"]))  
+    logger.info("Paired libraries: {}".format(proc_stats["Paired"]))
     #Assignment to make usage more explicit
     try:
         proc_stats["Read Length"] = proc_stats["Read 1 Cycles"]
@@ -82,9 +88,9 @@ def manipulate_workflow(demux_process):
     return proc_stats
 
 """Sets run thresholds"""
-def manipulate_process(demux_process, proc_stats):      
+def manipulate_process(demux_process, proc_stats):
     thresholds = Thresholds(proc_stats["Instrument"], proc_stats["Chemistry"], proc_stats["Paired"], proc_stats["Read Length"])
-        
+
     if not "Threshold for % bases >= Q30" in demux_process.udf:
         thresholds.set_Q30()
         try:
@@ -100,7 +106,7 @@ def manipulate_process(demux_process, proc_stats):
             logger.info("Minimum clusters per lane set to {}".format(demux_process.udf["Minimum Reads per Lane"]))
         except Exception as e:
             problem_handler("exit", "Udf improperly formatted. Unable to set # Reads threshold: {}".format(e.message))
-    
+
     #Would REALLY prefer "Maximum % Undetermined Reads per Lane" over "Threshold for Undemultiplexed Index Yield"
     if not "Maximum % Undetermined Reads per Lane" in demux_process.udf:
         try:
@@ -119,12 +125,12 @@ def manipulate_process(demux_process, proc_stats):
     #Checks for document version
     if not "Document Version" in demux_process.udf:
         problem_handler("exit", "No Document Version set. Please set one.")
-        
+
     try:
         demux_process.put()
     except Exception as e:
         problem_handler("exit", "Failed to apply process thresholds to LIMS: {}".format(e.message))
-    
+
 """Sets artifact = sample values """
 def set_sample_values(demux_process, parser_struct, proc_stats):
     failed_entries = 0
@@ -138,20 +144,20 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
         seqstep = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id, type=run_types)[0]
     except Exception as e:
         problem_handler("exit", "Undefined prior workflow step (run type): {}".format(e.message))
-    
+
     if "Lanes to include undetermined" in demux_process.udf:
         try:
             undet_lanes= re.split('[ ,.]', demux_process.udf["Lanes to include undetermined"])
             undet_lanes = [int(i) for i in undet_lanes]
         except:
             problem_handler("exit", "Unable to typecast included undetermined lanes. Possibly non-number in list")
-    
+
     for pool in demux_process.all_inputs():
         undet_reads = 0
         lane_reads = 0
         undet_lane_reads = 0
-        samplesum = dict()       
- 
+        samplesum = dict()
+
         try:
             outarts_per_lane = demux_process.outputs_per_input(pool.id, ResultFile = True)
         except Exception as e:
@@ -165,7 +171,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 problem_handler("exit", "Unable to determine lane number. Incorrect location variable in process: {}".format(e.message))
         logger.info("Lane number set to {}".format(lane_no))
 	try:
-            exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/float(len(outarts_per_lane)), 0)
+            exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/my_float(len(outarts_per_lane)), 0)
 	except ZeroDivisionError as e:
 	    problem_handler("exit", "Faulty LIMS setup. Pool in lane {} has no samples: {}".format(lane_no, e))
         logger.info("Expected sample clusters for this lane: {}".format(exp_smp_per_lne))
@@ -178,18 +184,18 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 problem_handler("exit", "Unable to determine sample name. Incorrect sample variable in process: {}".format(e.message))
             for entry in parser_struct:
                 if lane_no == entry["Lane"]:
-                    
+
                     sample = entry["Sample"]
                     #Finds name subset "P Anything Underscore Digits"
                     if sample != "Undetermined":
                         sample = proj_pattern.search(sample).group(0)
-                        
+
                     if entry['Barcode sequence'] == "unknown" and sample != "Undetermined":
                         noIndex = True
                         if undet_included:
                             problem_handler("error", "Logical error, undetermined cannot be included for a noIndex lane!")
-                                                                                                                   
-                    #Bracket for adding undetermined to results   
+
+                    #Bracket for adding undetermined to results
                     if not sample == 'Undetermined' and int(lane_no) in undet_lanes:
                         undet_included = True
                         #Sanity check for including undetermined
@@ -214,8 +220,8 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 problem_handler("exit", "Unable to set values for undetermined #Reads and #Read Pairs: {}".format(e.message))
                         else:
                             problem_handler("exit", "Undetermined for lane {} requested, which has more than one sample".format(lane_no))
-                    
-                    #Bracket for adding typical sample info        
+
+                    #Bracket for adding typical sample info
                     if sample == current_name:
                         #Sample samplesum construction
 			if not sample in samplesum:
@@ -235,7 +241,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                         default_value = 100.0
                                     else:
                                         default_value = 0.0
-					
+
                			    samplesum[sample][attr] = default_value if not attr in samplesum[sample] \
                                     else samplesum[sample][attr] + default_value
                                     logger.info("{} field not found. Setting default value: {}".format(attr, default_value))
@@ -243,12 +249,12 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 else:
                                     #Yields needs division by 1K, is also non-percentage
                                     if old_attr == "Yield (Mbases)":
-		          	        samplesum[sample][attr] = float(entry[old_attr].replace(",",""))/1000 if not attr in samplesum[sample] \
-                                        else samplesum[sample][attr] + float(entry[old_attr].replace(",",""))/1000
+		          	        samplesum[sample][attr] = my_float(entry[old_attr].replace(",",""))/1000 if not attr in samplesum[sample] \
+                                        else samplesum[sample][attr] + my_float(entry[old_attr].replace(",",""))/1000
                                     else:
-					samplesum[sample][attr] = float(entry[old_attr]) if not attr in samplesum[sample] \
-                                        else samplesum[sample][attr] + float(entry[old_attr])
-			
+					samplesum[sample][attr] = my_float(entry[old_attr]) if not attr in samplesum[sample] \
+                                        else samplesum[sample][attr] + my_float(entry[old_attr])
+
                         except Exception as e:
                             problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
 
@@ -283,7 +289,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                     #Undet always 0 unless manually included
                                     samplesum[sample]["# Reads"] = basenumber*2 + undet_reads if not "# Reads" in samplesum[sample] \
                                     else samplesum[sample]["# Reads"] + basenumber*2 + undet_reads
-                                    
+
                                     samplesum[sample]["# Read Pairs"] = basenumber + undet_reads/2 if not "# Read Pairs" in samplesum[sample] \
                                     else samplesum[sample]["# Read Pairs"] + basenumber + undet_reads/2
                                 #Since a single ended run has no pairs, pairs is set to equal reads
@@ -291,7 +297,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                     #Undet always 0 unless manually included
                                     samplesum[sample]["# Reads"] = basenumber + undet_reads if not "# Reads" in samplesum[sample] \
                                     else samplesum[sample]["# Reads"] + basenumber + undet_reads
-                                    
+
                                     samplesum[sample]["# Read Pairs"] = samplesum[sample]["# Reads"] if not "# Read Pairs" in samplesum[sample] \
                                     else samplesum[sample]["# Read Pairs"] + samplesum[sample]["# Reads"]
 			    except Exception as e:
@@ -321,7 +327,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
 
                         #Applies thresholds to samples
                         try:
-                            if (demux_process.udf["Threshold for % bases >= Q30"] <= float(entry["% >= Q30bases"]) and
+                            if (demux_process.udf["Threshold for % bases >= Q30"] <= my_float(entry["% >= Q30bases"]) and
                                 int(exp_smp_per_lne) <= target_file.udf["# Reads"] ):
                                 target_file.udf["Include reads"] = "YES"
                                 target_file.qc_flag = "PASSED"
@@ -330,20 +336,20 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 target_file.qc_flag = "FAILED"
                                 failed_entries = failed_entries + 1
                             logger.info("Q30 %: {}% found, minimum at {}%".\
-                            format(float(entry["% >= Q30bases"]), demux_process.udf["Threshold for % bases >= Q30"]))
+                            format(my_float(entry["% >= Q30bases"]), demux_process.udf["Threshold for % bases >= Q30"]))
                             logger.info("Expected reads: {} found, minimum at {}".format(target_file.udf["# Reads"], int(exp_smp_per_lne)))
                             logger.info("Sample QC status set to {}".format(target_file.qc_flag))
                         except Exception as e:
                             problem_handler("exit", "Unable to set QC status for sample: {}".format(e.message))
 
-                        lane_reads = lane_reads + target_file.udf["# Reads"] 
+                        lane_reads = lane_reads + target_file.udf["# Reads"]
                     #Counts undetermined
                     elif sample == "Undetermined":
                         if "PF Clusters" in entry:
                             clusterType = "PF Clusters"
                         else:
                             clusterType = "Clusters"
-                            
+
                         if proc_stats["Paired"]:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))*2
                         else:
@@ -361,7 +367,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
         #Counts undetermined per lane
         if not undet_included:
             try:
-                found_undet = round(float(undet_lane_reads)/(lane_reads+undet_lane_reads)*100, 2) 
+                found_undet = round(my_float(undet_lane_reads)/(lane_reads+undet_lane_reads)*100, 2)
             #Only plausible error situation. Avoids zero division
             except Exception as e:
                 problem_handler("error", "BCLConverter parsing error. No reads detected for lane {}.".format(lane_no))
@@ -370,7 +376,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 if found_undet > demux_process.udf["Maximum % Undetermined Reads per Lane"]:
                     problem_handler("warning", "Undemultiplexed reads for lane {} was {} ({})% thus exceeding defined limit." \
                                    .format(lane_no, undet_lane_reads, found_undet))
-                else:   
+                else:
                     logger.info("Found {} ({}%) undemultiplexed reads for lane {}.".format(undet_lane_reads, found_undet, lane_no))
     if undet_included:
         problem_handler("warning", "Undetermined reads included in read count!")
@@ -387,7 +393,7 @@ def write_demuxfile(proc_stats, demux_id):
     except Exception as e:
         problem_handler("exit", "Unable to fetch laneBarcode.html from {}: {}".format(lanebc_path, e.message))
     fname = "{}_demuxstats_{}.csv".format(demux_id, proc_stats["Flow Cell ID"])
-    
+
     #Writes less undetermined info than undemultiplex_index.py. May cause problems downstreams
     with open(fname, "w") as csvfile:
         writer = csv.writer(csvfile)
@@ -396,14 +402,14 @@ def write_demuxfile(proc_stats, demux_id):
             index_name = ""
             if "PF Clusters" in entry:
                 reads = entry["PF Clusters"]
-            else: 
+            else:
                 reads = entry["Clusters"]
-                
+
             if proc_stats["Paired"]:
                 reads = int(reads.replace(",",""))*2
             else:
-                reads = int(reads.replace(",","")) 
-            
+                reads = int(reads.replace(",",""))
+
             try:
                 writer.writerow([entry["Project"],entry["Sample"],entry["Lane"],reads, \
                                  entry["Barcode sequence"],index_name,entry["% >= Q30bases"]])
@@ -424,9 +430,9 @@ def main(process_lims_id, demux_id, log_id):
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     logger.addHandler(fh)
-    
+
     logger.info("--process_lims_id {} --demux_id {} --log_id {}".format(process_lims_id, demux_id, log_id))
-    
+
     demux_process = Process(lims,id = process_lims_id)
     #Fetches info on "workflow" level
     proc_stats = manipulate_workflow(demux_process)
@@ -436,18 +442,18 @@ def main(process_lims_id, demux_id, log_id):
     parser_struct = write_demuxfile(proc_stats, demux_id)
     #Alters artifacts
     set_sample_values(demux_process, parser_struct, proc_stats)
-    
+
     #Changing log file name, can't do this step earlier since proc_stats is made during runtime.
     new_name = "{}_logfile_{}.txt".format(log_id, proc_stats["Flow Cell ID"])
     move(basic_name, new_name)
-    
+
 if __name__ =="__main__":
     parser = ArgumentParser(description=DESC)
     parser.add_argument('--process_lims_id',required=True,dest = 'process_lims_id',
                         help="Lims ID of process. Example:24-92373")
     parser.add_argument('--demux_id',required=True,dest = 'demux_id',
                         help=("Id prefix for demux output."))
-    parser.add_argument('--log_id',required=True,dest = 'log_id',                 
+    parser.add_argument('--log_id',required=True,dest = 'log_id',
                         help=("Id prefix for logfile"))
     args = parser.parse_args()
     lims = Lims(BASEURI, USERNAME, PASSWORD)
