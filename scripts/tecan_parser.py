@@ -12,7 +12,9 @@ from scilifelab_epps.epp import attach_file, EppLogger
 
 DESC="""EPP used to parse csv files from the Tecan plate reader"""
 
-# Display error message if any measurement has a CV above this number (%):
+# Display error message if any measurement has a standard deviation and CV above
+# these numbers:
+SD_LIMIT = 1000
 CV_LIMIT = 20
 
 def parse(iterable):
@@ -57,7 +59,7 @@ def convert(file_in, file_out):
         "Type",
         "Index",
         "Raw mean",
-        "Raw CV%",
+        "Raw standard dev",
         "Conc mean (ng/uL)",
         "Conc CV%",
         "Mark"
@@ -82,6 +84,8 @@ def dictionnarize(datalist):
         data_to_upload[row[0]]={}
         data_to_upload[row[0]]['conc']=row[5]
         data_to_upload[row[0]]['cv']=row[6]
+        data_to_upload[row[0]]['raw_sd']=row[4]
+
 
     return data_to_upload
 
@@ -109,10 +113,11 @@ def main(args, lims):
             iom[1]['uri'].udf['Conc. Units']='ng/ul'
             iom[1]['uri'].udf['Concentration']=float(di[poskey]['conc'])
             iom[1]['uri'].udf['%CV']=float(di[poskey]['cv'])
+            iom[1]['uri'].udf['Raw standard dev']=float(di[poskey]['raw_sd'])
             iom[1]['uri'].put()
 
-            if float(di[poskey]['cv']) > CV_LIMIT:
-                err_out="One or several samples has a CV above {:d}%. Check the output file for details.".format(CV_LIMIT)
+            if float(di[poskey]['raw_sd']) > SD_LIMIT and float(di[poskey]['cv']) > CV_LIMIT:
+                err_out="One or several samples has a raw SD above {:d} and concentration CV above {:d}. Check the output file for details.".format(SD_LIMIT, CV_LIMIT)
 
     if err_out:
         sys.stderr.write(err_out)
