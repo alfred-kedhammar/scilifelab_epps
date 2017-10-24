@@ -35,6 +35,9 @@ def main(lims, args, logger):
             output_artifact.udf['Set Total Reads']=total_reads
             logging.info("Total reads is {0} for sample {1}".format(sample.udf['Total Reads (M)'],sample.name))
             try:
+                logging.info(" ###### updating {} with {}".format(sample.name, sample.project.udf.get('Reads Min',0)))
+                sample.udf['Reads Min'] = sample.project.udf.get('Reads Min',0) / 1000000
+                sample.put()
                 if sample.udf['Reads Min'] >= sample.udf['Total Reads (M)']:
                     sample.udf['Status (auto)']="In Progress"
                     sample.udf['Passed Sequencing QC']="False"
