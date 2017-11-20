@@ -45,7 +45,7 @@ def parse(iterable):
             del vals[9]
             del vals[6]
             del vals[3]
-            #yield([vals[i] for i in xrange(0,9)])
+
             yield vals
 
 def convert(file_in, file_out):
@@ -78,7 +78,7 @@ def index_to_well(index):
     col = int(((i-1) - (i-1) % 8) / 8 + 1)
     return "{0}{1}".format(row, col)
 
-def dictionnarize(datalist):
+def dictionarize(datalist):
     data_to_upload={}
     for row in datalist:
         data_to_upload[row[0]]={}
@@ -105,19 +105,32 @@ def main(args, lims):
     with open('{0}_tecan.out'.format(out_id), 'w') as outf:
         data=convert(file_contents, outf)
 
-    di=dictionnarize(data)
+    data_dict=dictionarize(data)
 
     for iom in pro.input_output_maps:
-        if iom[1]['uri'].output_type == "ResultFile" and len(iom[1]['uri'].samples) ==1:
-            poskey=iom[1]['uri'].location[1].replace(":", "")
-            iom[1]['uri'].udf['Conc. Units']='ng/ul'
-            iom[1]['uri'].udf['Concentration']=float(di[poskey]['conc'])
-            iom[1]['uri'].udf['%CV']=float(di[poskey]['cv'])
-            iom[1]['uri'].udf['Raw standard dev']=float(di[poskey]['raw_sd'])
-            iom[1]['uri'].put()
+        outp = iom[1]["uri"]
+        if outp.output_type == "ResultFile" and len(outp.samples) == 1:
+            status = "PASSED"
+            pos = outp.location[1].replace(":", "")
+            sample_data = data_dict[pos]
+            outp.udf["Conc. Units"] = "ng/ul"
+            try:
+                outp.udf["Concentration"] = float(sample_data["conc"])
+                outp.udf["%CV"] = float(sample_data["cv"])
+                outp.udf["Raw standard dev"] = float(sample_data["raw_sd"])
+            except ValueError:
+                status = "FAILED"
+                # Set the error string once to whatever condition that occurs first:
+                if not err_out:
+                    err_out = "Data is missing for one or several samples."
+            else:
+                if float(sample_data["raw_sd"]) > SD_LIMIT and float(sample_data["cv"]) > CV_LIMIT:
+                    status = "FAILED"
+                    if not err_out:
+                        err_out="One or several samples has a raw SD above {:d} and concentration CV above {:d}. Check the output file for details.".format(SD_LIMIT, CV_LIMIT)
 
-            if float(di[poskey]['raw_sd']) > SD_LIMIT and float(di[poskey]['cv']) > CV_LIMIT:
-                err_out="One or several samples has a raw SD above {:d} and concentration CV above {:d}. Check the output file for details.".format(SD_LIMIT, CV_LIMIT)
+            outp.qc_flag = status
+            outp.put()
 
     if err_out:
         sys.stderr.write(err_out)
