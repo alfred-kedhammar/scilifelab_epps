@@ -6,7 +6,6 @@ import sys
 
 from argparse import ArgumentParser
 from datetime import datetime
-from Bio.Seq import Seq
 from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
@@ -83,7 +82,8 @@ def gen_X_lane_data(pro):
             idxs = find_barcode(sample, pro)
             sp_obj['idx1'] = idxs[0].replace(',','')
             try:
-                sp_obj['idx2'] = str(Seq(idxs[1].replace(',','')).reverse_complement())
+                compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+                sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','') ] ) )
                 single_end = False
             except KeyError:
                 sp_obj['idx2'] = ''
