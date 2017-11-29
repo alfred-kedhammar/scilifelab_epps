@@ -6,6 +6,7 @@ import sys
 
 from argparse import ArgumentParser
 from datetime import datetime
+from Bio.Seq import Seq
 from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
@@ -82,7 +83,7 @@ def gen_X_lane_data(pro):
             idxs = find_barcode(sample, pro)
             sp_obj['idx1'] = idxs[0].replace(',','')
             try:
-                sp_obj['idx2'] = idxs[1].replace(',','')
+                sp_obj['idx2'] = str(Seq(idxs[1].replace(',','')).reverse_complement())
                 single_end = False
             except KeyError:
                 sp_obj['idx2'] = ''
@@ -154,7 +155,7 @@ def gen_Miseq_header(pro):
     for io in pro.input_output_maps:
         idxs = find_barcode(io[1]["uri"].samples[0], pro)
         if len(idxs) == 2:
-           chem="amplicon" 
+           chem="amplicon"
 
     header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=datetime.now().strftime("%Y-%m-%d"), wf=pro.udf["Workflow"], ass="null", dsc=pro.udf['Description'], chem=chem)
     return header
@@ -319,7 +320,7 @@ def main(lims, args):
             os.chmod("{}.csv".format(fc_name),0664)
             for f in ss_art.files:
                 lims.request_session.delete(f.uri)
-            lims.upload_new_file(ss_art, "{}.csv".format(fc_name)) 
+            lims.upload_new_file(ss_art, "{}.csv".format(fc_name))
             if log:
                 with open("{}_{}_Error.log".format(log_id, fc_name), "w") as f:
                     f.write('\n'.join(log))
