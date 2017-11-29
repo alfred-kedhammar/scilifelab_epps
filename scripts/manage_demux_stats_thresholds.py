@@ -53,7 +53,7 @@ class Thresholds():
                     self.Q30 = 75
                 elif self.read_length >= 100:
                     self.Q30 = 80
-                elif self.read_length >= 50:
+                elif self.read_length < 100:
                     self.Q30 = 85
             #v3
             elif self.chemistry == "HiSeq Flow Cell v3":
