@@ -83,7 +83,7 @@ def gen_X_lane_data(pro):
             sp_obj['idx1'] = idxs[0].replace(',','')
             try:
                 compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
-                sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','') ] ) )
+                sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
                 single_end = False
             except KeyError:
                 sp_obj['idx2'] = ''
