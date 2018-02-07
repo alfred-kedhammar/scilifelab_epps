@@ -240,8 +240,8 @@ def main(lims, pid, epp_logger):
                     write_record(log,record["dest_file"][instrument_number])
 
         elif instrument[0:3] == "udf":
-            if pro.udf[instrument[3:]] is not '':
-                instrument_name = pro.udf[instrument[3:]]
+            if pro.udf[instrument[4:]] is not '':
+                instrument_name = pro.udf[instrument[4:]]
                 log.append(instrument_name)
                 if record["details"][instrument_number] is not '':
                     for item in record["details"][instrument_number]:
