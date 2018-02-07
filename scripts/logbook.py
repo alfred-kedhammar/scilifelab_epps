@@ -1,23 +1,32 @@
-
-from genologics.entities import *
-from genologics.lims import *
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.descriptors import StringDescriptor,EntityDescriptor
-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from __future__ import print_function
+
+DESC = """EPP script for automatically logging the record of instrument use
+into the electronic logbooks in Google Doc.
+"""
+
 import httplib2
 import os
+import sys
+import logging
+import codecs
+
+from requests import HTTPError
+from genologics.config import BASEURI,USERNAME,PASSWORD
+from scilifelab_epps.epp import EppLogger
+from genologics.entities import *
+from genologics.lims import *
+from genologics.descriptors import StringDescriptor,EntityDescriptor
 
 from apiclient import discovery
 from oauth2client import client
 from oauth2client import tools
 from oauth2client.file import Storage
 
-try:
-    import argparse
-    flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
-except ImportError:
-    flags = None
+import argparse
+#flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
+from argparse import ArgumentParser
 
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/*.json
@@ -60,7 +69,7 @@ def categorization(process_name):
         "Enrich DNA fragments (TruSeq RNA) 4.0" : {"dest_file" : ["PCR"], "instrument" : ["lims_instrument"], "details" : [""]},
         "Fragment Analyzer QC (DNA) 4.0" : {"dest_file" : ["FragmentAnalyzer"], "instrument" : ["default"], "details": [{"udf_Lot no: Fragment Analyzer Reagents" : ""}]},
         "Fragment Analyzer QC (Library Validation) 4.0" : {"dest_file" : ["FragmentAnalyzer"], "instrument" : ["default"], "details": [{"udf_Lot no: Fragment Analyzer Reagents" : ""}]},
-        "Fragment Analyzer QC (RNA) 4.0" : {"dest_file" : ["FragmentAnalyzer", "instrument"] : ["default"], "details": [{"udf_Lot no: Fragment Analyzer Reagents" : ""}]},
+        "Fragment Analyzer QC (RNA) 4.0" : {"dest_file" : ["FragmentAnalyzer"], "instrument" : ["default"], "details": [{"udf_Lot no: Fragment Analyzer Reagents" : ""}]},
         "Fragment DNA (ThruPlex)" : {"dest_file" : ["Covaris"], "instrument" : ["lims_instrument"], "details" : ["udf_Lot no: Covaris tube"]},
         "Fragment DNA (TruSeq DNA) 4.0" : {"dest_file" : ["Covaris"], "instrument" : ["lims_instrument"], "details" : ["udf_Lot no: Covaris tube"]},
         "Fragmentation & cDNA synthesis (SMARTer Pico) 4.0" : {"dest_file" : ["PCR"], "instrument" : ["udf_PCR Machine"], "details" : [""]},
@@ -100,6 +109,7 @@ def categorization(process_name):
     }
     return record[process_name]
 
+# TBD: add the GDoc logbook IDs
 def get_logbook(dest_file):
     GDoc_logbook = {
         "Bioanalyzer" : { "File" : "" },
@@ -189,8 +199,8 @@ def write_record(content,dest_file):
     result = service.spreadsheets().values().batchUpdate(spreadsheetId=spreadsheetId, body=body).execute()
 
 # All logics about logging
-def main():
-    pro=Process(lims, id=args.pid)
+def main(lims, pid, epp_logger):
+    pro=Process(lims, id=pid)
     log=[]
     time=pro.date_run
     log.append(time)
@@ -207,7 +217,7 @@ def main():
             log.append("")
             if record["details"][instrument_number] is not '':
                 for item in record["details"][instrument_number]:
-                    udf_detail.append(pro.udf[item[3:]])
+                    udf_detail.append(pro.udf[item[4:]])
                 log.append(','.join(udf_detail))
                 write_record(log,record["dest_file"][instrument_number])
             else:
@@ -222,7 +232,7 @@ def main():
                 log.append(instrument_name)
                 if record["details"][instrument_number] is not '':
                     for item in record["details"][instrument_number]:
-                        udf_detail.append(pro.udf[item[3:]])
+                        udf_detail.append(pro.udf[item[4:]])
                     log.append(','.join(udf_detail))
                     write_record(log,record["dest_file"][instrument_number])
                 else:
@@ -235,7 +245,7 @@ def main():
                 log.append(instrument_name)
                 if record["details"][instrument_number] is not '':
                     for item in record["details"][instrument_number]:
-                        udf_detail.append(pro.udf[item[3:]])
+                        udf_detail.append(pro.udf[item[4:]])
                     log.append(','.join(udf_detail))
                     write_record(log,record["dest_file"][instrument_number])
                 else:
@@ -243,3 +253,19 @@ def main():
                     write_record(log,record["dest_file"][instrument_number])
             else:
                 break
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description=DESC)
+    parser.add_argument('--pid', default = '24-38458', dest = 'pid',
+                        help='Lims id for current Process')
+    parser.add_argument('--log', dest = 'log',
+                        help=('File name for standard log file, '
+                              'for runtime information and problems.'))
+
+    args = parser.parse_args()
+
+    lims = Lims(BASEURI,USERNAME,PASSWORD)
+    lims.check_version()
+
+    with EppLogger(log_file=args.log, lims=lims, prepend=True) as epp_logger:
+        main(lims, args.pid, epp_logger)
