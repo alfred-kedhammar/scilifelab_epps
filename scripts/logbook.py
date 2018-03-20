@@ -11,6 +11,7 @@ import os
 import sys
 import logging
 import codecs
+import datetime
 
 from requests import HTTPError
 from genologics.config import BASEURI,USERNAME,PASSWORD
@@ -48,19 +49,20 @@ def categorization(process_name):
         "Automated Quant-iT QC (DNA) 4.0" : {"dest_file" : ["Tecan"], "instrument" : ["default"], "details": [{"udf_Assay type" : "", "udf_Lot no: Quant-iT reagent kit" : ""}]},
         "Automated Quant-iT QC (Library Validation) 4.0" : {"dest_file" : ["Tecan"], "instrument" : ["default"], "details": [{"udf_Assay type" : "", "udf_Lot no: Quant-iT reagent kit" : ""}]},
         "Automated Quant-iT QC (RNA) 4.0" : {"dest_file" : ["Tecan"], "instrument" : ["default"], "details": [{"udf_Assay type" : "", "udf_Lot no: Quant-iT reagent kit" : ""}]},
-        "Bioanalyzer Fragmentation QC (TruSeq DNA) 4.0" : {"dest_file" : ["Bioanalyzer"], "instrument" : ["lims_instrument"], "details": [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent kit" : ""}]},
-        "Bioanalyzer QC (Library Validation) 4.0" : {"dest_file" : ["Bioanalyzer"], "instrument" : ["lims_instrument"], "details": [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent kit" : ""}]},
-        "Bioanalyzer QC (DNA) 4.0" : {"dest_file" : ["Bioanalyzer"], "instrument" : ["lims_instrument"], "details": [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent kit" : ""}]},
+        "Bioanalyzer Fragmentation QC (TruSeq DNA) 4.0" : {"dest_file" : ["Bioanalyzer"], "instrument" : ["lims_instrument"], "details": [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent Kit" : ""}]},
+        "Bioanalyzer QC (Library Validation) 4.0" : {"dest_file" : ["Bioanalyzer"], "instrument" : ["lims_instrument"], "details": [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent Kit" : ""}]},
+        "Bioanalyzer QC (DNA) 4.0" : {"dest_file" : ["Bioanalyzer"], "instrument" : ["lims_instrument"], "details": [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent Kit" : ""}]},
         "Bioanalyzer QC (RNA) 4.0" : {"dest_file" : ["Bioanalyzer"], "instrument" : ["lims_instrument"], "details": [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent kit" : "", "udf_Lot no: Ladder" : ""}]},
         "CA Purification" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
         "CaliperGX QC (DNA)" : {"dest_file" : ["Caliper"], "instrument" : ["lims_instrument"], "details": [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent Kit" : ""}]},
         "CaliperGX QC (RNA)" : {"dest_file" : ["Caliper"], "instrument" : ["lims_instrument"], "details": [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent Kit" : "", "udf_Lot no: RNA ladder" : ""}]},
         "Capture And Wash (SS XT) 4.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
         #"Cluster Generation (Illumina SBS) 4.0" : {"dest_file" : ["cBot"], "instrument" : ["lims_instrument"], "details" : [""]},
+        "Denature, Dilute and Load Sample (MiSeq) 4.0" : {"dest_file" : ["MiSeq"], "instrument" : ["udf_Instrument Used"], "details": [{"udf_Flowcell ID" : "", "udf_RGT#s" : ""}]},
         "End Repair, A-Tailing and Adapter Ligation (SS XT) 4.0" : {"dest_file" : ["Bravo", "PCR"], "instrument" : ["lims_instrument", "udf_PCR Machine"], "details" : ["", ""]},
         "End repair, size selection, A-tailing and adapter ligation (Lucigen NxSeq DNA) 4.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
         "End repair, size selection, A-tailing and adapter ligation (TruSeq DNA Nano) 4.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
-        "End repair, size selection, A-tailing and adapter ligation (TruSeq PCR-free DNA) 4.0" : {"dest_file" : ["Bravo", "PCR"], "instrument" : ["lims_instrument", "udf_PCR Machine"], "details" : ["", ""]},
+        "End repair, size selection, A-tailing and adapter ligation (TruSeq PCR-free DNA) 4.0" : {"dest_file" : ["Bravo", "PCR"], "instrument" : ["lims_instrument", "udf_PCR machine"], "details" : ["", ""]},
         "End repair, A-tailing and adapter ligation (TruSeq RNA) 4.0" : {"dest_file" : ["Bravo", "PCR"], "instrument" : ["lims_instrument", "udf_PCR Machine"], "details" : ["", ""]},
         "Enrich DNA fragments (Nextera) 4.0" : {"dest_file" : ["PCR"], "instrument" : ["lims_instrument"], "details" : [""]},
         "Enrich DNA fragments (TruSeq DNA) 4.0" : {"dest_file" : ["PCR", "Bravo"], "instrument" : ["lims_instrument", "udf_Bravo"], "details" : ["", ""]},
@@ -68,11 +70,11 @@ def categorization(process_name):
         "Fragment Analyzer QC (DNA) 4.0" : {"dest_file" : ["FragmentAnalyzer"], "instrument" : ["default"], "details": [{"udf_Lot no: Fragment Analyzer Reagents" : ""}]},
         "Fragment Analyzer QC (Library Validation) 4.0" : {"dest_file" : ["FragmentAnalyzer"], "instrument" : ["default"], "details": [{"udf_Lot no: Fragment Analyzer Reagents" : ""}]},
         "Fragment Analyzer QC (RNA) 4.0" : {"dest_file" : ["FragmentAnalyzer"], "instrument" : ["default"], "details": [{"udf_Lot no: Fragment Analyzer Reagents" : ""}]},
-        "Fragment DNA (ThruPlex)" : {"dest_file" : ["Covaris"], "instrument" : ["lims_instrument"], "details" : ["udf_Lot no: Covaris tube"]},
-        "Fragment DNA (TruSeq DNA) 4.0" : {"dest_file" : ["Covaris"], "instrument" : ["lims_instrument"], "details" : ["udf_Lot no: Covaris tube"]},
+        "Fragment DNA (ThruPlex)" : {"dest_file" : ["Covaris"], "instrument" : ["lims_instrument"], "details" : [{"udf_Lot no: Covaris tube" : ""}]},
+        "Fragment DNA (TruSeq DNA) 4.0" : {"dest_file" : ["Covaris"], "instrument" : ["lims_instrument"], "details" : [{"udf_Lot no: Covaris tube" : ""}]},
         "Fragmentation & cDNA synthesis (SMARTer Pico) 4.0" : {"dest_file" : ["PCR"], "instrument" : ["udf_PCR Machine"], "details" : [""]},
         "Fragmentation & cDNA synthesis (TruSeq RNA) 4.0" : {"dest_file" : ["PCR"], "instrument" : ["udf_PCR Machine"], "details" : [""]},
-        "Hybridize Library (SS XT) 4.0" : {"dest_file" : ["PCR", "Bravo"], "instrument" : ["lims_instrument", "udf_Instrument Used"], "details" : ["", ""]},
+        "Hybridize Library  (SS XT) 4.0" : {"dest_file" : ["PCR", "Bravo"], "instrument" : ["lims_instrument", "udf_Instrument Used"], "details" : ["", ""]},
         "Library Normalization (HiSeq X) 1.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
         "Library Normalization (Illumina SBS) 4.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
         "Library Normalization (MiSeq) 4.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
@@ -82,7 +84,7 @@ def categorization(process_name):
         "Library Pooling (MiSeq) 4.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
         "Library Pooling (RAD-seq) v1.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
         "Library Pooling (TruSeq Small RNA) 1.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
-        "Linear DNA digestion, Circularized DNA shearing and Streptavidin Bead Binding" : {"dest_file" : ["Covaris"], "instrument" : ["lims_instrument"], "details" : ["udf_Lot no: Covaris tube"]},
+        "Linear DNA digestion, Circularized DNA shearing and Streptavidin Bead Binding" : {"dest_file" : ["Covaris"], "instrument" : ["lims_instrument"], "details" : [{"udf_Lot no: Covaris tube" : ""}]},
         "mRNA Purification, Fragmentation & cDNA synthesis (TruSeq RNA) 4.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
         "Pre-Pooling (Illumina SBS) 4.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
         "Pre-Pooling (MiSeq) 4.0" : {"dest_file" : ["Bravo"], "instrument" : ["lims_instrument"], "details" : [""]},
@@ -118,6 +120,7 @@ def get_logbook(dest_file):
         "CFX" : { "File" : "19LKni8LO-Dzkvs7gkVHLEcTqzqX2zOerT3SOF9GPHNQ" },
         "Covaris" : { "File" : "1wpSzEdiZcRWk1YFo59Pzt4y-AVSb0Fi9AOg2VFrQOVE" },
         "FragmentAnalyzer" : { "File" : "1T4Cy3ywZvl0-kQR-QbtXzu_sErPaYymXeGMf81fqK8k" },
+        "MiSeq" : { "File" : "1ThnEbahwm3InlF_tUJ0riyT3RImVKQINfMD4rB6VThU" },
         "PCR" : { "File" : "1YE_M4ywhr5HuQEV2DhO0oVLDPRkThhuAytAEawcdTZM" },
         "Pippin" : { "File" : "1cJd2Wo9GMVq0HjXrVahxF2o_I_LqIipAreWOXeWwObM" },
         "Qubit" : { "File" : "1-sByQA6XVrbli0V24n4CxdxogLUlRlGvykkxOpBG-_U" },
@@ -199,7 +202,7 @@ def write_record(content,dest_file):
 def main(lims, pid, epp_logger):
     pro=Process(lims, id=pid)
     log=[]
-    time=pro.date_run
+    time=datetime.datetime.now().strftime("%Y-%m-%d")
     log.append(time)
     user="{0} {1}".format(pro.technician.first_name,pro.technician.last_name)
     log.append(user)
@@ -213,14 +216,21 @@ def main(lims, pid, epp_logger):
         log=log_tmp[:]
 
         if instrument == "default":
-            log.append("")
+            log.append("-")
             if record["details"][instrument_number] is not '':
                 for item in record["details"][instrument_number]:
-                    udf_detail.append(pro.udf[item[4:]])
-                log.append(','.join(udf_detail))
+                    try:
+                        udf_content = pro.udf[item[4:]]
+                        udf_detail.append(item[4:]+":"+pro.udf[item[4:]])
+                    except KeyError, e:
+                        continue
+                if udf_detail == []:
+                    log.append("-")
+                else:
+                    log.append(','.join(udf_detail))
                 write_record(log,record["dest_file"][instrument_number])
             else:
-                log.append("")
+                log.append("-")
                 write_record(log,record["dest_file"][instrument_number])
 
         elif instrument == "lims_instrument":
@@ -232,26 +242,43 @@ def main(lims, pid, epp_logger):
                 log.append(instrument_name)
                 if record["details"][instrument_number] is not '':
                     for item in record["details"][instrument_number]:
-                        udf_detail.append(pro.udf[item[4:]])
-                    log.append(','.join(udf_detail))
+                        try:
+                            udf_content = pro.udf[item[4:]]
+                            udf_detail.append(item[4:]+":"+pro.udf[item[4:]])
+                        except KeyError, e:
+                            continue
+                    if udf_detail == []:
+                        log.append("-")
+                    else:
+                        log.append(','.join(udf_detail))
                     write_record(log,record["dest_file"][instrument_number])
                 else:
-                    log.append("")
+                    log.append("-")
                     write_record(log,record["dest_file"][instrument_number])
 
         elif instrument[0:3] == "udf":
-            if pro.udf[instrument[4:]] is not '':
+            try:
                 instrument_name = pro.udf[instrument[4:]]
-                log.append(instrument_name)
-                if record["details"][instrument_number] is not '':
-                    for item in record["details"][instrument_number]:
-                        udf_detail.append(pro.udf[item[4:]])
-                    log.append(','.join(udf_detail))
-                    write_record(log,record["dest_file"][instrument_number])
+                if pro.udf[instrument[4:]] is not '':
+                    log.append(instrument_name)
+                    if record["details"][instrument_number] is not '':
+                        for item in record["details"][instrument_number]:
+                            try:
+                                udf_content = pro.udf[item[4:]]
+                                udf_detail.append(item[4:]+":"+pro.udf[item[4:]])
+                            except KeyError, e:
+                                continue
+                        if udf_detail == []:
+                            log.append("-")
+                        else:
+                            log.append(','.join(udf_detail))
+                        write_record(log,record["dest_file"][instrument_number])
+                    else:
+                        log.append("-")
+                        write_record(log,record["dest_file"][instrument_number])
                 else:
-                    log.append("")
-                    write_record(log,record["dest_file"][instrument_number])
-            else:
+                    continue
+            except KeyError, e:
                 continue
 
 if __name__ == "__main__":
