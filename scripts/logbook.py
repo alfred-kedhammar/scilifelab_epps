@@ -11,6 +11,7 @@ import os
 import sys
 import logging
 import codecs
+import datetime
 
 from requests import HTTPError
 from genologics.config import BASEURI,USERNAME,PASSWORD
@@ -201,7 +202,7 @@ def write_record(content,dest_file):
 def main(lims, pid, epp_logger):
     pro=Process(lims, id=pid)
     log=[]
-    time=pro.date_run
+    time=datetime.datetime.now().strftime("%Y-%m-%d")
     log.append(time)
     user="{0} {1}".format(pro.technician.first_name,pro.technician.last_name)
     log.append(user)
