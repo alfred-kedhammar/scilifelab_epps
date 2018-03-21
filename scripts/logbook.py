@@ -109,7 +109,10 @@ def categorization(process_name):
             },
             "default" : {
                 "dest_file" : "Tecan",
-                "details" : [{"udf_Assay type" : "", "udf_Lot no: Quant-iT reagent kit" : ""}]
+                "details" : {
+                    "udf_Assay type" : "",
+                    "udf_Lot no: Quant-iT reagent kit" : ""
+                }
             }
         },
         "Automated Quant-iT QC (Library Validation) 4.0" : {
@@ -119,7 +122,10 @@ def categorization(process_name):
             },
             "default" : {
                 "dest_file" : "Tecan",
-                "details" : [{"udf_Assay type" : "", "udf_Lot no: Quant-iT reagent kit" : ""}]
+                "details" : {
+                    "udf_Assay type" : "",
+                    "udf_Lot no: Quant-iT reagent kit" : ""
+                }
             }
         },
         "Automated Quant-iT QC (RNA) 4.0" : {
@@ -129,31 +135,47 @@ def categorization(process_name):
             },
             "default" : {
                 "dest_file" : "Tecan",
-                "details" : [{"udf_Assay type" : "", "udf_Lot no: Quant-iT reagent kit" : ""}]
+                "details" : {
+                    "udf_Assay type" : "",
+                    "udf_Lot no: Quant-iT reagent kit" : ""
+                }
             }
         },
         "Bioanalyzer Fragmentation QC (TruSeq DNA) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "Bioanalyzer",
-                "details" : [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent Kit" : ""}]
+                "details" : {
+                    "udf_Lot no: Chip" : "",
+                    "udf_Lot no: Reagent Kit" : ""
+                }
             }
         },
         "Bioanalyzer QC (Library Validation) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "Bioanalyzer",
-                "details" : [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent Kit" : ""}]
+                "details" : {
+                    "udf_Lot no: Chip" : "",
+                    "udf_Lot no: Reagent Kit" : ""
+                }
             }
         },
         "Bioanalyzer QC (DNA) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "Bioanalyzer",
-                "details" : [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent Kit" : ""}]
+                "details" : {
+                    "udf_Lot no: Chip" : "",
+                    "udf_Lot no: Reagent Kit" : ""
+                }
             }
         },
         "Bioanalyzer QC (RNA) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "Bioanalyzer",
-                "details" : [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent kit" : "", "udf_Lot no: Ladder" : ""}]
+                "details" : {
+                    "udf_Lot no: Chip" : "",
+                    "udf_Lot no: Reagent kit" : "",
+                    "udf_Lot no: Ladder" : ""
+                }
             }
         },
         "CA Purification" : {
@@ -165,13 +187,20 @@ def categorization(process_name):
         "CaliperGX QC (DNA)" : {
             "lims_instrument" : {
                 "dest_file" : "Caliper",
-                "details" : [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent Kit" : ""}]
+                "details" : {
+                    "udf_Lot no: Chip" : "",
+                    "udf_Lot no: Reagent Kit" : ""
+                }
             }
         },
         "CaliperGX QC (RNA)" : {
             "lims_instrument" : {
                 "dest_file" : "Caliper",
-                "details" : [{"udf_Lot no: Chip" : "", "udf_Lot no: Reagent Kit" : "", "udf_Lot no: RNA ladder" : ""}]
+                "details" : {
+                    "udf_Lot no: Chip" : "",
+                    "udf_Lot no: Reagent Kit" : "",
+                    "udf_Lot no: RNA ladder" : ""
+                }
             }
         },
         "Capture And Wash (SS XT) 4.0" : {
@@ -183,7 +212,10 @@ def categorization(process_name):
         "Denature, Dilute and Load Sample (MiSeq) 4.0" : {
             "udf_Instrument Used" : {
                 "dest_file" : "MiSeq",
-                "details" : [{"udf_Flowcell ID" : "", "udf_RGT#s" : ""}]
+                "details" : {
+                    "udf_Flowcell ID" : "",
+                    "udf_RGT#s" : ""
+                }
             }
         },
         "End Repair, A-Tailing and Adapter Ligation (SS XT) 4.0" : {
@@ -253,31 +285,41 @@ def categorization(process_name):
         "Fragment Analyzer QC (DNA) 4.0" : {
             "default" : {
                 "dest_file" : "FragmentAnalyzer",
-                "details" : [{"udf_Lot no: Fragment Analyzer Reagents" : ""}]
+                "details" : {
+                    "udf_Lot no: Fragment Analyzer Reagents" : ""
+                }
             }
         },
         "Fragment Analyzer QC (Library Validation) 4.0" : {
             "default" : {
                 "dest_file" : "FragmentAnalyzer",
-                "details" : [{"udf_Lot no: Fragment Analyzer Reagents" : ""}]
+                "details" : {
+                    "udf_Lot no: Fragment Analyzer Reagents" : ""
+                }
             }
         },
         "Fragment Analyzer QC (RNA) 4.0" : {
             "default" : {
                 "dest_file" : "FragmentAnalyzer",
-                "details" : [{"udf_Lot no: Fragment Analyzer Reagents" : ""}]
+                "details" : {
+                    "udf_Lot no: Fragment Analyzer Reagents" : ""
+                }
             }
         },
         "Fragment DNA (ThruPlex)" : {
             "lims_instrument" : {
                 "dest_file" : "Covaris",
-                "details" : [{"udf_Lot no: Covaris tube" : ""}]
+                "details" : {
+                    "udf_Lot no: Covaris tube" : ""
+                }
             }
         },
         "Fragment DNA (TruSeq DNA) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "Covaris",
-                "details" : [{"udf_Lot no: Covaris tube" : ""}]
+                "details" : {
+                    "udf_Lot no: Covaris tube" : ""
+                }
             }
         },
         "Fragmentation & cDNA synthesis (SMARTer Pico) 4.0" : {
@@ -359,7 +401,9 @@ def categorization(process_name):
         "Linear DNA digestion, Circularized DNA shearing and Streptavidin Bead Binding" : {
             "lims_instrument" : {
                 "dest_file" : "Covaris",
-                "details" : [{"udf_Lot no: Covaris tube" : ""}]
+                "details" : {
+                    "udf_Lot no: Covaris tube" : ""
+                }
             }
         },
         "mRNA Purification, Fragmentation & cDNA synthesis (TruSeq RNA) 4.0" : {
@@ -395,7 +439,10 @@ def categorization(process_name):
         "qPCR QC (Dilution Validation) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "CFX",
-                "details" : [{"udf_Lot no. qPCR reagent kit" : "", "udf_Lot no. Standard" : ""}]
+                "details" : {
+                    "udf_Lot no. qPCR reagent kit" : "",
+                    "udf_Lot no. Standard" : ""
+                }
             },
             "udf_Instrument Used" : {
                 "dest_file" : "Bravo",
@@ -405,7 +452,10 @@ def categorization(process_name):
         "qPCR QC (Library Validation) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "CFX",
-                "details" : [{"udf_Lot no. qPCR reagent kit" : "", "udf_Lot no. Standard" : ""}]
+                "details" : {
+                    "udf_Lot no. qPCR reagent kit" : "",
+                    "udf_Lot no. Standard" : ""
+                }
             },
             "udf_Instrument Used" : {
                 "dest_file" : "Bravo",
@@ -415,43 +465,64 @@ def categorization(process_name):
         "Quant-iT QC (DNA) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "CFX",
-                "details" : [{"udf_Assay type" : "", "udf_Lot no: Quant-iT reagent kit" : ""}]
+                "details" : {
+                    "udf_Assay type" : "",
+                    "udf_Lot no: Quant-iT reagent kit" : ""
+                }
             }
         },
         "Quant-iT QC (Library Validation) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "CFX",
-                "details" : [{"udf_Assay type" : "", "udf_Lot no: Quant-iT reagent kit" : ""}]
+                "details" : {
+                    "udf_Assay type" : "",
+                    "udf_Lot no: Quant-iT reagent kit" : ""
+                }
             }
         },
         "Quant-iT QC (RNA) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "CFX",
-                "details" : [{"udf_Assay type" : "", "udf_Lot no: Quant-iT reagent kit" : ""}]
+                "details" : {
+                    "udf_Assay type" : "",
+                    "udf_Lot no: Quant-iT reagent kit" : ""
+                }
             }
         },
         "Qubit QC (DNA) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "Qubit",
-                "details" : [{"udf_Assay" : "", "udf_Lot no: Qubit kit" : ""}]
+                "details" : {
+                    "udf_Assay" : "",
+                    "udf_Lot no: Qubit kit" : ""
+                }
             }
         },
         "Qubit QC (RNA) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "Qubit",
-                "details" : [{"udf_Assay" : "", "udf_Lot no: Qubit kit" : ""}]
+                "details" : {
+                    "udf_Assay" : "",
+                    "udf_Lot no: Qubit kit" : ""
+                }
             }
         },
         "Qubit QC (Dilution Validation) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "Qubit",
-                "details" : [{"udf_Assay" : "", "udf_Lot no: Qubit kit" : ""}]
+                "details" : {
+                    "udf_Assay" : "",
+                    "udf_Lot no: Qubit kit" : ""
+                }
             }
         },
         "Qubit QC (Library Validation) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "Qubit",
-                "details" : [{"udf_Assay" : "", "udf_Lot no: Qubit kit" : ""}]
+                "details" : {
+                    "udf_Assay" : "",
+                    "udf_Lot no: Qubit kit" : ""
+                }
             }
         },
         "RAD-seq Library Indexing v1.0" : {
@@ -493,7 +564,13 @@ def categorization(process_name):
         "Size Selection (Pippin)" : {
             "default" : {
                 "dest_file" : "Pippin",
-                "details" : [{"udf_Type: Gel Cassette" : "", "udf_Lot no: Gel Cassette" : "", "udf_Type: Marker" : "", "udf_Lot no: Marker" : "", "udf_Lot no: Electrophoresis Buffer" : ""}]
+                "details" : {
+                    "udf_Type: Gel Cassette" : "",
+                    "udf_Lot no: Gel Cassette" : "",
+                    "udf_Type: Marker" : "",
+                    "udf_Lot no: Marker" : "",
+                    "udf_Lot no: Electrophoresis Buffer" : ""
+                }
             }
         },
         "Size Selection (Robocut)" : {
@@ -505,7 +582,9 @@ def categorization(process_name):
         "Shear DNA (SS XT) 4.0" : {
             "lims_instrument" : {
                 "dest_file" : "Covaris",
-                "details" : [{"udf_Lot no: Covaris tube" : ""}]
+                "details" : {
+                    "udf_Lot no: Covaris tube" : ""
+                }
             },
             "udf_Instrument Used" : {
                 "dest_file" : "Bravo",
