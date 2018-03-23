@@ -488,3 +488,19 @@ lims_process_record={
           }
       }
 }
+
+#A full list of GDoc electronic logooks of instruments
+GDoc_logbook = {
+    "Bioanalyzer" : { "File" : "1m2_kGf-vTi-XP8RCnuxZ3yAR1xIw_ySCpGMuRlb2gFs" },
+    "Bravo" : { "File" : "1Di5uRlEI7zlQ7DgvQuEYpwDslf8VMrRnhruk5GWNtIo" },
+    "Caliper" : { "File" : "1x3w-0s1-xENQORthMSF1GLTezfXQcsaVEiAfJRRjsoc" },
+    "CFX" : { "File" : "19LKni8LO-Dzkvs7gkVHLEcTqzqX2zOerT3SOF9GPHNQ" },
+    "Covaris" : { "File" : "1wpSzEdiZcRWk1YFo59Pzt4y-AVSb0Fi9AOg2VFrQOVE" },
+    "FragmentAnalyzer" : { "File" : "1T4Cy3ywZvl0-kQR-QbtXzu_sErPaYymXeGMf81fqK8k" },
+    "MiSeq" : { "File" : "1ThnEbahwm3InlF_tUJ0riyT3RImVKQINfMD4rB6VThU" },
+    "PCR" : { "File" : "1YE_M4ywhr5HuQEV2DhO0oVLDPRkThhuAytAEawcdTZM" },
+    "Pippin" : { "File" : "1cJd2Wo9GMVq0HjXrVahxF2o_I_LqIipAreWOXeWwObM" },
+    "Qubit" : { "File" : "1-sByQA6XVrbli0V24n4CxdxogLUlRlGvykkxOpBG-_U" },
+    "Speedvac" : {"File" : "1Dk7qPJeNmzKtHWEdNkZ4yLB0FycjREqqIhNhInZ8G9g"},
+    "Tecan" : { "File" : "1DUBEL8DBf0lnXJjIIjowQf2PrftMo9ECXpeNrDodM4s" }
+}
