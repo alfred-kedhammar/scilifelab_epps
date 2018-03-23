@@ -130,11 +130,8 @@ def get_details(record_instrument,pro):
     for item in record_instrument.get("details", []):
         if item == "Processname":
             udf_detail.append(pro.type.name)
-        else:
-            try:
-                udf_detail.append(item+":"+pro.udf[item])
-            except KeyError, e:
-                continue
+        elif pro.udf.get(item):
+            udf_detail.append(item+":"+pro.udf.get(item))
     return ','.join(udf_detail) if udf_detail else "-"
 
 # All logics about logging
