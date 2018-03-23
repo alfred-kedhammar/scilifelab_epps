@@ -1,0 +1,490 @@
+#A full list of LIMS steps with involved instrument and details for logging
+lims_process_record={
+    "Adapter ligation and reverse transcription (TruSeq small RNA) 1.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Adapter Ligation and 1st Amplification (SMARTer Pico) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Aliquot Samples for Caliper/Bioanalyzer" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Aliquot Samples for Qubit/Bioanalyzer" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Aliquot Libraries for Hybridization (SS XT)" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "default" : {
+              "dest_file" : "Speedvac"
+          }
+      },
+      "Amplify Adapter-Ligated Library (SS XT) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Amplify Captured Libraries to Add Index Tags (SS XT) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Amplify by PCR and Add Index Tags (TruSeq small RNA) 1.0" : {
+          "lims_instrument" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Automated Quant-iT QC (DNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "default" : {
+              "dest_file" : "Tecan",
+              "details" : ["Assay type", "Lot no: Quant-iT reagent kit"]
+          }
+      },
+      "Automated Quant-iT QC (Library Validation) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "default" : {
+              "dest_file" : "Tecan",
+              "details" : ["Assay type", "Lot no: Quant-iT reagent kit"]
+          }
+      },
+      "Automated Quant-iT QC (RNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "default" : {
+              "dest_file" : "Tecan",
+              "details" : ["Assay type", "Lot no: Quant-iT reagent kit"]
+          }
+      },
+      "Bioanalyzer Fragmentation QC (TruSeq DNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bioanalyzer",
+              "details" : ["Lot no: Chip", "Lot no: Reagent Kit"]
+          }
+      },
+      "Bioanalyzer QC (Library Validation) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bioanalyzer",
+              "details" : ["Lot no: Chip", "Lot no: Reagent Kit"]
+          }
+      },
+      "Bioanalyzer QC (DNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bioanalyzer",
+              "details" : ["Lot no: Chip", "Lot no: Reagent Kit"]
+          }
+      },
+      "Bioanalyzer QC (RNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bioanalyzer",
+              "details" : ["Lot no: Chip", "Lot no: Reagent kit", "Lot no: Ladder"]
+          }
+      },
+      "CA Purification" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "CaliperGX QC (DNA)" : {
+          "lims_instrument" : {
+              "dest_file" : "Caliper",
+              "details" : ["Lot no: Chip", "Lot no: Reagent Kit"]
+          }
+      },
+      "CaliperGX QC (RNA)" : {
+          "lims_instrument" : {
+              "dest_file" : "Caliper",
+              "details" : ["Lot no: Chip", "Lot no: Reagent Kit", "Lot no: RNA ladder"]
+          }
+      },
+      "Capture And Wash (SS XT) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Denature, Dilute and Load Sample (MiSeq) 4.0" : {
+          "udf_Instrument Used" : {
+              "dest_file" : "MiSeq",
+              "details" : ["Flowcell ID", "RGT#s"]
+          }
+      },
+      "End Repair, A-Tailing and Adapter Ligation (SS XT) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "End repair, size selection, A-tailing and adapter ligation (Lucigen NxSeq DNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "End repair, size selection, A-tailing and adapter ligation (TruSeq DNA Nano) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "End repair, size selection, A-tailing and adapter ligation (TruSeq PCR-free DNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "End repair, A-tailing and adapter ligation (TruSeq RNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Enrich DNA fragments (Nextera) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Enrich DNA fragments (TruSeq DNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "PCR"
+          },
+          "udf_Bravo" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Enrich DNA fragments (TruSeq RNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Fragment Analyzer QC (DNA) 4.0" : {
+          "default" : {
+              "dest_file" : "FragmentAnalyzer",
+              "details" : ["Lot no: Fragment Analyzer Reagents"]
+          }
+      },
+      "Fragment Analyzer QC (Library Validation) 4.0" : {
+          "default" : {
+              "dest_file" : "FragmentAnalyzer",
+              "details" : ["Lot no: Fragment Analyzer Reagents"]
+          }
+      },
+      "Fragment Analyzer QC (RNA) 4.0" : {
+          "default" : {
+              "dest_file" : "FragmentAnalyzer",
+              "details" : ["Lot no: Fragment Analyzer Reagents"]
+          }
+      },
+      "Fragment DNA (ThruPlex)" : {
+          "lims_instrument" : {
+              "dest_file" : "Covaris",
+              "details" : ["Lot no: Covaris tube"]
+          }
+      },
+      "Fragment DNA (TruSeq DNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Covaris",
+              "details" : ["Lot no: Covaris tube"]
+          }
+      },
+      "Fragmentation & cDNA synthesis (SMARTer Pico) 4.0" : {
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Fragmentation & cDNA synthesis (TruSeq RNA) 4.0" : {
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Hybridize Library  (SS XT) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "PCR"
+          },
+          "udf_Instrument Used" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Library Normalization (HiSeq X) 1.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Library Normalization (Illumina SBS) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Library Normalization (MiSeq) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Library Normalization (NovaSeq) v2.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Library Pooling (HiSeq X) 1.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Library Pooling (Illumina SBS) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Library Pooling (MiSeq) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Library Pooling (RAD-seq) v1.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Library Pooling (TruSeq Small RNA) 1.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Linear DNA digestion, Circularized DNA shearing and Streptavidin Bead Binding" : {
+          "lims_instrument" : {
+              "dest_file" : "Covaris",
+              "details" : ["Lot no: Covaris tube"]
+          }
+      },
+      "mRNA Purification, Fragmentation & cDNA synthesis (TruSeq RNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Pre-Pooling (Illumina SBS) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Pre-Pooling (MiSeq) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Pre-Pooling (NovaSeq) v2.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Purification" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Purification (ThruPlex)" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "qPCR QC (Dilution Validation) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "CFX",
+              "details" : ["Lot no. qPCR reagent kit", "Lot no. Standard"]
+          },
+          "udf_Instrument Used" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "qPCR QC (Library Validation) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "CFX",
+              "details" : ["Lot no. qPCR reagent kit", "Lot no. Standard"]
+          },
+          "udf_Instrument Used" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Quant-iT QC (DNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "CFX",
+              "details" : ["Assay type", "Lot no: Quant-iT reagent kit"]
+          }
+      },
+      "Quant-iT QC (Library Validation) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "CFX",
+              "details" : ["Assay type", "Lot no: Quant-iT reagent kit"]
+          }
+      },
+      "Quant-iT QC (RNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "CFX",
+              "details" : ["Assay type", "Lot no: Quant-iT reagent kit"]
+          }
+      },
+      "Qubit QC (DNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
+          }
+      },
+      "Qubit QC (RNA) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
+          }
+      },
+      "Qubit QC (Dilution Validation) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
+          }
+      },
+      "Qubit QC (Library Validation) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
+          }
+      },
+      "RAD-seq Library Indexing v1.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Ribosomal cDNA Depletion and 2nd Amplification (SMARTer Pico) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "RiboZero depletion" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Setup Workset/Plate" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Size Selection (Pippin)" : {
+          "default" : {
+              "dest_file" : "Pippin",
+              "details" : ["Type: Gel Cassette", "Lot no: Gel Cassette", "Type: Marker", "Lot no: Marker", "Lot no: Electrophoresis Buffer"]
+          }
+      },
+      "Size Selection (Robocut)" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Shear DNA (SS XT) 4.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Covaris",
+              "details" : ["Lot no: Covaris tube"]
+          },
+          "udf_Instrument Used" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "ThruPlex library amplification" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "ThruPlex template preparation and synthesis" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      }
+}
