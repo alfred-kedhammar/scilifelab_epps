@@ -46,7 +46,7 @@ def problem_handler(type, message):
 
 """Fetches overarching workflow info"""
 def manipulate_workflow(demux_process):
-    run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0"}
+    run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0,"AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)"}
     try:
         workflow = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id, type=run_types)[0]
     except Exception as e:
@@ -67,6 +67,9 @@ def manipulate_workflow(demux_process):
     elif "Illumina Sequencing (HiSeq X) 1.0" == workflow.type.name:
         proc_stats["Chemistry"] ="HiSeqX v2.5"
         proc_stats["Instrument"] = "HiSeq_X"
+    elif "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)" == workflow.type.name:
+        proc_stats["Chemistry"] ="NovaSeq"
+        proc_stats["Instrument"] = "NovaSeq"
     else:
         problem_handler("exit", "Unhandled workflow step (run type)")
     logger.info("Run type/chemistry set to {}".format(proc_stats["Chemistry"]))
@@ -140,7 +143,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
     proj_pattern = re.compile('(P\w+_\d+)')
     #Necessary for noindexruns, should always resolve
     try:
-        run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0"}
+        run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0","AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)"}
         seqstep = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id, type=run_types)[0]
     except Exception as e:
         problem_handler("exit", "Undefined prior workflow step (run type): {}".format(e.message))
@@ -459,4 +462,3 @@ if __name__ =="__main__":
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
     main(args.process_lims_id, args.demux_id, args.log_id)
-
