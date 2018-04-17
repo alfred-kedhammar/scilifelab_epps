@@ -109,8 +109,8 @@ class Thresholds():
                     self.exp_lane_clust = 305000000
         elif self.instrument == "NovaSeq":
             self.exp_lane_clust = 1000000000
-            else:
-                self.problem_handler("exit", "HiSeqX runs should always be paired but script has detected otherwise. Something has gone terribly wrong.")
+        else:
+            self.problem_handler("exit", "HiSeqX runs should always be paired but script has detected otherwise. Something has gone terribly wrong.")
         if not self.exp_lane_clust:
             self.problem_handler("exit", "No predefined clusters per lane threshold. Instrument: {}, Chemistry: {}, Read Length: {}".\
                                  format(self.instrument, self.chemistry, self.read_length))

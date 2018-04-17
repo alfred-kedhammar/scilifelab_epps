@@ -46,7 +46,7 @@ def problem_handler(type, message):
 
 """Fetches overarching workflow info"""
 def manipulate_workflow(demux_process):
-    run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0,"AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)"}
+    run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0","AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)"}
     try:
         workflow = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id, type=run_types)[0]
     except Exception as e:
@@ -70,13 +70,15 @@ def manipulate_workflow(demux_process):
     elif "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)" == workflow.type.name:
         proc_stats["Chemistry"] ="NovaSeq"
         proc_stats["Instrument"] = "NovaSeq"
+        proc_stats["Read Length"] = workflow.parent_processes()[0].udf['Read 1 Cycles']
+        proc_stats["Paired"] = True if workflow.parent_processes()[0].udf.get('Read 2 Cycles') else False
     else:
         problem_handler("exit", "Unhandled workflow step (run type)")
     logger.info("Run type/chemistry set to {}".format(proc_stats["Chemistry"]))
     logger.info("Instrument set to {}".format(proc_stats["Instrument"]))
 
     try:
-        proc_stats["Paired"] = False
+        proc_stats["Paired"] = proc_stats.get("Paired", False)
     except Exception as e:
         problem_handler("exit", "Unable to fetch workflow information: {}".format(e.message))
     if "Read 2 Cycles" in proc_stats:
@@ -84,7 +86,7 @@ def manipulate_workflow(demux_process):
     logger.info("Paired libraries: {}".format(proc_stats["Paired"]))
     #Assignment to make usage more explicit
     try:
-        proc_stats["Read Length"] = proc_stats["Read 1 Cycles"]
+        proc_stats["Read Length"] = proc_stats["Read Length"] if proc_stats.get("Read Length", None) else proc_stats["Read 1 Cycles"]
     except Exception as e:
         problem_handler("exit", "Read 1 Cycles not found. Unable to read Read Length: {}".format(e.message))
     logger.info("Read length set to {}".format(proc_stats["Read Length"]))
