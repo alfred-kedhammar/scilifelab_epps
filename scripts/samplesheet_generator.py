@@ -10,7 +10,7 @@ from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
-DESC = """EPP used to create samplesheets"""
+DESC = """EPP used to create HiseqX samplesheets"""
 
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,})-?([ATCG]*)")
@@ -30,6 +30,7 @@ def check_index_distance(data, log):
                     log.append("Found indexes {} and {} in lane {}, indexes are too close".format(b,b2,l))
 
 
+
 def my_distance(idx1, idx2):
     short=min((idx1, idx2), key=len)
     lon= idx1 if short == idx2 else idx2
@@ -41,20 +42,24 @@ def my_distance(idx1, idx2):
     return diffs
 
 
-def gen_header(pro):
+
+
+
+def gen_X_header(pro):
     header = "[Header]\nInvestigator Name,{}\nDate,{}\n".format(pro.technician.name, pro.date_run)
     if "Experiment Name" in pro.udf:
         header = header + "Experiment Name,{}\n".format(pro.udf["Experiment Name"])
     return header
 
 
-def gen_reads_info(pro):
+def gen_X_reads_info(pro):
     reads = []
     if "Read 1 Cycles" in pro.udf:
         reads.append(str(pro.udf["Read 1 Cycles"]))
         if "Read 2 Cycles" in pro.udf:
             reads.append(str(pro.udf["Read 2 Cycles"]))
         return "[Reads]\n{}\n".format("\n".join(reads))
+
     else:
         return None
 
@@ -95,44 +100,10 @@ def gen_X_lane_data(pro):
         l_data = [line['lane'], line['sid'], line['sn'], line['fc'], line['sw'], line['idx1'], line['pj'], '']
         if not single_end:
             l_data.insert(6, line['idx2'])
+
         str_data = str_data + ",".join(l_data) + "\n"
 
     return ("{}{}".format(header, str_data), data)
-
-def gen_novaseq_lane_data(pro):
-    data = []
-    single_end = pro.udf.get("Index Read 2", 0) == 0
-    for io in pro.input_output_maps:
-        if not io[1]['output-generation-type']=='PerInput':
-            continue
-        inp=io[0]['uri']
-        for sample in inp.samples:
-            sp_obj = {}
-            sp_obj['lane'] = inp.location[1].split(':')[1].replace(',','')
-            sp_obj['sn'] = sample.name.replace(',','')
-            sp_obj['pj'] = sample.project.name.replace('.','_').replace(',','')
-            sp_obj['fc'] = pro.udf.get("Experiment Name", io[1]['uri'].location[0].name.replace(',',''))
-            sp_obj['sw'] = inp.location[1].replace(',','')
-            idxs = find_barcode(sample, pro)
-            sp_obj['idx1'] = idxs[0].replace(',','')
-            if not single_end:
-                sp_obj['idx2'] = idxs[0].replace(',','')
-            data.append(sp_obj)
-    
-    header_ar = ["Lane", "Sample_ID", "Sample_Name", "SamplePlate", "SampleWell", "index", "Sample_Project", "Description"]
-    if not single_end:
-        header_ar.insert(6, "index2")
-    
-    header = "[Data]\n{}\n".format(",".join(header_ar))
-    str_data = ""
-    for line in sorted(data, key=lambda x: x['lane']):
-        l_data = [line['lane'], line['sn'], line['sn'], line['fc'], line['sw'], line['idx1'], line['pj'], '']
-        if not single_end:
-            l_data.insert(6, line['idx2'])
-        str_data = str_data + ",".join(l_data) + "\n"
-
-    return ("{}{}".format(header, str_data), data)
-
 
 def gen_Hiseq_lane_data(pro):
     data=[]
@@ -178,7 +149,6 @@ def gen_Hiseq_lane_data(pro):
 
     return ("{}{}".format(header, str_data), data)
 
-
 def gen_Miseq_header(pro):
     project_name=pro.all_inputs()[0].samples[0].project.name
     chem = "Default"
@@ -190,7 +160,6 @@ def gen_Miseq_header(pro):
     header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=datetime.now().strftime("%Y-%m-%d"), wf=pro.udf["Workflow"], ass="null", dsc=pro.udf['Description'], chem=chem)
     return header
 
-
 def gen_Miseq_reads(pro):
     reads="[Reads]\n"
     if pro.udf["Read 1 Cycles"]:
@@ -199,13 +168,11 @@ def gen_Miseq_reads(pro):
         reads=reads + "{}\n".format(pro.udf["Read 2 Cycles"])
     return reads
 
-
 def gen_Miseq_settings(pro):
     ogf=1 if pro.udf["OnlyGenerateFASTQ"] else 0
     fpdcrd=1 if pro.udf["FilterPCRDuplicates"] else 0
     settings="[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n".format(ogf=ogf,fpdcrd=fpdcrd)
     return settings
-
 
 def gen_Miseq_data(pro):
     data=[]
@@ -262,6 +229,7 @@ def gen_Miseq_data(pro):
     return ("{}{}".format(header, str_data), data)
 
 
+
 def find_barcode(sample, process):
     # print "trying to find {} barcode in {}".format(sample.name, process.name)
     for art in process.all_inputs():
@@ -283,6 +251,7 @@ def find_barcode(sample, process):
                             idxs = IDX_PAT.findall(rt.sequence)[0]
                         except:
                             return ("NoIndex","")
+
                 return idxs
             else:
                 if art == sample.artifact or not art.parent_process:
@@ -297,7 +266,6 @@ def test():
     check_index_distance(d, log)
     print log
 
-
 def main(lims, args):
     log=[]
     thisyear=datetime.now().year
@@ -306,23 +274,9 @@ def main(lims, args):
         test()
     else:
         process = Process(lims, id=args.pid)
-        if process.type.name == 'Denature & Dilute (NovaSeq 6000) 1.0':
-            header = gen_header(process)
-            reads = gen_reads_info(process)
-            (data, obj) = gen_novaseq_lane_data(process)
-            check_index_distance(obj, log)
-            content = "{}{}{}".format(header, reads, data)
-            if os.path.exists("/srv/mfs/samplesheets/novaseq/{}".format(thisyear)):
-                try:
-                    with open("/srv/mfs/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
-                        sf.write(content)
-                    os.chmod("/srv/mfs/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 0664)
-                except Exception as e:
-                    log.append(str(e))
-        
-        elif process.type.name == 'Cluster Generation (HiSeq X) 1.0':
-            header = gen_header(process)
-            reads = gen_reads_info(process)
+        if process.type.name == 'Cluster Generation (HiSeq X) 1.0':
+            header = gen_X_header(process)
+            reads = gen_X_reads_info(process)
             (data, obj) = gen_X_lane_data(process)
             check_index_distance(obj, log)
             content = "{}{}{}".format(header, reads, data)
@@ -373,6 +327,7 @@ def main(lims, args):
 
                 sys.stderr.write("Errors were met, check the log.")
                 sys.exit(1)
+
         else:
             print content
             print log
