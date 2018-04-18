@@ -2,7 +2,7 @@
 DESC="""EPP script to copy the "Comments" field to the projects running notes on process termination
 
 Denis Moreno, Science for Life Laboratory, Stockholm, Sweden
-""" 
+"""
 from argparse import ArgumentParser
 from genologics.entities import *
 from genologics.lims import Lims
@@ -41,6 +41,7 @@ def categorization(process_name):
     "Automated Quant-iT QC (DNA) 4.0" : "Workset",
     "Bioanalyzer QC (Library Validation) 4.0" : "Workset",
     "Setup Workset/Plate" : "Workset",
+    "Applications Generic Process" : "Workset",
     "Bioanalyzer Fragmentation QC (TruSeq DNA) 4.0" : "Workset",
     "Ligate 3' adapters (TruSeq small RNA) 1.0" : "Workset",
     "Qubit QC (DNA) 4.0" : "Workset",
@@ -104,7 +105,7 @@ def categorization(process_name):
 
 
 def main(lims, args):
-    
+
 
     comment=False
 
@@ -136,9 +137,9 @@ def main(lims, args):
                     existing_notes[key]=noteobj[key]
                 proj.udf['Running Notes']=json.dumps(existing_notes)
             else:
-                proj.udf['Running Notes']=json.dumps(noteobj) 
+                proj.udf['Running Notes']=json.dumps(noteobj)
             proj.put()
-            
+
 if __name__=="__main__":
     parser = ArgumentParser(description=DESC)
     parser.add_argument('--pid',

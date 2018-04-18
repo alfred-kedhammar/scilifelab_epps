@@ -50,6 +50,7 @@ def parse(iterable):
 
 def convert(file_in, file_out):
     # Make a list of it to be able to sort:
+    file_in = file_in.read()
     data = list(parse(file_in))
     # Sort the results on type then index:
     data.sort(key=lambda x: (x[1], int(x[2])))
