@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 DESC="""EPP script to aggregate the number of reads from different demultiplexing runs,
-based on the flag 'include reads' located at the same level as '# reads' 
+based on the flag 'include reads' located at the same level as '# reads'
 
 Denis Moreno, Science for Life Laboratory, Stockholm, Sweden
-""" 
+"""
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI,USERNAME,PASSWORD
@@ -16,7 +16,7 @@ from genologics.entities import *
 
 DEMULTIPLEX={'13' : 'Bcl Conversion & Demultiplexing (Illumina SBS) 4.0'}
 SUMMARY = {'356' : 'Project Summary 1.3'}
-SEQUENCING = {'38' : 'Illumina Sequencing (Illumina SBS) 4.0','46' : 'MiSeq Run (MiSeq) 4.0', '714':'Illumina Sequencing (HiSeq X) 1.0'}
+SEQUENCING = {'38' : 'Illumina Sequencing (Illumina SBS) 4.0','46' : 'MiSeq Run (MiSeq) 4.0', '714':'Illumina Sequencing (HiSeq X) 1.0', '1454':'AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)'}
 def main(lims, args, logger):
     """This should be run at project summary level"""
     p = Process(lims,id = args.pid)
@@ -41,7 +41,7 @@ def main(lims, args, logger):
                 if sample.udf['Reads Min'] >= sample.udf['Total Reads (M)']:
                     sample.udf['Status (auto)']="In Progress"
                     sample.udf['Passed Sequencing QC']="False"
-                elif sample.udf['Reads Min'] < sample.udf['Total Reads (M)'] : 
+                elif sample.udf['Reads Min'] < sample.udf['Total Reads (M)'] :
                     sample.udf['Passed Sequencing QC']="True"
                     sample.udf['Status (auto)']="Finished"
             except KeyError as e:
@@ -76,22 +76,22 @@ def main(lims, args, logger):
     except AttributeError:
         #happens if the log artifact does not exist, if the step has been started before the configuration changes
         logging.info("Could not upload the log file")
-            
+
 def demnumber(sample):
     """Returns the number of distinct demultiplexing processes tagged with "Include reads" for a given sample"""
     expectedName="{0} (FASTQ reads)".format(sample.name)
     dem=set()
-    arts=lims.get_artifacts(sample_name=sample.name,process_type=DEMULTIPLEX.values(), name=expectedName)   
+    arts=lims.get_artifacts(sample_name=sample.name,process_type=DEMULTIPLEX.values(), name=expectedName)
     for a in arts:
         if a.udf["Include reads"] == "YES":
             dem.add(a.parent_process.id)
     return len(dem)
-    
+
 def sumreads(sample, summary):
     if sample.name not in summary:
         summary[sample.name]={}
     expectedName="{0} (FASTQ reads)".format(sample.name)
-    arts=lims.get_artifacts(sample_name=sample.name,process_type=DEMULTIPLEX.values(), name=expectedName)   
+    arts=lims.get_artifacts(sample_name=sample.name,process_type=DEMULTIPLEX.values(), name=expectedName)
     tot=0
     fclanel=[]
     filteredarts=[]
@@ -117,13 +117,13 @@ def sumreads(sample, summary):
             #Happens if the "Include reads" does not exist
             pass
 
-    for i in xrange(0,len(filteredarts)):    
+    for i in xrange(0,len(filteredarts)):
         a=filteredarts[i]
         if a.udf['Include reads']=='YES':
             base_art=a
             tot+=float(a.udf['# Reads'])
 
-    #grab the sequencing process associated 
+    #grab the sequencing process associated
     #find the correct input
     inputart=None
     try:
@@ -155,7 +155,7 @@ def getParentInputs(art):
             inp.add(i[0]['uri'])
 
     return inp
-    
+
 
 if __name__=="__main__":
     parser = ArgumentParser(description=DESC)
