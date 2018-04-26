@@ -354,7 +354,7 @@ def main(lims, args):
                 try:
                     with open("/srv/mfs/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
                         sf.write(content)
-                    os.chmod("/srv/mfs/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 0664)
+                    # os.chmod("/srv/mfs/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 0664)
                 except Exception as e:
                     log.append(str(e))
 
