@@ -10,7 +10,7 @@ from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
-DESC = """EPP used to create HiseqX samplesheets"""
+DESC = """EPP used to create samplesheets for Illumina sequencing platforms"""
 
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,})-?([ATCG]*)")
@@ -30,7 +30,6 @@ def check_index_distance(data, log):
                     log.append("Found indexes {} and {} in lane {}, indexes are too close".format(b,b2,l))
 
 
-
 def my_distance(idx1, idx2):
     short=min((idx1, idx2), key=len)
     lon= idx1 if short == idx2 else idx2
@@ -40,9 +39,6 @@ def my_distance(idx1, idx2):
         if c != lon[i]:
             diffs+=1
     return diffs
-
-
-
 
 
 def gen_X_header(pro):
@@ -105,6 +101,7 @@ def gen_X_lane_data(pro):
 
     return ("{}{}".format(header, str_data), data)
 
+
 def gen_Hiseq_lane_data(pro):
     data=[]
     header_ar = ["FCID","Lane","SampleID","SampleRef","Index","Description","Control","Recipe","Operator","SampleProject"]
@@ -145,6 +142,57 @@ def gen_Hiseq_lane_data(pro):
     str_data = ""
     for line in sorted(data, key=lambda x: x['lane']):
         l_data = [line['fc'], line['lane'], line['sn'], line['ref'],line['idx1'], line['pj'], line['ct'], line['rc'], line['op'], line['pj']]
+        str_data = str_data + ",".join(l_data) + "\n"
+
+    return ("{}{}".format(header, str_data), data)
+
+
+def gen_Novaseq_lane_data(pro):
+    data=[]
+    header_ar = ["FCID","Lane","Sample_ID","Sample_Name","Sample_Ref","index","index2","Description","Control","Recipe","Operator","Sample_Project"]
+    for out in pro.all_outputs():
+        if  out.type != "Analyte":
+            continue
+        for sample in out.samples:
+            sp_obj = {}
+            sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
+            sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
+            sp_obj['sn'] = sample.name.replace(',','')
+            try:
+                sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
+            except:
+                #control samples have no project
+                continue
+            try:
+                if pro.udf.get('Read 2 Cycles'):
+                    if pro.udf['Read 2 Cycles'].replace(',','')==pro.udf['Read 1 Cycles'].replace(',',''):
+                        sp_obj['rc'] = "2x{}".format(pro.udf['Read 1 Cycles'].replace(',',''))
+                    else:
+                        sp_obj['rc'] = "{}-{}".format(pro.udf['Read 1 Cycles'].replace(',',''),pro.udf['Read 2 Cycles'].replace(',',''))
+                else:
+                    sp_obj['rc'] = "1x{}".format(pro.udf['Read 1 Cycles'].replace(',',''))
+            except:
+                sp_obj['rc'] = ''
+            sp_obj['ct'] = 'N'
+            sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
+            sp_obj['fc'] = out.location[0].name.replace(',','')
+            sp_obj['sw'] = out.location[1].replace(',','')
+            try:
+                sp_obj['ref'] = sample.project.udf['Reference genome'].replace(',','')
+            except:
+                sp_obj['ref']=''
+            if 'use NoIndex' in pro.udf and pro.udf['use NoIndex'] == True:
+                sp_obj['idx1'] = "NoIndex"
+            else:
+                idxs = find_barcode(sample, pro)
+                sp_obj['idx1'] = idxs[0].replace(',','')
+                if idxs[1]:
+                    sp_obj['idx2'] = idxs[1].replace(',','')
+            data.append(sp_obj)
+    header = "{}\n".format(",".join(header_ar))
+    str_data = ""
+    for line in sorted(data, key=lambda x: x['lane']):
+        l_data = [line['fc'], line['lane'], line['sn'], line['sn'], line['ref'], line['idx1'], line['idx2'], line['pj'], line['ct'], line['rc'], line['op'], line['pj']]
         str_data = str_data + ",".join(l_data) + "\n"
 
     return ("{}{}".format(header, str_data), data)
@@ -298,6 +346,18 @@ def main(lims, args):
                     os.chmod("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc']), 0664)
                 except Exception as e:
                     log.append(str(e))
+
+        elif process.type.name == 'Load to Flowcell (NovaSeq 6000 v2.0)':
+            (content, obj) = gen_Novaseq_lane_data(process)
+            check_index_distance(obj, log)
+            if os.path.exists("/srv/mfs/samplesheets/novaseq/{}".format(thisyear)):
+                try:
+                    with open("/srv/mfs/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
+                        sf.write(content)
+                    os.chmod("/srv/mfs/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 0664)
+                except Exception as e:
+                    log.append(str(e))
+
         elif process.type.name == 'Denature, Dilute and Load Sample (MiSeq) 4.0':
             header = gen_Miseq_header(process)
             reads = gen_Miseq_reads(process)
