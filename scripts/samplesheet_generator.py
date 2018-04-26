@@ -165,12 +165,12 @@ def gen_Novaseq_lane_data(pro):
                 continue
             try:
                 if pro.udf.get('Read 2 Cycles'):
-                    if pro.udf['Read 2 Cycles'].replace(',','')==pro.udf['Read 1 Cycles'].replace(',',''):
-                        sp_obj['rc'] = "2x{}".format(pro.udf['Read 1 Cycles'].replace(',',''))
+                    if str(pro.udf['Read 2 Cycles']).replace(',','')==str(pro.udf['Read 1 Cycles']).replace(',',''):
+                        sp_obj['rc'] = "2x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
                     else:
-                        sp_obj['rc'] = "{}-{}".format(pro.udf['Read 1 Cycles'].replace(',',''),pro.udf['Read 2 Cycles'].replace(',',''))
+                        sp_obj['rc'] = "{}-{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''),str(pro.udf['Read 2 Cycles']).replace(',',''))
                 else:
-                    sp_obj['rc'] = "1x{}".format(pro.udf['Read 1 Cycles'].replace(',',''))
+                    sp_obj['rc'] = "1x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
             except:
                 sp_obj['rc'] = ''
             sp_obj['ct'] = 'N'
