@@ -177,17 +177,13 @@ def gen_Novaseq_lane_data(pro):
             sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
             sp_obj['fc'] = out.location[0].name.replace(',','')
             sp_obj['sw'] = out.location[1].replace(',','')
-            try:
-                sp_obj['ref'] = sample.project.udf['Reference genome'].replace(',','')
-            except:
-                sp_obj['ref']=''
+            sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
             if 'use NoIndex' in pro.udf and pro.udf['use NoIndex'] == True:
                 sp_obj['idx1'] = "NoIndex"
             else:
                 idxs = find_barcode(sample, pro)
                 sp_obj['idx1'] = idxs[0].replace(',','')
-                if idxs[1]:
-                    sp_obj['idx2'] = idxs[1].replace(',','')
+                sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
             data.append(sp_obj)
     header = "{}\n".format(",".join(header_ar))
     str_data = ""
@@ -332,7 +328,6 @@ def main(lims, args):
                 try:
                     with open("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
                         sf.write(content)
-                    os.chmod("/srv/mfs/samplesheets/HiSeqX/{}/{}.csv".format(thisyear, obj[0]['fc']), 0664)
                 except Exception as e:
                     log.append(str(e))
 
@@ -343,7 +338,6 @@ def main(lims, args):
                 try:
                     with open("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
                         sf.write(content)
-                    os.chmod("/srv/mfs/samplesheets/{}/{}.csv".format(thisyear, obj[0]['fc']), 0664)
                 except Exception as e:
                     log.append(str(e))
 
@@ -354,7 +348,6 @@ def main(lims, args):
                 try:
                     with open("/srv/mfs/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
                         sf.write(content)
-                    # os.chmod("/srv/mfs/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 0664)
                 except Exception as e:
                     log.append(str(e))
 

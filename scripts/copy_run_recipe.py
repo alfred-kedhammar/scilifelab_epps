@@ -14,8 +14,6 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 DESC = """EPP for copying run recipe"""
 
 def main(lims, args):
-    log=[]
-    content = None
     process = Process(lims, id=args.pid)
     # Read in run recipe file
     for outart in process.all_outputs():
@@ -27,17 +25,9 @@ def main(lims, args):
             except:
                 raise(RuntimeError("Cannot access the run recipe file."))
             break
-    # Write file to the server
-    if os.path.exists("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/gls_recipe_ingrid"):
-        try:
-            with open("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/gls_recipe_ingrid/{}".format(file_name), 'w') as sf:
-                sf.write(content)
-                os.chmod("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/gls_recipe_ingrid/{}".format(file_name), 0664)
-        except Exception as e:
-            log.append(str(e))
-    else:
-        print content
-        print log
+
+    with open("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/gls_recipe_ingrid/{}".format(file_name), 'w') as sf:
+        sf.write(content)
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
