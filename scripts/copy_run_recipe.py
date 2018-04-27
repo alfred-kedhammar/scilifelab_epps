@@ -22,17 +22,17 @@ def main(lims, args):
         if outart.type == 'ResultFile' and outart.name == 'Run Recipe':
             try:
                 fid = outart.files[0].id
+                file_name = outart.files[0].original_location
                 content = lims.get_file_contents(id=fid).read()
-                run_name = json.loads(content)["run_name"].encode("utf-8")
             except:
                 raise(RuntimeError("Cannot access the run recipe file."))
             break
     # Write file to the server
     if os.path.exists("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/gls_recipe_ingrid"):
         try:
-            with open("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/gls_recipe_ingrid/{}.json".format(run_name), 'w') as sf:
+            with open("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/gls_recipe_ingrid/{}".format(file_name), 'w') as sf:
                 sf.write(content)
-                os.chmod("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/gls_recipe_ingrid/{}.json".format(run_name), 0664)
+                os.chmod("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/gls_recipe_ingrid/{}".format(file_name), 0664)
         except Exception as e:
             log.append(str(e))
     else:
