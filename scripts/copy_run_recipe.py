@@ -15,6 +15,12 @@ DESC = """EPP for copying run recipe"""
 
 def main(lims, args):
     process = Process(lims, id=args.pid)
+    # Copy Read and index parameter from the step "Load to Flowcell (NovaSeq 6000 v2.0)"
+    UDF_to_copy = ['Read 1 Cycles', 'Read 2 Cycles', 'Index Read 1', 'Index Read 2']
+    for i in UDF_to_copy:
+        if process.parent_processes()[0].udf.get(i):
+            process.udf[i]=process.parent_processes()[0].udf[i]
+    process.put()
     # Read in run recipe file
     for outart in process.all_outputs():
         if outart.type == 'ResultFile' and outart.name == 'Run Recipe':
