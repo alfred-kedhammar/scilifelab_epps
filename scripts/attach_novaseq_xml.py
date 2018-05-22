@@ -11,12 +11,19 @@ from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
-DESC = """EPP for attaching RunInfo.xml and RunParameters.xml from NovaSeq run dir"""
+DESC = """EPP for attaching RunInfo.xml and RunParameters.xml from NovaSeq run dir, and copying run parameters from the previous step"""
 
 def main(lims, args):
     log=[]
     content = None
     process = Process(lims, id=args.pid)
+
+    # Copy Read and index parameter from the step "Load to Flowcell (NovaSeq 6000 v2.0)"
+    UDF_to_copy = ['Read 1 Cycles', 'Read 2 Cycles', 'Index Read 1', 'Index Read 2']
+    for i in UDF_to_copy:
+        if process.parent_processes()[0].udf.get(i):
+            process.udf[i]=process.parent_processes()[0].udf[i]
+    process.put()
 
     # Fetch Flowcell ID
     FCID=process.parent_processes()[0].output_containers()[0].name
