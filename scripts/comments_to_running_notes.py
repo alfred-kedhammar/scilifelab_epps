@@ -98,7 +98,8 @@ def categorization(process_name):
     "Amplify by PCR and Add Index Tags (TruSeq small RNA) 1.0" : "Workset",
     "Size Selection (Robocut)" : "Workset",
     "Aggregate QC (DNA) 4.0" : "Workset",
-    "Aliquot Libraries for Pooling (Small RNA)" : ""}
+    "Aliquot Libraries for Pooling (Small RNA)" : "",
+    "Sort NovaSeq Samples (NovaSeq) v2.0" : ""}
 
     return decision[process_name]
 
