@@ -9,6 +9,7 @@ class Thresholds():
         self.Q30 = None
         self.exp_lane_clust = None
         self.undet_indexes_perc = None
+        self.correction_factor_for_sample_in_pool = None
 
         #Checks that only supported values are entered
         self.valid_instruments = ["miseq", "hiseq", "HiSeq_X", "NovaSeq"]
@@ -23,6 +24,7 @@ class Thresholds():
             self.paired = paired
             self.read_length = read_length
             self.set_undet_indexes_perc()
+            self.set_correction_factor_for_sample_in_pool()
 
     def problem_handler(self, type, message):
         if type == "exit":
@@ -118,3 +120,7 @@ class Thresholds():
     """Maximum undetermined per lane are derived from the current taca.yaml"""
     def set_undet_indexes_perc(self):
         self.undet_indexes_perc = 5
+
+    """Correction factor for yield of sample in library pool"""
+    def set_correction_factor_for_sample_in_pool(self):
+        self.correction_factor_for_sample_in_pool = 0.75

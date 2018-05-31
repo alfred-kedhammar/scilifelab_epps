@@ -138,6 +138,7 @@ def manipulate_process(demux_process, proc_stats):
 
 """Sets artifact = sample values """
 def set_sample_values(demux_process, parser_struct, proc_stats):
+    thresholds = Thresholds(proc_stats["Instrument"], proc_stats["Chemistry"], proc_stats["Paired"], proc_stats["Read Length"])
     failed_entries = 0
     undet_included = False
     noIndex = False
@@ -176,7 +177,8 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                 problem_handler("exit", "Unable to determine lane number. Incorrect location variable in process: {}".format(e.message))
         logger.info("Lane number set to {}".format(lane_no))
 	try:
-            exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/my_float(len(outarts_per_lane)), 0)
+            correction_factor = thresholds.correction_factor_for_sample_in_pool if len(outarts_per_lane) > 1 else 1
+            exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/my_float(len(outarts_per_lane))*correction_factor, 0)
 	except ZeroDivisionError as e:
 	    problem_handler("exit", "Faulty LIMS setup. Pool in lane {} has no samples: {}".format(lane_no, e))
         logger.info("Expected sample clusters for this lane: {}".format(exp_smp_per_lne))
