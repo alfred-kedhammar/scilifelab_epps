@@ -273,10 +273,10 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                     for inp in seqstep.all_outputs():
                                         if inp.output_type == "ResultFile" and inp.name.split(' ')[1] == lane_no and "Reads PF (M) R1" in inp.udf:
                                             if proc_stats["Paired"]:
-                                                target_file.udf["# Reads"] = inp.udf["Reads PF (M) R1"]*2
+                                                target_file.udf["# Reads"] = inp.udf["Reads PF (M) R1"]*1000000*2
                                                 target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
                                             else:
-                                                target_file.udf["# Reads"] = inp.udf["Reads PF (M) R1"]
+                                                target_file.udf["# Reads"] = inp.udf["Reads PF (M) R1"]*1000000
                                                 target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]
                                     logger.info("{}# Reads".format(target_file.udf["# Reads"]))
                                     logger.info("{}# Read Pairs".format(target_file.udf["# Read Pairs"]))
