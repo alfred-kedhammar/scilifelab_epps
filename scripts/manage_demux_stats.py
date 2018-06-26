@@ -267,21 +267,37 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
 
                         #Fetches clusters from laneBarcode.html file
                         if noIndex:
-                            try:
-                                for inp in seqstep.all_inputs():
-                                    #If reads in seq step, and the lane is equal to the current lane
-                                    if inp.location[1][0] == lane_no and "Clusters PF R1" in inp.udf:
-                                        if proc_stats["Paired"]:
-                                            target_file.udf["# Reads"] = inp.udf["Clusters PF R1"]*2
-                                            target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
-                                        else:
-                                            target_file.udf["# Reads"] = inp.udf["Clusters PF R1"]
-                                            target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]
-                                logger.info("{}# Reads".format(target_file.udf["# Reads"]))
-                                logger.info("{}# Read Pairs".format(target_file.udf["# Read Pairs"]))
-
-                            except Exception as e:
-                                problem_handler("exit", "Unable to set values for #Reads and #Read Pairs for perceived noIndex lane: {}".format(e.message))
+                            # For the case of NovaSeq run, parse lane yield from the ResultsFile of all_outputs.
+                            if seqstep.type.name == "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)":
+                                try:
+                                    for inp in seqstep.all_outputs():
+                                        if inp.output_type == "ResultFile" and inp.name.split(' ')[1] == lane_no and "Reads PF (M) R1" in inp.udf:
+                                            if proc_stats["Paired"]:
+                                                target_file.udf["# Reads"] = inp.udf["Reads PF (M) R1"]*1000000*2
+                                                target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
+                                            else:
+                                                target_file.udf["# Reads"] = inp.udf["Reads PF (M) R1"]*1000000
+                                                target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]
+                                    logger.info("{}# Reads".format(target_file.udf["# Reads"]))
+                                    logger.info("{}# Read Pairs".format(target_file.udf["# Read Pairs"]))
+                                except Exception as e:
+                                    problem_handler("exit", "Unable to set values for #Reads and #Read Pairs for perceived noIndex lane: {}".format(e.message))
+                            # For all other cases, parse lane yield from all_inputs
+                            else:
+                                try:
+                                    for inp in seqstep.all_inputs():
+                                        #If reads in seq step, and the lane is equal to the current lane
+                                        if inp.location[1][0] == lane_no and "Clusters PF R1" in inp.udf:
+                                            if proc_stats["Paired"]:
+                                                target_file.udf["# Reads"] = inp.udf["Clusters PF R1"]*2
+                                                target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
+                                            else:
+                                                target_file.udf["# Reads"] = inp.udf["Clusters PF R1"]
+                                                target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]
+                                    logger.info("{}# Reads".format(target_file.udf["# Reads"]))
+                                    logger.info("{}# Read Pairs".format(target_file.udf["# Read Pairs"]))
+                                except Exception as e:
+                                    problem_handler("exit", "Unable to set values for #Reads and #Read Pairs for perceived noIndex lane: {}".format(e.message))
 
                         elif not noIndex:
                             try:
