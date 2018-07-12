@@ -2,18 +2,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-DESC = """EPP script to copy 'concentration' and 'concentration unit' for each 
-sample sample in the 'Qubit Result File' to the 'Concentration' and 'Conc. Units' 
+DESC = """EPP script to copy 'concentration' and 'concentration unit' for each
+sample sample in the 'Qubit Result File' to the 'Concentration' and 'Conc. Units'
 fields of the output analytes of the process.
 
-Warnings are generated to the user and stored in regular log file wich allso 
+Warnings are generated to the user and stored in regular log file wich allso
 contains regular execution information in the folowing cases:
 
 1) missing row names (samples) in file
 2) duplicated row names (samples)
-3) missing value (concentrations) 
+3) missing value (concentrations)
 4) values found but for some reason are not successfully copied:
- 
+
 Can be executed in the background or triggered by a user pressing a "blue button".
 
 Written by Maya Brandi and Denis Moreno
@@ -123,7 +123,7 @@ def get_qbit_csv_data(process):
     for target_file in process.result_files():
         conc=None
         new_conc=None
-        file_sample=target_file.samples[0].name
+        file_sample = target_file.input_artifact_list()[0].name
         if file_sample in data:
             try:
                 conc=float(data[file_sample]['concentration'])
@@ -136,7 +136,7 @@ def get_qbit_csv_data(process):
 
             else:
                 new_conc=convert_to_ng_ul(conc, data[file_sample]['unit'])
-                if new_conc is not None : 
+                if new_conc is not None :
                     target_file.udf['Concentration'] = new_conc
                     target_file.udf['Conc. Units'] = 'ng/ul'
                     if new_conc < min_conc:
@@ -170,7 +170,7 @@ def old_main(lims, pid, epp_logger):
     target_files = process.result_files()
     file_handler = ReadResultFiles(process)
     files = file_handler.shared_files['Qubit Result File']
-    qubit_result_file = file_handler.format_file(files, 
+    qubit_result_file = file_handler.format_file(files,
                                                  name = 'Qubit Result File',
                                                  first_header = ['Test','Sample'],
                                                  find_keys = sample_names)
@@ -234,4 +234,3 @@ if __name__ == "__main__":
 
     with EppLogger(log_file=args.log, lims=lims, prepend=True) as epp_logger:
         main(lims, args.pid, epp_logger)
-
