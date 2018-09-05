@@ -15,7 +15,7 @@ DESC = """EPP used to create csv files for the bravo robot"""
 MAX_WARNING_VOLUME = 150.0
 MIN_WARNING_VOLUME = 2.0
 
-# Four values are minimum required conc for setup workset; minimum conc for dilution, maximum conc for dilution and minimum volume for dilution
+# Three values are minimum required conc for setup workset, maximum conc for dilution and minimum volume for dilution
 Dilution_preset = {
     "Smarter pico": [1.25, 375.0, 10.0]
 }
@@ -456,7 +456,7 @@ def main(lims, args):
         normalization(currentStep)
     elif currentStep.type.name == 'Library Pooling (RAD-seq) 1.0':
         default_bravo(currentStep, False)
-    elif currentStep.type.name == 'Dilution samples':
+    elif currentStep.type.name == 'Diluting Samples':
         dilution(currentStep)
     else:
         default_bravo(currentStep)
@@ -468,7 +468,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         assert art_tuple[0]['uri'].udf['Conc. Units'] in ["ng/ul", "ng/uL"]
         amount_ng = art_tuple[1]['uri'].udf['Amount taken (ng)']
         try:
-            if art_tuple[0]['uri'].parent_process.type.name == "Dilution samples":
+            if art_tuple[0]['uri'].parent_process.type.name == "Diluting Samples":
                 conc = art_tuple[0]['uri'].udf['Final Concentration']
                 org_vol = art_tuple[0]['uri'].udf['Final Volume (uL)']
             else:
