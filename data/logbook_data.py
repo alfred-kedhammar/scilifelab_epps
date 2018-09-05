@@ -146,6 +146,12 @@ lims_process_record={
               "details" : ["Flowcell ID", "RGT#s"]
           }
       },
+      "Diluting Samples" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
       "End Repair, A-Tailing and Adapter Ligation (SS XT) 4.0" : {
           "lims_instrument" : {
               "dest_file" : "Bravo",
