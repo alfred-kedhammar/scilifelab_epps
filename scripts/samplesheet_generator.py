@@ -10,6 +10,8 @@ from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
+from data.Chromium_10X_indexes import Chromium_10X_indexes
+
 DESC = """EPP used to create samplesheets for Illumina sequencing platforms"""
 
 # Pre-compile regexes in global scope:
@@ -247,6 +249,26 @@ def gen_Miseq_data(pro):
                 header_ar.remove('I7_Index_ID')
                 header_ar.remove('index2')
                 header_ar.remove('I5_Index_ID')
+                data.append(sp_obj)
+            elif TENX_PAT.findall(idxs[0]):
+                if 'index2' in header_ar and 'I5_Index_ID' in header_ar:
+                    header_ar.remove('index2')
+                    header_ar.remove('I5_Index_ID')
+                for tenXidx in Chromium_10X_indexes[idxs[0]]:
+                    sp_obj_sub = {}
+                    sp_obj_sub['lane'] = sp_obj['lane']
+                    sp_obj_sub['sid'] = sp_obj['sid']
+                    sp_obj_sub['sn'] = sp_obj['sn']
+                    sp_obj_sub['fc'] = sp_obj['fc']
+                    sp_obj_sub['sw'] = sp_obj['sw']
+                    sp_obj_sub['gf'] = sp_obj['gf']
+                    try:
+                        sp_obj_sub['pj'] = sp_obj['pj']
+                    except:
+                        continue
+                    sp_obj_sub['idx1'] = tenXidx.replace(',','')
+                    sp_obj_sub['idx1ref'] = tenXidx.replace(',','')
+                    data.append(sp_obj_sub)
             else:
                 sp_obj['idx1'] = idxs[0].replace(',','')
                 sp_obj['idx1ref'] = idxs[0].replace(',','')
@@ -257,8 +279,7 @@ def gen_Miseq_data(pro):
                 else:
                     header_ar.remove('index2')
                     header_ar.remove('I5_Index_ID')
-
-            data.append(sp_obj)
+                data.append(sp_obj)
     header = "[Data]\n{}\n".format(",".join(header_ar))
     str_data = ""
     for line in data:
