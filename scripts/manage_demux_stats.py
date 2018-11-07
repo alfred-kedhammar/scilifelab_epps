@@ -287,7 +287,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 try:
                                     for inp in seqstep.all_inputs():
                                         #If reads in seq step, and the lane is equal to the current lane
-                                        if inp.location[1][0] == lane_no and "Clusters PF R1" in inp.udf:
+                                        if inp.location[1][-1] == lane_no and "Clusters PF R1" in inp.udf:
                                             if proc_stats["Paired"]:
                                                 target_file.udf["# Reads"] = inp.udf["Clusters PF R1"]*2
                                                 target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
