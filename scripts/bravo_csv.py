@@ -545,7 +545,7 @@ def find_barcode(artifact):
                 return None
             else:
                 next_artifact=None
-                for iomap in artifact.parent_process.iomaps:
+                for iomap in artifact.parent_process.input_output_maps:
                     if iomap[1]['uri'].id == artifact.id:
                         next_artifact=iomap[0]['uri']
                 return find_barcode(next_artifact)
