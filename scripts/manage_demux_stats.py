@@ -68,7 +68,10 @@ def manipulate_workflow(demux_process):
         proc_stats["Chemistry"] ="HiSeqX v2.5"
         proc_stats["Instrument"] = "HiSeq_X"
     elif "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)" == workflow.type.name:
-        proc_stats["Chemistry"] ="NovaSeq"
+        try:
+            proc_stats["Chemistry"] = workflow.udf["Flow Cell Mode"]
+        except Exception as e:
+            problem_handler("exit", "No flowcell version set in sequencing step: {}".format(e.message))
         proc_stats["Instrument"] = "NovaSeq"
         proc_stats["Read Length"] = workflow.parent_processes()[0].udf['Read 1 Cycles']
         proc_stats["Paired"] = True if workflow.parent_processes()[0].udf.get('Read 2 Cycles') else False
