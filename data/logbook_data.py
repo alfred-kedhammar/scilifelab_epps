@@ -250,6 +250,16 @@ lims_process_record={
               "dest_file" : "PCR"
           }
       },
+      "GEM Generation (Chromium Genome v2)" : {
+          "lims_instrument" : {
+              "dest_file" : "Chromium"
+          }
+      },
+      "GEM Incubation (Chromium Genome v2)" : {
+          "lims_instrument" : {
+              "dest_file" : "PCR"
+          }
+      },
       "Hybridize Library  (SS XT) 4.0" : {
           "lims_instrument" : {
               "dest_file" : "PCR"
@@ -313,6 +323,15 @@ lims_process_record={
               "details" : ["Processname"]
           }
       },
+      "Library preparation (Chromium Genome v2)" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
       "Linear DNA digestion, Circularized DNA shearing and Streptavidin Bead Binding" : {
           "lims_instrument" : {
               "dest_file" : "Covaris",
@@ -326,6 +345,12 @@ lims_process_record={
           },
           "udf_PCR Machine" : {
               "dest_file" : "PCR"
+          }
+      },
+      "Post-GEM Cleanup (Chromium Genome v2)" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
           }
       },
       "Pre-Pooling (Illumina SBS) 4.0" : {
@@ -501,6 +526,7 @@ GDoc_logbook = {
     "Bravo" : { "File" : "1Di5uRlEI7zlQ7DgvQuEYpwDslf8VMrRnhruk5GWNtIo" },
     "Caliper" : { "File" : "1x3w-0s1-xENQORthMSF1GLTezfXQcsaVEiAfJRRjsoc" },
     "CFX" : { "File" : "19LKni8LO-Dzkvs7gkVHLEcTqzqX2zOerT3SOF9GPHNQ" },
+    "Chromium" : { "File" : "1PDegRtvYhUVPJPt5ROS4Ar661QSMhRWWTA8Zo3JponU" },
     "Covaris" : { "File" : "1wpSzEdiZcRWk1YFo59Pzt4y-AVSb0Fi9AOg2VFrQOVE" },
     "FragmentAnalyzer" : { "File" : "1T4Cy3ywZvl0-kQR-QbtXzu_sErPaYymXeGMf81fqK8k" },
     "MiSeq" : { "File" : "1ThnEbahwm3InlF_tUJ0riyT3RImVKQINfMD4rB6VThU" },
