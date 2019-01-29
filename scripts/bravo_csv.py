@@ -484,15 +484,16 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             logContext.write("WARN : Sample {0} located {1} {2}  has a LOW volume : {3}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                   art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume))
             checkTheLog[0] = True
-        elif volume > org_vol:
-            # check against the "max volume"
-            logContext.write("WARN : Sample {0} located {1} {2}  has a HIGH volume : {3}, over {4}\n".format(art_tuple[1]['uri'].samples[0].name,
+        elif volume > org_vol or org_vol > art_tuple[1]['uri'].udf['Total Volume (uL)']:
+            # check against the "original sample volume" and the "total dilution volume"
+            volume = min(org_vol, art_tuple[1]['uri'].udf['Total Volume (uL)'])
+            if org_vol <= art_tuple[1]['uri'].udf['Total Volume (uL)']:
+                logContext.write("WARN : Sample {0} located {1} {2}  has a HIGHER volume than the original: {3}, over {4}. Take original volume: {4}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                              art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume, org_vol))
-            checkTheLog[0] = True
-        elif volume > art_tuple[1]['uri'].udf['Total Volume (uL)']:
-            logContext.write("WARN : Sample {0} located {1} {2}  has a HIGHER volume than the total: {3}, over {4}\n".format(art_tuple[1]['uri'].samples[0].name,
+            else:
+                logContext.write("WARN : Sample {0} located {1} {2}  has a HIGHER volume than the total: {3}, over {4}. Take total volume: {4}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                                              art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume, art_tuple[1]['uri'].udf["Total Volume (uL)"]))
-            checkTheLog[0] = True
+            checkTheLog[0] = False
         else:
             logContext.write("INFO : Sample {0} looks okay.\n".format(art_tuple[1]['uri'].samples[0].name))
         return "{0:.2f}".format(volume)
