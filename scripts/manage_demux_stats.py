@@ -356,7 +356,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         #Applies thresholds to samples
                         try:
                             if (demux_process.udf["Threshold for % bases >= Q30"] <= my_float(entry["% >= Q30bases"]) and
-                                int(exp_smp_per_lne) <= target_file.udf["# Reads"] ):
+                                int(exp_smp_per_lne) <= target_file.udf["# Read Pairs"] ):
                                 target_file.udf["Include reads"] = "YES"
                                 target_file.qc_flag = "PASSED"
                             else:
@@ -365,7 +365,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 failed_entries = failed_entries + 1
                             logger.info("Q30 %: {}% found, minimum at {}%".\
                             format(my_float(entry["% >= Q30bases"]), demux_process.udf["Threshold for % bases >= Q30"]))
-                            logger.info("Expected reads: {} found, minimum at {}".format(target_file.udf["# Reads"], int(exp_smp_per_lne)))
+                            logger.info("Expected reads: {} found, minimum at {}".format(target_file.udf["# Read Pairs"], int(exp_smp_per_lne)))
                             logger.info("Sample QC status set to {}".format(target_file.qc_flag))
                         except Exception as e:
                             problem_handler("exit", "Unable to set QC status for sample: {}".format(e.message))

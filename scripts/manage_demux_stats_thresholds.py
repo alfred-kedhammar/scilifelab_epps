@@ -8,7 +8,7 @@ class Thresholds():
         self.logger = logging.getLogger('demux_logger.thresholds')
         self.Q30 = None
         self.exp_lane_clust = None
-        self.undet_indexes_perc = 5
+        self.undet_indexes_perc = 10
         self.correction_factor_for_sample_in_pool = 0.75
 
         #Checks that only supported values are entered
