@@ -484,15 +484,16 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             logContext.write("WARN : Sample {0} located {1} {2}  has a LOW volume : {3}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                   art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume))
             checkTheLog[0] = True
-        elif volume > org_vol or org_vol > art_tuple[1]['uri'].udf['Total Volume (uL)']:
+        elif volume > org_vol or volume > art_tuple[1]['uri'].udf['Total Volume (uL)']:
             # check against the "original sample volume" and the "total dilution volume"
-            volume = min(org_vol, art_tuple[1]['uri'].udf['Total Volume (uL)'])
+            new_volume = min(org_vol, art_tuple[1]['uri'].udf['Total Volume (uL)'])
             if org_vol <= art_tuple[1]['uri'].udf['Total Volume (uL)']:
                 logContext.write("WARN : Sample {0} located {1} {2}  has a HIGHER volume than the original: {3}, over {4}. Take original volume: {4}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                              art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume, org_vol))
             else:
                 logContext.write("WARN : Sample {0} located {1} {2}  has a HIGHER volume than the total: {3}, over {4}. Take total volume: {4}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                                              art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume, art_tuple[1]['uri'].udf["Total Volume (uL)"]))
+            volume = new_volume
             checkTheLog[0] = False
         else:
             logContext.write("INFO : Sample {0} looks okay.\n".format(art_tuple[1]['uri'].samples[0].name))
