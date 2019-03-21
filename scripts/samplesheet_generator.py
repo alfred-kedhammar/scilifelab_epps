@@ -15,7 +15,7 @@ from data.Chromium_10X_indexes import Chromium_10X_indexes
 DESC = """EPP used to create samplesheets for Illumina sequencing platforms"""
 
 # Pre-compile regexes in global scope:
-IDX_PAT = re.compile("([ATCG]{4,})-?([ATCG]*)")
+IDX_PAT = re.compile("([ATCGN]{5,})-?([ATCG]*)")
 TENX_PAT = re.compile("SI-GA-[A-H][1-9][0-2]?")
 
 def check_index_distance(data, log):
