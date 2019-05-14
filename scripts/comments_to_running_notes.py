@@ -99,7 +99,9 @@ def categorization(process_name):
     "Size Selection (Robocut)" : "Workset",
     "Aggregate QC (DNA) 4.0" : "Workset",
     "Aliquot Libraries for Pooling (Small RNA)" : "",
-    "Sort NovaSeq Samples (NovaSeq) v2.0" : ""}
+    "Sort NovaSeq Samples (NovaSeq) v2.0" : "",
+    "Tissue QC" : "",
+    "Tissue Extraction" : ""}
 
     return decision[process_name]
 
