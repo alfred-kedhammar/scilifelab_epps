@@ -16,7 +16,7 @@ DESC = """EPP used to create samplesheets for Illumina sequencing platforms"""
 
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,}N*)-?([ATCG]*)")
-TENX_PAT = re.compile("SI-GA-[A-H][1-9][0-2]?")
+TENX_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
 
 def check_index_distance(data, log):
     lanes=set([x['lane'] for x in data])
