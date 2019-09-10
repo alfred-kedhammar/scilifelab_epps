@@ -260,6 +260,12 @@ lims_process_record={
               "dest_file" : "PCR"
           }
       },
+      "HiC Intermediate QC" : {
+          "lims_instrument" : {
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
+          }
+      },
       "Hybridize Library  (SS XT) 4.0" : {
           "lims_instrument" : {
               "dest_file" : "PCR"

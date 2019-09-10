@@ -101,7 +101,9 @@ def categorization(process_name):
     "Aliquot Libraries for Pooling (Small RNA)" : "",
     "Sort NovaSeq Samples (NovaSeq) v2.0" : "",
     "Tissue QC" : "",
-    "Tissue Extraction" : ""}
+    "Tissue Extraction" : "",
+    "Sample Crosslinking" : "",
+    "HiC Intermediate QC" : ""}
 
     return decision[process_name]
 
