@@ -152,6 +152,11 @@ lims_process_record={
               "details" : ["Processname"]
           }
       },
+      "End repair, adapter ligation, ligation capture and Index PCR (HiC)" : {
+          "lims_instrument" : {
+              "dest_file" : "PCR"
+          }      
+      },
       "End Repair, A-Tailing and Adapter Ligation (SS XT) 4.0" : {
           "lims_instrument" : {
               "dest_file" : "Bravo",
@@ -258,6 +263,12 @@ lims_process_record={
       "GEM Incubation (Chromium Genome v2)" : {
           "lims_instrument" : {
               "dest_file" : "PCR"
+          }
+      },
+      "HiC Intermediate QC" : {
+          "lims_instrument" : {
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
           }
       },
       "Hybridize Library  (SS XT) 4.0" : {
