@@ -152,6 +152,11 @@ lims_process_record={
               "details" : ["Processname"]
           }
       },
+      "End repair, adapter ligation, ligation capture and Index PCR (HiC)" : {
+          "lims_instrument" : {
+              "dest_file" : "PCR"
+          }      
+      },
       "End Repair, A-Tailing and Adapter Ligation (SS XT) 4.0" : {
           "lims_instrument" : {
               "dest_file" : "Bravo",
