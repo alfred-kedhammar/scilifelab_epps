@@ -254,7 +254,7 @@ def gen_Miseq_data(pro):
                 if 'index2' in header_ar and 'I5_Index_ID' in header_ar:
                     header_ar.remove('index2')
                     header_ar.remove('I5_Index_ID')
-                for tenXidx in Chromium_10X_indexes[idxs[0]]:
+                for tenXidx in Chromium_10X_indexes[TENX_PAT.findall(idxs[0])[0]]:
                     sp_obj_sub = {}
                     sp_obj_sub['lane'] = sp_obj['lane']
                     sp_obj_sub['sid'] = sp_obj['sid']
