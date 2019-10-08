@@ -69,7 +69,7 @@ def makeOperatorAndDateBarcode(operator,date,copies=1):
     lines.append("^LH0,0") # label home position (label home = LH)
     # AF = assign font F, field number 1 (FN1),
     # print text at position field origin (FO) rel. to home
-    lines.append("^FO400,40^ADN,32,16^FN1^FS")
+    lines.append("^FO400,40^ADN,32,14^FN1^FS")
     lines.append("^FO130,40^ADN,32,14^FN2^FS")
     lines.append("^XZ") #end format
 
