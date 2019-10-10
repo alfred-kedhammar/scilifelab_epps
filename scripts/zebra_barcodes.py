@@ -19,10 +19,10 @@ def makeContainerBarcode(plateid,copies=1):
     lines.append("^LH0,0") # label home position (label home = LH)
     # AF = assign font F, field number 1 (FN1),
     # print text at position field origin (FO) rel. to home
-    lines.append("^FO420,20^AFN 60,30^FN1^FS")
+    lines.append("^FO360,20^AFN 78,39^FN1^FS")
     # BC=barcode 128, field number 2, Normal orientation,
     # height 70, no interpreation line.
-    lines.append("^FO100,10^BCN,50,N,N^FN2^FS")
+    lines.append("^FO70,5^BCN,70,N,N^FN2^FS")
     lines.append("^XZ") #end format
 
     for copy in xrange(copies):
@@ -45,10 +45,10 @@ def makeContainerNameBarcode(plate_name,copies=1):
     # print text at position field origin (FO) rel. to home
     if len(plate_name)>21:
         # Use smaller font, fits 28 chars
-        lines.append("^FO120,40^AFN 50,25^FN1^FS")
+        lines.append("^FO20,30^AFN 54,30^FN1^FS")
     else:
         # Use larger font, fits 21 chars
-        lines.append("^FO120,40^AFN 60,30^FN1^FS")
+        lines.append("^FO20,20^AFN 78,39^FN1^FS")
 
     lines.append("^XZ") #end format
 
@@ -69,8 +69,8 @@ def makeOperatorAndDateBarcode(operator,date,copies=1):
     lines.append("^LH0,0") # label home position (label home = LH)
     # AF = assign font F, field number 1 (FN1),
     # print text at position field origin (FO) rel. to home
-    lines.append("^FO400,40^ADN,32,14^FN1^FS")
-    lines.append("^FO130,40^ADN,32,14^FN2^FS")
+    lines.append("^FO460,30^ADN,36,20^FN1^FS")
+    lines.append("^FO20,30^ADN,36,20^FN2^FS")
     lines.append("^XZ") #end format
 
     if len(operator)>19:
@@ -95,10 +95,10 @@ def makeProcessNameBarcode(process_name,copies=1):
     # print text at position field origin (FO) rel. to home
     if len(process_name)>21:
         # Use smaller font, fits 28 chars
-        lines.append("^FO40,30^ADN 30,15^FN1^FS")
+        lines.append("^FO20,30^ADN 54,30^FN1^FS")
     else:
         # Use larger font, fits 21 chars
-        lines.append("^FO40,20^AFN 36,18^FN1^FS")
+        lines.append("^FO20,20^AFN 78,39^FN1^FS")
 
     lines.append("^XZ") #end format
 
