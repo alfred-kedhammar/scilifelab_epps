@@ -105,7 +105,8 @@ def categorization(process_name):
     "Sample Crosslinking" : "",
     "HiC Intermediate QC" : "",
     "End repair, adapter ligation, ligation capture and Index PCR (HiC)" : "",
-    "Chromatin capture, digestion, end ligation and crosslink reversal (HiC) 1.0" : ""}
+    "Chromatin capture, digestion, end ligation and crosslink reversal (HiC) 1.0" : "",
+    "Generic QC" : ""}
 
     return decision[process_name]
 
