@@ -106,7 +106,8 @@ def categorization(process_name):
     "HiC Intermediate QC" : "",
     "End repair, adapter ligation, ligation capture and Index PCR (HiC)" : "",
     "Chromatin capture, digestion, end ligation and crosslink reversal (HiC) 1.0" : "",
-    "Generic QC" : ""}
+    "Generic QC" : "",
+    "RAD-seq Library Indexing v1.0" : ""}
 
     return decision[process_name]
 
