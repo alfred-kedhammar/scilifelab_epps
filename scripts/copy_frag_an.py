@@ -53,7 +53,7 @@ def get_result_file(process, log):
                 log.append('No Smear Analysis Result File found')
     #give error when there is no input file
     if len(content)==0:
-        raise(RuntimeError("Cannot access any output file."))
+        raise RuntimeError("Cannot access any output file.")
     return content
 
 def get_data(csv_content, log):
