@@ -35,51 +35,98 @@ from scilifelab_epps.epp import set_field
 
 import csv
 
-def get_result_file(process):
-    content = None
+def get_result_file(process, log):
+    content = dict()
     for outart in process.all_outputs():
         #get the right output artifact
         if outart.type == 'ResultFile' and outart.name == 'Fragment Analyzer Result File':
             try:
                 fid = outart.files[0].id
-                content = lims.get_file_contents(id=fid)
+                content['Fragment_Analyzer_Result_File'] = lims.get_file_contents(id=fid)
             except:
-                raise(RuntimeError("Cannot access the output file."))
-            break
+                log.append('No Fragment Analyzer Result File found')
+        if outart.type == 'ResultFile' and outart.name == 'Smear Analysis Result File':
+            try:
+                fid = outart.files[0].id
+                content['Smear_Analysis_Result_File'] = lims.get_file_contents(id=fid)
+            except:
+                log.append('No Smear Analysis Result File found')
+    #give error when there is no input file
+    if len(content)==0:
+        raise RuntimeError("Cannot access any output file.")
     return content
 
 def get_data(csv_content, log):
     read=False
     data={}
-    text = csv_content.encode("utf-8")
-    # Try to determine the format of the csv:
-    dialect = csv.Sniffer().sniff(text)
-    pf = csv.reader(text.splitlines(), dialect=dialect)
-    #defaults
-    sample_index=1
-    conc_index=2
-    rin_index=3
-    ratio_index=4
-    for row in pf:
-        if 'Sample ID' in row:
-            #this is the header row
-            sample_index=row.index('Sample ID')
-            conc_index=row.index('Conc. (ng/ul)')
-            rin_index=row.index('RQN')
-            ratio_index=row.index('28S/18S')
-            read=True
-        elif(read and row[sample_index]):
-            #this is every other row
-            if row[sample_index] in data:
-                #Sample is duplicated, drop the key
-                log.append("sample {0} has two rows in the CSV file. Please check the file manually.".format(row[sample_index]))
-                del data[row[sample_index]]
-            else:
-                #normal procedure
-                data[row[sample_index]]={}
-                data[row[sample_index]]['concentration']=row[conc_index]
-                data[row[sample_index]]['rin']=row[rin_index]
-                data[row[sample_index]]['ratio']=row[ratio_index]
+    #read fragment analyzer result file
+    if csv_content.get('Fragment_Analyzer_Result_File'):
+        text = csv_content['Fragment_Analyzer_Result_File'].encode("utf-8")
+        # Try to determine the format of the csv:
+        dialect = csv.Sniffer().sniff(text)
+        pf = csv.reader(text.splitlines(), dialect=dialect)
+        #defaults
+        sample_index=1
+        conc_index=2
+        rin_index=3
+        ratio_index=4
+        sample_list=[]
+        for row in pf:
+            if 'Sample ID' in row:
+                #this is the header row
+                sample_index=row.index('Sample ID')
+                conc_index=row.index('Conc. (ng/ul)')
+                rin_index=row.index('RQN')
+                ratio_index=row.index('28S/18S')
+                read=True
+            elif(read and row[sample_index]):
+                if row[sample_index] not in sample_list:
+                    sample_list.append(row[sample_index])
+                    data[row[sample_index]]={}
+                    data[row[sample_index]]['concentration']=row[conc_index]
+                    data[row[sample_index]]['rin']=row[rin_index]
+                    data[row[sample_index]]['ratio']=row[ratio_index]
+                else:
+                    #Multiple sample entris for one sample, drop the key
+                    log.append("sample {0} has multiple entries in the Fragment Analyzer Result File. Please check the file manually.".format(row[sample_index]))
+                    try:
+                        del data[row[sample_index]]
+                    except KeyError:
+                        continue
+    #reset to read smear analysis result file
+    read=False
+    if csv_content.get('Smear_Analysis_Result_File'):
+        text = csv_content['Smear_Analysis_Result_File'].encode("utf-8")
+        # Try to determine the format of the csv:
+        dialect = csv.Sniffer().sniff(text)
+        pf = csv.reader(text.splitlines(), dialect=dialect)
+        #defaults
+        sample_index=1
+        range_index=2
+        dv200_index=4
+        sample_list=[]
+        for row in pf:
+            if 'Sample ID' in row:
+                #this is the header row
+                sample_index=row.index('Sample ID')
+                range_index=row.index('Range')
+                dv200_index=row.index('% Total')
+                read=True
+            elif(read and row[sample_index]):
+                if row[sample_index] not in sample_list:
+                    sample_list.append(row[sample_index])
+                    #case of a new sample
+                    if row[sample_index] not in data:
+                        data[row[sample_index]]={}
+                    data[row[sample_index]]['range']=row[range_index]
+                    data[row[sample_index]]['dv200']=row[dv200_index]
+                #Multiple sample entris for one sample, clear the existing values
+                else:
+                    log.append("sample {0} has multiple entries in the Smear Analysis Result File. Please check the file manually.".format(row[sample_index]))
+                    try:
+                        del data[row[sample_index]]
+                    except KeyError:
+                        continue
     return data
 
 def get_frag_an_csv_data(process):
@@ -88,7 +135,7 @@ def get_frag_an_csv_data(process):
     #strings returned to the EPP user
     log = []
     # Get file contents by parsing lims artifacts
-    file_content = get_result_file(process)
+    file_content = get_result_file(process, log)
     #parse the file and get the interesting data out
     data = get_data(file_content, log)
 
@@ -97,20 +144,35 @@ def get_frag_an_csv_data(process):
         conc=None
         rin=None
         ratio=None
+        range=None
+        dv200=None
         file_sample=target_file.samples[0].name
         if file_sample in data:
             try:
-                conc=float(data[file_sample]['concentration'])
-                rin=float(data[file_sample]['rin'])
-                ratio=float(data[file_sample]['ratio'])
+                if data[file_sample].get('concentration'):
+                    conc=float(data[file_sample]['concentration'])
+                if data[file_sample].get('rin'):
+                    rin=float(data[file_sample]['rin'])
+                if data[file_sample].get('ratio'):
+                    ratio=float(data[file_sample]['ratio'])
+                if data[file_sample].get('range'):
+                    range=str(data[file_sample]['range'])
+                if data[file_sample].get('dv200'):
+                    dv200=float(data[file_sample]['dv200'])
             except ValueError:
                 bad_format+=1
             else:
-                if conc is not None :
+                if conc is not None:
                     target_file.udf['Concentration'] = conc
                     target_file.udf['Conc. Units'] = 'ng/ul'
+                if rin is not None:
                     target_file.udf['RIN'] = rin
+                if ratio is not None:
                     target_file.udf['28s/18s ratio'] = ratio
+                if range is not None:
+                    target_file.udf['Range'] = range
+                if dv200 is not None:
+                    target_file.udf['DV200'] = dv200
             #actually set the data
             target_file.put()
             set_field(target_file)
