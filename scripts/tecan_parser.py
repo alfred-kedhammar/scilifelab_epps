@@ -29,9 +29,9 @@ def parse(iterable):
             vals = line.rstrip().replace(" ","").split(",")
             vals.append("")
         # Filter out all rows with sample and standard entries and
-        # only use the "1/3" replicate:
+        # Use "1/3" or "1/2" replicate:
         m = p.match(vals[1])
-        if m and vals[2] == "1/3":
+        if m and vals[2] in ("1/3", "1/2"):
             # Substitute replicate with index:
             vals[2] = m.group(2)
             # Assign a type and source well:
