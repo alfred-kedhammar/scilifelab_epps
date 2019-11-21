@@ -31,7 +31,7 @@ def parse(iterable):
         # Filter out all rows with sample and standard entries and
         # Use "1/3" or "1/2" replicate:
         m = p.match(vals[1])
-        if (m and vals[2] == "1/3") or (m and vals[2] == "1/2"):
+        if m and vals[2] in ("1/3", "1/2"):
             # Substitute replicate with index:
             vals[2] = m.group(2)
             # Assign a type and source well:
