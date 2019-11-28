@@ -12,9 +12,9 @@ class Thresholds():
         self.correction_factor_for_sample_in_pool = 0.75
 
         #Checks that only supported values are entered
-        self.valid_instruments = ["miseq", "hiseq", "HiSeq_X", "NovaSeq"]
+        self.valid_instruments = ["miseq", "hiseq", "HiSeq_X", "NovaSeq", "NextSeq"]
         self.valid_chemistry = ["MiSeq", "HiSeq Rapid Flow Cell v1","HiSeq Rapid Flow Cell v2",
-                             "TruSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v3", "HiSeq Flow Cell v4", "HiSeqX v2.5", "SP", "S1", "S2", "S4"]
+                             "TruSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v3", "HiSeq Flow Cell v4", "HiSeqX v2.5", "SP", "S1", "S2", "S4", "NextSeq Mid", "NextSeq High"]
 
         if not instrument in self.valid_instruments or not chemistry in self.valid_chemistry:
             self.problem_handler("exit", "Detected instrument and chemistry combination are not classed as valid in manage_demux_stats_thresholds.py")
@@ -81,6 +81,14 @@ class Thresholds():
             elif self.read_length < 100:
                 self.Q30 = 85
 
+        elif self.instrument == "NextSeq":
+            if self.read_length >= 150:
+                self.Q30 = 75
+            elif self.read_length >= 100:
+                self.Q30 = 80
+            elif self.read_length < 100:
+                self.Q30 = 85
+
         if not self.Q30:
             self.problem_handler("exit", "No predefined Q30 threshold (see doc 1244). Instrument: {}, Chemistry: {}, Read Length: {}".\
                                  format(self.instrument, self.chemistry, self.read_length))
@@ -121,6 +129,11 @@ class Thresholds():
                 self.exp_lane_clust = 1650000000
             elif self.chemistry == "S4":
                 self.exp_lane_clust = 2000000000
+        elif self.instrument == "NextSeq":
+            if self.chemistry == "NextSeq Mid":
+                self.exp_lane_clust = 32500000
+            elif self.chemistry == "NextSeq High":
+                self.exp_lane_clust = 100000000
         else:
             self.problem_handler("exit", "HiSeqX runs should always be paired but script has detected otherwise. Something has gone terribly wrong.")
         if not self.exp_lane_clust:

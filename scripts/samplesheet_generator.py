@@ -108,38 +108,37 @@ def gen_Hiseq_lane_data(pro):
     data=[]
     header_ar = ["FCID","Lane","SampleID","SampleRef","Index","Description","Control","Recipe","Operator","SampleProject"]
     for out in pro.all_outputs():
-        if  out.type != "Analyte":
-            continue
-        for sample in out.samples:
-            sp_obj = {}
-            sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
-            sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
-            sp_obj['sn'] = sample.name.replace(',','')
-            try:
-                sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
-            except:
-                #control samples have no project
-                continue
-            try:
-                sp_obj['rc'] = pro.udf['Run Recipe'].replace(',','')
-            except:
-                sp_obj['rc'] = ''
-            sp_obj['ct'] = 'N'
-            sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
-            sp_obj['fc'] = out.location[0].name.replace(',','')
-            sp_obj['sw'] = out.location[1].replace(',','')
-            try:
-                sp_obj['ref'] = sample.project.udf['Reference genome'].replace(',','')
-            except:
-                sp_obj['ref']=''
-            if 'use NoIndex' in pro.udf and pro.udf['use NoIndex'] == True:
-                sp_obj['idx1'] = "NoIndex"
-            else:
-                idxs = find_barcode(sample, pro)
-                sp_obj['idx1'] = idxs[0].replace(',','')
-                if idxs[1]:
-                    sp_obj['idx1']="{}-{}".format(idxs[0].replace(',',''), idxs[1])
-            data.append(sp_obj)
+        if  out.type == "Analyte":
+            for sample in out.samples:
+                sp_obj = {}
+                sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
+                sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
+                sp_obj['sn'] = sample.name.replace(',','')
+                try:
+                    sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
+                except:
+                    #control samples have no project
+                    continue
+                try:
+                    sp_obj['rc'] = pro.udf['Run Recipe'].replace(',','')
+                except:
+                    sp_obj['rc'] = ''
+                sp_obj['ct'] = 'N'
+                sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
+                sp_obj['fc'] = out.location[0].name.replace(',','')
+                sp_obj['sw'] = out.location[1].replace(',','')
+                try:
+                    sp_obj['ref'] = sample.project.udf['Reference genome'].replace(',','')
+                except:
+                    sp_obj['ref']=''
+                if 'use NoIndex' in pro.udf and pro.udf['use NoIndex'] == True:
+                    sp_obj['idx1'] = "NoIndex"
+                else:
+                    idxs = find_barcode(sample, pro)
+                    sp_obj['idx1'] = idxs[0].replace(',','')
+                    if idxs[1]:
+                        sp_obj['idx1']="{}-{}".format(idxs[0].replace(',',''), idxs[1])
+                data.append(sp_obj)
     header = "{}\n".format(",".join(header_ar))
     str_data = ""
     for line in sorted(data, key=lambda x: x['lane']):
@@ -153,40 +152,39 @@ def gen_Novaseq_lane_data(pro):
     data=[]
     header_ar = ["FCID","Lane","Sample_ID","Sample_Name","Sample_Ref","index","index2","Description","Control","Recipe","Operator","Sample_Project"]
     for out in pro.all_outputs():
-        if  out.type != "Analyte":
-            continue
-        for sample in out.samples:
-            sp_obj = {}
-            sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
-            sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
-            sp_obj['sn'] = sample.name.replace(',','')
-            try:
-                sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
-            except:
-                #control samples have no project
-                continue
-            try:
-                if pro.udf.get('Read 2 Cycles'):
-                    if str(pro.udf['Read 2 Cycles']).replace(',','')==str(pro.udf['Read 1 Cycles']).replace(',',''):
-                        sp_obj['rc'] = "2x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
+        if  out.type == "Analyte":
+            for sample in out.samples:
+                sp_obj = {}
+                sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
+                sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
+                sp_obj['sn'] = sample.name.replace(',','')
+                try:
+                    sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
+                except:
+                    #control samples have no project
+                    continue
+                try:
+                    if pro.udf.get('Read 2 Cycles'):
+                        if str(pro.udf['Read 2 Cycles']).replace(',','')==str(pro.udf['Read 1 Cycles']).replace(',',''):
+                            sp_obj['rc'] = "2x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
+                        else:
+                            sp_obj['rc'] = "{}-{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''),str(pro.udf['Read 2 Cycles']).replace(',',''))
                     else:
-                        sp_obj['rc'] = "{}-{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''),str(pro.udf['Read 2 Cycles']).replace(',',''))
+                        sp_obj['rc'] = "1x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
+                except:
+                    sp_obj['rc'] = ''
+                sp_obj['ct'] = 'N'
+                sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
+                sp_obj['fc'] = out.location[0].name.replace(',','')
+                sp_obj['sw'] = out.location[1].replace(',','')
+                sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
+                if 'use NoIndex' in pro.udf and pro.udf['use NoIndex'] == True:
+                    sp_obj['idx1'] = "NoIndex"
                 else:
-                    sp_obj['rc'] = "1x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
-            except:
-                sp_obj['rc'] = ''
-            sp_obj['ct'] = 'N'
-            sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
-            sp_obj['fc'] = out.location[0].name.replace(',','')
-            sp_obj['sw'] = out.location[1].replace(',','')
-            sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
-            if 'use NoIndex' in pro.udf and pro.udf['use NoIndex'] == True:
-                sp_obj['idx1'] = "NoIndex"
-            else:
-                idxs = find_barcode(sample, pro)
-                sp_obj['idx1'] = idxs[0].replace(',','')
-                sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
-            data.append(sp_obj)
+                    idxs = find_barcode(sample, pro)
+                    sp_obj['idx1'] = idxs[0].replace(',','')
+                    sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
+                data.append(sp_obj)
     header = "{}\n".format(",".join(header_ar))
     str_data = ""
     for line in sorted(data, key=lambda x: x['lane']):
@@ -298,44 +296,43 @@ def gen_Nextseq_lane_data(pro):
     data=[]
     header_ar = ["FCID","Lane","Sample_ID","Sample_Name","Sample_Ref","index","index2","Description","Control","Recipe","Operator","Sample_Project"]
     for out in pro.all_outputs():
-        if  out.type != "Analyte":
-            continue
-        for sample in out.samples:
-            sp_obj = {}
-            sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
-            sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
-            sp_obj['sn'] = sample.name.replace(',','')
-            try:
-                sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
-            except:
-                #control samples have no project
-                continue
-            try:
-                if pro.udf.get('Read 2 Cycles'):
-                    if str(pro.udf['Read 2 Cycles']).replace(',','')==str(pro.udf['Read 1 Cycles']).replace(',',''):
-                        sp_obj['rc'] = "2x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
+        if  out.type == "Analyte":
+            for sample in out.samples:
+                sp_obj = {}
+                sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
+                sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
+                sp_obj['sn'] = sample.name.replace(',','')
+                try:
+                    sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
+                except:
+                    #control samples have no project
+                    continue
+                try:
+                    if pro.udf.get('Read 2 Cycles'):
+                        if str(pro.udf['Read 2 Cycles']).replace(',','')==str(pro.udf['Read 1 Cycles']).replace(',',''):
+                            sp_obj['rc'] = "2x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
+                        else:
+                            sp_obj['rc'] = "{}-{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''),str(pro.udf['Read 2 Cycles']).replace(',',''))
                     else:
-                        sp_obj['rc'] = "{}-{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''),str(pro.udf['Read 2 Cycles']).replace(',',''))
+                        sp_obj['rc'] = "1x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
+                except:
+                    sp_obj['rc'] = ''
+                sp_obj['ct'] = 'N'
+                sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
+                sp_obj['fc'] = out.location[0].name.replace(',','')
+                sp_obj['sw'] = out.location[1].replace(',','')
+                sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
+                if 'use NoIndex' in pro.udf and pro.udf['use NoIndex'] == True:
+                    sp_obj['idx1'] = "NoIndex"
                 else:
-                    sp_obj['rc'] = "1x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
-            except:
-                sp_obj['rc'] = ''
-            sp_obj['ct'] = 'N'
-            sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
-            sp_obj['fc'] = out.location[0].name.replace(',','')
-            sp_obj['sw'] = out.location[1].replace(',','')
-            sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
-            if 'use NoIndex' in pro.udf and pro.udf['use NoIndex'] == True:
-                sp_obj['idx1'] = "NoIndex"
-            else:
-                idxs = find_barcode(sample, pro)
-                sp_obj['idx1'] = idxs[0].replace(',','')
-                if idxs[1]:
-                    compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
-                    sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
-                else:
-                    sp_obj['idx2'] = ''    
-            data.append(sp_obj)
+                    idxs = find_barcode(sample, pro)
+                    sp_obj['idx1'] = idxs[0].replace(',','')
+                    if idxs[1]:
+                        compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+                        sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
+                    else:
+                        sp_obj['idx2'] = ''
+                data.append(sp_obj)
     header = "{}\n".format(",".join(header_ar))
     str_data = ""
     for line in sorted(data, key=lambda x: x['lane']):
