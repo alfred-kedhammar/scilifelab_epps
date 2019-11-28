@@ -107,7 +107,13 @@ def categorization(process_name):
     "End repair, adapter ligation, ligation capture and Index PCR (HiC)" : "",
     "Chromatin capture, digestion, end ligation and crosslink reversal (HiC) 1.0" : "",
     "Generic QC" : "",
-    "RAD-seq Library Indexing v1.0" : ""}
+    "RAD-seq Library Indexing v1.0" : "",
+    "Sort NextSeq Samples (NextSeq) v1.0" : "",
+    "Library Normalization (NextSeq) v1.0" : "",
+    "Library Normalization (NovaSeq) v2.0" : "",
+    "Library Pooling (NextSeq) v1.0" : "",
+    "Illumina Sequencing (NextSeq) v1.0" : "Flowcell",
+    "Load to Flowcell (NextSeq v1.0)" : "" }
 
     return decision[process_name]
 
