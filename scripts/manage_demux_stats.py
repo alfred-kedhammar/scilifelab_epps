@@ -157,7 +157,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
     proj_pattern = re.compile('(P\w+_\d+)')
     #Necessary for noindexruns, should always resolve
     try:
-        run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0","AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)"}
+        run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0","AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)","Illumina Sequencing (NextSeq) v1.0"}
         seqstep = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id, type=run_types)[0]
     except Exception as e:
         problem_handler("exit", "Undefined prior workflow step (run type): {}".format(e.message))
