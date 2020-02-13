@@ -16,7 +16,7 @@ from genologics.entities import *
 
 DEMULTIPLEX={'13' : 'Bcl Conversion & Demultiplexing (Illumina SBS) 4.0'}
 SUMMARY = {'356' : 'Project Summary 1.3'}
-SEQUENCING = {'38' : 'Illumina Sequencing (Illumina SBS) 4.0','46' : 'MiSeq Run (MiSeq) 4.0', '714':'Illumina Sequencing (HiSeq X) 1.0', '1454':'AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)'}
+SEQUENCING = {'38' : 'Illumina Sequencing (Illumina SBS) 4.0','46' : 'MiSeq Run (MiSeq) 4.0', '714':'Illumina Sequencing (HiSeq X) 1.0', '1454':'AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)', '1908' : 'Illumina Sequencing (NextSeq) v1.0'}
 def main(lims, args, logger):
     """This should be run at project summary level"""
     p = Process(lims,id = args.pid)
@@ -170,4 +170,3 @@ if __name__=="__main__":
 
     with EppLogger(args.log, lims=lims, prepend=True) as epp_logger:
         main(lims, args, epp_logger)
-
