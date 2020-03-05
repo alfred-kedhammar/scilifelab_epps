@@ -73,16 +73,16 @@ def manipulate_workflow(demux_process):
         except Exception as e:
             problem_handler("exit", "No flowcell version set in sequencing step: {}".format(e.message))
         proc_stats["Instrument"] = "NovaSeq"
-        proc_stats["Read Length"] = workflow.parent_processes()[0].udf['Read 1 Cycles']
-        proc_stats["Paired"] = True if workflow.parent_processes()[0].udf.get('Read 2 Cycles') else False
+        proc_stats["Read Length"] = workflow.udf['Read 1 Cycles']
+        proc_stats["Paired"] = True if workflow.udf.get('Read 2 Cycles') else False
     elif "Illumina Sequencing (NextSeq) v1.0" == workflow.type.name:
         try:
             proc_stats["Chemistry"] = workflow.udf["Chemistry"]
         except Exception as e:
             problem_handler("exit", "No run type set in sequencing step: {}".format(e.message))
         proc_stats["Instrument"] = "NextSeq"
-        proc_stats["Read Length"] = workflow.parent_processes()[0].udf['Read 1 Cycles']
-        proc_stats["Paired"] = True if workflow.parent_processes()[0].udf.get('Read 2 Cycles') else False
+        proc_stats["Read Length"] = workflow.udf['Read 1 Cycles']
+        proc_stats["Paired"] = True if workflow.udf.get('Read 2 Cycles') else False
     else:
         problem_handler("exit", "Unhandled workflow step (run type)")
     logger.info("Run type/chemistry set to {}".format(proc_stats["Chemistry"]))
