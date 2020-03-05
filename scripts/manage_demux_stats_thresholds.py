@@ -131,9 +131,9 @@ class Thresholds():
                 self.exp_lane_clust = 2000000000
         elif self.instrument == "NextSeq":
             if self.chemistry == "NextSeq Mid":
-                self.exp_lane_clust = 32500000
+                self.exp_lane_clust = 25000000
             elif self.chemistry == "NextSeq High":
-                self.exp_lane_clust = 100000000
+                self.exp_lane_clust = 75000000
         else:
             self.problem_handler("exit", "HiSeqX runs should always be paired but script has detected otherwise. Something has gone terribly wrong.")
         if not self.exp_lane_clust:
