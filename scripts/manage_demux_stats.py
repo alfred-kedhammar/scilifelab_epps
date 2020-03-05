@@ -77,7 +77,7 @@ def manipulate_workflow(demux_process):
         proc_stats["Paired"] = True if workflow.parent_processes()[0].udf.get('Read 2 Cycles') else False
     elif "Illumina Sequencing (NextSeq) v1.0" == workflow.type.name:
         try:
-            proc_stats["Chemistry"] = workflow.udf["Run Type"]
+            proc_stats["Chemistry"] = workflow.udf["Chemistry"]
         except Exception as e:
             problem_handler("exit", "No run type set in sequencing step: {}".format(e.message))
         proc_stats["Instrument"] = "NextSeq"
