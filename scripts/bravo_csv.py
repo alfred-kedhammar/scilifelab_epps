@@ -286,6 +286,10 @@ def dilution(currentStep):
     # Read in the presets of minimum required conc for setup workset, maximum conc for dilution and minimum volume for dilution
     if "SMARTer Pico RNA" in currentStep.input_output_maps[0][0]['uri'].workflow_stages[0].workflow.name:
         preset = Dilution_preset['Smarter pico']
+    # Use the values set in the step UDFs; if not set, use the default values
+    min_required_conc = currentStep.udf['Minimum required conc for workset (ng/ul)'] if currentStep.udf['Minimum required conc for workset (ng/ul)'] else preset[0]
+    max_conc_for_dilution = currentStep.udf['Maximum conc for dilution (ng/ul)'] if currentStep.udf['Maximum conc for dilution (ng/ul)'] else preset[1]
+    min_vol_for_dilution = currentStep.udf['Minimum volume for dilution (ul)'] if currentStep.udf['Minimum volume for dilution (ul)'] else preset[2]
     with open("bravo.csv", "w") as csvContext:
         with open("bravo.log", "w") as logContext:
             # working directly with the map allows easier input/output handling
@@ -303,29 +307,29 @@ def dilution(currentStep):
                         art_tuple[1]['uri'].udf['Concentration'] = art_tuple[0]['uri'].udf['Concentration']
                         art_tuple[1]['uri'].udf['Conc. Units'] = art_tuple[0]['uri'].udf['Conc. Units']
                         # Case that sample concentration lower than the minimum required conc for setup workset
-                        if art_tuple[1]['uri'].udf['Concentration'] < preset[0]:
-                            if art_tuple[0]['uri'].udf['Volume (ul)'] >= preset[2]:
-                                art_tuple[1]['uri'].udf['Volume to take (uL)'] = preset[2]
+                        if art_tuple[1]['uri'].udf['Concentration'] < min_required_conc:
+                            if art_tuple[0]['uri'].udf['Volume (ul)'] >= min_vol_for_dilution:
+                                art_tuple[1]['uri'].udf['Volume to take (uL)'] = min_vol_for_dilution
                                 art_tuple[1]['uri'].udf['Final Concentration'] = art_tuple[1]['uri'].udf['Concentration']
-                                art_tuple[1]['uri'].udf['Final Volume (uL)'] = preset[2]
-                                logContext.write("WARN : Sample {0} located {1} {2} has a LOWER conc than {3}. Take {4} ul directly into the dilution plate.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],preset[0],preset[2]))
+                                art_tuple[1]['uri'].udf['Final Volume (uL)'] = min_vol_for_dilution
+                                logContext.write("WARN : Sample {0} located {1} {2} has a LOWER conc than {3}. Take {4} ul directly into the dilution plate.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],min_required_conc,min_vol_for_dilution))
                             else:
                                 art_tuple[1]['uri'].udf['Volume to take (uL)'] = 0
                                 art_tuple[1]['uri'].udf['Final Concentration'] = 0
                                 art_tuple[1]['uri'].udf['Final Volume (uL)'] = 0
-                                logContext.write("ERROR : Sample {0} located {1} {2} has a LOWER conc than {3} and total volume less than {4} ul. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],preset[0],preset[2]))
+                                logContext.write("ERROR : Sample {0} located {1} {2} has a LOWER conc than {3} and total volume less than {4} ul. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],min_required_conc,min_vol_for_dilution))
                         # Case that sample concentration higher than the maximum conc for dilution
-                        elif art_tuple[1]['uri'].udf['Concentration'] > preset[1]:
+                        elif art_tuple[1]['uri'].udf['Concentration'] > max_conc_for_dilution:
                             art_tuple[1]['uri'].udf['Volume to take (uL)'] = 0
                             art_tuple[1]['uri'].udf['Final Concentration'] = 0
                             art_tuple[1]['uri'].udf['Final Volume (uL)'] = 0
-                            logContext.write("ERROR : Sample {0} located {1} {2} has a HIGHER conc than {3}. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],preset[1]))
+                            logContext.write("ERROR : Sample {0} located {1} {2} has a HIGHER conc than {3}. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],max_conc_for_dilution))
                         # Case that dilution will be done with 2uL sample
-                        elif art_tuple[1]['uri'].udf['Concentration'] <= preset[1] and art_tuple[1]['uri'].udf['Concentration'] > float(preset[0]*preset[2]/MIN_WARNING_VOLUME):
+                        elif art_tuple[1]['uri'].udf['Concentration'] <= max_conc_for_dilution and art_tuple[1]['uri'].udf['Concentration'] > float(min_required_conc*min_vol_for_dilution/MIN_WARNING_VOLUME):
                             if art_tuple[0]['uri'].udf['Volume (ul)'] >= MIN_WARNING_VOLUME:
-                                final_conc = preset[0]
+                                final_conc = min_required_conc
                                 step = 0.25
-                                while final_conc <= 5.0:
+                                while final_conc <= max_conc_for_dilution*MIN_WARNING_VOLUME/MAX_WARNING_VOLUME:
                                     if float(art_tuple[1]['uri'].udf['Concentration']*MIN_WARNING_VOLUME/final_conc) <= MAX_WARNING_VOLUME:
                                         art_tuple[1]['uri'].udf['Volume to take (uL)'] = MIN_WARNING_VOLUME
                                         art_tuple[1]['uri'].udf['Final Concentration'] = final_conc
@@ -340,17 +344,17 @@ def dilution(currentStep):
                                 art_tuple[1]['uri'].udf['Final Volume (uL)'] = 0
                                 logContext.write("ERROR : Sample {0} located {1} {2} has a LOWER volume than {3} ul. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],MIN_WARNING_VOLUME))
                         # Case that more than 2uL sample is needed for dilution
-                        elif art_tuple[1]['uri'].udf['Concentration'] <= float(preset[0]*preset[2]/MIN_WARNING_VOLUME) and art_tuple[1]['uri'].udf['Concentration'] >= preset[0]:
-                            if art_tuple[0]['uri'].udf['Volume (ul)'] >= float(preset[0]*preset[2]/art_tuple[1]['uri'].udf['Concentration']):
-                                art_tuple[1]['uri'].udf['Volume to take (uL)'] = float(preset[0]*preset[2]/art_tuple[1]['uri'].udf['Concentration'])
-                                art_tuple[1]['uri'].udf['Final Concentration'] = preset[0]
-                                art_tuple[1]['uri'].udf['Final Volume (uL)'] = preset[2]
+                        elif art_tuple[1]['uri'].udf['Concentration'] <= float(min_required_conc*min_vol_for_dilution/MIN_WARNING_VOLUME) and art_tuple[1]['uri'].udf['Concentration'] >= min_required_conc:
+                            if art_tuple[0]['uri'].udf['Volume (ul)'] >= float(min_required_conc*min_vol_for_dilution/art_tuple[1]['uri'].udf['Concentration']):
+                                art_tuple[1]['uri'].udf['Volume to take (uL)'] = float(min_required_conc*min_vol_for_dilution/art_tuple[1]['uri'].udf['Concentration'])
+                                art_tuple[1]['uri'].udf['Final Concentration'] = min_required_conc
+                                art_tuple[1]['uri'].udf['Final Volume (uL)'] = min_vol_for_dilution
                                 logContext.write("INFO : Sample {0} looks okay.\n".format(art_tuple[1]['uri'].samples[0].name))
                             else:
                                 art_tuple[1]['uri'].udf['Volume to take (uL)'] = 0
                                 art_tuple[1]['uri'].udf['Final Concentration'] = 0
                                 art_tuple[1]['uri'].udf['Final Volume (uL)'] = 0
-                                logContext.write("ERROR : Sample {0} located {1} {2} has a LOWER volume than {3} ul. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],float(preset[0]*preset[2]/art_tuple[1]['uri'].udf['Concentration'])))
+                                logContext.write("ERROR : Sample {0} located {1} {2} has a LOWER volume than {3} ul. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],float(min_required_conc*min_vol_for_dilution/art_tuple[1]['uri'].udf['Concentration'])))
                     except KeyError as e:
                         logContext.write("ERROR : The input artifact is lacking a field : {0}\n".format(e))
                         checkTheLog[0] = True
