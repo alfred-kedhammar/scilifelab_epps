@@ -56,7 +56,7 @@ def manipulate_workflow(demux_process):
     #Instrument is denoted the way it is since it is also used to find
     #the folder of the laneBarcode.html file
     if "MiSeq Run (MiSeq) 4.0" == workflow.type.name:
-        proc_stats["Chemistry"] ="MiSeq"
+        proc_stats["Chemistry"] = workflow.udf["Run Type"]
         proc_stats["Instrument"] = "miseq"
     elif "Illumina Sequencing (Illumina SBS) 4.0" == workflow.type.name:
         try:
