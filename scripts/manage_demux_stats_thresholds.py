@@ -37,15 +37,14 @@ class Thresholds():
     """Q30 values are derived from governing document 1244:4"""
     def set_Q30(self):
         if self.instrument == "miseq":
-            if self.chemistry == "MiSeq":
-                if self.read_length >= 250:
-                    self.Q30 = 60
-                elif self.read_length >= 150:
-                    self.Q30 = 70
-                elif self.read_length >= 100:
-                    self.Q30 = 75
-                elif self.read_length < 100:
-                    self.Q30 = 80
+            if self.read_length >= 250:
+                self.Q30 = 60
+            elif self.read_length >= 150:
+                self.Q30 = 70
+            elif self.read_length >= 100:
+                self.Q30 = 75
+            elif self.read_length < 100:
+                self.Q30 = 80
         elif self.instrument == "hiseq":
             #Rapid run flowcell
             if self.chemistry in ["HiSeq Rapid Flow Cell v1","HiSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v1"] :
@@ -96,7 +95,13 @@ class Thresholds():
     """Expected lanes per cluster are derived from undemultiplex_index.py"""
     def set_exp_lane_clust(self):
         if self.instrument == "miseq":
-            if self.chemistry == "MiSeq":
+            if self.chemistry == "Version3":
+                self.exp_lane_clust = 18000000
+            elif self.chemistry == "Version2":
+                self.exp_lane_clust = 10000000
+            elif self.chemistry == "Version2Nano":
+                self.exp_lane_clust = 750000
+            else:
                 if self.read_length >= 76 and self.read_length <= 301:
                     self.exp_lane_clust = 18000000
                 else:
