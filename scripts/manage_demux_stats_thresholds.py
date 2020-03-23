@@ -13,7 +13,7 @@ class Thresholds():
 
         #Checks that only supported values are entered
         self.valid_instruments = ["miseq", "hiseq", "HiSeq_X", "NovaSeq", "NextSeq"]
-        self.valid_chemistry = ["MiSeq", "HiSeq Rapid Flow Cell v1","HiSeq Rapid Flow Cell v2",
+        self.valid_chemistry = ["MiSeq", "Version3", "Version2", "Version2Nano", "HiSeq Rapid Flow Cell v1","HiSeq Rapid Flow Cell v2",
                              "TruSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v3", "HiSeq Flow Cell v4", "HiSeqX v2.5", "SP", "S1", "S2", "S4", "NextSeq Mid", "NextSeq High"]
 
         if not instrument in self.valid_instruments or not chemistry in self.valid_chemistry:
