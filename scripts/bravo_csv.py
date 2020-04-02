@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+from __future__ import division
 import logging
 import os
 import sys
 import re
-from __future__ import division
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
@@ -326,7 +326,7 @@ def dilution(currentStep):
                             art_tuple[1]['uri'].udf['Final Volume (uL)'] = 0
                             logContext.write("ERROR : Sample {0} located {1} {2} has a HIGHER conc than {3}. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],max_conc_for_dilution))
                         # Case that dilution will be done with 2uL sample
-                    elif art_tuple[1]['uri'].udf['Concentration'] <= max_conc_for_dilution and art_tuple[1]['uri'].udf['Concentration'] > float(min_required_conc*min_vol_for_dilution)/MIN_WARNING_VOLUME:
+                        elif art_tuple[1]['uri'].udf['Concentration'] <= max_conc_for_dilution and art_tuple[1]['uri'].udf['Concentration'] > float(min_required_conc*min_vol_for_dilution)/MIN_WARNING_VOLUME:
                             if art_tuple[0]['uri'].udf['Volume (ul)'] >= MIN_WARNING_VOLUME:
                                 final_conc = min_required_conc
                                 step = 0.25
@@ -345,7 +345,7 @@ def dilution(currentStep):
                                 art_tuple[1]['uri'].udf['Final Volume (uL)'] = 0
                                 logContext.write("ERROR : Sample {0} located {1} {2} has a LOWER volume than {3} ul. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],MIN_WARNING_VOLUME))
                         # Case that more than 2uL sample is needed for dilution
-                    elif art_tuple[1]['uri'].udf['Concentration'] <= float(min_required_conc*min_vol_for_dilution)/MIN_WARNING_VOLUME and art_tuple[1]['uri'].udf['Concentration'] >= min_required_conc:
+                        elif art_tuple[1]['uri'].udf['Concentration'] <= float(min_required_conc*min_vol_for_dilution)/MIN_WARNING_VOLUME and art_tuple[1]['uri'].udf['Concentration'] >= min_required_conc:
                             if art_tuple[0]['uri'].udf['Volume (ul)'] >= float(min_required_conc*min_vol_for_dilution/art_tuple[1]['uri'].udf['Concentration']):
                                 art_tuple[1]['uri'].udf['Volume to take (uL)'] = float(min_required_conc*min_vol_for_dilution/art_tuple[1]['uri'].udf['Concentration'])
                                 art_tuple[1]['uri'].udf['Final Concentration'] = min_required_conc
