@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
+from __future__ import division
 import logging
 import os
 import sys
 import re
-from __future__ import division
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
