@@ -342,6 +342,52 @@ def gen_Nextseq_lane_data(pro):
     return ("{}{}".format(header, str_data), data)
 
 
+def gen_MinION_QC_data(pro):
+    data=[]
+    fastq_path = pro.udf['Path of Output FastQ Files']
+    for out in pro.all_outputs():
+        if out.type == "Analyte":
+            nanopore_barcode_name = out.udf['Nanopore Barcode'].split('_')[0]
+            nanopore_barcode_seq = out.udf['Nanopore Barcode'].split('_')[1]
+            for sample in out.samples:
+                sp_obj = {}
+                sp_obj['sn'] = sample.name.replace(',','')
+                sp_obj['npbs'] = nanopore_barcode_seq
+                sp_obj['fp'] = fastq_path+nanopore_barcode_name+'.fastq.gz'
+                idxs = find_barcode(sample, pro)
+                #Case of 10X indexes
+                if TENX_PAT.findall(idxs[0]):
+                    for tenXidx in Chromium_10X_indexes[TENX_PAT.findall(idxs[0])[0]]:
+                        tenXidx_no = Chromium_10X_indexes[TENX_PAT.findall(idxs[0])[0]].index(tenXidx)+1
+                        sp_obj_sub = {}
+                        sp_obj_sub['sn'] = sp_obj['sn']+'_'+str(tenXidx_no)
+                        sp_obj_sub['npbs'] = sp_obj['npbs']
+                        sp_obj_sub['idxt'] = 'truseq'
+                        sp_obj_sub['idx'] = tenXidx.replace(',','')
+                        sp_obj_sub['fp'] = sp_obj['fp']
+                        data.append(sp_obj_sub)
+                #Case of NoIndex
+                elif idxs[0] == 'NoIndex' or idxs[0] == '' or not idxs:
+                    sp_obj['idxt'] = 'truseq'
+                    sp_obj['idx'] = ''
+                    data.append(sp_obj)
+                #Case of single index
+                elif idxs[1] == '':
+                    sp_obj['idxt'] = 'truseq'
+                    sp_obj['idx'] = idxs[0].replace(',','')
+                    data.append(sp_obj)
+                #Case of dual index
+                else:
+                    sp_obj['idxt'] = 'truseq_dual'
+                    sp_obj['idx'] = idxs[0].replace(',','')+'-'+idxs[1].replace(',','')
+                    data.append(sp_obj)
+    str_data = ""
+    for line in sorted(data):
+        l_data = [line['sn'], line['npbs'], line['idxt'], line['idx'], line['fp']]
+        str_data = str_data + ",".join(l_data) + "\n"
+
+    return str_data
+
 def find_barcode(sample, process):
     # print "trying to find {} barcode in {}".format(sample.name, process.name)
     for art in process.all_inputs():
@@ -363,7 +409,6 @@ def find_barcode(sample, process):
                             idxs = IDX_PAT.findall(rt.sequence)[0]
                         except:
                             return ("NoIndex","")
-
                 return idxs
             else:
                 if art == sample.artifact or not art.parent_process:
@@ -436,6 +481,10 @@ def main(lims, args):
                         sf.write(content)
                 except Exception as e:
                     log.append(str(e))
+
+        elif process.type.name == 'MinION QC':
+            content = gen_MinION_QC_data(process)
+
 
         if not args.test:
             for out in process.all_outputs():
