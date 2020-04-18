@@ -351,7 +351,7 @@ def gen_MinION_QC_data(pro):
             nanopore_barcode_name = out.udf['Nanopore Barcode'].split('_')[0]
             nanopore_barcode_seq = out.udf['Nanopore Barcode'].split('_')[1]
             sample_name = out.name
-            idxs = reagent_labels[0]
+            idxs = out.reagent_labels[0]
 
             sp_obj = {}
             sp_obj['sn'] = sample_name
@@ -374,13 +374,26 @@ def gen_MinION_QC_data(pro):
                 sp_obj['idxt'] = 'truseq'
                 sp_obj['idx'] = ''
                 data.append(sp_obj)
+            #Case of index sequences between brackets
+            elif re.findall('\((.*?)\)', idxs):
+                idxs = re.findall('\((.*?)\)', idxs)[0]
+                if '-' not in idxs:
+                    sp_obj['idxt'] = 'truseq'
+                    sp_obj['idx'] = idxs
+                    data.append(sp_obj)
+                else:
+                    sp_obj['idxt'] = 'truseq_dual'
+                    sp_obj['idx'] = idxs
+                    data.append(sp_obj)
             #Case of single index
             elif '-' not in idxs:
                 sp_obj['idxt'] = 'truseq'
+                sp_obj['idx'] = idxs
                 data.append(sp_obj)
             #Case of dual index
             else:
                 sp_obj['idxt'] = 'truseq_dual'
+                sp_obj['idx'] = idxs
                 data.append(sp_obj)
     str_data = ""
     for line in sorted(data):
@@ -495,6 +508,8 @@ def main(lims, args):
                     log_id= out.id
                 elif out.type == "Analyte":
                     fc_name = out.location[0].name
+                else:
+                    fc_name = "Samplesheet" + "_" + process.id
 
             with open("{}.csv".format(fc_name), "w", 0o664) as f:
                 f.write(content)
