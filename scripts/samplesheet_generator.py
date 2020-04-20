@@ -489,9 +489,10 @@ def main(lims, args):
         elif process.type.name == 'Load to Flowcell (NextSeq v1.0)':
             (content, obj) = gen_Nextseq_lane_data(process)
             check_index_distance(obj, log)
+            nextseq_fc = process.udf['Library Tube Barcode'] if process.udf['Library Tube Barcode'] else obj[0]['fc']
             if os.path.exists("/srv/mfs/samplesheets/nextseq/{}".format(thisyear)):
                 try:
-                    with open("/srv/mfs/samplesheets/nextseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
+                    with open("/srv/mfs/samplesheets/nextseq/{}/{}.csv".format(thisyear, nextseq_fc), 'w') as sf:
                         sf.write(content)
                 except Exception as e:
                     log.append(str(e))
