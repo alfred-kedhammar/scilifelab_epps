@@ -17,6 +17,7 @@ DESC = """EPP used to create samplesheets for Illumina sequencing platforms"""
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,}N*)-?([ATCG]*)")
 TENX_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
+NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
 def check_index_distance(data, log):
     lanes=set([x['lane'] for x in data])
@@ -342,6 +343,65 @@ def gen_Nextseq_lane_data(pro):
     return ("{}{}".format(header, str_data), data)
 
 
+def gen_MinION_QC_data(pro):
+    data=[]
+    fastq_path = pro.udf['Path of Output FastQ Files']
+    for out in pro.all_outputs():
+        if NGISAMPLE_PAT.findall(out.name):
+            nanopore_barcode_name = out.udf['Nanopore Barcode'].split('_')[0]
+            nanopore_barcode_seq = out.udf['Nanopore Barcode'].split('_')[1]
+            sample_name = out.name
+            idxs = out.reagent_labels[0]
+
+            sp_obj = {}
+            sp_obj['sn'] = sample_name
+            sp_obj['npbs'] = nanopore_barcode_seq
+            sp_obj['fp'] = fastq_path+nanopore_barcode_name+'.fastq.gz'
+
+            #Case of 10X indexes
+            if TENX_PAT.findall(idxs):
+                for tenXidx in Chromium_10X_indexes[TENX_PAT.findall(idxs)[0]]:
+                    tenXidx_no = Chromium_10X_indexes[TENX_PAT.findall(idxs)[0]].index(tenXidx)+1
+                    sp_obj_sub = {}
+                    sp_obj_sub['sn'] = sp_obj['sn']+'_'+str(tenXidx_no)
+                    sp_obj_sub['npbs'] = sp_obj['npbs']
+                    sp_obj_sub['idxt'] = 'truseq'
+                    sp_obj_sub['idx'] = tenXidx.replace(',','')
+                    sp_obj_sub['fp'] = sp_obj['fp']
+                    data.append(sp_obj_sub)
+            #Case of NoIndex
+            elif idxs == 'NoIndex' or idxs == '' or not idxs:
+                sp_obj['idxt'] = 'truseq'
+                sp_obj['idx'] = ''
+                data.append(sp_obj)
+            #Case of index sequences between brackets
+            elif re.findall('\((.*?)\)', idxs):
+                idxs = re.findall('\((.*?)\)', idxs)[0]
+                if '-' not in idxs:
+                    sp_obj['idxt'] = 'truseq'
+                    sp_obj['idx'] = idxs
+                    data.append(sp_obj)
+                else:
+                    sp_obj['idxt'] = 'truseq_dual'
+                    sp_obj['idx'] = idxs
+                    data.append(sp_obj)
+            #Case of single index
+            elif '-' not in idxs:
+                sp_obj['idxt'] = 'truseq'
+                sp_obj['idx'] = idxs
+                data.append(sp_obj)
+            #Case of dual index
+            else:
+                sp_obj['idxt'] = 'truseq_dual'
+                sp_obj['idx'] = idxs
+                data.append(sp_obj)
+    str_data = ""
+    for line in sorted(data):
+        l_data = [line['sn'], line['npbs'], line['idxt'], line['idx'], line['fp']]
+        str_data = str_data + ",".join(l_data) + "\n"
+
+    return str_data
+
 def find_barcode(sample, process):
     # print "trying to find {} barcode in {}".format(sample.name, process.name)
     for art in process.all_inputs():
@@ -363,7 +423,6 @@ def find_barcode(sample, process):
                             idxs = IDX_PAT.findall(rt.sequence)[0]
                         except:
                             return ("NoIndex","")
-
                 return idxs
             else:
                 if art == sample.artifact or not art.parent_process:
@@ -430,12 +489,17 @@ def main(lims, args):
         elif process.type.name == 'Load to Flowcell (NextSeq v1.0)':
             (content, obj) = gen_Nextseq_lane_data(process)
             check_index_distance(obj, log)
+            nextseq_fc = process.udf['Library Tube Barcode'] if process.udf['Library Tube Barcode'] else obj[0]['fc']
             if os.path.exists("/srv/mfs/samplesheets/nextseq/{}".format(thisyear)):
                 try:
-                    with open("/srv/mfs/samplesheets/nextseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
+                    with open("/srv/mfs/samplesheets/nextseq/{}/{}.csv".format(thisyear, nextseq_fc), 'w') as sf:
                         sf.write(content)
                 except Exception as e:
                     log.append(str(e))
+
+        elif process.type.name == 'MinION QC':
+            content = gen_MinION_QC_data(process)
+
 
         if not args.test:
             for out in process.all_outputs():
@@ -445,6 +509,8 @@ def main(lims, args):
                     log_id= out.id
                 elif out.type == "Analyte":
                     fc_name = out.location[0].name
+                else:
+                    fc_name = "Samplesheet" + "_" + process.id
 
             with open("{}.csv".format(fc_name), "w", 0o664) as f:
                 f.write(content)
