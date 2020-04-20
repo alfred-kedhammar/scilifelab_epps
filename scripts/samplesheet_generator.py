@@ -489,7 +489,7 @@ def main(lims, args):
         elif process.type.name == 'Load to Flowcell (NextSeq v1.0)':
             (content, obj) = gen_Nextseq_lane_data(process)
             check_index_distance(obj, log)
-            nextseq_fc = process.udf['Library Tube Barcode'] if process.udf['Library Tube Barcode'] else obj[0]['fc']
+            nextseq_fc = process.udf['Experiment Name'] if process.udf['Experiment Name'] else obj[0]['fc']
             if os.path.exists("/srv/mfs/samplesheets/nextseq/{}".format(thisyear)):
                 try:
                     with open("/srv/mfs/samplesheets/nextseq/{}/{}.csv".format(thisyear, nextseq_fc), 'w') as sf:
