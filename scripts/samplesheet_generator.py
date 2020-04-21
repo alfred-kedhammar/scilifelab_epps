@@ -508,7 +508,10 @@ def main(lims, args):
                 elif out.name == "Scilifelab Log" :
                     log_id= out.id
                 elif out.type == "Analyte":
-                    fc_name = out.location[0].name
+                    if process.type.name == 'Load to Flowcell (NextSeq v1.0)':
+                        fc_name = process.udf['Experiment Name'] if process.udf['Experiment Name'] else out.location[0].name
+                    else:
+                        fc_name = out.location[0].name
                 else:
                     fc_name = "Samplesheet" + "_" + process.id
 
