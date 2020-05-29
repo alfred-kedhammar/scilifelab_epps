@@ -450,6 +450,84 @@ def normalization(current_step):
         logging.info("Work done")
 
 
+def sample_dilution_before_QC(currentStep):
+    checkTheLog = [False]
+    with open("bravo.csv", "w") as csvContext:
+        with open("bravo.log", "w") as logContext:
+            for art_tuple in currentStep.input_output_maps:
+                if art_tuple[1]['output-generation-type'] == 'PerInput':
+                    source_fc = art_tuple[0]['uri'].location[0].name
+                    source_well = art_tuple[0]['uri'].location[1]
+                    dest_fc = art_tuple[1]['uri'].location[0].id
+                    dest_well = art_tuple[1]['uri'].location[1]
+                    submitted_sam = art_tuple[0]['uri'].samples[0]
+                    sample_name = submitted_sam.name
+                    # Retrieve customer values for concentration and volume
+                    try:
+                        customer_conc = submitted_sam.udf['Customer Conc']
+                        customer_vol = submitted_sam.udf['Customer Volume']
+                    except KeyError:
+                        logContext.write("ERROR : Sample {0} does not have customer values for concentration or volume.\n".format(sample_name))
+                        checkTheLog[0] = True
+                        continue
+                    # Error when the sample has too little customer volume
+                    if customer_vol < MIN_WARNING_VOLUME:
+                        logContext.write("ERROR : Sample {0} has too little volume for dilution.\n".format(sample_name))
+                        checkTheLog[0] = True
+                        continue
+                    # Always take as little material as possible
+                    else:
+                        vol_taken = MIN_WARNING_VOLUME
+
+                    # 1st priority: Aim concentration
+                    try:
+                        final_conc = art_tuple[1]['uri'].udf['Final Concentration']
+                        final_vol = customer_conc*vol_taken/final_conc
+                        dilution_fold = final_vol/vol_taken
+                    except KeyError:
+                        # 2nd priority: Final volume
+                        try:
+                            final_vol = art_tuple[1]['uri'].udf['Final Volume (uL)']
+                            final_conc = customer_conc*vol_taken/final_vol
+                            dilution_fold = final_vol/vol_taken
+                        except KeyError:
+                            # 3rd priority: Dilution fold
+                            try:
+                                dilution_fold = art_tuple[1]['uri'].udf['Dilution Fold']
+                                final_vol = vol_taken*dilution_fold
+                                final_conc = customer_conc/dilution_fold
+                            except KeyError:
+                            # Error when no value is set
+                                logContext.write("ERROR : Sample {0} does not have a preset value.\n".format(sample_name))
+                                checkTheLog[0] = True
+                                continue
+
+                    # Whether final volume is higher than the capacity of plate
+                    if final_vol <= MAX_WARNING_VOLUME:
+                        art_tuple[1]['uri'].udf['Final Concentration'] = final_conc
+                        art_tuple[1]['uri'].udf['Final Volume (uL)'] = final_vol
+                        art_tuple[1]['uri'].udf['Dilution Fold'] = dilution_fold
+                        art_tuple[1]['uri'].put()
+                        csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, vol_taken, dest_fc, dest_well, final_vol))
+                    else:
+                        logContext.write("ERROR : Sample {0} will have a dilution higher than max allowed volume {1}.\n".format(sample_name, MAX_WARNING_VOLUME))
+                        checkTheLog[0] = True
+                        continue
+
+    for out in currentStep.all_outputs():
+        # attach the csv file and the log file
+        if out.name == "Bravo CSV File":
+            attach_file(os.path.join(os.getcwd(), "bravo.csv"), out)
+        if out.name == "Bravo Log":
+            attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
+    if checkTheLog[0]:
+        # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
+        sys.stderr.write("Errors were met, please check the Log file\n")
+        sys.exit(2)
+    else:
+        logging.info("Work done")
+
+
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
     if currentStep.type.name in ['Library Pooling (HiSeq X) 1.0']:
@@ -463,6 +541,8 @@ def main(lims, args):
         default_bravo(currentStep, False)
     elif currentStep.type.name == 'Diluting Samples':
         dilution(currentStep)
+    elif currentStep.type.name == 'Sample Dilution Before QC':
+        sample_dilution_before_QC(currentStep)
     else:
         default_bravo(currentStep)
 
