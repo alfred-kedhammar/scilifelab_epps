@@ -503,16 +503,21 @@ def sample_dilution_before_QC(currentStep):
                                 continue
 
                     # Whether final volume is higher than the capacity of plate
-                    if final_vol <= MAX_WARNING_VOLUME:
+                    if final_vol <= MAX_WARNING_VOLUME and final_conc <= customer_conc:
                         art_tuple[1]['uri'].udf['Final Concentration'] = final_conc
                         art_tuple[1]['uri'].udf['Final Volume (uL)'] = final_vol
                         art_tuple[1]['uri'].udf['Dilution Fold'] = dilution_fold
                         art_tuple[1]['uri'].put()
                         csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, vol_taken, dest_fc, dest_well, final_vol))
-                    else:
+                    elif final_vol > MAX_WARNING_VOLUME:
                         logContext.write("ERROR : Sample {0} will have a dilution higher than max allowed volume {1}.\n".format(sample_name, MAX_WARNING_VOLUME))
                         checkTheLog[0] = True
                         continue
+                    elif final_conc > customer_conc:
+                        logContext.write("ERROR : Sample {0} will have a final concentration higher than the customer concentration {1}.\n".format(sample_name, customer_conc))
+                        checkTheLog[0] = True
+                        continue
+
 
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
