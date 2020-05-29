@@ -475,9 +475,16 @@ def sample_dilution_before_QC(currentStep):
                         logContext.write("ERROR : Sample {0} has too little volume for dilution.\n".format(sample_name))
                         checkTheLog[0] = True
                         continue
-                    # Always take as little material as possible
+                    # Fetch the set value of volume to take. Otherwise take as little as possible
                     else:
-                        vol_taken = MIN_WARNING_VOLUME
+                        try:
+                            vol_taken = art_tuple[1]['uri'].udf['Volume to take (uL)']
+                            if vol_taken > customer_vol:
+                                logContext.write("ERROR : Sample {0} has a volume {1} uL which is not enough for taking {2} uL.\n".format(sample_name, customer_vol, vol_taken))
+                                checkTheLog[0] = True
+                                continue
+                        except KeyError:
+                            vol_taken = MIN_WARNING_VOLUME
 
                     # 1st priority: Aim concentration
                     try:
@@ -507,6 +514,7 @@ def sample_dilution_before_QC(currentStep):
                         art_tuple[1]['uri'].udf['Final Concentration'] = final_conc
                         art_tuple[1]['uri'].udf['Final Volume (uL)'] = final_vol
                         art_tuple[1]['uri'].udf['Dilution Fold'] = dilution_fold
+                        art_tuple[1]['uri'].udf['Volume to take (uL)'] = vol_taken
                         art_tuple[1]['uri'].put()
                         csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, vol_taken, dest_fc, dest_well, final_vol))
                     elif final_vol > MAX_WARNING_VOLUME:
