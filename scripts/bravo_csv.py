@@ -452,6 +452,7 @@ def normalization(current_step):
 
 def sample_dilution_before_QC(currentStep):
     checkTheLog = [False]
+    mode = currentStep.udf['Mode']
     with open("bravo.csv", "w") as csvContext:
         with open("bravo.log", "w") as logContext:
             for art_tuple in currentStep.input_output_maps:
@@ -462,70 +463,90 @@ def sample_dilution_before_QC(currentStep):
                     dest_well = art_tuple[1]['uri'].location[1]
                     submitted_sam = art_tuple[0]['uri'].samples[0]
                     sample_name = submitted_sam.name
-                    # Retrieve customer values for concentration and volume
+                    # Retrieve the previous aggregate values for concentration and volume. Note that aggregated values have a higher priority than customer values
                     try:
-                        customer_conc = submitted_sam.udf['Customer Conc']
-                        customer_vol = submitted_sam.udf['Customer Volume']
+                        aggregate_conc = art_tuple[0]['uri'].udf['Concentration']
+                        aggregate_vol = art_tuple[0]['uri'].udf['Volume (ul)']
+                        input_conc = aggregate_conc
+                        input_vol = aggregate_vol
                     except KeyError:
-                        logContext.write("ERROR : Sample {0} does not have customer values for concentration or volume.\n".format(sample_name))
-                        checkTheLog[0] = True
-                        continue
-                    # Error when the sample has too little customer volume
-                    if customer_vol < MIN_WARNING_VOLUME:
-                        logContext.write("ERROR : Sample {0} has too little volume for dilution.\n".format(sample_name))
-                        checkTheLog[0] = True
-                        continue
-                    # Fetch the set value of volume to take. Otherwise take as little as possible
-                    else:
+                        logContext.write("WARNING : Sample {0} does not have aggregated values for concentration or volume. Trying with customer values instead.\n".format(sample_name))
+                        # Retrieve customer values for concentration and volume
                         try:
-                            vol_taken = art_tuple[1]['uri'].udf['Volume to take (uL)']
-                            if vol_taken > customer_vol:
-                                logContext.write("ERROR : Sample {0} has a volume {1} uL which is not enough for taking {2} uL.\n".format(sample_name, customer_vol, vol_taken))
-                                checkTheLog[0] = True
-                                continue
+                            customer_conc = submitted_sam.udf['Customer Conc']
+                            customer_vol = submitted_sam.udf['Customer Volume']
+                            input_conc = customer_conc
+                            input_vol = customer_vol
                         except KeyError:
-                            vol_taken = MIN_WARNING_VOLUME
+                            logContext.write("ERROR : Sample {0} does not have customer values for concentration or volume. It will be skipped.\n".format(sample_name))
+                            checkTheLog[0] = True
+                            continue
+
+                    # Volume for the dilution mode
+                    if mode == 'Dilution to a new plate':
+                        # Error when the input volume is lower than the minimum pipetting volume
+                        if input_vol < MIN_WARNING_VOLUME:
+                            logContext.write("ERROR : Sample {0} has too little volume for dilution.\n".format(sample_name))
+                            checkTheLog[0] = True
+                            continue
+                        # Fetch the set value of volume to take. Otherwise take as little as possible
+                        else:
+                            try:
+                                vol_taken = art_tuple[1]['uri'].udf['Volume to take (uL)']
+                                if vol_taken > input_vol:
+                                    logContext.write("ERROR : Sample {0} has a volume {1} uL which is not enough for taking {2} uL.\n".format(sample_name, customer_vol, vol_taken))
+                                    checkTheLog[0] = True
+                                    continue
+                            except KeyError:
+                                vol_taken = MIN_WARNING_VOLUME
+                    # Volume for the aliquotation mode
+                    elif mode == 'Add EB to original plate':
+                        vol_taken = input_vol
 
                     # 1st priority: Aim concentration
                     try:
                         final_conc = art_tuple[1]['uri'].udf['Final Concentration']
-                        final_vol = customer_conc*vol_taken/final_conc
+                        final_vol = input_conc*vol_taken/final_conc
                         dilution_fold = final_vol/vol_taken
+                        EB_vol = final_vol-vol_taken
                     except KeyError:
                         # 2nd priority: Final volume
                         try:
                             final_vol = art_tuple[1]['uri'].udf['Final Volume (uL)']
-                            final_conc = customer_conc*vol_taken/final_vol
+                            final_conc = input_conc*vol_taken/final_vol
                             dilution_fold = final_vol/vol_taken
+                            EB_vol = final_vol-vol_taken
                         except KeyError:
                             # 3rd priority: Dilution fold
                             try:
                                 dilution_fold = art_tuple[1]['uri'].udf['Dilution Fold']
                                 final_vol = vol_taken*dilution_fold
-                                final_conc = customer_conc/dilution_fold
+                                final_conc = input_conc/dilution_fold
+                                EB_vol = final_vol-vol_taken
                             except KeyError:
                             # Error when no value is set
                                 logContext.write("ERROR : Sample {0} does not have a preset value.\n".format(sample_name))
                                 checkTheLog[0] = True
                                 continue
-
                     # Whether final volume is higher than the capacity of plate
-                    if final_vol <= MAX_WARNING_VOLUME and final_conc <= customer_conc:
+                    if final_vol <= MAX_WARNING_VOLUME and final_conc <= input_conc:
                         art_tuple[1]['uri'].udf['Final Concentration'] = final_conc
                         art_tuple[1]['uri'].udf['Final Volume (uL)'] = final_vol
                         art_tuple[1]['uri'].udf['Dilution Fold'] = dilution_fold
                         art_tuple[1]['uri'].udf['Volume to take (uL)'] = vol_taken
                         art_tuple[1]['uri'].put()
-                        csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, vol_taken, dest_fc, dest_well, final_vol))
+                        if mode == 'Dilution to a new plate':
+                            csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, vol_taken, dest_fc, dest_well, final_vol))
+                        elif mode == 'Add EB to original plate':
+                            csvContext.write("{0},{1},{2},{3},{4}\n".format('EB_plate', 'A1', EB_vol, source_fc, source_well))
                     elif final_vol > MAX_WARNING_VOLUME:
                         logContext.write("ERROR : Sample {0} will have a dilution higher than max allowed volume {1}.\n".format(sample_name, MAX_WARNING_VOLUME))
                         checkTheLog[0] = True
                         continue
-                    elif final_conc > customer_conc:
-                        logContext.write("ERROR : Sample {0} will have a final concentration higher than the customer concentration {1}.\n".format(sample_name, customer_conc))
+                    elif final_conc > input_conc:
+                        logContext.write("ERROR : Sample {0} will have a final concentration higher than the input concentration {1}.\n".format(sample_name, input_conc))
                         checkTheLog[0] = True
                         continue
-
 
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
