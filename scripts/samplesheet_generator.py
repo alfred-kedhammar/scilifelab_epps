@@ -512,6 +512,8 @@ def main(lims, args):
                         fc_name = process.udf['Experiment Name'] if process.udf['Experiment Name'] else out.location[0].name
                     else:
                         fc_name = out.location[0].name
+                elif process.type.name == 'MinION QC':
+                    fc_name = process.udf['Nanopore Kit'] + "_" + "Samplesheet" + "_" + process.id
                 else:
                     fc_name = "Samplesheet" + "_" + process.id
 
