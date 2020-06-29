@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-DESC = """EPP script to copy 'Conc. (ng/ul)', 'RQN' and '28S/18S' for each
+DESC = """EPP script to copy 'Conc. (ng/ul)', 'RQN' and 'xxS/xxS' for each
 sample sample in the ' Fragment Analyzer Result File' to the 'Concentration', 'RIN' and '28s/18s ratio'
 fields of the output analytes of the process. In addition, the Conc. Units will be filled in as "ng/ul"
 
@@ -34,6 +34,7 @@ from scilifelab_epps.epp import ReadResultFiles
 from scilifelab_epps.epp import set_field
 
 import csv
+import re
 
 def get_result_file(process, log):
     content = dict()
@@ -70,14 +71,18 @@ def get_data(csv_content, log):
         conc_index=2
         rin_index=3
         ratio_index=4
+        ratio_header_pat = re.compile("[0-9]*S/[0-9]*S")
         sample_list=[]
         for row in pf:
             if 'Sample ID' in row:
                 #this is the header row
+                for header in row:
+                    if ratio_header_pat.findall(header):
+                        ratio_header=PAT.findall(header)[0]
                 sample_index=row.index('Sample ID')
                 conc_index=row.index('Conc. (ng/ul)')
                 rin_index=row.index('RQN')
-                ratio_index=row.index('28S/18S')
+                ratio_index=row.index(ratio_header)
                 read=True
             elif(read and row[sample_index]):
                 if row[sample_index] not in sample_list:
