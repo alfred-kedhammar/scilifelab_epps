@@ -78,7 +78,7 @@ def get_data(csv_content, log):
                 #this is the header row
                 for header in row:
                     if ratio_header_pat.findall(header):
-                        ratio_header=PAT.findall(header)[0]
+                        ratio_header=ratio_header_pat.findall(header)[0]
                 sample_index=row.index('Sample ID')
                 conc_index=row.index('Conc. (ng/ul)')
                 rin_index=row.index('RQN')
