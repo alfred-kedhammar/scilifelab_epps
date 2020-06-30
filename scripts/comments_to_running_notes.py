@@ -88,7 +88,7 @@ def categorization(process_name):
     "Project Summary 1.3" : "",
     "Purification (ThruPlex)" : "Workset",
     "qPCR QC (Dilution Validation) 4.0" : "",
-    "qPCR QC (Library Validation) 4.0" : "Workset",
+    "qPCR QC (Library Validation) 4.0" : "",
     "Quant-iT QC (DNA) 4.0" : "Workset",
     "Quant-iT QC (Library Validation) 4.0" : "Workset",
     "Quant-iT QC (RNA) 4.0" : "Workset",
