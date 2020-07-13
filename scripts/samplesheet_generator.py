@@ -499,7 +499,13 @@ def main(lims, args):
 
         elif process.type.name == 'MinION QC':
             content = gen_MinION_QC_data(process)
-
+            fc_name = process.udf['Nanopore Kit'] + "_" + "Samplesheet" + "_" + process.id
+            if os.path.exists("/srv/mfs/samplesheets/nanopore/{}".format(thisyear)):
+                try:
+                    with open("/srv/mfs/samplesheets/nanopore/{}/{}.csv".format(thisyear, fc_name), 'w') as sf:
+                        sf.write(content)
+                except Exception as e:
+                    log.append(str(e))
 
         if not args.test:
             for out in process.all_outputs():
