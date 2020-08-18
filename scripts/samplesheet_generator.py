@@ -519,7 +519,7 @@ def main(lims, args):
                     else:
                         fc_name = out.location[0].name
                 elif process.type.name == 'MinION QC':
-                    fc_name = process.udf['Nanopore Kit'] + "_" + "Samplesheet" + "_" + process.id
+                    fc_name = process.udf['Nanopore Kit'] + "_" + process.udf['Flowcell ID'].upper() + "_" + "Samplesheet" + "_" + process.id
                 else:
                     fc_name = "Samplesheet" + "_" + process.id
 
