@@ -348,15 +348,15 @@ def gen_MinION_QC_data(pro):
     fastq_path = pro.udf['Path of Output FastQ Files']
     for out in pro.all_outputs():
         if NGISAMPLE_PAT.findall(out.name):
-            nanopore_barcode_name = out.udf['Nanopore Barcode'].split('_')[0]
-            nanopore_barcode_seq = out.udf['Nanopore Barcode'].split('_')[1]
+            nanopore_barcode_name = out.udf['Nanopore Barcode'].split('_')[0] if out.udf['Nanopore Barcode'] != 'None' else ''
+            nanopore_barcode_seq = out.udf['Nanopore Barcode'].split('_')[1] if out.udf['Nanopore Barcode'] != 'None' else ''
             sample_name = out.name
             idxs = out.reagent_labels[0]
 
             sp_obj = {}
             sp_obj['sn'] = sample_name
             sp_obj['npbs'] = nanopore_barcode_seq
-            sp_obj['fp'] = fastq_path+nanopore_barcode_name+'.fastq.gz'
+            sp_obj['fp'] = fastq_path+nanopore_barcode_name+'.fastq.gz' if nanopore_barcode_name != '' else fastq_path+sample_name+'.fastq.gz'
 
             #Case of 10X indexes
             if TENX_PAT.findall(idxs):
