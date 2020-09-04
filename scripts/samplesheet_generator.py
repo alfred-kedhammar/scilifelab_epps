@@ -184,7 +184,14 @@ def gen_Novaseq_lane_data(pro):
                 else:
                     idxs = find_barcode(sample, pro)
                     sp_obj['idx1'] = idxs[0].replace(',','')
-                    sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
+                    if idxs[1]:
+                        if pro.udf['Reagent Version'] == 'v1.0':
+                            sp_obj['idx2'] = idxs[1].replace(',','')
+                        elif pro.udf['Reagent Version'] == 'v1.5':
+                            compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+                            sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
+                    else:
+                        sp_obj['idx2'] = ''
                 data.append(sp_obj)
     header = "{}\n".format(",".join(header_ar))
     str_data = ""
