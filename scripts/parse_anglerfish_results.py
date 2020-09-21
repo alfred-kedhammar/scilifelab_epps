@@ -14,7 +14,9 @@ import logging
 import numpy as np
 import codecs
 import re
+import glob
 
+from datetime import datetime
 from argparse import ArgumentParser
 from requests import HTTPError
 from genologics.lims import Lims
@@ -28,16 +30,27 @@ NGITENXSAMPLE_PAT = re.compile("P[0-9]+_[0-9]+_[0-9]+")
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
 # Get file
-def get_anglerfish_output_file(process):
+def get_anglerfish_output_file(lims, process):
+    thisyear=datetime.now().year
     content = None
+    flowcell_id = process.udf['Flowcell ID'].upper()
     for outart in process.all_outputs():
-        #get the right output artifact
+        # First try fetching the Anglerfish result file from the uploaded file in LIMS
         if outart.type == 'ResultFile' and outart.name == 'Anglerfish Result File':
             try:
                 fid = outart.files[0].id
-                content = lims.get_file_contents(id=fid)
+                content = lims.get_file_contents(id=fid).readlines()
             except:
-                raise(RuntimeError("Cannot access the Anglerfish output file"))
+                # Second try fetching the Anglerfish result file from the storage server
+                if os.path.exists("/srv/mfs/nanopore_results/anglerfish/{}".format(thisyear)):
+                    try:
+                        with open("/srv/mfs/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id), 'r') as asf:
+                            content = asf.readlines()
+                        lims.upload_new_file(outart,max(glob.glob("/srv/mfs/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id)),key=os.path.getctime))
+                    except:
+                        raise(RuntimeError("No Anglerfish output file available"))
+                else:
+                    raise(RuntimeError("Cannot access the folder for Anglerfish output file"))
             break
     return content
 
@@ -48,7 +61,7 @@ def get_data(content, log):
     tenx_samples={}
     results={}
     header_flag = True
-    for line in content.readlines():
+    for line in content:
         #Search for header
         if 'sample_name' in line and '#reads' in line:
             header_flag = False
@@ -78,13 +91,13 @@ def get_data(content, log):
 
     return results
 
-def parse_anglerfish_results(process):
+def parse_anglerfish_results(lims, process):
     #samples missing from the qubit csv file
     missing_samples = []
     #strings returned to the EPP user
     log = []
     # Get file contents by parsing lims artifacts
-    file_content = get_anglerfish_output_file(process)
+    file_content = get_anglerfish_output_file(lims, process)
     #parse the Anglerfish output
     data = get_data(file_content, log)
 
@@ -106,7 +119,7 @@ def parse_anglerfish_results(process):
 def main(lims, pid, epp_logger):
 
     process = Process(lims,id = pid)
-    parse_anglerfish_results(process)
+    parse_anglerfish_results(lims, process)
 
 
 if __name__ == "__main__":
