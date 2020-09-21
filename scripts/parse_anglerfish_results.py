@@ -39,13 +39,13 @@ def get_anglerfish_output_file(lims, process):
         if outart.type == 'ResultFile' and outart.name == 'Anglerfish Result File':
             try:
                 fid = outart.files[0].id
-                content = lims.get_file_contents(id=fid)
+                content = lims.get_file_contents(id=fid).readlines()
             except:
                 # Second try fetching the Anglerfish result file from the storage server
                 if os.path.exists("/srv/mfs/nanopore_results/anglerfish/{}".format(thisyear)):
                     try:
                         with open("/srv/mfs/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id), 'r') as asf:
-                            content = asf.read()
+                            content = asf.readlines()
                         lims.upload_new_file(outart,max(glob.glob("/srv/mfs/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id)),key=os.path.getctime))
                     except:
                         raise(RuntimeError("No Anglerfish output file available"))
@@ -61,7 +61,7 @@ def get_data(content, log):
     tenx_samples={}
     results={}
     header_flag = True
-    for line in content.readlines():
+    for line in content:
         #Search for header
         if 'sample_name' in line and '#reads' in line:
             header_flag = False
