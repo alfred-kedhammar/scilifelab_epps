@@ -598,9 +598,14 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             org_vol = art_tuple[0]['uri'].udf['Volume (ul)']
         volume = float(amount_ng) / float(conc)
 
-        if volume < MIN_WARNING_VOLUME:
+        if org_vol < MIN_WARNING_VOLUME:
+            logContext.write("WARN : Sample {0} located {1} {2}  has a LOW original volume : {3}\n".format(art_tuple[1]['uri'].samples[0].name,
+                                                                                                  art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], org_vol))
+            volume = min(org_vol, volume)
+            checkTheLog[0] = True
+        elif volume < MIN_WARNING_VOLUME:
             # arbitrarily determined by Sverker Lundin
-            logContext.write("WARN : Sample {0} located {1} {2}  has a LOW volume : {3}\n".format(art_tuple[1]['uri'].samples[0].name,
+            logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                   art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume))
             checkTheLog[0] = True
         elif volume > org_vol or volume > art_tuple[1]['uri'].udf['Total Volume (uL)']:
