@@ -17,6 +17,7 @@ DESC = """EPP used to create samplesheets for Illumina sequencing platforms"""
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,}N*)-?([ATCG]*)")
 TENX_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
+ST_PAT = re.compile("SI-TT-[A-H][1-9][0-2]?")
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
 def check_index_distance(data, log):
@@ -256,6 +257,13 @@ def gen_Miseq_data(pro):
                 header_ar.remove('index2')
                 header_ar.remove('I5_Index_ID')
                 data.append(sp_obj)
+            elif ST_PAT.findall(idxs[0]):
+                dualindex=True
+                sp_obj['idx1'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][0].replace(',','')
+                sp_obj['idx1ref'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][0].replace(',','')
+                sp_obj['idx2'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][1].replace(',','')
+                sp_obj['idx2ref'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][1].replace(',','')
+                data.append(sp_obj_sub)
             elif TENX_PAT.findall(idxs[0]):
                 if 'index2' in header_ar and 'I5_Index_ID' in header_ar:
                     header_ar.remove('index2')
@@ -376,6 +384,11 @@ def gen_MinION_QC_data(pro):
                     sp_obj_sub['idx'] = tenXidx.replace(',','')
                     sp_obj_sub['fp'] = sp_obj['fp']
                     data.append(sp_obj_sub)
+            #Case of ST indexes
+            elif ST_PAT.findall(idxs):
+                sp_obj['idxt'] = 'truseq_dual'
+                sp_obj['idx'] = Chromium_10X_indexes[ST_PAT.findall(idxs)[0]][0]+'-'+Chromium_10X_indexes[ST_PAT.findall(idxs)[0]][1]
+                data.append(sp_obj)
             #Case of NoIndex
             elif idxs == 'NoIndex' or idxs == '' or not idxs:
                 sp_obj['idxt'] = 'truseq'
@@ -415,7 +428,7 @@ def find_barcode(sample, process):
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
                 reagent_label_name=art.reagent_labels[0].upper()
-                idxs = TENX_PAT.findall(reagent_label_name)
+                idxs = TENX_PAT.findall(reagent_label_name) or ST_PAT.findall(reagent_label_name)
                 if idxs:
                     # Put in tuple with empty string as second index to
                     # match expected type:
