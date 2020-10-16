@@ -242,8 +242,9 @@ def prepooling(currentStep, lims):
         logging.info("Work done")
 
 
-def default_bravo(currentStep, with_total_vol=True):
+def default_bravo(lims, currentStep, with_total_vol=True):
     checkTheLog = [False]
+    dest_plate = []
     with open("bravo.csv", "w") as csvContext:
         with open("bravo.log", "w") as logContext:
             # working directly with the map allows easier input/output handling
@@ -254,6 +255,8 @@ def default_bravo(currentStep, with_total_vol=True):
                     source_well = art_tuple[0]['uri'].location[1]
                     dest_fc = art_tuple[1]['uri'].location[0].id
                     dest_well = art_tuple[1]['uri'].location[1]
+                    dest_fc_name = art_tuple[1]['uri'].location[0].name
+                    dest_plate.append(dest_fc_name)
                     if with_total_vol:
                         try:
                             # might not be filled in
@@ -268,12 +271,25 @@ def default_bravo(currentStep, with_total_vol=True):
                         volume = calc_vol(art_tuple, logContext, checkTheLog)
                         csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
 
+    # For now only one output plate is supported:
+    if len(list(set(dest_plate))) == 1:
+        dest_plate_name = list(set(dest_plate))[0]
+        os.rename("bravo.csv", "{}_bravo.csv".format(dest_plate_name))
+        os.rename("bravo.log", "{}_bravo.log".format(dest_plate_name))
+    else:
+        sys.stderr.write("Error: Multiple output plates!\n")
+        sys.exit(2)
+
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
         if out.name == "Bravo CSV File":
-            attach_file(os.path.join(os.getcwd(), "bravo.csv"), out)
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, "{}_bravo.csv".format(dest_plate_name))
         if out.name == "Bravo Log":
-            attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, "{}_bravo.log".format(dest_plate_name))
     if checkTheLog[0]:
         # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
         sys.stderr.write("Errors were met, please check the Log file\n")
@@ -572,13 +588,13 @@ def main(lims, args):
     elif currentStep.type.name in ['Library Normalization (HiSeq X) 1.0', 'Library Normalization (Illumina SBS) 4.0', 'Library Normalization (MiSeq) 4.0', 'Library Normalization (NovaSeq) v2.0', 'Library Normalization (NextSeq) v1.0']:
         normalization(currentStep)
     elif currentStep.type.name == 'Library Pooling (RAD-seq) 1.0':
-        default_bravo(currentStep, False)
+        default_bravo(lims, currentStep, False)
     elif currentStep.type.name == 'Diluting Samples':
         dilution(currentStep)
     elif currentStep.type.name == 'Sample Dilution Before QC':
         sample_dilution_before_QC(currentStep)
     else:
-        default_bravo(currentStep)
+        default_bravo(lims, currentStep)
 
 
 def calc_vol(art_tuple, logContext, checkTheLog):
