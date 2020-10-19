@@ -20,9 +20,14 @@ from scilifelab_epps.epp import EppLogger
 from scilifelab_epps.epp import ReadResultFiles
 from scilifelab_epps.epp import set_field
 
-def multiply_with_dilution_factor(pro):
+def multiply_with_dilution_factor(pro, aggregate):
     log=[]
-    for art in pro.result_files():
+    if aggregate:
+        artifacts = pro.all_inputs(unique=True)
+    else:
+        artifacts = pro.result_files()
+
+    for art in artifacts:
         #Only do calculation when concentration value exists
         try:
             org_conc = art.udf['Concentration']
@@ -39,9 +44,9 @@ def multiply_with_dilution_factor(pro):
         art.put()
     print(''.join(log), file=sys.stderr)
 
-def main(lims, pid, epp_logger):
+def main(lims, pid, aggregate, epp_logger):
     pro = Process(lims,id=pid)
-    multiply_with_dilution_factor(pro)
+    multiply_with_dilution_factor(pro, aggregate)
 
 if __name__ == "__main__":
     # Initialize parser with standard arguments and description
@@ -51,10 +56,13 @@ if __name__ == "__main__":
     parser.add_argument('--log', dest = 'log',
                         help=('File name for standard log file, '
                               'for runtime information and problems.'))
+    parser.add_argument('--aggregate', dest = 'aggregate', action='store_true',
+                        help=('Use this tag if current Process is an '
+                              'aggregate QC step'))
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
 
     with EppLogger(log_file=args.log, lims=lims, prepend=True) as epp_logger:
-        main(lims, args.pid, epp_logger)
+        main(lims, args.pid, args.aggregate, epp_logger)
