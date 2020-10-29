@@ -24,7 +24,9 @@ from scilifelab_epps.epp import EppLogger
 from scilifelab_epps.epp import ReadResultFiles
 from scilifelab_epps.epp import set_field
 
-NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
+NGISAMPLE_PAT = re.compile("P[0-9]+_[0-9]+")
+CALIPER_PAT = re.compile("CaliperGX \([D|R]NA\) (.*)")
+SAMPLENAME_PAT = re.compile("[A-H][1-9][0-2]?_(.*)_[0-9]+-[0-9]+_([0-9]+-[0-9]+)*")
 
 # Get file
 def get_caliper_output_file(process, log):
@@ -61,7 +63,7 @@ def get_data(content, log):
             log.append('Caliper WellTable file in bad format')
     # Process data to include sample ID and well
     for k, v in data.items():
-        data[k]['Sample'] = NGISAMPLE_PAT.findall(k)[0]
+        data[k]['Sample'] = SAMPLENAME_PAT.findall(k)[0][0]
         data[k]['Well'] = v['Well Label'][:1] + ':' + str(int(v['Well Label'][1:]))
     return data
 
@@ -85,10 +87,10 @@ def parse_caliper_results(process):
 
     # Fill values in LIMS
     for out in process.all_outputs():
-        if NGISAMPLE_PAT.findall(out.name):
+        if CALIPER_PAT.findall(out.name):
             found_flag = False
             for k, v in data.items():
-                if v['Sample'] == NGISAMPLE_PAT.findall(out.name)[0] and v['Well'] == out.location[1]:
+                if v['Sample'] == CALIPER_PAT.findall(out.name)[0] and v['Well'] == out.location[1]:
                     found_flag = True
                     for item in map:
                         if v[item[1]] != 'NA':
