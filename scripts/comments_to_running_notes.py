@@ -134,7 +134,7 @@ def main(lims, args):
     if 'Comments' in pro.udf and pro.udf['Comments'] is not '':
         key=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         noteobj[key]={}
-        note="Comment from {0} ({1}) : \n{2}".format(pro.type.name, '[LIMS](https://ngi-lims-prod.scilifelab.se/clarity/work-details/{0})'.format(pro.id.split('-')[1]), pro.udf['Comments'].encode('utf-8'))
+        note="Comment from {0} ({1}) : \n{2}".format(pro.type.name, '[LIMS]({0}/clarity/work-details/{1})'.format(BASEURI, pro.id.split('-')[1]), pro.udf['Comments'].encode('utf-8'))
         noteobj[key]['note']=note
         noteobj[key]['user']="{0} {1}".format(pro.technician.first_name,pro.technician.last_name)
         noteobj[key]['email']=pro.technician.email
