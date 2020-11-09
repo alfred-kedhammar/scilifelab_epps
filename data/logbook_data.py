@@ -42,6 +42,10 @@ lims_process_record={
       "Amplification and Purification" : {
           "lims_instrument" : {
               "dest_file" : "PCR"
+          },
+          "udf_Bravo" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
           }
       },
       "Amplify Adapter-Ligated Library (SS XT) 4.0" : {
