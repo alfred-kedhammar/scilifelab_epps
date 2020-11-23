@@ -379,6 +379,24 @@ lims_process_record={
               "dest_file" : "PCR"
           }
       },
+      "PCR1 (Amplicon)" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "PCR2 (Amplicon)" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          },
+          "udf_PCR machine" : {
+              "dest_file" : "PCR"
+          }
+      },
       "Post-GEM Cleanup (Chromium Genome v2)" : {
           "lims_instrument" : {
               "dest_file" : "Bravo",
