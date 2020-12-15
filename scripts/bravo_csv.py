@@ -230,7 +230,7 @@ def prepooling(currentStep, lims):
             logContext.write("\n".join(log))
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
-        if out.name == "Bravo CSV File":
+        if out.name == "EPP Generated Bravo CSV File":
             attach_file(os.path.join(os.getcwd(), "bravo.csv"), out)
         if log and out.name == "Bravo Log":
             attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
@@ -282,7 +282,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
 
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
-        if out.name == "Bravo CSV File":
+        if out.name == "EPP Generated Bravo CSV File":
             for f in out.files:
                 lims.request_session.delete(f.uri)
             lims.upload_new_file(out, "{}_bravo.csv".format(dest_plate_name))
@@ -387,7 +387,7 @@ def dilution(currentStep):
 
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
-        if out.name == "Bravo CSV File":
+        if out.name == "EPP Generated Bravo CSV File":
             attach_file(os.path.join(os.getcwd(), "bravo.csv"), out)
         if out.name == "Bravo Log":
             attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
@@ -566,7 +566,7 @@ def sample_dilution_before_QC(currentStep):
 
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
-        if out.name == "Bravo CSV File":
+        if out.name == "EPP Generated Bravo CSV File":
             attach_file(os.path.join(os.getcwd(), "bravo.csv"), out)
         if out.name == "Bravo Log":
             attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
