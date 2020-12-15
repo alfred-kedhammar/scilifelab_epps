@@ -33,7 +33,7 @@ def obtain_previous_volumes(currentStep, lims):
         previous_steps.add(input_artifact.parent_process)
     for pp in previous_steps:
         for output in pp.all_outputs():
-            if output.name == "Normalization buffer volumes CSV":
+            if output.name == "EPP Generated Bravo CSV File for Normalization":
                 try:
                     fid = output.files[0].id
                 except:
@@ -401,7 +401,7 @@ def dilution(currentStep):
 
 def normalization(current_step):
     log = []
-    with open("normalization.csv", "w") as csv:
+    with open("bravo.csv", "w") as csv:
         for art in current_step.input_output_maps:
             src = art[0]["uri"]
             dest = art[1]["uri"]
@@ -450,14 +450,14 @@ def normalization(current_step):
                         log.append("WARNING: Maximum volume exceeded for sample {0}".format(src.samples[0].name))
                     csv.write("{0},{1},{2},{3},{4},{5}\n".format(src_plate, src_well, src_volume, dest_plate, dest_well, final_volume))
     if log:
-        with open("normalization.log", "w") as log_context:
+        with open("bravo.log", "w") as log_context:
             log_context.write("\n".join(log))
     for out in current_step.all_outputs():
         # attach the csv file and the log file
-        if out.name == "Normalization buffer volumes CSV":
-            attach_file(os.path.join(os.getcwd(), "normalization.csv"), out)
-        elif out.name == "Normalization Log" and log:
-            attach_file(os.path.join(os.getcwd(), "normalization.log"), out)
+        if out.name == "EPP Generated Bravo CSV File for Normalization":
+            attach_file(os.path.join(os.getcwd(), "bravo.csv"), out)
+        elif out.name == "Bravo Log" and log:
+            attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
     if log:
         # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
         sys.stderr.write("Errors were met, please check the log file\n")
