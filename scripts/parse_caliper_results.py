@@ -93,7 +93,7 @@ def parse_caliper_results(process):
                 if v['Sample'] == CALIPER_PAT.findall(out.name)[0] and v['Well'] == out.location[1]:
                     found_flag = True
                     for item in map:
-                        if v[item[1]] != 'NA':
+                        if v[item[1]] != 'NA' and v[item[1]] != '':
                             out.udf[item[0]] = float(re.sub('\[|\]','',v[item[1]]))
                         else:
                             log.append("Sample {} in well {} missing {}.".format(v['Sample'], v['Well'], item[0]))
