@@ -18,6 +18,7 @@ DESC = """EPP used to create samplesheets for Illumina sequencing platforms"""
 IDX_PAT = re.compile("([ATCG]{4,}N*)-?([ATCG]*)")
 TENX_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
 ST_PAT = re.compile("SI-TT-[A-H][1-9][0-2]?")
+SMARTSEQ_PAT = re.compile('SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]')
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
 def check_index_distance(data, log):
@@ -428,7 +429,7 @@ def find_barcode(sample, process):
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
                 reagent_label_name=art.reagent_labels[0].upper()
-                idxs = TENX_PAT.findall(reagent_label_name) or ST_PAT.findall(reagent_label_name)
+                idxs = TENX_PAT.findall(reagent_label_name) or ST_PAT.findall(reagent_label_name) or SMARTSEQ_PAT.findall(reagent_label_name)
                 if idxs:
                     # Put in tuple with empty string as second index to
                     # match expected type:
