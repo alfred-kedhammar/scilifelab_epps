@@ -214,6 +214,23 @@ def compute_transfer_volume(currentStep, lims, log):
     return returndata
 
 
+def aliquot_fixed_volume(currentStep, lims, volume, log):
+    data = []
+    for inp, out in currentStep.input_output_maps:
+        if out['output-type'] == 'ResultFile':
+            obj = {}
+            obj['src_fc'] = inp['uri'].location[0].name.replace(',','_').replace(' ','_')
+            obj['src_fc_id'] = inp['uri'].location[0].id
+            obj['src_well'] = inp['uri'].location[1]
+            obj['dst_fc'] = out['uri'].location[0].name.replace(',','_').replace(' ','_')
+            obj['dst_fc_id'] = out['uri'].location[0].id
+            obj['dst_well'] = out['uri'].location[1]
+            obj['vol'] = volume
+            data.append(obj)
+    data = sorted(data, key=lambda k: (k['src_fc'], k['src_well']))
+    return data
+
+
 def prepooling(currentStep, lims):
     log = []
     # First thing to do is to grab the volumes of the input artifacts. The method is ... rather unique.
@@ -225,6 +242,29 @@ def prepooling(currentStep, lims):
             if s['vol_to_take'] < MIN_WARNING_VOLUME:
                 log.append("Volume for sample {} is below {}, redo the calculations manually".format(MIN_WARNING_VOLUME, s['name']))
             csvContext.write("{0},{1},{2},{3},{4}\n".format(s['src_fc_id'], s['src_well'], s['vol_to_take'], s['dst_fc'], s['dst_well']))
+    if log:
+        with open("bravo.log", "w") as logContext:
+            logContext.write("\n".join(log))
+    for out in currentStep.all_outputs():
+        # attach the csv file and the log file
+        if out.name == "EPP Generated Bravo CSV File":
+            attach_file(os.path.join(os.getcwd(), "bravo.csv"), out)
+        if log and out.name == "Bravo Log":
+            attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
+    if log:
+        # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
+        sys.stderr.write("Errors were met, please check the Log file\n")
+        sys.exit(2)
+    else:
+        logging.info("Work done")
+
+
+def setup_qpcr(currentStep, lims):
+    log = []
+    data = aliquot_fixed_volume(currentStep, lims, MIN_WARNING_VOLUME, log)
+    with open("bravo.csv", "w") as csvContext:
+        for s in data:
+            csvContext.write("{0},{1},{2},{3},{4}\n".format(s['src_fc'], s['src_well'], s['vol'], s['dst_fc'], s['dst_well']))
     if log:
         with open("bravo.log", "w") as logContext:
             logContext.write("\n".join(log))
@@ -593,6 +633,8 @@ def main(lims, args):
         dilution(currentStep)
     elif currentStep.type.name == 'Sample Dilution Before QC':
         sample_dilution_before_QC(currentStep)
+    elif currentStep.type.name in ['qPCR QC (Library Validation) 4.0', 'qPCR QC (Dilution Validation) 4.0']:
+        setup_qpcr(currentStep, lims)
     else:
         default_bravo(lims, currentStep)
 
