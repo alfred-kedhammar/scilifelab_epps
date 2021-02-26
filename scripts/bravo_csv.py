@@ -227,7 +227,7 @@ def aliquot_fixed_volume(currentStep, lims, volume, log):
             obj['dst_well'] = out['uri'].location[1]
             obj['vol'] = volume
             data.append(obj)
-    data = sorted(data, key=lambda k: (k['src_fc'], k['src_well']))
+    data = sorted(data, key=lambda k: (k['src_fc_id'], k['src_well']))
     return data
 
 
@@ -264,7 +264,7 @@ def setup_qpcr(currentStep, lims):
     data = aliquot_fixed_volume(currentStep, lims, MIN_WARNING_VOLUME, log)
     with open("bravo.csv", "w") as csvContext:
         for s in data:
-            csvContext.write("{0},{1},{2},{3},{4}\n".format(s['src_fc'], s['src_well'], s['vol'], s['dst_fc'], s['dst_well']))
+            csvContext.write("{0},{1},{2},{3},{4}\n".format(s['src_fc_id'], s['src_well'], s['vol'], s['dst_fc'], s['dst_well']))
     if log:
         with open("bravo.log", "w") as logContext:
             logContext.write("\n".join(log))
