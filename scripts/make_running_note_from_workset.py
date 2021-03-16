@@ -50,7 +50,7 @@ def main(lims, args):
             rnt="{0} sample planned for {1}".format(len(datamap[pid]), wsname)
 
 
-        running_note = {"note": rnt, "user" : username, "email":user_email, "category":"Workset"}
+        running_note = {"note": rnt, "user": username, "email": user_email, "category": "Workset"}
         write_note_to_couch(pid, now, running_note, lims.get_uri())
         log.append("Updated project {0} : {1}, {2} samples in this workset".format(pid,pj.name, len(datamap[pid])))
 
