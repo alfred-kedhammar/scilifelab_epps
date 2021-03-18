@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20210313.1
+Support additional 10X index types in samplesheet generator
+Update 10X index list
+
 ## 20210226.1
 Change plate name to plate id for Bravo CSV for qPCR
 

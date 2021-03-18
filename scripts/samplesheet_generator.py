@@ -17,7 +17,7 @@ DESC = """EPP used to create samplesheets for Illumina sequencing platforms"""
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,}N*)-?([ATCG]*)")
 TENX_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
-ST_PAT = re.compile("SI-TT-[A-H][1-9][0-2]?")
+ST_PAT = re.compile("SI-(?:TT|NT|NN)-[A-H][1-9][0-2]?")
 SMARTSEQ_PAT = re.compile('SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]')
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
