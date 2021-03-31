@@ -25,25 +25,27 @@ def write_note_to_couch(pid, timestamp, note, lims):
         email_error('Running note save for {} failed on LIMS! Please contact {} to resolve the issue!'.format(pid, 'genomics-bioinfo@scilifelab.se'), note['email'])
 
     proj_db = couch['projects']
-    doc_id = proj_db.view('project/project_id')[pid].rows[0].value
-    if not doc_id:
+    v = proj_db.view('project/project_id')
+    if len(v[pid]) == 0:
         msg = 'Project {} does not exist in {} when syncing from {}\n '.format(pid, config['statusdb'].get('url'), lims)
         for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
             email_error(msg, user_email)
+    else
+        for row in v[pid]:
+            doc_id = row.value
+        doc = proj_db.get(doc_id)
+        running_notes = doc['details'].get('running_notes', '{}')
+        running_notes = json.loads(running_notes)
 
-    doc = proj_db.get(doc_id)
-    running_notes = doc['details'].get('running_notes', '{}')
-    running_notes = json.loads(running_notes)
-
-    running_notes.update({timestamp: note})
-    doc['details']['running_notes'] = json.dumps(running_notes)
-    proj_db.save(doc)
-    #check if it was saved
-    doc = proj_db.get(doc_id)
-    if doc['details']['running_notes'] != json.dumps(running_notes):
-        msg = 'Running note save failed from {} to {} for {}'.format(lims, config['statusdb'].get('url'), pid)
-        for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
-            email_error(msg, user_email)
+        running_notes.update({timestamp: note})
+        doc['details']['running_notes'] = json.dumps(running_notes)
+        proj_db.save(doc)
+        #check if it was saved
+        doc = proj_db.get(doc_id)
+        if doc['details']['running_notes'] != json.dumps(running_notes):
+            msg = 'Running note save failed from {} to {} for {}'.format(lims, config['statusdb'].get('url'), pid)
+            for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
+                email_error(msg, user_email)
 
 def email_error(msg, resp_email):
     body = 'Error: '+msg
