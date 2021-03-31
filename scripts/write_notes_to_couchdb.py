@@ -30,7 +30,7 @@ def write_note_to_couch(pid, timestamp, note, lims):
         msg = 'Project {} does not exist in {} when syncing from {}\n '.format(pid, config['statusdb'].get('url'), lims)
         for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
             email_error(msg, user_email)
-    else
+    else:
         for row in v[pid]:
             doc_id = row.value
         doc = proj_db.get(doc_id)
