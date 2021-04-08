@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210408.1
+New EPP for parsing run info for NextSeq 2000
+
 ## 20210313.1
 Support additional 10X index types in samplesheet generator
 Update 10X index list
