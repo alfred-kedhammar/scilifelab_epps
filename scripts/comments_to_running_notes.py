@@ -15,6 +15,8 @@ import os
 import sys
 import json
 
+from write_notes_to_couchdb import write_note_to_couch
+
 
 def categorization(process_name):
     decision={
@@ -151,14 +153,8 @@ def main(lims, args):
                 projects.add(sam.project)
 
         for proj in projects:
-            if 'Running Notes' in proj.udf:
-                existing_notes=json.loads(proj.udf['Running Notes'])
-                for key in noteobj:
-                    existing_notes[key]=noteobj[key]
-                proj.udf['Running Notes']=json.dumps(existing_notes)
-            else:
-                proj.udf['Running Notes']=json.dumps(noteobj)
-            proj.put()
+            for key in noteobj:
+                write_note_to_couch(proj.id, key, noteobj[key], lims.get_uri())
 
 if __name__=="__main__":
     parser = ArgumentParser(description=DESC)

@@ -12,6 +12,8 @@ import json
 import sys
 import os
 
+from write_notes_to_couchdb import write_note_to_couch
+
 
 def main(lims, args):
 
@@ -42,20 +44,17 @@ def main(lims, args):
     now=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
     for pid in datamap:
         pj=Project(lims, id=pid)
-        running_notes=json.loads(pj.udf['Running Notes'])
         if len(datamap[pid]) > 1:
             rnt="{0} samples planned for {1}".format(len(datamap[pid]), wsname)
         else:
             rnt="{0} sample planned for {1}".format(len(datamap[pid]), wsname)
 
-        running_notes[now]={"note": rnt, "user" : username, "email":user_email, "category":"Workset"}
-
-        pj.udf['Running Notes']=json.dumps(running_notes)
-        pj.put()
+        running_note = {"note": rnt, "user": username, "email": user_email, "category": "Workset"}
+        write_note_to_couch(pid, now, running_note, lims.get_uri())
         log.append("Updated project {0} : {1}, {2} samples in this workset".format(pid,pj.name, len(datamap[pid])))
 
 
- 
+
     with open("EPP_Notes.log", "w") as flog:
         flog.write("\n".join(log))
     for out in p.all_outputs():
