@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210409.1
+Update EPP for parsing run info for both NextSeq 2000 and MiSeq
+
 ## 20210408.1
 New EPP for parsing run info for NextSeq 2000
 
