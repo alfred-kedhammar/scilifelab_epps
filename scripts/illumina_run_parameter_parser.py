@@ -97,20 +97,21 @@ def lims_for_nextseq(process, run_dir):
     # Attach RunInfo.xml and RunParamters.xml
     attach_xml(process, run_dir)
     # Set values for LIMS UDFs
-    process.udf['Finish Date'] = datetime.strptime(RunParametersParserObj.data['RunParameters']['RunEndTime'][:10],"%Y-%m-%d").date() if 'RunEndTime' in RunParametersParserObj.data['RunParameters'].keys() and RunParametersParserObj.data['RunParameters']['RunEndTime'] != '' else datetime.now().date()
-    process.udf['Run Type'] = "NextSeq 2000 {}".format(RunParametersParserObj.data['RunParameters']['FlowCellMode'].split(' ')[2])
-    process.udf['Chemistry'] = "NextSeq 2000 {}".format(RunParametersParserObj.data['RunParameters']['FlowCellMode'].split(' ')[2])
-    planned_cycles = sum(list(map(int, RunParametersParserObj.data['RunParameters']['PlannedCycles'].values())))
-    completed_cycles = sum(list(map(int, RunParametersParserObj.data['RunParameters']['CompletedCycles'].values())))
+    runParameters = RunParametersParserObj.data['RunParameters']
+    process.udf['Finish Date'] = datetime.strptime(runParameters['RunEndTime'][:10],"%Y-%m-%d").date() if 'RunEndTime' in runParameters.keys() and runParameters['RunEndTime'] != '' else datetime.now().date()
+    process.udf['Run Type'] = "NextSeq 2000 {}".format(runParameters['FlowCellMode'].split(' ')[2])
+    process.udf['Chemistry'] = "NextSeq 2000 {}".format(runParameters['FlowCellMode'].split(' ')[2])
+    planned_cycles = sum(list(map(int, runParameters['PlannedCycles'].values())))
+    completed_cycles = sum(list(map(int, runParameters['CompletedCycles'].values())))
     process.udf['Status'] = "Cycle {} of {}".format(completed_cycles, planned_cycles)
-    process.udf['Flow Cell ID'] = RunParametersParserObj.data['RunParameters']['FlowCellSerialNumber']
-    process.udf['Experiment Name'] = RunParametersParserObj.data['RunParameters']['FlowCellSerialNumber']
-    process.udf['Read 1 Cycles'] = int(RunParametersParserObj.data['RunParameters']['PlannedCycles']['Read1'])
-    process.udf['Index 1 Read Cycles'] = int(RunParametersParserObj.data['RunParameters']['PlannedCycles']['Index1'])
-    process.udf['Index 2 Read Cycles'] = int(RunParametersParserObj.data['RunParameters']['PlannedCycles']['Index2'])
-    process.udf['Read 2 Cycles'] = int(RunParametersParserObj.data['RunParameters']['PlannedCycles']['Read2'])
+    process.udf['Flow Cell ID'] = runParameters['FlowCellSerialNumber']
+    process.udf['Experiment Name'] = runParameters['FlowCellSerialNumber']
+    process.udf['Read 1 Cycles'] = int(runParameters['PlannedCycles']['Read1'])
+    process.udf['Index 1 Read Cycles'] = int(runParameters['PlannedCycles']['Index1'])
+    process.udf['Index 2 Read Cycles'] = int(runParameters['PlannedCycles']['Index2'])
+    process.udf['Read 2 Cycles'] = int(runParameters['PlannedCycles']['Read2'])
     process.udf['Run ID'] = runParserObj.runinfo.data['Id']
-    process.udf['Reagent Cartridge ID'] = RunParametersParserObj.data['RunParameters']['CartridgeSerialNumber']
+    process.udf['Reagent Cartridge ID'] = runParameters['CartridgeSerialNumber']
     # Put in LIMS
     process.put()
 
@@ -119,42 +120,43 @@ def lims_for_miseq(process, run_dir):
     # Parse run
     runParserObj, RunParametersParserObj = parse_run(run_dir)
     # Set values for LIMS UDFs
+    runParameters = RunParametersParserObj.data['RunParameters']
     process.udf['Finish Date'] = datetime.now().date()
-    if RunParametersParserObj.data['RunParameters']['Setup']['SupportMultipleSurfacesInUI'] == 'true' and unParametersParserObj.data['RunParameters']['Setup']['NumTilesPerSwath'] == '19':
+    if runParameters['Setup']['SupportMultipleSurfacesInUI'] == 'true' and runParameters['Setup']['NumTilesPerSwath'] == '19':
         process.udf['Run Type'] = 'Version3'
-    elif RunParametersParserObj.data['RunParameters']['Setup']['SupportMultipleSurfacesInUI'] == 'true' and unParametersParserObj.data['RunParameters']['Setup']['NumTilesPerSwath'] == '14':
+    elif runParameters['Setup']['SupportMultipleSurfacesInUI'] == 'true' and runParameters['Setup']['NumTilesPerSwath'] == '14':
         process.udf['Run Type'] = 'Version2'
-    elif RunParametersParserObj.data['RunParameters']['Setup']['SupportMultipleSurfacesInUI'] == 'false' and unParametersParserObj.data['RunParameters']['Setup']['NumTilesPerSwath'] == '2':
+    elif runParameters['Setup']['SupportMultipleSurfacesInUI'] == 'false' and runParameters['Setup']['NumTilesPerSwath'] == '2':
         process.udf['Run Type'] = 'Version2Nano'
     else:
         process.udf['Run Type'] = 'null'
-    total_cycles = sum(list(map(int, [read['NumCycles'] for read in RunParametersParserObj.data['RunParameters']['Reads']['RunInfoRead']])))
+    total_cycles = sum(list(map(int, [read['NumCycles'] for read in runParameters['Reads']['RunInfoRead']])))
     process.udf['Status'] = "Cycle {} of {}".format(total_cycles, total_cycles)
-    process.udf['Flow Cell ID'] = RunParametersParserObj.data['RunParameters']['FlowcellRFIDTag']['SerialNumber']
-    process.udf['Flow Cell Version'] = RunParametersParserObj.data['RunParameters']['FlowcellRFIDTag']['PartNumber']
+    process.udf['Flow Cell ID'] = runParameters['FlowcellRFIDTag']['SerialNumber']
+    process.udf['Flow Cell Version'] = runParameters['FlowcellRFIDTag']['PartNumber']
     process.udf['Experiment Name'] = process.all_inputs()[0].name
 
-    non_index_read_idx = [read['Number'] for read in RunParametersParserObj.data['RunParameters']['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'N']
-    index_read_idx = [read['Number'] for read in RunParametersParserObj.data['RunParameters']['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'Y']
+    non_index_read_idx = [read['Number'] for read in runParameters['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'N']
+    index_read_idx = [read['Number'] for read in runParameters['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'Y']
     if len(non_index_read_idx) == 2:
-        process.udf['Read 1 Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,non_index_read_idx)))), RunParametersParserObj.data['RunParameters']['Reads']['RunInfoRead']))[0]['NumCycles'])
-        process.udf['Read 2 Cycles'] = int(list(filter(lambda read: read['Number'] == str(max(list(map(int,non_index_read_idx)))), RunParametersParserObj.data['RunParameters']['Reads']['RunInfoRead']))[0]['NumCycles'])
+        process.udf['Read 1 Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,non_index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
+        process.udf['Read 2 Cycles'] = int(list(filter(lambda read: read['Number'] == str(max(list(map(int,non_index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
     elif len(non_index_read_idx) == 1:
-        process.udf['Read 1 Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,non_index_read_idx)))), RunParametersParserObj.data['RunParameters']['Reads']['RunInfoRead']))[0]['NumCycles'])
+        process.udf['Read 1 Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,non_index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
 
     if len(index_read_idx) == 2:
-        process.udf['Index 1 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,index_read_idx)))), RunParametersParserObj.data['RunParameters']['Reads']['RunInfoRead']))[0]['NumCycles'])
-        process.udf['Index 2 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(max(list(map(int,index_read_idx)))), RunParametersParserObj.data['RunParameters']['Reads']['RunInfoRead']))[0]['NumCycles'])
+        process.udf['Index 1 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
+        process.udf['Index 2 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(max(list(map(int,index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
     elif len(index_read_idx) == 1:
-        process.udf['Index 1 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,index_read_idx)))), RunParametersParserObj.data['RunParameters']['Reads']['RunInfoRead']))[0]['NumCycles'])
+        process.udf['Index 1 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
 
-    process.udf['Run ID'] = RunParametersParserObj.data['RunParameters']['RunID']
-    process.udf['Output Folder'] = RunParametersParserObj.data['RunParameters']['OutputFolder'].replace(RunParametersParserObj.data['RunParameters']['RunID'], '')
-    process.udf['Reagent Cartridge ID'] = RunParametersParserObj.data['RunParameters']['ReagentKitRFIDTag']['SerialNumber']
-    process.udf['Reagent Cartridge Part #'] = RunParametersParserObj.data['RunParameters']['ReagentKitRFIDTag']['PartNumber']
-    process.udf['PR2 Bottle ID'] = RunParametersParserObj.data['RunParameters']['PR2BottleRFIDTag']['SerialNumber']
-    process.udf['Chemistry'] = RunParametersParserObj.data['RunParameters']['Chemistry']
-    process.udf['Workflow'] = RunParametersParserObj.data['RunParameters']['Workflow']['Analysis']
+    process.udf['Run ID'] = runParameters['RunID']
+    process.udf['Output Folder'] = runParameters['OutputFolder'].replace(runParameters['RunID'], '')
+    process.udf['Reagent Cartridge ID'] = runParameters['ReagentKitRFIDTag']['SerialNumber']
+    process.udf['Reagent Cartridge Part #'] = runParameters['ReagentKitRFIDTag']['PartNumber']
+    process.udf['PR2 Bottle ID'] = runParameters['PR2BottleRFIDTag']['SerialNumber']
+    process.udf['Chemistry'] = runParameters['Chemistry']
+    process.udf['Workflow'] = runParameters['Workflow']['Analysis']
     # Put in LIMS
     process.put()
 
@@ -163,32 +165,33 @@ def lims_for_novaseq(process, run_dir):
     # Parse run
     runParserObj, RunParametersParserObj = parse_run(run_dir)
     # Set values for LIMS UDFs
-    process.udf['Flow Cell ID'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['FlowCellSerialBarcode']
-    process.udf['Flow Cell Part Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['FlowCellPartNumber']
-    process.udf['Flow Cell Lot Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['FlowCellLotNumber']
-    process.udf['Flow Cell Expiration Date'] = datetime.strptime(RunParametersParserObj.data['RunParameters']['RfidsInfo']['FlowCellExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
-    process.udf['Flow Cell Mode'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['FlowCellMode']
-    process.udf['Run ID'] = RunParametersParserObj.data['RunParameters']['RunId']
-    process.udf['Read 1 Cycles'] = int(RunParametersParserObj.data['RunParameters']['Read1NumberOfCycles'])
-    process.udf['Read 2 Cycles'] = int(RunParametersParserObj.data['RunParameters']['Read2NumberOfCycles'])
-    process.udf['Index Read 1'] = int(RunParametersParserObj.data['RunParameters']['IndexRead1NumberOfCycles'])
-    process.udf['Index Read 2'] = int(RunParametersParserObj.data['RunParameters']['IndexRead2NumberOfCycles'])
-    process.udf['PE Serial Barcode'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['ClusterSerialBarcode']
-    process.udf['PE Part Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['ClusterPartNumber']
-    process.udf['PE Lot Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['ClusterLotNumber']
-    process.udf['PE Expiration Date'] = datetime.strptime(RunParametersParserObj.data['RunParameters']['RfidsInfo']['ClusterExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
-    process.udf['PE Cycle Kit'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['ClusterCycleKit']
-    process.udf['SBS Serial Barcode'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['SbsSerialBarcode']
-    process.udf['SBS Part Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['SbsPartNumber']
-    process.udf['SBS Lot Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['SbsLotNumber']
-    process.udf['SBS Expiration Date'] = datetime.strptime(RunParametersParserObj.data['RunParameters']['RfidsInfo']['SbsExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
-    process.udf['SBS Cycle Kit'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['SbsCycleKit']
-    process.udf['Buffer Serial Barcode'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['BufferSerialBarcode']
-    process.udf['Buffer Part Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['BufferPartNumber']
-    process.udf['Buffer Lot Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['BufferLotNumber']
-    process.udf['Buffer Expiration Date'] = datetime.strptime(RunParametersParserObj.data['RunParameters']['RfidsInfo']['BufferExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
-    process.udf['Output Folder'] = RunParametersParserObj.data['RunParameters']['OutputRunFolder']
-    process.udf['Loading Workflow Type'] = RunParametersParserObj.data['RunParameters']['WorkflowType']
+    runParameters = RunParametersParserObj.data['RunParameters']
+    process.udf['Flow Cell ID'] = runParameters['RfidsInfo']['FlowCellSerialBarcode']
+    process.udf['Flow Cell Part Number'] = runParameters['RfidsInfo']['FlowCellPartNumber']
+    process.udf['Flow Cell Lot Number'] = runParameters['RfidsInfo']['FlowCellLotNumber']
+    process.udf['Flow Cell Expiration Date'] = datetime.strptime(runParameters['RfidsInfo']['FlowCellExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
+    process.udf['Flow Cell Mode'] = runParameters['RfidsInfo']['FlowCellMode']
+    process.udf['Run ID'] = runParameters['RunId']
+    process.udf['Read 1 Cycles'] = int(runParameters['Read1NumberOfCycles'])
+    process.udf['Read 2 Cycles'] = int(runParameters['Read2NumberOfCycles'])
+    process.udf['Index Read 1'] = int(runParameters['IndexRead1NumberOfCycles'])
+    process.udf['Index Read 2'] = int(runParameters['IndexRead2NumberOfCycles'])
+    process.udf['PE Serial Barcode'] = runParameters['RfidsInfo']['ClusterSerialBarcode']
+    process.udf['PE Part Number'] = runParameters['RfidsInfo']['ClusterPartNumber']
+    process.udf['PE Lot Number'] = runParameters['RfidsInfo']['ClusterLotNumber']
+    process.udf['PE Expiration Date'] = datetime.strptime(runParameters['RfidsInfo']['ClusterExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
+    process.udf['PE Cycle Kit'] = runParameters['RfidsInfo']['ClusterCycleKit']
+    process.udf['SBS Serial Barcode'] = runParameters['RfidsInfo']['SbsSerialBarcode']
+    process.udf['SBS Part Number'] = runParameters['RfidsInfo']['SbsPartNumber']
+    process.udf['SBS Lot Number'] = runParameters['RfidsInfo']['SbsLotNumber']
+    process.udf['SBS Expiration Date'] = datetime.strptime(runParameters['RfidsInfo']['SbsExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
+    process.udf['SBS Cycle Kit'] = runParameters['RfidsInfo']['SbsCycleKit']
+    process.udf['Buffer Serial Barcode'] = runParameters['RfidsInfo']['BufferSerialBarcode']
+    process.udf['Buffer Part Number'] = runParameters['RfidsInfo']['BufferPartNumber']
+    process.udf['Buffer Lot Number'] = runParameters['RfidsInfo']['BufferLotNumber']
+    process.udf['Buffer Expiration Date'] = datetime.strptime(runParameters['RfidsInfo']['BufferExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
+    process.udf['Output Folder'] = runParameters['OutputRunFolder']
+    process.udf['Loading Workflow Type'] = runParameters['WorkflowType']
     # Put in LIMS
     process.put()
 
