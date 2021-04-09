@@ -12,7 +12,7 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from flowcell_parser.classes import RunParser, RunParametersParser
 
 
-DESC = """EPP for parsing run paramters for Illumina MiSeq and NextSeq runs"""
+DESC = """EPP for parsing run paramters for Illumina MiSeq, NextSeq and NovaSeq runs"""
 
 
 def fetch_fc(process):
@@ -29,6 +29,8 @@ def fetch_fc(process):
         else:
             sys.stderr.write("Flowcell ID is empty in the associated Denature, Dilute and Load Sample (MiSeq) 4.0 step.")
             sys.exit(2)
+    elif process.parent_processes()[0].type.name == 'Load to Flowcell (NovaSeq 6000 v2.0)':
+        fc_id = process.parent_processes()[0].output_containers()[0].name
     else:
         sys.stderr.write("No associated parent step can be found.")
         sys.exit(2)
@@ -41,6 +43,8 @@ def fetch_rundir(fc_id, run_type):
         data_dir = 'NextSeq_data'
     elif run_type == 'miseq':
         data_dir = 'miseq_data'
+    elif run_type == 'novaseq':
+        data_dir = 'NovaSeq_data'
     run_dir_path = os.path.join(os.sep,"srv","mfs",data_dir,"*{}".format(fc_id))
     if len(glob.glob(run_dir_path)) == 1:
         run_dir = glob.glob(run_dir_path)[0]
@@ -92,7 +96,7 @@ def lims_for_nextseq(process, run_dir):
     runParserObj, RunParametersParserObj = parse_run(run_dir)
     # Attach RunInfo.xml and RunParamters.xml
     attach_xml(process, run_dir)
-    # Write info in LIMS UDFs
+    # Set values for LIMS UDFs
     process.udf['Finish Date'] = datetime.strptime(RunParametersParserObj.data['RunParameters']['RunEndTime'][:10],"%Y-%m-%d").date() if 'RunEndTime' in RunParametersParserObj.data['RunParameters'].keys() and RunParametersParserObj.data['RunParameters']['RunEndTime'] != '' else datetime.now().date()
     process.udf['Run Type'] = "NextSeq 2000 {}".format(RunParametersParserObj.data['RunParameters']['FlowCellMode'].split(' ')[2])
     process.udf['Chemistry'] = "NextSeq 2000 {}".format(RunParametersParserObj.data['RunParameters']['FlowCellMode'].split(' ')[2])
@@ -107,13 +111,14 @@ def lims_for_nextseq(process, run_dir):
     process.udf['Read 2 Cycles'] = int(RunParametersParserObj.data['RunParameters']['PlannedCycles']['Read2'])
     process.udf['Run ID'] = runParserObj.runinfo.data['Id']
     process.udf['Reagent Cartridge ID'] = RunParametersParserObj.data['RunParameters']['CartridgeSerialNumber']
+    # Put in LIMS
     process.put()
 
 
 def lims_for_miseq(process, run_dir):
     # Parse run
     runParserObj, RunParametersParserObj = parse_run(run_dir)
-    # Write info in LIMS UDFs
+    # Set values for LIMS UDFs
     process.udf['Finish Date'] = datetime.now().date()
     if RunParametersParserObj.data['RunParameters']['Setup']['SupportMultipleSurfacesInUI'] == 'true' and unParametersParserObj.data['RunParameters']['Setup']['NumTilesPerSwath'] == '19':
         process.udf['Run Type'] = 'Version3'
@@ -150,6 +155,42 @@ def lims_for_miseq(process, run_dir):
     process.udf['PR2 Bottle ID'] = RunParametersParserObj.data['RunParameters']['PR2BottleRFIDTag']['SerialNumber']
     process.udf['Chemistry'] = RunParametersParserObj.data['RunParameters']['Chemistry']
     process.udf['Workflow'] = RunParametersParserObj.data['RunParameters']['Workflow']['Analysis']
+    # Put in LIMS
+    process.put()
+
+
+def lims_for_novaseq(process, run_dir):
+    # Parse run
+    runParserObj, RunParametersParserObj = parse_run(run_dir)
+    # Set values for LIMS UDFs
+    process.udf['Flow Cell ID'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['FlowCellSerialBarcode']
+    process.udf['Flow Cell Part Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['FlowCellPartNumber']
+    process.udf['Flow Cell Lot Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['FlowCellLotNumber']
+    process.udf['Flow Cell Expiration Date'] = datetime.strptime(RunParametersParserObj.data['RunParameters']['RfidsInfo']['FlowCellExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
+    process.udf['Flow Cell Mode'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['FlowCellMode']
+    process.udf['Run ID'] = RunParametersParserObj.data['RunParameters']['RunId']
+    process.udf['Read 1 Cycles'] = int(RunParametersParserObj.data['RunParameters']['Read1NumberOfCycles'])
+    process.udf['Read 2 Cycles'] = int(RunParametersParserObj.data['RunParameters']['Read2NumberOfCycles'])
+    process.udf['Index Read 1'] = int(RunParametersParserObj.data['RunParameters']['IndexRead1NumberOfCycles'])
+    process.udf['Index Read 2'] = int(RunParametersParserObj.data['RunParameters']['IndexRead2NumberOfCycles'])
+    process.udf['PE Serial Barcode'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['ClusterSerialBarcode']
+    process.udf['PE Part Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['ClusterPartNumber']
+    process.udf['PE Lot Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['ClusterLotNumber']
+    process.udf['PE Expiration Date'] = datetime.strptime(RunParametersParserObj.data['RunParameters']['RfidsInfo']['ClusterExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
+    process.udf['PE Cycle Kit'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['ClusterCycleKit']
+    process.udf['SBS Serial Barcode'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['SbsSerialBarcode']
+    process.udf['SBS Part Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['SbsPartNumber']
+    process.udf['SBS Lot Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['SbsLotNumber']
+    process.udf['SBS Expiration Date'] = datetime.strptime(RunParametersParserObj.data['RunParameters']['RfidsInfo']['SbsExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
+    process.udf['SBS Cycle Kit'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['SbsCycleKit']
+    process.udf['Buffer Serial Barcode'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['BufferSerialBarcode']
+    process.udf['Buffer Part Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['BufferPartNumber']
+    process.udf['Buffer Lot Number'] = RunParametersParserObj.data['RunParameters']['RfidsInfo']['BufferLotNumber']
+    process.udf['Buffer Expiration Date'] = datetime.strptime(RunParametersParserObj.data['RunParameters']['RfidsInfo']['BufferExpirationdate'], "%m/%d/%Y %H:%M:%S").date()
+    process.udf['Output Folder'] = RunParametersParserObj.data['RunParameters']['OutputRunFolder']
+    process.udf['Loading Workflow Type'] = RunParametersParserObj.data['RunParameters']['WorkflowType']
+    # Put in LIMS
+    process.put()
 
 
 def main(lims, args):
@@ -160,6 +201,8 @@ def main(lims, args):
         run_type =  'nextseq'
     elif process.type.name == 'MiSeq Run (MiSeq) 4.0':
         run_type = 'miseq'
+    elif process.type.name == 'AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)':
+        run_type = 'novaseq'
 
     # Fetch FC ID
     fc_id = fetch_fc(process)
@@ -172,6 +215,8 @@ def main(lims, args):
         lims_for_nextseq(process, run_dir)
     elif run_type == 'miseq':
         lims_for_miseq(process, run_dir)
+    elif run_type == 'novaseq':
+        lims_for_novaseq(process, run_dir)
 
 
 if __name__ == "__main__":
