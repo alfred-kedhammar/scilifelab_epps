@@ -74,19 +74,19 @@ def attach_xml(process, run_dir):
         if outart.type == 'ResultFile' and outart.name == 'Run Info':
             try:
                 lims.upload_new_file(outart, "{}/RunInfo.xml".format(run_dir))
-            except:
+            except IOError:
                 try:
                     lims.upload_new_file(outart, "{}/runInfo.xml".format(run_dir))
-                except:
+                except IOError:
                     sys.stderr.write("No RunInfo.xml found")
                     sys.exit(2)
         elif outart.type == 'ResultFile' and outart.name == 'Run Parameters':
             try:
                 lims.upload_new_file(outart, "{}/RunParameters.xml".format(run_dir))
-            except:
+            except IOError:
                 try:
                     lims.upload_new_file(outart, "{}/runParameters.xml".format(run_dir))
-                except:
+                except IOError:
                     sys.stderr.write("No RunParameters.xml found")
                     sys.exit(2)
 
@@ -138,17 +138,15 @@ def lims_for_miseq(process, run_dir):
 
     non_index_read_idx = [read['Number'] for read in runParameters['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'N']
     index_read_idx = [read['Number'] for read in runParameters['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'Y']
-    if len(non_index_read_idx) == 2:
-        process.udf['Read 1 Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,non_index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
-        process.udf['Read 2 Cycles'] = int(list(filter(lambda read: read['Number'] == str(max(list(map(int,non_index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
-    elif len(non_index_read_idx) == 1:
-        process.udf['Read 1 Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,non_index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
 
+    process.udf['Read 1 Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,non_index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
+    if len(non_index_read_idx) == 2:
+        process.udf['Read 2 Cycles'] = int(list(filter(lambda read: read['Number'] == str(max(list(map(int,non_index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
+
+    process.udf['Index 1 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
     if len(index_read_idx) == 2:
-        process.udf['Index 1 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
         process.udf['Index 2 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(max(list(map(int,index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
-    elif len(index_read_idx) == 1:
-        process.udf['Index 1 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
+
 
     process.udf['Run ID'] = runParameters['RunID']
     process.udf['Output Folder'] = runParameters['OutputFolder'].replace(runParameters['RunID'], '')
@@ -197,7 +195,7 @@ def lims_for_novaseq(process, run_dir):
 
 
 def main(lims, args):
-    log = []
+
     process = Process(lims, id=args.pid)
 
     if process.type.name == 'Illumina Sequencing (NextSeq) v1.0':
