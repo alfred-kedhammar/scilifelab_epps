@@ -428,7 +428,7 @@ def find_barcode(sample, process):
     for art in process.all_inputs():
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
-                reagent_label_name=art.reagent_labels[0].upper()
+                reagent_label_name=art.reagent_labels[0].upper().replace(' ', '')
                 idxs = TENX_PAT.findall(reagent_label_name) or ST_PAT.findall(reagent_label_name) or SMARTSEQ_PAT.findall(reagent_label_name)
                 if idxs:
                     # Put in tuple with empty string as second index to

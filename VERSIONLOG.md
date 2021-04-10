@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210410.1
+Update samplesheet generator to handle blanks in sample index
+
 ## 20210409.2
 Update EPP for parsing run info for NextSeq 2000, MiSeq and NovaSeq
 
