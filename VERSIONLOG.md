@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210414.1
+Update illumina_run_parameter_parser for parsing run stats
+
 ## 20210410.1
 Update samplesheet generator to handle blanks in sample index
 
