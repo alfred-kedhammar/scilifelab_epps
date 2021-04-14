@@ -3,6 +3,7 @@
 import os
 import sys
 import glob
+import math
 
 from argparse import ArgumentParser
 from datetime import datetime
@@ -10,6 +11,7 @@ from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from flowcell_parser.classes import RunParser, RunParametersParser
+from interop import py_interop_run_metrics, py_interop_run, py_interop_summary
 
 
 DESC = """EPP for parsing run paramters for Illumina MiSeq, NextSeq and NovaSeq runs"""
@@ -91,6 +93,76 @@ def attach_xml(process, run_dir):
                     sys.exit(2)
 
 
+def parse_illumina_interop(run_dir):
+    # Read interop
+    run_metrics = py_interop_run_metrics.run_metrics()
+    valid_to_load = py_interop_run.uchar_vector(py_interop_run.MetricCount, 0)
+    py_interop_run_metrics.list_summary_metrics_to_load(valid_to_load)
+    try:
+        run_metrics.read(run_dir, valid_to_load)
+    except Exception:
+        sys.stderr.write("Cannot parse information in InterOp")
+        sys.exit(2)
+    summary = py_interop_summary.run_summary()
+    py_interop_summary.summarize_run_metrics(run_metrics, summary)
+    lanes = summary.lane_count()
+    reads = summary.size()
+    # Parse the interop stats lane by lane for non-index reads
+    run_stats_summary = dict()
+    for lane in range(lanes):
+        lane_nbr = getattr(summary.at(0).at(lane), "lane")()
+        for read in range(reads):
+            if not summary.at(read).read().is_index():
+                stats = dict()
+                stats.update({"density"               :  getattr(summary.at(read).at(lane), "density")().mean()/1000})
+                stats.update({"error_rate"            :  getattr(summary.at(read).at(lane), "error_rate")().mean()})
+                stats.update({"first_cycle_intensity" :  getattr(summary.at(read).at(lane), "first_cycle_intensity")().mean()})
+                stats.update({"percent_aligned"       :  getattr(summary.at(read).at(lane), "percent_aligned")().mean()})
+                stats.update({"percent_gt_q30"        :  getattr(summary.at(read).at(lane), "percent_gt_q30")()})
+                stats.update({"percent_pf"            :  getattr(summary.at(read).at(lane), "percent_pf")().mean()})
+                stats.update({"phasing"               :  getattr(summary.at(read).at(lane), "phasing")().mean()})
+                stats.update({"prephasing"            :  getattr(summary.at(read).at(lane), "prephasing")().mean()})
+                stats.update({"reads_pf"              :  getattr(summary.at(read).at(lane), "reads_pf")()})
+                stats.update({"yield_g"               :  getattr(summary.at(read).at(lane), "yield_g")()})
+                if lane_nbr not in run_stats_summary.keys():
+                    run_stats_summary.update({lane_nbr: {read: stats}})
+                else:
+                    run_stats_summary[lane_nbr].update({read : stats})
+    return run_stats_summary
+
+
+def set_run_stats_in_lims(process, run_stats_summary):
+    for art in process.all_outputs():
+        if 'Lane' in art.name:
+            lane_nbr = int(art.name.split(' ')[1])
+            read = 1
+            for i in run_stats_summary[lane_nbr].keys():
+                lane_stats_for_read = run_stats_summary[lane_nbr][i]
+                if not math.isnan(lane_stats_for_read['density']):
+                    art.udf["Cluster Density (K/mm^2) R{}".format(read)]  =  lane_stats_for_read['density']
+                if not math.isnan(lane_stats_for_read['error_rate']):
+                    art.udf["% Error Rate R{}".format(read)]              =  lane_stats_for_read['error_rate']
+                if not math.isnan(lane_stats_for_read['first_cycle_intensity']):
+                    art.udf["Intensity Cycle 1 R{}".format(read)]         =  lane_stats_for_read['first_cycle_intensity']
+                if not math.isnan(lane_stats_for_read['percent_aligned']):
+                    art.udf["% Aligned R{}".format(read)]                 =  lane_stats_for_read['percent_aligned']
+                if not math.isnan(lane_stats_for_read['percent_gt_q30']):
+                    art.udf["% Bases >=Q30 R{}".format(read)]             =  lane_stats_for_read['percent_gt_q30']
+                if not math.isnan(lane_stats_for_read['percent_pf']):
+                    art.udf["%PF R{}".format(read)]                       =  lane_stats_for_read['percent_pf']
+                if not math.isnan(lane_stats_for_read['phasing']):
+                    art.udf["% Phasing R{}".format(read)]                 =  lane_stats_for_read['phasing']
+                if not math.isnan(lane_stats_for_read['prephasing']):
+                    art.udf["% Prephasing R{}".format(read)]              =  lane_stats_for_read['prephasing']
+                if not math.isnan(lane_stats_for_read['reads_pf']):
+                    art.udf["Reads PF (M) R{}".format(read)]              =  lane_stats_for_read['reads_pf']/1000000
+                if not math.isnan(lane_stats_for_read['yield_g']):
+                    art.udf["Yield PF (Gb) R{}".format(read)]             =  lane_stats_for_read['yield_g']
+                read += 1
+            art.put()
+    process.put()
+
+
 def lims_for_nextseq(process, run_dir):
     # Parse run
     runParserObj, RunParametersParserObj = parse_run(run_dir)
@@ -114,6 +186,9 @@ def lims_for_nextseq(process, run_dir):
     process.udf['Reagent Cartridge ID'] = runParameters['CartridgeSerialNumber']
     # Put in LIMS
     process.put()
+    # Set run stats parsed from InterOp
+    run_stats_summary = parse_illumina_interop(run_dir)
+    set_run_stats_in_lims(process, run_stats_summary)
 
 
 def lims_for_miseq(process, run_dir):
