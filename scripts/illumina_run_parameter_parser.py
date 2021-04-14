@@ -119,7 +119,7 @@ def parse_illumina_interop(run_dir):
                 stats.update({"first_cycle_intensity" :  getattr(summary.at(read).at(lane), "first_cycle_intensity")().mean()})
                 stats.update({"percent_aligned"       :  getattr(summary.at(read).at(lane), "percent_aligned")().mean()})
                 stats.update({"percent_gt_q30"        :  getattr(summary.at(read).at(lane), "percent_gt_q30")()})
-                stats.update({"percent_pf"           :  getattr(summary.at(read).at(lane), "percent_pf")().mean()})
+                stats.update({"percent_pf"            :  getattr(summary.at(read).at(lane), "percent_pf")().mean()})
                 stats.update({"phasing"               :  getattr(summary.at(read).at(lane), "phasing")().mean()})
                 stats.update({"prephasing"            :  getattr(summary.at(read).at(lane), "prephasing")().mean()})
                 stats.update({"reads_pf"              :  getattr(summary.at(read).at(lane), "reads_pf")()})
@@ -137,26 +137,27 @@ def set_run_stats_in_lims(process, run_stats_summary):
             lane_nbr = int(art.name.split(' ')[1])
             read = 1
             for i in run_stats_summary[lane_nbr].keys():
-                if not math.isnan(run_stats_summary[lane_nbr][i]['density']):
-                    art.udf["Cluster Density (K/mm^2) R{}".format(read)]  =  run_stats_summary[lane_nbr][i]['density']
-                if not math.isnan(run_stats_summary[lane_nbr][i]['error_rate']):
-                    art.udf["% Error Rate R{}".format(read)]              =  run_stats_summary[lane_nbr][i]['error_rate']
-                if not math.isnan(run_stats_summary[lane_nbr][i]['first_cycle_intensity']):
-                    art.udf["Intensity Cycle 1 R{}".format(read)]         =  run_stats_summary[lane_nbr][i]['first_cycle_intensity']
-                if not math.isnan(run_stats_summary[lane_nbr][i]['percent_aligned']):
-                    art.udf["% Aligned R{}".format(read)]                 =  run_stats_summary[lane_nbr][i]['percent_aligned']
-                if not math.isnan(run_stats_summary[lane_nbr][i]['percent_gt_q30']):
-                    art.udf["% Bases >=Q30 R{}".format(read)]             =  run_stats_summary[lane_nbr][i]['percent_gt_q30']
-                if not math.isnan(run_stats_summary[lane_nbr][i]['percent_pf']):
-                    art.udf["%PF R{}".format(read)]                       =  run_stats_summary[lane_nbr][i]['percent_pf']
-                if not math.isnan(run_stats_summary[lane_nbr][i]['phasing']):
-                    art.udf["% Phasing R{}".format(read)]                 =  run_stats_summary[lane_nbr][i]['phasing']
-                if not math.isnan(run_stats_summary[lane_nbr][i]['prephasing']):
-                    art.udf["% Prephasing R{}".format(read)]              =  run_stats_summary[lane_nbr][i]['prephasing']
-                if not math.isnan(run_stats_summary[lane_nbr][i]['reads_pf']):
-                    art.udf["Reads PF (M) R{}".format(read)]              =  run_stats_summary[lane_nbr][i]['reads_pf']/1000000
-                if not math.isnan(run_stats_summary[lane_nbr][i]['yield_g']):
-                    art.udf["Yield PF (Gb) R{}".format(read)]             =  run_stats_summary[lane_nbr][i]['yield_g']
+                lane_stats_for_read = run_stats_summary[lane_nbr][i]
+                if not math.isnan(lane_stats_for_read['density']):
+                    art.udf["Cluster Density (K/mm^2) R{}".format(read)]  =  lane_stats_for_read['density']
+                if not math.isnan(lane_stats_for_read['error_rate']):
+                    art.udf["% Error Rate R{}".format(read)]              =  lane_stats_for_read['error_rate']
+                if not math.isnan(lane_stats_for_read['first_cycle_intensity']):
+                    art.udf["Intensity Cycle 1 R{}".format(read)]         =  lane_stats_for_read['first_cycle_intensity']
+                if not math.isnan(lane_stats_for_read['percent_aligned']):
+                    art.udf["% Aligned R{}".format(read)]                 =  lane_stats_for_read['percent_aligned']
+                if not math.isnan(lane_stats_for_read['percent_gt_q30']):
+                    art.udf["% Bases >=Q30 R{}".format(read)]             =  lane_stats_for_read['percent_gt_q30']
+                if not math.isnan(lane_stats_for_read['percent_pf']):
+                    art.udf["%PF R{}".format(read)]                       =  lane_stats_for_read['percent_pf']
+                if not math.isnan(lane_stats_for_read['phasing']):
+                    art.udf["% Phasing R{}".format(read)]                 =  lane_stats_for_read['phasing']
+                if not math.isnan(lane_stats_for_read['prephasing']):
+                    art.udf["% Prephasing R{}".format(read)]              =  lane_stats_for_read['prephasing']
+                if not math.isnan(lane_stats_for_read['reads_pf']):
+                    art.udf["Reads PF (M) R{}".format(read)]              =  lane_stats_for_read['reads_pf']/1000000
+                if not math.isnan(lane_stats_for_read['yield_g']):
+                    art.udf["Yield PF (Gb) R{}".format(read)]             =  lane_stats_for_read['yield_g']
                 read += 1
             art.put()
     process.put()
