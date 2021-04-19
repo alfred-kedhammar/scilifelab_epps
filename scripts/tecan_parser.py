@@ -98,7 +98,7 @@ def main(args, lims):
             try:
                 fid=output.files[0].id
             except:
-                raise(RuntimeError("Cannot access the tecan output file to read the concentrations."))
+                raise RuntimeError("Cannot access the tecan output file to read the concentrations.")
         elif output.name=='EPP log file':
             out_id=output.id
 

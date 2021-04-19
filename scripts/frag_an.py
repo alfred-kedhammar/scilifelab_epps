@@ -33,7 +33,7 @@ def main(lims, args):
         else:
             values = line.split(',')
             frag_data[values[0]] = {}
-            for i in xrange(1, len(values)):
+            for i in range(1, len(values)):
                 frag_data[values[0]][keys[i]] = values[i]
     # Then, read the concentration from the step defined in the process udf
     try:

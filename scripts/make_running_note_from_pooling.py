@@ -62,7 +62,7 @@ def main(lims, args):
         if out.name=="RNotes Log":
             attach_file(os.path.join(os.getcwd(), "EPP_Notes.log"), out)
 
-    sys.stderr.write("Updated {0} projects successfully".format(len(datamap.keys())))
+    sys.stderr.write("Updated {0} projects successfully".format(len(list(datamap.keys()))))
 
 if __name__=="__main__":
     parser = ArgumentParser(description=DESC)

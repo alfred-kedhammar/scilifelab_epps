@@ -33,12 +33,12 @@ def main(lims, args):
             try:
                 lims.upload_new_file(outart,max(glob.glob('/srv/mfs/NovaSeq_data/*{}/RunInfo.xml'.format(FCID)),key=os.path.getctime))
             except:
-                raise(RuntimeError("No RunInfo.xml Found!"))
+                raise RuntimeError("No RunInfo.xml Found!")
         elif outart.type == 'ResultFile' and outart.name == 'Run Parameters':
             try:
                 lims.upload_new_file(outart,max(glob.glob('/srv/mfs/NovaSeq_data/*{}/RunParameters.xml'.format(FCID)),key=os.path.getctime))
             except:
-                raise(RuntimeError("No RunParameters.xml Found!"))
+                raise RuntimeError("No RunParameters.xml Found!")
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)

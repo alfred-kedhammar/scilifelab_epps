@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210419.1
+Port scripts to python 3
+
 ## 20210414.1
 Update illumina_run_parameter_parser for parsing run stats
 

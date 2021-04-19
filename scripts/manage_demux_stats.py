@@ -52,7 +52,7 @@ def manipulate_workflow(demux_process):
     except Exception as e:
         problem_handler("exit", "Undefined prior workflow step (run type): {}".format(e.message))
     #Copies LIMS sequencing step content
-    proc_stats = dict(workflow.udf.items())
+    proc_stats = dict(list(workflow.udf.items()))
     #Instrument is denoted the way it is since it is also used to find
     #the folder of the laneBarcode.html file
     if "MiSeq Run (MiSeq) 4.0" == workflow.type.name:
@@ -394,7 +394,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         else:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))
 
-	    if target_file.udf.items() == [] and current_name != "Undetermined":
+	    if list(target_file.udf.items()) == [] and current_name != "Undetermined":
 	        problem_handler("exit", "Lanebarcode mismatch. Expected sample \"{}\" of lane \"{}\", found \"{}\"".format(current_name, lane_no, sample))
 
             #Push lane into lims

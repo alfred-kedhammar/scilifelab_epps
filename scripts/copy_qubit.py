@@ -45,7 +45,7 @@ def get_qbit_file(process):
                 fid = outart.files[0].id
                 content = lims.get_file_contents(id=fid)
             except:
-                raise(RuntimeError("Cannot access the tecan output file to read the concentrations."))
+                raise RuntimeError("Cannot access the tecan output file to read the concentrations.")
             break
     return content
 
@@ -164,60 +164,6 @@ def main(lims, pid, epp_logger):
     process = Process(lims,id = pid)
     get_qbit_csv_data(process)
 
-def old_main(lims, pid, epp_logger):
-    process = Process(lims,id = pid)
-    sample_names = map(lambda a: a.name, process.analytes()[0])
-    target_files = process.result_files()
-    file_handler = ReadResultFiles(process)
-    files = file_handler.shared_files['Qubit Result File']
-    qubit_result_file = file_handler.format_file(files,
-                                                 name = 'Qubit Result File',
-                                                 first_header = ['Test','Sample'],
-                                                 find_keys = sample_names)
-    missing_samples = 0
-    low_conc = 0
-    bad_formated = 0
-    abstract = []
-    udfs = dict(process.udf.items())
-    if udfs.has_key("Minimum required concentration (ng/ul)"):
-        min_conc = udfs["Minimum required concentration (ng/ul)"]
-    else:
-        min_conc = None
-        abstract.append("Set 'Minimum required concentration (ng/ul)' to get qc-flaggs based on this treshold!")
-    for target_file in target_files:
-        sample = target_file.samples[0].name
-        if qubit_result_file.has_key(sample):
-            sample_mesurements = qubit_result_file[sample]
-            if "Sample Concentration" in sample_mesurements.keys():
-                conc, unit = sample_mesurements["Sample Concentration"]
-                if conc == 'Out Of Range':
-                    target_file.qc_flag = "FAILED"
-                elif conc.replace('.','').isdigit():
-                    conc = float(conc)
-                    if unit == 'ng/mL':
-                        conc = np.true_divide(conc, 1000)
-                    if min_conc:
-                        if conc < min_conc:
-                            target_file.qc_flag = "FAILED"
-                            low_conc +=1
-                        else:
-                            target_file.qc_flag = "PASSED"
-                    target_file.udf['Concentration'] = conc
-                    target_file.udf['Conc. Units'] = 'ng/ul'
-                else:
-                    bad_formated += 1
-                set_field(target_file)
-        else:
-            missing_samples += 1
-
-    if low_conc:
-        abstract.append('{0}/{1} samples have low concentration.'.format(low_conc, len(target_files)))
-    if missing_samples:
-        abstract.append('{0}/{1} samples are missing in Qubit Result File.'.format(missing_samples, len(target_files)))
-    if bad_formated:
-        abstract.append('There are {0} badly formated samples in Qubit Result File. Please fix these to get proper results.'.format(bad_formated))
-
-    print >> sys.stderr, ' '.join(abstract)
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)

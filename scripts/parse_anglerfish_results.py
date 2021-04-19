@@ -48,9 +48,9 @@ def get_anglerfish_output_file(lims, process):
                             content = asf.readlines()
                         lims.upload_new_file(outart,max(glob.glob("/srv/mfs/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id)),key=os.path.getctime))
                     except:
-                        raise(RuntimeError("No Anglerfish output file available"))
+                        raise RuntimeError("No Anglerfish output file available")
                 else:
-                    raise(RuntimeError("Cannot access the folder for Anglerfish output file"))
+                    raise RuntimeError("Cannot access the folder for Anglerfish output file")
             break
     return content
 

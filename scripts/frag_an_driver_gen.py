@@ -29,7 +29,7 @@ def main(lims, args):
     col_idx=-1
     for column in  sorted(list(valid_cols)):
         col_idx+=1
-        for  i in xrange(1,13):
+        for  i in range(1,13):
             location = "{}{}".format(column, i)
             driver.append((col_idx*12+i, location, ar_driver.get(location, "ladder" if i==12 else "")))
 

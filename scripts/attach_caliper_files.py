@@ -3,9 +3,9 @@ DESC="""EPP script to fetch and upload Caliper image files for Clarity LIMS.
 Searches the directory given by the path argument for filenames matching
 a specific pattern ending with:
 ${INPUT.CONTAINER.PLACEMENT}_${INPUT.NAME}_${INPUT.CONTAINER.LIMSID}_${INPUT.LIMSID}.
-This is done for each artifact of type ResultFile, that is of type PerInput. Any 
-file found matching is copied to the current working directory with a name suffixed with the 
-output artifact it is connected to. When executed as an EPP, this will cause the 
+This is done for each artifact of type ResultFile, that is of type PerInput. Any
+file found matching is copied to the current working directory with a name suffixed with the
+output artifact it is connected to. When executed as an EPP, this will cause the
 Clarity LIMS EPP wrapper to associate the file with this artifact.
 
 Written by Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden.
@@ -30,12 +30,12 @@ def main(lims, args, epp_logger):
         args.path = os.getcwd()
 
     file_list = os.listdir(args.path)
-    
+
     # Find all per input result files
     io = p.input_output_maps
-    io_filtered = filter(lambda (x,y): y['output-generation-type']=='PerInput', io)
-    io_filtered = filter(lambda (x,y): y['output-type']=='ResultFile', io_filtered)
-    
+    io_filtered = [x_y for x_y in io if x_y[1]['output-generation-type']=='PerInput']
+    io_filtered = [x_y1 for x_y1 in io_filtered if x_y1[1]['output-type']=='ResultFile']
+
     artifact_missing_file = []
     artifact_multiple_file = []
     found_files = []
@@ -49,7 +49,7 @@ def main(lims, args, epp_logger):
 
         # Well is typed without colon in filename:
         i_w = ''.join(i_w.split(':'))
-        
+
 
         # Use a reguluar expression to find the file name given
         # the container and sample. This is all assuming the driver template name ends with:
@@ -70,7 +70,7 @@ def main(lims, args, epp_logger):
                       "from container with id: {container_id}.").format(**info))
 
         im_file_r = re.compile(re_str)
-        fns = filter(im_file_r.match, file_list)
+        fns = list(filter(im_file_r.match, file_list))
 
         if len(fns) == 0:
             logging.warning("No image file found for artifact with id {0}".format(i_a.id))
@@ -84,7 +84,7 @@ def main(lims, args, epp_logger):
             found_files.append(fn)
             logging.info("Found image file {0} for artifact with id {1}".format(fn, i_a.id))
             fp = os.path.join(args.path, fn)
-            
+
             # Attach file to the LIMS
             location = attach_file(fp, o_a)
             logging.debug("Moving {0} to {1}".format(fp,location))
@@ -95,12 +95,12 @@ def main(lims, args, epp_logger):
 
     if len(artifact_multiple_file):
         warning += "Found multiple files for {0} artifact(s), none of these were uploaded.".format(len(artifact_multiple_file))
-    
+
     if warning:
        warning = "Warning: " + warning
 
     abstract = "Uploaded {0} file(s). {1}".format(len(found_files), warning)
-    print >> sys.stderr, abstract # stderr will be logged and printed in GUI
+    print(abstract, file=sys.stderr) # stderr will be logged and printed in GUI
 
 
 if __name__ == "__main__":
@@ -120,4 +120,3 @@ if __name__ == "__main__":
 
     with EppLogger(args.log, lims=lims, prepend=True) as epp_logger:
         main(lims, args, epp_logger)
-

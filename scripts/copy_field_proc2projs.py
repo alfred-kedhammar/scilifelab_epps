@@ -1,16 +1,18 @@
 #!/usr/bin/env python
-DESC = """EPP script to copy user defined field from any process to associated 
-project/projects in Clarity LIMS. If the specifyed process handles many artifacts 
+DESC = """EPP script to copy user defined field from any process to associated
+project/projects in Clarity LIMS. If the specifyed process handles many artifacts
 associated to different projects, all these projects will get the specifyed udf.
- 
+
 Can be executed in the background or triggered by a user pressing a "blue button".
 
-The script can output two different logs, where the status_changelog 
-contains notes with the technician, the date and changed status for each 
+The script can output two different logs, where the status_changelog
+contains notes with the technician, the date and changed status for each
 copied status. The regular log file contains regular execution information.
 
-Written by Maya Brandi 
+Written by Maya Brandi
 """
+from __future__ import print_function
+
 import os
 import sys
 import logging
@@ -46,7 +48,7 @@ def main(lims, args, epp_logger):
     elif len(dest_udfs) != len(source_udfs):
         logging.error("source_udfs and dest_udfs lists of arguments are uneven.")
         sys.exit(-1)
-    
+
     for d_elt in d_elts:
         project_names = ' '.join([project_names, d_elt.name])
         for i in range(len(source_udfs)):
@@ -73,7 +75,7 @@ def main(lims, args, epp_logger):
          'pr': project_names}
 
     abstract = ("Updated {up} udf(s). Handeled project(s): {pr} {w}").format(**d)
-    print >> sys.stderr, abstract
+    print(abstract, file=sys.stderr)
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
@@ -92,7 +94,7 @@ if __name__ == "__main__":
                               'argument is optional, if left empty '
                               'the source_udf argument is used instead. '
                               'Zero or many udf-names can be given. If '
-                              'more than zero, the numer of udfs needs ' 
+                              'more than zero, the numer of udfs needs '
                               'to be the same as number of source_udfs'))
     parser.add_argument('-c', '--status_changelog',
                         help=('File name for status changelog file, for '
@@ -107,4 +109,3 @@ if __name__ == "__main__":
 
     with EppLogger(log_file=args.log, lims=lims, prepend=True) as epp_logger:
         main(lims, args, epp_logger)
-

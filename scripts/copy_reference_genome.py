@@ -1,20 +1,20 @@
 #!/usr/bin/env python
-DESC = """EPP script to copy user defined field 'Reference Genome' from project 
-level to submitted sample level for the input artifacts of given process, 
+DESC = """EPP script to copy user defined field 'Reference Genome' from project
+level to submitted sample level for the input artifacts of given process,
 in Clarity LIMS. Can be executed in the background or triggered by a user
  pressing a "blue button".
 
-The script outputs a regular log file that contains regular execution 
-information. 
+The script outputs a regular log file that contains regular execution
+information.
 
 Error handling:
-If the udf 'Reference Genome' is blank or not defined for any of the input 
+If the udf 'Reference Genome' is blank or not defined for any of the input
 projects, the script will log this, and not perform any changes for that sample.
 
 
 Written by Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden
-""" 
-
+"""
+from __future__ import print_function
 from argparse import ArgumentParser
 
 from genologics.lims import Lims
@@ -131,7 +131,7 @@ def main(lims,args,epp_logger):
 
     abstract = ("Updated {cs} sample(s), {warning} with incorrect udf info.").format(**d)
 
-    print >> sys.stderr, abstract # stderr will be logged and printed in GUI
+    print(abstract, file=sys.stderr) # stderr will be logged and printed in GUI
 
 
 if __name__ == "__main__":
