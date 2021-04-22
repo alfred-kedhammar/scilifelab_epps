@@ -5,7 +5,6 @@ import glob
 
 # Fetch version from git tags.
 version = subprocess.Popen(["git", "describe", "--abbrev=0"],stdout=subprocess.PIPE, universal_newlines=True).communicate()[0].rstrip()
-version = version.decode("utf-8")
 
 try:
     with open("requirements.txt") as rq:
