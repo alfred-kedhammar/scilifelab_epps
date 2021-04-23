@@ -52,7 +52,10 @@ def get_qbit_file(process):
 def get_data(csv_content, log):
     read=False
     data={}
-    text = csv_content.encode("utf-8")
+    if isinstance(csv_content, str):
+        text = csv_content
+    else:
+        text = csv_content.encode("utf-8")
     # Try to determine the format of the csv:
     dialect = csv.Sniffer().sniff(text)
     pf = csv.reader(text.splitlines(), dialect=dialect)

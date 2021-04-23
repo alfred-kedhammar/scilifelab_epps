@@ -62,7 +62,10 @@ def get_data(csv_content, log):
     data={}
     #read fragment analyzer result file
     if csv_content.get('Fragment_Analyzer_Result_File'):
-        text = csv_content['Fragment_Analyzer_Result_File'].encode("utf-8")
+        if isinstance(csv_content['Fragment_Analyzer_Result_File'], str):
+            text = csv_content['Fragment_Analyzer_Result_File']
+        else:
+            text = csv_content['Fragment_Analyzer_Result_File'].encode("utf-8")
         # Try to determine the format of the csv:
         dialect = csv.Sniffer().sniff(text)
         pf = csv.reader(text.splitlines(), dialect=dialect)
@@ -101,7 +104,10 @@ def get_data(csv_content, log):
     #reset to read smear analysis result file
     read=False
     if csv_content.get('Smear_Analysis_Result_File'):
-        text = csv_content['Smear_Analysis_Result_File'].encode("utf-8")
+        if isinstance(csv_content['Smear_Analysis_Result_File'], str):
+            text = csv_content['Smear_Analysis_Result_File']
+        else:
+            text = csv_content['Smear_Analysis_Result_File'].encode("utf-8")
         # Try to determine the format of the csv:
         dialect = csv.Sniffer().sniff(text)
         pf = csv.reader(text.splitlines(), dialect=dialect)
