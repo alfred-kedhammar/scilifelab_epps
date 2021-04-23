@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 DESC = """EPP script for Quant-iT measurements to calculate concentrations and
 load input artifact-udfs and output file-udfs of the process with concentration
 values and fluorescence intensity.
@@ -46,7 +47,6 @@ Performance:
 
 Written by Maya Brandi
 """
-from __future__ import print_function
 import os
 import sys
 import logging

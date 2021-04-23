@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 DESC="""EPP script to calculate amount in ng from concentration and volume
 udf:s in Clarity LIMS. The script checks that the 'Volume (ul)' and
 'Concentration' udf:s are defined and that the udf. 'Conc. Units'
@@ -7,7 +8,6 @@ left unchanged, by the script.
 
 Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden
 """
-from __future__ import print_function
 from argparse import ArgumentParser
 
 from genologics.lims import Lims

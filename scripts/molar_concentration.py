@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 DESC = """EPP script to calculate molar concentration given the
 weight concentration, in Clarity LIMS. Before updating the artifacts,
 the script verifies that 'Concentration' and 'Size (bp)' udf:s are not blank,
@@ -7,7 +8,6 @@ that do not fulfill the requirements, will not be updated.
 
 Written by Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden
 """
-from __future__ import print_function
 from argparse import ArgumentParser
 
 from genologics.lims import Lims

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 DESC = """EPP script for Quant-iT mesurements to set QC flaggs and
 intensity check based on concentrations, Fluorescence intensity.
 
@@ -43,7 +44,6 @@ Logging:
 
 Written by Maya Brandi
 """
-from __future__ import print_function
 import os
 import sys
 import logging

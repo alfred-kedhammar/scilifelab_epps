@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 DESC = """EPP script to copy user defined field 'Reference Genome' from project
 level to submitted sample level for the input artifacts of given process,
 in Clarity LIMS. Can be executed in the background or triggered by a user
@@ -14,7 +15,6 @@ projects, the script will log this, and not perform any changes for that sample.
 
 Written by Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden
 """
-from __future__ import print_function
 from argparse import ArgumentParser
 
 from genologics.lims import Lims

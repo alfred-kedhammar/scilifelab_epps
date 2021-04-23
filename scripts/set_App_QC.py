@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 DESC = """This EPP script reads Application QC files from file
 system and sets the qc values for each sample. Allso a a easy to read App QC
 file is generated with more information about the application specific qc that
@@ -9,7 +10,6 @@ Logging:
 
 Written by Maya Brandi (14-10-14)
 """
-from __future__ import print_function
 import os
 import sys
 import logging

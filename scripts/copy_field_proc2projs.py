@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 DESC = """EPP script to copy user defined field from any process to associated
 project/projects in Clarity LIMS. If the specifyed process handles many artifacts
 associated to different projects, all these projects will get the specifyed udf.
@@ -11,7 +12,6 @@ copied status. The regular log file contains regular execution information.
 
 Written by Maya Brandi
 """
-from __future__ import print_function
 
 import os
 import sys
