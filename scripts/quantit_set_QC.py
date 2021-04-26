@@ -84,7 +84,7 @@ class QuantitQC():
 
         if fint_1 or fint_2:
             qc_flag = "PASSED"
-            if (fint_1 >= treshold) or (fint_2 >= treshold):
+            if (fint_1 is not None and fint_1 >= treshold) or (fint_2 is not None and fint_2 >= treshold):
                 result_file.udf["Intensity check"] = "Saturated"
                 qc_flag = "FAILED"
                 self.saturated +=1
