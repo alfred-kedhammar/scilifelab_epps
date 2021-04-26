@@ -194,10 +194,17 @@ def main(args,lims,epp_logger):
             lp_args += ["-d",args.destination]
         lp_args.append("-") # lp accepts stdin if '-' is given as filename
         logging.info('Ready to call lp for printing.')
-        sp = subprocess.Popen(lp_args,
-                              stdin=subprocess.PIPE,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
+        if sys.version_info[0] == 3:
+            sp = subprocess.Popen(lp_args,
+                                  stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE,
+                                  encoding='utf8')
+        elif sys.version_info[0] == 2:
+            sp = subprocess.Popen(lp_args,
+                                  stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
         sp.stdin.write(str('\n'.join(lines)))
         logging.info('lp command is called for printing.')
         stdout,stderr = sp.communicate() # Will wait for sp to finish
