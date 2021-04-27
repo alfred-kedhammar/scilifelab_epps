@@ -52,6 +52,8 @@ def get_anglerfish_output_file(lims, process):
                 else:
                     raise RuntimeError("Cannot access the folder for Anglerfish output file")
             break
+    if isinstance(content[0], bytes):
+        content = [x.decode('utf-8') for x in content]
     return content
 
 # Parse file content
