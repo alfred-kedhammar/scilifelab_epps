@@ -417,7 +417,7 @@ def gen_MinION_QC_data(pro):
                 sp_obj['idx'] = idxs
                 data.append(sp_obj)
     str_data = ""
-    for line in sorted(data):
+    for line in sorted(data, key=lambda x: x['sn']):
         l_data = [line['sn'], line['npbs'], line['idxt'], line['idx'], line['fp']]
         str_data = str_data + ",".join(l_data) + "\n"
 
