@@ -26,6 +26,8 @@ def read_log(lims, pid, logfile):
                 exit(2)
 
             file_contents=lims.get_file_contents(id=fid)
+            if isinstance(file_contents, bytes):
+                file_contents = file_contents.decode('utf-8')
             logger.info("Found the machine log file")
 
     if file_contents:

@@ -25,6 +25,8 @@ def main(lims, args):
             log_art = o
 
     file_contents = lims.get_file_contents(id=fid)
+    if isinstance(file_contents, bytes):
+        file_contents = file_contents.decode('utf-8')
     frag_data = {}
     keys = []
     for line in file_contents.splitlines():

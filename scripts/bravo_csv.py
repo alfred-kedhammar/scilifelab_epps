@@ -40,6 +40,8 @@ def obtain_previous_volumes(currentStep, lims):
                     raise RuntimeError("Cannot access the normalisation CSV file to read the volumes.")
                 else:
                     file_contents = lims.get_file_contents(id=fid)
+                    if isinstance(file_contents, bytes):
+                        file_contents = file_contents.decode('utf-8')
                     genologics_format = False
                     well_idx = 4
                     plate_idx = 3

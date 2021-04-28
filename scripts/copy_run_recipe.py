@@ -22,6 +22,8 @@ def main(lims, args):
                 fid = outart.files[0].id
                 file_name = outart.files[0].original_location
                 content = lims.get_file_contents(id=fid).read()
+                if isinstance(content, bytes):
+                    content = content.decode('utf-8')
             except:
                 raise RuntimeError("Cannot access the run recipe file.")
             break
