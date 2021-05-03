@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210503.1
+Update scripts for parsing fragment analyzer result files
+
 ## 20210419.1
 Port scripts to python 3
 
