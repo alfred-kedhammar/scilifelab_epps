@@ -15,6 +15,9 @@ def main(lims, args):
         if 'Customer RIN' in inp.samples[0].udf:
             inp.udf['RIN']=inp.samples[0].udf['Customer RIN']
             updated=True
+        if 'Customer Volume' in inp.samples[0].udf:
+            inp.udf['Volume (ul)']=inp.samples[0].udf['Customer Volume']
+            updated=True
         if updated:
             inp.put()
 
@@ -28,5 +31,3 @@ if __name__ == "__main__":
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
     main(lims, args)
-
-

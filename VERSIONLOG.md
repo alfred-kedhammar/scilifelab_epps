@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210511.1
+Update obtain_customer_cc.py to support custom volume
+
 ## 20210503.1
 Update scripts for parsing fragment analyzer result files
 
