@@ -61,8 +61,8 @@ def main(lims, pid, drivf ,epp_logger):
     process = Process(lims,id = pid)
     QiT = QuantitDriverFile(process, drivf)
     io = process.input_output_maps
-    io_filtered = [x_y for x_y in io if x_y[1]['output-generation-type']=='PerInput']
-    io_filtered = [x_y1 for x_y1 in io_filtered if x_y1[1]['output-type']=='ResultFile']
+    io_filtered = [x for x in io if x[1]['output-generation-type']=='PerInput']
+    io_filtered = [x for x in io_filtered if x[1]['output-type']=='ResultFile']
     location_dict = QiT.make_location_dict(io_filtered)
     QiT.make_file(location_dict)
 
