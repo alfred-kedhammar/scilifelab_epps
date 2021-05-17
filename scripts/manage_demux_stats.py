@@ -52,7 +52,7 @@ def manipulate_workflow(demux_process):
     except Exception as e:
         problem_handler("exit", "Undefined prior workflow step (run type): {}".format(e.message))
     #Copies LIMS sequencing step content
-    proc_stats = dict(workflow.udf.items())
+    proc_stats = dict(list(workflow.udf.items()))
     #Instrument is denoted the way it is since it is also used to find
     #the folder of the laneBarcode.html file
     if "MiSeq Run (MiSeq) 4.0" == workflow.type.name:
@@ -190,14 +190,14 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
             except Exception as e:
                 problem_handler("exit", "Unable to determine lane number. Incorrect location variable in process: {}".format(e.message))
         logger.info("Lane number set to {}".format(lane_no))
-	try:
+        try:
             correction_factor = thresholds.correction_factor_for_sample_in_pool if len(outarts_per_lane) > 1 else 1
             exp_smp_per_lne = round(demux_process.udf["Minimum Reads per Lane"]/my_float(len(outarts_per_lane))*correction_factor, 0)
-	except ZeroDivisionError as e:
-	    problem_handler("exit", "Faulty LIMS setup. Pool in lane {} has no samples: {}".format(lane_no, e))
+        except ZeroDivisionError as e:
+            problem_handler("exit", "Faulty LIMS setup. Pool in lane {} has no samples: {}".format(lane_no, e))
         logger.info("Expected sample clusters for this lane: {}".format(exp_smp_per_lne))
 
-	#Artifacts in each lane
+        #Artifacts in each lane
         for target_file in outarts_per_lane:
             try:
                 current_name = target_file.samples[0].name
@@ -245,11 +245,11 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                     #Bracket for adding typical sample info
                     if sample == current_name:
                         #Sample samplesum construction
-			if not sample in samplesum:
-			    samplesum[sample] = dict()
-			    samplesum[sample]['count'] = 1
-			else:
-			    samplesum[sample]['count'] += 1
+                        if not sample in samplesum:
+                            samplesum[sample] = dict()
+                            samplesum[sample]['count'] = 1
+                        else:
+                            samplesum[sample]['count'] += 1
 
                         try:
                             def_atr = {"% of thelane":"% of Raw Clusters Per Lane", "% Perfectbarcode":"% Perfect Index Read",
@@ -263,17 +263,17 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                     else:
                                         default_value = 0.0
 
-               			    samplesum[sample][attr] = default_value if not attr in samplesum[sample] \
+                                    samplesum[sample][attr] = default_value if not attr in samplesum[sample] \
                                     else samplesum[sample][attr] + default_value
                                     logger.info("{} field not found. Setting default value: {}".format(attr, default_value))
 
                                 else:
                                     #Yields needs division by 1K, is also non-percentage
                                     if old_attr == "Yield (Mbases)":
-		          	        samplesum[sample][attr] = my_float(entry[old_attr].replace(",",""))/1000 if not attr in samplesum[sample] \
+                                        samplesum[sample][attr] = my_float(entry[old_attr].replace(",",""))/1000 if not attr in samplesum[sample] \
                                         else samplesum[sample][attr] + my_float(entry[old_attr].replace(",",""))/1000
                                     else:
-					samplesum[sample][attr] = my_float(entry[old_attr]) if not attr in samplesum[sample] \
+                                        samplesum[sample][attr] = my_float(entry[old_attr]) if not attr in samplesum[sample] \
                                         else samplesum[sample][attr] + my_float(entry[old_attr])
 
                         except Exception as e:
@@ -339,28 +339,28 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
 
                                     samplesum[sample]["# Read Pairs"] = samplesum[sample]["# Reads"] if not "# Read Pairs" in samplesum[sample] \
                                     else samplesum[sample]["# Read Pairs"] + samplesum[sample]["# Reads"]
-			    except Exception as e:
+                            except Exception as e:
                                 problem_handler("exit", "Unable to set values for #Reads and #Read Pairs: {}".format(e.message))
 
-			#Spools samplesum into samples
+                        #Spools samplesum into samples
                         try:
-			    if samplesum[sample]["count"] > 1:
+                            if samplesum[sample]["count"] > 1:
                                 logger.info("Iteratively pooling samples in same lane.")
                             for thing in samplesum:
                                 for k,v in samplesum[thing].items():
-        			    if thing == sample and thing == current_name:
-					if k is "count":
-					    logger.info("Setting values for sample {} of lane {}".format(thing, lane_no))
-					#Average for percentages
+                                    if thing == sample and thing == current_name:
+                                        if k is "count":
+                                            logger.info("Setting values for sample {} of lane {}".format(thing, lane_no))
+                                        #Average for percentages
                                         elif k in ['% One Mismatch Reads (Index)', '% Perfect Index Read', 'Ave Q Score', '%PF',\
-                                        '% of Raw Clusters Per Lane', '% Bases >=Q30']:
+                                            '% of Raw Clusters Per Lane', '% Bases >=Q30']:
                                             target_file.udf[k] = v/samplesum[thing]["count"]
                                         elif k is not "count":
-                                                target_file.udf[k] = samplesum[thing][k]
-					if samplesum[sample]["count"] > 1:
+                                            target_file.udf[k] = samplesum[thing][k]
+                                        if samplesum[sample]["count"] > 1:
                                             logger.info("Pooled total for {} of sample {} is set to {}".format(k, thing, v))
-					else:
-					    logger.info("Attribute {} of sample {} is set to {}".format(k, thing, v))
+                                        else:
+                                            logger.info("Attribute {} of sample {} is set to {}".format(k, thing, v))
                         except Exception as e:
                             problem_handler("exit", "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(e.message))
 
@@ -394,8 +394,8 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         else:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))
 
-	    if target_file.udf.items() == [] and current_name != "Undetermined":
-	        problem_handler("exit", "Lanebarcode mismatch. Expected sample \"{}\" of lane \"{}\", found \"{}\"".format(current_name, lane_no, sample))
+            if list(target_file.udf.items()) == [] and current_name != "Undetermined":
+                problem_handler("exit", "Lanebarcode mismatch. Expected sample \"{}\" of lane \"{}\", found \"{}\"".format(current_name, lane_no, sample))
 
             #Push lane into lims
             try:

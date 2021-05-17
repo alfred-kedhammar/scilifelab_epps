@@ -37,6 +37,8 @@ def get_caliper_output_file(process, log):
             try:
                 fid = outart.files[0].id
                 content = lims.get_file_contents(id=fid)
+                if isinstance(content, bytes):
+                    content = content.decode('utf-8')
             except:
                 log.append('No Caliper WellTable file found')
             break

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 DESC="""EPP script to copy the "Comments" field to the projects running notes on process termination
 
 Denis Moreno, Science for Life Laboratory, Stockholm, Sweden
@@ -136,7 +137,11 @@ def main(lims, args):
     if 'Comments' in pro.udf and pro.udf['Comments'] is not '':
         key=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         noteobj[key]={}
-        note="Comment from {0} ({1}) : \n{2}".format(pro.type.name, '[LIMS]({0}/clarity/work-details/{1})'.format(BASEURI, pro.id.split('-')[1]), pro.udf['Comments'].encode('utf-8'))
+        if isinstance(pro.udf['Comments'], str):
+            comments = pro.udf['Comments']
+        else:
+            comments = pro.udf['Comments'].encode('utf-8')
+        note="Comment from {0} ({1}) : \n{2}".format(pro.type.name, '[LIMS]({0}/clarity/work-details/{1})'.format(BASEURI, pro.id.split('-')[1]), comments)
         noteobj[key]['note']=note
         noteobj[key]['user']="{0} {1}".format(pro.technician.first_name,pro.technician.last_name)
         noteobj[key]['email']=pro.technician.email

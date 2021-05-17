@@ -45,7 +45,7 @@ def main(lims, args, logger):
                     sample.udf['Passed Sequencing QC']="True"
                     sample.udf['Status (auto)']="Finished"
             except KeyError as e:
-                print e
+                print(e)
                 logging.warning("No reads minimum found, cannot set the status auto flag for sample {0}".format(sample.name))
                 errnb+=1
 
@@ -81,7 +81,7 @@ def demnumber(sample):
     """Returns the number of distinct demultiplexing processes tagged with "Include reads" for a given sample"""
     expectedName="{0} (FASTQ reads)".format(sample.name)
     dem=set()
-    arts=lims.get_artifacts(sample_name=sample.name,process_type=DEMULTIPLEX.values(), name=expectedName)
+    arts=lims.get_artifacts(sample_name=sample.name,process_type=list(DEMULTIPLEX.values()), name=expectedName)
     for a in arts:
         if a.udf["Include reads"] == "YES":
             dem.add(a.parent_process.id)
@@ -91,7 +91,7 @@ def sumreads(sample, summary):
     if sample.name not in summary:
         summary[sample.name]={}
     expectedName="{0} (FASTQ reads)".format(sample.name)
-    arts=lims.get_artifacts(sample_name=sample.name,process_type=DEMULTIPLEX.values(), name=expectedName)
+    arts=lims.get_artifacts(sample_name=sample.name,process_type=list(DEMULTIPLEX.values()), name=expectedName)
     tot=0
     fclanel=[]
     filteredarts=[]
@@ -117,7 +117,7 @@ def sumreads(sample, summary):
             #Happens if the "Include reads" does not exist
             pass
 
-    for i in xrange(0,len(filteredarts)):
+    for i in range(0,len(filteredarts)):
         a=filteredarts[i]
         if a.udf['Include reads']=='YES':
             base_art=a
@@ -130,7 +130,7 @@ def sumreads(sample, summary):
         for inart in base_art.parent_process.all_inputs():
             if sample.name in [s.name for s in inart.samples]:
                 try:
-                    sq=lims.get_processes(type=SEQUENCING.values(), inputartifactlimsid=inart.id)[0]
+                    sq=lims.get_processes(type=list(SEQUENCING.values()), inputartifactlimsid=inart.id)[0]
                 except TypeError:
                     logging.error("Did not manage to get sequencing process for artifact {0}".format(inart.id))
                 else:
@@ -138,7 +138,7 @@ def sumreads(sample, summary):
                         tot/=2
                 break
     except AttributeError as e:
-        print e
+        print(e)
         #base_art is still None because no arts were found
         logging.info("No demultiplexing processes found for sample {0}".format(sample.name))
 

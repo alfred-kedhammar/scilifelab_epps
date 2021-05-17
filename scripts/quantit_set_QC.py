@@ -1,34 +1,35 @@
 #!/usr/bin/env python
-DESC = """EPP script for Quant-iT mesurements to set QC flaggs and 
-intensity check based on concentrations, Fluorescence intensity. 
+from __future__ import print_function
+DESC = """EPP script for Quant-iT mesurements to set QC flaggs and
+intensity check based on concentrations, Fluorescence intensity.
 
 Performance:
-    1) compares udfs "Fluorescence intensity 1" and "Fluorescence intensity 2" 
-    with the Saturation threshold of fluorescence intensity. If either of these 
-    two udfs >= Saturation threshold of fluorescence intensity, assign 
-    "Saturated" to the udf "Intensity check" and assign "Fail" to the sample. 
+    1) compares udfs "Fluorescence intensity 1" and "Fluorescence intensity 2"
+    with the Saturation threshold of fluorescence intensity. If either of these
+    two udfs >= Saturation threshold of fluorescence intensity, assign
+    "Saturated" to the udf "Intensity check" and assign "Fail" to the sample.
     Otherwise assign "OK" to the analyte "Intensity check".
 
-    2) Copies the %CV values to the sample udf "%CV". 
+    2) Copies the %CV values to the sample udf "%CV".
     For a sample with duplicate measurements, "%CV" is calculated as:
         %CV = (SD of "Fluorescence intensity 1" and "Fluorescence intensity 2")/
         (Mean of "Fluorescence intensity 1" and ""Fluorescence intensity 2)
 
     3) If "%CV" >= "Allowed %CV of duplicates", assigning "Fail" to the QC flagg.
 
-    4) For a sample with only one measurement, if it passes in step 2, a "Pass" 
+    4) For a sample with only one measurement, if it passes in step 2, a "Pass"
     should be assigned to the QC flag. For a sample with duplicate measurements,
     if it passes both step 2 and step 4, a "Pass" is assigned to the QC flag.
 
 Reads from:
     --Lims fields--
-    "Saturation threshold of fluorescence intensity"    process udf 
+    "Saturation threshold of fluorescence intensity"    process udf
     "Allowed %CV of duplicates"                         process udf
     "Fluorescence intensity 1"  udf of input analytes to the process
     "Fluorescence intensity 2"  udf of input analytes to the process
 
     --files--
-    "Standards File (.txt)"     "shared result file" uploaded by user.   
+    "Standards File (.txt)"     "shared result file" uploaded by user.
     "Quant-iT Result File 1"    "shared result file" uploaded by user.
     "Quant-iT Result File 2"    "shared result file" uploaded by user. (optional)
 
@@ -41,9 +42,8 @@ Writes to:
 Logging:
     The script outputs a regular log file with regular execution information.
 
-Written by Maya Brandi 
+Written by Maya Brandi
 """
-
 import os
 import sys
 import logging
@@ -61,7 +61,7 @@ from scilifelab_epps.epp import ReadResultFiles
 class QuantitQC():
     def __init__(self, process):
         self.result_files = process.result_files()
-        self.udfs = dict(process.udf.items())
+        self.udfs = dict(list(process.udf.items()))
         self.required_udfs = set(["Allowed %CV of duplicates",
             "Saturation threshold of fluorescence intensity",
             "Minimum required concentration (ng/ul)"])
@@ -79,11 +79,12 @@ class QuantitQC():
         allowed_dupl = self.udfs["Allowed %CV of duplicates"]
         fint_key1 = "Fluorescence intensity 2"
         fint_key2 = "Fluorescence intensity 1"
-        fint_2 = udfs[fint_key2] if udfs.has_key(fint_key2) else None
-        fint_1 = udfs[fint_key1] if udfs.has_key(fint_key1) else None
+        fint_2 = udfs[fint_key2] if fint_key2 in udfs else None
+        fint_1 = udfs[fint_key1] if fint_key1 in udfs else None
+
         if fint_1 or fint_2:
             qc_flag = "PASSED"
-            if (fint_1 >= treshold) or (fint_2 >= treshold):
+            if (fint_1 is not None and fint_1 >= treshold) or (fint_2 is not None and fint_2 >= treshold):
                 result_file.udf["Intensity check"] = "Saturated"
                 qc_flag = "FAILED"
                 self.saturated +=1
@@ -104,7 +105,7 @@ class QuantitQC():
 
     def concentration_QC(self, result_file, result_file_udfs):
         min_conc = self.udfs["Minimum required concentration (ng/ul)"]
-        if result_file_udfs.has_key('Concentration'):
+        if 'Concentration' in result_file_udfs:
             if result_file_udfs['Concentration'] < min_conc:
                 self.low_conc +=1
                 return "FAILED"
@@ -115,9 +116,9 @@ class QuantitQC():
             return None
 
     def assign_QC_flag(self):
-        if self.required_udfs.issubset(self.udfs.keys()):
+        if self.required_udfs.issubset(list(self.udfs.keys())):
             for result_file in self.result_files:
-                result_file_udfs = dict(result_file.udf.items())
+                result_file_udfs = dict(list(result_file.udf.items()))
                 QC_conc = self.concentration_QC(result_file, result_file_udfs)
                 QC_sat = self.saturation_QC(result_file, result_file_udfs)
                 if QC_conc and QC_sat:
@@ -153,7 +154,7 @@ def main(lims, pid, epp_logger):
         QiT.abstract.append("Concentration is missing for {0} "
                                      "sample(s).".format(QiT.conc_missing))
     QiT.abstract = list(set(QiT.abstract))
-    print >> sys.stderr, ' '.join(QiT.abstract)
+    print(' '.join(QiT.abstract), file=sys.stderr)
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
@@ -169,4 +170,3 @@ if __name__ == "__main__":
 
     with EppLogger(log_file=args.log, lims=lims, prepend=True) as epp_logger:
         main(lims, args.pid, epp_logger)
-

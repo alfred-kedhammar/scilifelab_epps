@@ -86,7 +86,7 @@ def main(lims, args):
 
     with open("{}.json".format(fc_name), "w", 0o664) as sf:
         json.dump(output,sf,separators=(',',':'))
-    os.chmod("{}.json".format(fc_name),0664)
+    os.chmod("{}.json".format(fc_name),0o664)
     for f in ss_art.files:
         lims.request_session.delete(f.uri)
     lims.upload_new_file(ss_art, "{}.json".format(fc_name))

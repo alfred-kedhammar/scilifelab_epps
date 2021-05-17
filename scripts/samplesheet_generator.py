@@ -417,7 +417,7 @@ def gen_MinION_QC_data(pro):
                 sp_obj['idx'] = idxs
                 data.append(sp_obj)
     str_data = ""
-    for line in sorted(data):
+    for line in sorted(data, key=lambda x: x['sn']):
         l_data = [line['sn'], line['npbs'], line['idxt'], line['idx'], line['fp']]
         str_data = str_data + ",".join(l_data) + "\n"
 
@@ -456,7 +456,7 @@ def test():
     log=[]
     d=[{'lane':1,'idx1':'ATTT', 'idx2':''},{'lane':1,'idx1':'ATCTATCG', 'idx2':''},{'lane':1,'idx1':'ATCG', 'idx2':'ATCG'},]
     check_index_distance(d, log)
-    print log
+    print(log)
 
 def main(lims, args):
     log=[]
@@ -546,7 +546,7 @@ def main(lims, args):
 
             with open("{}.csv".format(fc_name), "w", 0o664) as f:
                 f.write(content)
-            os.chmod("{}.csv".format(fc_name),0664)
+            os.chmod("{}.csv".format(fc_name),0o664)
             for f in ss_art.files:
                 lims.request_session.delete(f.uri)
             lims.upload_new_file(ss_art, "{}.csv".format(fc_name))
@@ -558,8 +558,8 @@ def main(lims, args):
                 sys.exit(1)
 
         else:
-            print content
-            print log
+            print(content)
+            print(log)
 
 
 if __name__ == "__main__":

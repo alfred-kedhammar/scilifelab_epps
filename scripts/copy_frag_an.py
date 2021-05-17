@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 DESC = """EPP script to copy 'Conc. (ng/ul)', 'RQN' and 'xxS/xxS' for each
-sample sample in the ' Fragment Analyzer Result File' to the 'Concentration', 'RIN' and '28s/18s ratio'
+sample sample in the 'Quality Table File' to the 'Concentration', 'RIN' and '28s/18s ratio'
 fields of the output analytes of the process. In addition, the Conc. Units will be filled in as "ng/ul"
 
 Warnings are generated to the user and stored in regular log file wich allso
@@ -40,18 +40,18 @@ def get_result_file(process, log):
     content = dict()
     for outart in process.all_outputs():
         #get the right output artifact
-        if outart.type == 'ResultFile' and outart.name == 'Fragment Analyzer Result File':
+        if outart.type == 'ResultFile' and outart.name == 'Quality Table File':
             try:
                 fid = outart.files[0].id
-                content['Fragment_Analyzer_Result_File'] = lims.get_file_contents(id=fid)
+                content['Quality_Table_File'] = lims.get_file_contents(id=fid)
             except:
-                log.append('No Fragment Analyzer Result File found')
+                log.append('No Quality Table File found.')
         if outart.type == 'ResultFile' and outart.name == 'Smear Analysis Result File':
             try:
                 fid = outart.files[0].id
                 content['Smear_Analysis_Result_File'] = lims.get_file_contents(id=fid)
             except:
-                log.append('No Smear Analysis Result File found')
+                log.append('No Smear Analysis Result File found.')
     #give error when there is no input file
     if len(content)==0:
         raise RuntimeError("Cannot access any output file.")
@@ -60,9 +60,12 @@ def get_result_file(process, log):
 def get_data(csv_content, log):
     read=False
     data={}
-    #read fragment analyzer result file
-    if csv_content.get('Fragment_Analyzer_Result_File'):
-        text = csv_content['Fragment_Analyzer_Result_File'].encode("utf-8")
+    #read quality table file
+    if csv_content.get('Quality_Table_File'):
+        if isinstance(csv_content['Quality_Table_File'], str):
+            text = csv_content['Quality_Table_File']
+        else:
+            text = csv_content['Quality_Table_File'].encode("utf-8")
         # Try to determine the format of the csv:
         dialect = csv.Sniffer().sniff(text)
         pf = csv.reader(text.splitlines(), dialect=dialect)
@@ -93,7 +96,7 @@ def get_data(csv_content, log):
                     data[row[sample_index]]['ratio']=row[ratio_index]
                 else:
                     #Multiple sample entris for one sample, drop the key
-                    log.append("sample {0} has multiple entries in the Fragment Analyzer Result File. Please check the file manually.".format(row[sample_index]))
+                    log.append("sample {0} has multiple entries in the Quality Table File. Please check the file manually.".format(row[sample_index]))
                     try:
                         del data[row[sample_index]]
                     except KeyError:
@@ -101,7 +104,10 @@ def get_data(csv_content, log):
     #reset to read smear analysis result file
     read=False
     if csv_content.get('Smear_Analysis_Result_File'):
-        text = csv_content['Smear_Analysis_Result_File'].encode("utf-8")
+        if isinstance(csv_content['Smear_Analysis_Result_File'], str):
+            text = csv_content['Smear_Analysis_Result_File']
+        else:
+            text = csv_content['Smear_Analysis_Result_File'].encode("utf-8")
         # Try to determine the format of the csv:
         dialect = csv.Sniffer().sniff(text)
         pf = csv.reader(text.splitlines(), dialect=dialect)
@@ -145,7 +151,6 @@ def get_frag_an_csv_data(process):
     data = get_data(file_content, log)
 
     for target_file in process.result_files():
-        bad_format=0
         conc=None
         rin=None
         ratio=None
@@ -153,31 +158,38 @@ def get_frag_an_csv_data(process):
         dv200=None
         file_sample=target_file.samples[0].name
         if file_sample in data:
-            try:
-                if data[file_sample].get('concentration'):
+            if data[file_sample].get('concentration'):
+                try:
                     conc=float(data[file_sample]['concentration'])
-                if data[file_sample].get('rin'):
-                    rin=float(data[file_sample]['rin'])
-                if data[file_sample].get('ratio'):
-                    ratio=float(data[file_sample]['ratio'])
-                if data[file_sample].get('range'):
-                    range=str(data[file_sample]['range'])
-                if data[file_sample].get('dv200'):
-                    dv200=float(data[file_sample]['dv200'])
-            except ValueError:
-                bad_format+=1
-            else:
-                if conc is not None:
                     target_file.udf['Concentration'] = conc
                     target_file.udf['Conc. Units'] = 'ng/ul'
-                if rin is not None:
+                except ValueError:
+                    log.append('Bad concentration value format for Sample {}.'.format(file_sample))
+            if data[file_sample].get('rin'):
+                try:
+                    rin=float(data[file_sample]['rin'])
                     target_file.udf['RIN'] = rin
-                if ratio is not None:
+                except ValueError:
+                    log.append('Bad RIN value format for Sample {}.'.format(file_sample))
+            if data[file_sample].get('ratio'):
+                try:
+                    ratio=float(data[file_sample]['ratio'])
                     target_file.udf['28s/18s ratio'] = ratio
-                if range is not None:
+                except ValueError:
+                    log.append('Bad ratio value format for Sample {}.'.format(file_sample))
+            if data[file_sample].get('range'):
+                try:
+                    range=str(data[file_sample]['range'])
                     target_file.udf['Range'] = range
-                if dv200 is not None:
+                except ValueError:
+                    log.append('Bad range value format for Sample {}.'.format(file_sample))
+            if data[file_sample].get('dv200'):
+                try:
+                    dv200=float(data[file_sample]['dv200'])
                     target_file.udf['DV200'] = dv200
+                except ValueError:
+                    log.append('Bad dv200 value format for Sample {}.'.format(file_sample))
+
             #actually set the data
             target_file.put()
             set_field(target_file)
@@ -185,8 +197,6 @@ def get_frag_an_csv_data(process):
             missing_samples += 1
     if missing_samples:
         log.append('{0}/{1} samples are missing in the Result File.'.format(missing_samples, len(process.result_files())))
-    if bad_format:
-        log.append('There are {0} badly formatted samples in the Result File')
     print(''.join(log), file=sys.stderr)
 
 def main(lims, pid, epp_logger):

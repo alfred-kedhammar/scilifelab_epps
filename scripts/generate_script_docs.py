@@ -11,7 +11,7 @@ Short usage descriptions for the scripts in the Genologics Package.
 """
 
 def indent(s):
-    return "\n".join(map(lambda w: '\t'+w, s.splitlines()))
+    return "\n".join(['\t'+w for w in s.splitlines()])
 
 
 def help_doc_rst(script,file_path):
@@ -20,13 +20,13 @@ def help_doc_rst(script,file_path):
     sp = subprocess.Popen(["python",script_path,"--help"],
                           stdout=subprocess.PIPE)
     stdout,stderr = sp.communicate()
-    
+
     # Add help message to template
     header = ("{0}\n{1}\nAutomated help message generated from running {0} "
               "with the --help flag::\n\n").format(script,'-'*len(script))
 
     return header + "{0}\n\n".format(indent(stdout))
-    
+
 
 if __name__ == "__main__":
     # Argumentparser only to add --help option
@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     # Fetch all python scripts in the scripts folder
     file_list = os.listdir(file_path)
-    scripts = filter(lambda fn: fn[-3:]=='.py' and fn != this_file, file_list)
+    scripts = [fn for fn in file_list if fn[-3:]=='.py' and fn != this_file]
     scripts = sorted(scripts)
 
     for script in scripts:
@@ -53,4 +53,3 @@ if __name__ == "__main__":
     docs_path = os.path.join(file_path,'..','docs','scripts.rst')
     with open(docs_path,'w') as doc_f:
         doc_f.write(TEMPLATE)
-    

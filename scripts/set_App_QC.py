@@ -1,7 +1,8 @@
 #!/usr/bin/env python
+from __future__ import print_function
 DESC = """This EPP script reads Application QC files from file
-system and sets the qc values for each sample. Allso a a easy to read App QC 
-file is generated with more information about the application specific qc that 
+system and sets the qc values for each sample. Allso a a easy to read App QC
+file is generated with more information about the application specific qc that
 was done. The file is suposed to be a help file in case of failed QC -flaggs.
 
 Logging:
@@ -9,7 +10,6 @@ Logging:
 
 Written by Maya Brandi (14-10-14)
 """
-
 import os
 import sys
 import logging
@@ -53,7 +53,7 @@ class AppQC():
                 self.nr_samps_updat += 1
             else:
                 self.missing_samps.append(samp_name)
-    
+
     def make_App_QC_file(self, app_qc_file):
         """Formates a easy to read App QC file."""
         keys= ['sample', 'qc_passed', 'qc_reason']
@@ -78,7 +78,7 @@ class AppQC():
             self.abstract.append("The following samples are missing in "
                                                     "App_QC_file: {0}.".format(
                                                 ', '.join(self.missing_samps)))
-        print >> sys.stderr, ' '.join(self.abstract)
+        print(' '.join(self.abstract), file=sys.stderr)
 
 def main(lims, pid, epp_logger, App_QC_file):
     process = Process(lims, id = pid)
@@ -87,7 +87,7 @@ def main(lims, pid, epp_logger, App_QC_file):
     AQC.set_result_file_udfs()
     AQC.make_App_QC_file(App_QC_file)
     AQC.logging()
-    
+
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)

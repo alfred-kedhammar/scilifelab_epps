@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-DESC = """EPP script to copy user defined fields from analyte level to 
-submitted sample level in Clarity LIMS. Can be executed in the background 
+from __future__ import print_function
+DESC = """EPP script to copy user defined fields from analyte level to
+submitted sample level in Clarity LIMS. Can be executed in the background
 or triggered by a user pressing a "blue button".
 
-This script can only be applied to processes where ANALYTES are modified 
-in the GUI. The script can output two different logs, where the 
-status_changelog contains notes with the technician, the date and changed 
-status for each copied status. The regular log file contains regular 
-execution information. 
+This script can only be applied to processes where ANALYTES are modified
+in the GUI. The script can output two different logs, where the
+status_changelog contains notes with the technician, the date and changed
+status for each copied status. The regular log file contains regular
+execution information.
 
 Error handling:
 If the udf given is blank or not defined for any of the inputs,
@@ -15,7 +16,8 @@ the script will log this, and not perform any changes for that artifact.
 
 
 Written by Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden
-""" 
+"""
+
 import os
 import sys
 import logging
@@ -75,7 +77,7 @@ def main(lims, args, epp_logger):
     abstract = ("Updated {ua} udf(s), out of {ca} in total, "
                 "{warning} with incorrect udf info.").format(**d)
 
-    print >> sys.stderr, abstract # stderr will be logged and printed in GUI
+    print(abstract, file=sys.stderr) # stderr will be logged and printed in GUI
 
 
 if __name__ == "__main__":

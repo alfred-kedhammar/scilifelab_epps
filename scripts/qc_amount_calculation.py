@@ -1,12 +1,13 @@
 #!/usr/bin/env python
-DESC="""EPP script to calculate amount in ng from concentration and volume 
-udf:s in Clarity LIMS. The script checks that the 'Volume (ul)' and 
-'Concentration' udf:s are defined and that the udf. 'Conc. Units' 
- have the correct value: 'ng/ul', otherwise that artifact is skipped, 
+from __future__ import print_function
+DESC="""EPP script to calculate amount in ng from concentration and volume
+udf:s in Clarity LIMS. The script checks that the 'Volume (ul)' and
+'Concentration' udf:s are defined and that the udf. 'Conc. Units'
+ have the correct value: 'ng/ul', otherwise that artifact is skipped,
 left unchanged, by the script.
 
 Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden
-""" 
+"""
 from argparse import ArgumentParser
 
 from genologics.lims import Lims
@@ -19,13 +20,13 @@ import logging
 import sys
 
 def apply_calculations(lims,artifacts,udf1,op,udf2,result_udf,epp_logger,process):
-    """For each result file of the process: if its corresponding inart has the udf 
+    """For each result file of the process: if its corresponding inart has the udf
     'Dilution Fold', the result_udf: 'Amount (ng)' is calculated as
-   
+
     'Amount (ng)' =  'Concentration'*'Volume (ul)'*'Dilution Fold'
-    
+
     otherwise its calculated as
-        
+
     'Amount (ng)' =  'Concentration'*'Volume (ul)'"""
 
     logging.info(("result_udf: {0}, udf1: {1}, "
@@ -44,7 +45,7 @@ def apply_calculations(lims,artifacts,udf1,op,udf2,result_udf,epp_logger,process
 
         logging.info(("Updating: Artifact id: {0}, "
                      "result_udf: {1}, udf1: {2}, "
-                     "operator: {3}, udf2: {4}").format(artifact.id, 
+                     "operator: {3}, udf2: {4}").format(artifact.id,
                                                         artifact.udf.get(result_udf,0),
                                                         artifact.udf[udf1],op,
                                                         artifact.udf[udf2]))
@@ -55,7 +56,7 @@ def apply_calculations(lims,artifacts,udf1,op,udf2,result_udf,epp_logger,process
         artifact.put()
         logging.info('Updated {0} to {1}.'.format(result_udf,
                                                  artifact.udf[result_udf]))
-            
+
 def check_udf_is_defined(artifacts, udf):
     """ Filter and Warn if udf is not defined for any of artifacts. """
     filtered_artifacts = []
@@ -100,7 +101,7 @@ def main(lims,args,epp_logger):
         artifacts = p.all_inputs(unique=True)
     else:
         all_artifacts = p.all_outputs(unique=True)
-        artifacts = filter(lambda a: a.output_type == "ResultFile" ,all_artifacts)
+        artifacts = [a for a in all_artifacts if a.output_type == "ResultFile"]
 
     correct_artifacts, wrong_factor1 = check_udf_is_defined(artifacts, udf_factor1)
     correct_artifacts, wrong_factor2 = check_udf_is_defined(correct_artifacts, udf_factor2)
@@ -117,7 +118,7 @@ def main(lims,args,epp_logger):
     abstract = ("Updated {ca} artifact(s), skipped {ia} artifact(s) with "
                 "wrong and/or blank values for some udfs.").format(**d)
 
-    print >> sys.stderr, abstract # stderr will be logged and printed in GUI
+    print(abstract, file=sys.stderr) # stderr will be logged and printed in GUI
 
 
 if __name__ == "__main__":

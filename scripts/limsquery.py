@@ -17,8 +17,8 @@ def  get_udfs():
     pros=lims.get_processes(type=step_name)
     for pro in pros:
         try:
-            print "{}\t{} {}\t{}".format(pro.date_run,pro.technician.first_name,pro.technician.last_name ,pro.udf[udf_name] )
+            print("{}\t{} {}\t{}".format(pro.date_run,pro.technician.first_name,pro.technician.last_name ,pro.udf[udf_name]))
         except:
-            print "{}\t{} {}".format(pro.date_run,pro.technician.first_name,pro.technician.last_name)
+            print("{}\t{} {}".format(pro.date_run,pro.technician.first_name,pro.technician.last_name))
 
 get_udfs()

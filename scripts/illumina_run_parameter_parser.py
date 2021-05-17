@@ -124,7 +124,7 @@ def parse_illumina_interop(run_dir):
                 stats.update({"prephasing"            :  getattr(summary.at(read).at(lane), "prephasing")().mean()})
                 stats.update({"reads_pf"              :  getattr(summary.at(read).at(lane), "reads_pf")()})
                 stats.update({"yield_g"               :  getattr(summary.at(read).at(lane), "yield_g")()})
-                if lane_nbr not in run_stats_summary.keys():
+                if lane_nbr not in list(run_stats_summary.keys()):
                     run_stats_summary.update({lane_nbr: {read: stats}})
                 else:
                     run_stats_summary[lane_nbr].update({read : stats})
@@ -136,7 +136,7 @@ def set_run_stats_in_lims(process, run_stats_summary):
         if 'Lane' in art.name:
             lane_nbr = int(art.name.split(' ')[1])
             read = 1
-            for i in run_stats_summary[lane_nbr].keys():
+            for i in list(run_stats_summary[lane_nbr].keys()):
                 lane_stats_for_read = run_stats_summary[lane_nbr][i]
                 if not math.isnan(lane_stats_for_read['density']):
                     art.udf["Cluster Density (K/mm^2) R{}".format(read)]  =  lane_stats_for_read['density']
@@ -170,11 +170,11 @@ def lims_for_nextseq(process, run_dir):
     attach_xml(process, run_dir)
     # Set values for LIMS UDFs
     runParameters = RunParametersParserObj.data['RunParameters']
-    process.udf['Finish Date'] = datetime.strptime(runParameters['RunEndTime'][:10],"%Y-%m-%d").date() if 'RunEndTime' in runParameters.keys() and runParameters['RunEndTime'] != '' else datetime.now().date()
+    process.udf['Finish Date'] = datetime.strptime(runParameters['RunEndTime'][:10],"%Y-%m-%d").date() if 'RunEndTime' in list(runParameters.keys()) and runParameters['RunEndTime'] != '' else datetime.now().date()
     process.udf['Run Type'] = "NextSeq 2000 {}".format(runParameters['FlowCellMode'].split(' ')[2])
     process.udf['Chemistry'] = "NextSeq 2000 {}".format(runParameters['FlowCellMode'].split(' ')[2])
-    planned_cycles = sum(list(map(int, runParameters['PlannedCycles'].values())))
-    completed_cycles = sum(list(map(int, runParameters['CompletedCycles'].values())))
+    planned_cycles = sum(list(map(int, list(runParameters['PlannedCycles'].values()))))
+    completed_cycles = sum(list(map(int, list(runParameters['CompletedCycles'].values()))))
     process.udf['Status'] = "Cycle {} of {}".format(completed_cycles, planned_cycles)
     process.udf['Flow Cell ID'] = runParameters['FlowCellSerialNumber']
     process.udf['Experiment Name'] = runParameters['FlowCellSerialNumber']
@@ -214,13 +214,13 @@ def lims_for_miseq(process, run_dir):
     non_index_read_idx = [read['Number'] for read in runParameters['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'N']
     index_read_idx = [read['Number'] for read in runParameters['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'Y']
 
-    process.udf['Read 1 Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,non_index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
+    process.udf['Read 1 Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(min(list(map(int,non_index_read_idx))))])[0]['NumCycles'])
     if len(non_index_read_idx) == 2:
-        process.udf['Read 2 Cycles'] = int(list(filter(lambda read: read['Number'] == str(max(list(map(int,non_index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
+        process.udf['Read 2 Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(max(list(map(int,non_index_read_idx))))])[0]['NumCycles'])
 
-    process.udf['Index 1 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(min(list(map(int,index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
+    process.udf['Index 1 Read Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(min(list(map(int,index_read_idx))))])[0]['NumCycles'])
     if len(index_read_idx) == 2:
-        process.udf['Index 2 Read Cycles'] = int(list(filter(lambda read: read['Number'] == str(max(list(map(int,index_read_idx)))), runParameters['Reads']['RunInfoRead']))[0]['NumCycles'])
+        process.udf['Index 2 Read Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(max(list(map(int,index_read_idx))))])[0]['NumCycles'])
 
 
     process.udf['Run ID'] = runParameters['RunID']

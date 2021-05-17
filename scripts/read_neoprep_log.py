@@ -26,6 +26,8 @@ def read_log(lims, pid, logfile):
                 exit(2)
 
             file_contents=lims.get_file_contents(id=fid)
+            if isinstance(file_contents, bytes):
+                file_contents = file_contents.decode('utf-8')
             logger.info("Found the machine log file")
 
     if file_contents:
@@ -69,7 +71,7 @@ def read_log(lims, pid, logfile):
 
             if "[Sample Information]" in line:
                 read=True
-        logger.info("obtained data for samples {0}".format(data.keys()))
+        logger.info("obtained data for samples {0}".format(list(data.keys())))
 
     for inp in pro.all_inputs():
         #save the data from the logfile to the lims artifacts
@@ -101,7 +103,7 @@ def read_log(lims, pid, logfile):
             attach_file(os.path.join(os.getcwd(), logfile), out)
 
 
-            
+
 
 
 

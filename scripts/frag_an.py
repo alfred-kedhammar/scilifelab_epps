@@ -25,6 +25,8 @@ def main(lims, args):
             log_art = o
 
     file_contents = lims.get_file_contents(id=fid)
+    if isinstance(file_contents, bytes):
+        file_contents = file_contents.decode('utf-8')
     frag_data = {}
     keys = []
     for line in file_contents.splitlines():
@@ -33,7 +35,7 @@ def main(lims, args):
         else:
             values = line.split(',')
             frag_data[values[0]] = {}
-            for i in xrange(1, len(values)):
+            for i in range(1, len(values)):
                 frag_data[values[0]][keys[i]] = values[i]
     # Then, read the concentration from the step defined in the process udf
     try:

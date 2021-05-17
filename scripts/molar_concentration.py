@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-DESC = """EPP script to calculate molar concentration given the 
-weight concentration, in Clarity LIMS. Before updating the artifacts, 
+from __future__ import print_function
+DESC = """EPP script to calculate molar concentration given the
+weight concentration, in Clarity LIMS. Before updating the artifacts,
 the script verifies that 'Concentration' and 'Size (bp)' udf:s are not blank,
- and that the 'Conc. units' field is 'ng/ul' for each artifact. Artifacts 
+ and that the 'Conc. units' field is 'ng/ul' for each artifact. Artifacts
 that do not fulfill the requirements, will not be updated.
 
 Written by Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden
-""" 
-
+"""
 from argparse import ArgumentParser
 
 from genologics.lims import Lims
@@ -22,7 +22,7 @@ import sys
 def apply_calculations(lims, artifacts, conc_udf, size_udf, unit_udf, epp_logger):
     for artifact in artifacts:
         logging.info(("Updating: Artifact id: {0}, "
-                     "Concentration: {1}, Size: {2}, ").format(artifact.id, 
+                     "Concentration: {1}, Size: {2}, ").format(artifact.id,
                                                         artifact.udf[conc_udf],
                                                         artifact.udf[size_udf]))
         factor = 1e6 / (328.3 * 2 * artifact.udf[size_udf])
@@ -74,7 +74,7 @@ def main(lims, args, epp_logger):
         artifacts = p.all_inputs(unique=True)
     else:
         all_artifacts = p.all_outputs(unique=True)
-        artifacts = filter(lambda a: a.output_type == "ResultFile", all_artifacts)
+        artifacts = [a for a in all_artifacts if a.output_type == "ResultFile"]
 
     correct_artifacts, no_concentration = check_udf_is_defined(artifacts, concentration_udf)
     correct_artifacts, no_size = check_udf_is_defined(correct_artifacts, size_udf)
@@ -88,7 +88,7 @@ def main(lims, args, epp_logger):
     abstract = ("Updated {ca} artifact(s), skipped {ia} artifact(s) with "
                 "wrong and/or blank values for some udfs.").format(**d)
 
-    print >> sys.stderr, abstract # stderr will be logged and printed in GUI
+    print(abstract, file=sys.stderr) # stderr will be logged and printed in GUI
 
 
 if __name__ == "__main__":
