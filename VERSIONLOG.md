@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210519.1
+Fix bug with None type comparison in copy_qubit.py
+
 ## 20210511.1
 Update obtain_customer_cc.py to support custom volume
 

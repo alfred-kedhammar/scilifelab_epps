@@ -142,11 +142,12 @@ def get_qbit_csv_data(process):
                 if new_conc is not None :
                     target_file.udf['Concentration'] = new_conc
                     target_file.udf['Conc. Units'] = 'ng/ul'
-                    if new_conc < min_conc:
-                        target_file.qc_flag = "FAILED"
-                        low_conc +=1
-                    else:
-                        target_file.qc_flag = "PASSED"
+                    if min_conc:
+                        if new_conc < min_conc:
+                            target_file.qc_flag = "FAILED"
+                            low_conc +=1
+                        else:
+                            target_file.qc_flag = "PASSED"
 
             #actually set the data
             target_file.put()
