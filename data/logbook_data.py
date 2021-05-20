@@ -1,5 +1,10 @@
 #A full list of LIMS steps with involved instrument and details for logging
 lims_process_record={
+    "Adapter ligation and reverse transcription" : {
+        "lims_instrument" : {
+            "dest_file" : "PCR"
+        }
+    },
     "Adapter ligation and reverse transcription (TruSeq small RNA) 1.0" : {
           "lims_instrument" : {
               "dest_file" : "Bravo",
@@ -63,6 +68,11 @@ lims_process_record={
               "details" : ["Processname"]
           },
           "udf_PCR Machine" : {
+              "dest_file" : "PCR"
+          }
+      },
+      "Amplify by PCR and Add Index Tags" : {
+          "lims_instrument" : {
               "dest_file" : "PCR"
           }
       },
