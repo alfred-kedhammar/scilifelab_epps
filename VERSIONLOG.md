@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210520.1
+Upgrade EPPs to support the new QIAseq miRNA protocol
+
 ## 20210519.1
 Fix bug with None type comparison in copy_qubit.py
 

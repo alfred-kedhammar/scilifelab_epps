@@ -21,6 +21,7 @@ from write_notes_to_couchdb import write_note_to_couch
 
 def categorization(process_name):
     decision={
+    "Adapter ligation and reverse transcription" : "Workset",
     "Aggregate QC (DNA) 4.0" : "Workset",
     "Aggregate QC (Library Validation) 4.0" : "Workset",
     "Aggregate QC (RNA) 4.0" : "Workset",
@@ -31,6 +32,7 @@ def categorization(process_name):
     "Amplification and Purification" : "Workset",
     "Amplify Adapter-Ligated Library (SS XT) 4.0" : "",
     "Amplify Captured Libraries to Add Index Tags (SS XT) 4.0" : "",
+    "Amplify by PCR and Add Index Tags" : "Workset",
     "Amplify by PCR and Add Index Tags (TruSeq small RNA) 1.0" : "Workset",
     "Applications Generic Process" : "Workset",
     "Applications Indexing" : "Workset",
