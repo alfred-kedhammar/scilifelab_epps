@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210525.1
+Add fragment analyzer protocols in comments_to_running_notes
+
 ## 20210520.1
 Upgrade EPPs to support the new QIAseq miRNA protocol
 
