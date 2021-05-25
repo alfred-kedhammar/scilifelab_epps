@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210525.2
+Fix issue with error message
+
 ## 20210525.1
 Add fragment analyzer protocols in comments_to_running_notes
 
