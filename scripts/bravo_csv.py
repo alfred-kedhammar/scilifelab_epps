@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import re
+import pandas as pd
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
@@ -247,6 +248,13 @@ def prepooling(currentStep, lims):
     if log:
         with open("bravo.log", "w") as logContext:
             logContext.write("\n".join(log))
+
+    df = pd.read_csv("bravo.csv", header=None)
+    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
+    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
+    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
+    df.to_csv('bravo.csv', header=False, index=False)
+
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
         if out.name == "EPP Generated Bravo CSV File":
@@ -270,6 +278,13 @@ def setup_qpcr(currentStep, lims):
     if log:
         with open("bravo.log", "w") as logContext:
             logContext.write("\n".join(log))
+
+    df = pd.read_csv("bravo.csv", header=None)
+    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
+    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
+    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
+    df.to_csv('bravo.csv', header=False, index=False)
+
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
         if out.name == "EPP Generated Bravo CSV File":
@@ -313,6 +328,12 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                         volume = calc_vol(art_tuple, logContext, checkTheLog)
                         csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
 
+    df = pd.read_csv("bravo.csv", header=None)
+    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
+    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
+    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
+    df.to_csv('bravo.csv', header=False, index=False)
+    
     # For now only one output plate is supported:
     if len(list(set(dest_plate))) == 1:
         dest_plate_name = list(set(dest_plate))[0]
@@ -427,6 +448,12 @@ def dilution(currentStep):
                     art_tuple[1]['uri'].put()
                     csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, art_tuple[1]['uri'].udf['Volume to take (uL)'], dest_fc, dest_well, art_tuple[1]['uri'].udf['Final Volume (uL)']))
 
+    df = pd.read_csv("bravo.csv", header=None)
+    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
+    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
+    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
+    df.to_csv('bravo.csv', header=False, index=False)
+
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
         if out.name == "EPP Generated Bravo CSV File":
@@ -494,6 +521,13 @@ def normalization(current_step):
     if log:
         with open("bravo.log", "w") as log_context:
             log_context.write("\n".join(log))
+
+    df = pd.read_csv("bravo.csv", header=None)
+    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
+    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
+    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
+    df.to_csv('bravo.csv', header=False, index=False)
+
     for out in current_step.all_outputs():
         # attach the csv file and the log file
         if out.name == "EPP Generated Bravo CSV File for Normalization":
@@ -605,6 +639,12 @@ def sample_dilution_before_QC(currentStep):
                         logContext.write("ERROR : Sample {0} will have a final concentration higher than the input concentration {1}.\n".format(sample_name, input_conc))
                         checkTheLog[0] = True
                         continue
+
+    df = pd.read_csv("bravo.csv", header=None)
+    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
+    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
+    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
+    df.to_csv('bravo.csv', header=False, index=False)
 
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
