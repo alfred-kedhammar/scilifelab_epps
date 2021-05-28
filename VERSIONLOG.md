@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210528.1
+Better sort functions for bravo csv and samplesheet
+
 ## 20210525.2
 Fix issue with error message
 

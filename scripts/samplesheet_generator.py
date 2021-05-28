@@ -3,6 +3,12 @@
 import re
 import os
 import sys
+import pandas as pd
+
+try:
+    from io import StringIO
+except ImportError:
+    from StringIO import StringIO
 
 from argparse import ArgumentParser
 from datetime import datetime
@@ -201,7 +207,12 @@ def gen_Novaseq_lane_data(pro):
         l_data = [line['fc'], line['lane'], line['sn'], line['sn'], line['ref'], line['idx1'], line['idx2'], line['pj'], line['ct'], line['rc'], line['op'], line['pj']]
         str_data = str_data + ",".join(l_data) + "\n"
 
-    return ("{}{}".format(header, str_data), data)
+    content = "{}{}".format(header, str_data)
+    df = pd.read_csv(StringIO(content))
+    df = df.sort_values(['Lane', 'Sample_ID'])
+    content = df.to_csv(index=False)
+
+    return (content, data)
 
 def gen_Miseq_header(pro):
     project_name=pro.all_inputs()[0].samples[0].project.name
@@ -306,7 +317,12 @@ def gen_Miseq_data(pro):
             l_data = [line['sn'], line['sn'], line['fc'], line['sw'], line['pj'], line['idx1'], line['idx1ref'], pro.udf['Description'].replace('.','_'), line['gf']]
         str_data = str_data + ",".join(l_data) + "\n"
 
-    return ("{}{}".format(header, str_data), data)
+    content = "{}{}".format(header, str_data)
+    df = pd.read_csv(StringIO(content))
+    df = df.sort_values(['Sample_ID'])
+    content = df.to_csv(index=False)
+
+    return (content, data)
 
 
 def gen_Nextseq_lane_data(pro):
@@ -356,7 +372,12 @@ def gen_Nextseq_lane_data(pro):
         l_data = [line['fc'], line['lane'], line['sn'], line['sn'], line['ref'], line['idx1'], line['idx2'], line['pj'], line['ct'], line['rc'], line['op'], line['pj']]
         str_data = str_data + ",".join(l_data) + "\n"
 
-    return ("{}{}".format(header, str_data), data)
+    content = "{}{}".format(header, str_data)
+    df = pd.read_csv(StringIO(content))
+    df = df.sort_values(['Lane', 'Sample_ID'])
+    content = df.to_csv(index=False)
+
+    return (content, data)
 
 
 def gen_MinION_QC_data(pro):
