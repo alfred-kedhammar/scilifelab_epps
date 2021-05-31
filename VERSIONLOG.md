@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210531.1
+Fix bug with MiSeq in samplesheet generator
+
 ## 20210528.1
 Better sort functions for bravo csv and samplesheet
 
