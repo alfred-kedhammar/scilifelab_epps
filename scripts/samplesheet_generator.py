@@ -318,9 +318,10 @@ def gen_Miseq_data(pro):
         str_data = str_data + ",".join(l_data) + "\n"
 
     content = "{}{}".format(header, str_data)
-    df = pd.read_csv(StringIO(content))
+    df = pd.read_csv(StringIO(content), skiprows=1)
     df = df.sort_values(['Sample_ID'])
     content = df.to_csv(index=False)
+    content = "[Data]\n{}\n".format(content)
 
     return (content, data)
 
