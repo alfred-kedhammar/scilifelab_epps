@@ -383,7 +383,10 @@ def gen_Nextseq_lane_data(pro):
 
 def gen_MinION_QC_data(pro):
     data=[]
-    fastq_path = pro.udf['Path of Output FastQ Files']
+    try:
+        fastq_path = pro.udf['Path of Output FastQ Files']
+    except KeyError:
+        fastq_path = ''
     for out in pro.all_outputs():
         if NGISAMPLE_PAT.findall(out.name):
             nanopore_barcode_name = out.udf['Nanopore Barcode'].split('_')[0] if out.udf['Nanopore Barcode'] != 'None' else ''

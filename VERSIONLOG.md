@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210603.1
+Allow empty path for Minion QC
+
 ## 20210531.1
 Fix bug with MiSeq in samplesheet generator
 
