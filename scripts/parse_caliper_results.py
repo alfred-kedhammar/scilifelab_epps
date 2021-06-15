@@ -27,6 +27,7 @@ from scilifelab_epps.epp import set_field
 NGISAMPLE_PAT = re.compile("P[0-9]+_[0-9]+")
 CALIPER_PAT = re.compile("CaliperGX \([D|R]NA\) (.*)")
 SAMPLENAME_PAT = re.compile("[A-H][1-9][0-2]?_(.*)_[0-9]+-[0-9]+_([0-9]+-[0-9]+)*")
+DV200_PAT = re.compile("Region[[0-9]+-[0-9]+] % of Total Area")
 
 # Get file
 def get_caliper_output_file(process, log):
@@ -65,14 +66,17 @@ def get_data(content, log):
             log.append('Caliper WellTable file in bad format')
     # Process data to include sample ID and well
     for k, v in data.items():
-        data[k]['Sample'] = SAMPLENAME_PAT.findall(k)[0][0]
-        data[k]['Well'] = v['Well Label'][:1] + ':' + str(int(v['Well Label'][1:]))
+        try:
+            data[k]['Sample'] = SAMPLENAME_PAT.findall(k)[0][0]
+            data[k]['Well'] = v['Well Label'][:1] + ':' + str(int(v['Well Label'][1:]))
+        except IndexError:
+            pass
     return data
 
 def parse_caliper_results(process):
     # Sample UDF and data map
     map = []
-    map_RNA = [('RIN', 'RNA Quality Score'), ('Concentration', 'Total Conc. (ng/ul)')]
+    map_RNA = [('RIN', 'RNA Quality Score'), ('Concentration', 'Total Conc. (ng/ul)'), ('DV200', 'Region[A-B] % of Total Area')]
     map_DNA = [('Concentration', 'Smear Conc. (ng/ul)'),('Size (bp)', 'Smear Size [BP]'), ('Conc. nM', 'Smear Molarity (nmol/l)')]
 
     if 'RNA' in process.type.name:
@@ -92,11 +96,19 @@ def parse_caliper_results(process):
         if CALIPER_PAT.findall(out.name):
             found_flag = False
             for k, v in data.items():
-                if v['Sample'] == CALIPER_PAT.findall(out.name)[0] and v['Well'] == out.location[1]:
+                if 'Sample' in v.keys() and v['Sample'] == CALIPER_PAT.findall(out.name)[0] and v['Well'] == out.location[1]:
                     found_flag = True
                     for item in map:
-                        if v[item[1]] != 'NA' and v[item[1]] != '':
-                            out.udf[item[0]] = float(re.sub('\[|\]','',v[item[1]]))
+                        target_column = ''
+                        if item[0] == 'DV200':
+                            for field in v.keys():
+                                if DV200_PAT.findall(field):
+                                    target_column = DV200_PAT.findall(field)[0]
+                        else:
+                            if item[1] in v.keys():
+                                target_column = item[1]
+                        if target_column != '' and v[target_column] != 'NA' and v[target_column] != '':
+                            out.udf[item[0]] = float(re.sub('\[|\]','',v[target_column]))
                         else:
                             log.append("Sample {} in well {} missing {}.".format(v['Sample'], v['Well'], item[0]))
                         out.udf['Conc. Units'] = 'ng/ul'

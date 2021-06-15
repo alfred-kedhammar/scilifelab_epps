@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210615.1
+Support DV200 for Caliper result parser
+
 ## 20210603.1
 Allow empty path for Minion QC
 
