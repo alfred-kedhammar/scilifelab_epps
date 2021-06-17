@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20210617.1
+Support additional 10X index types in samplesheet generator
+Update 10X index list
+
 ## 20210615.1
 Support DV200 for Caliper result parser
 
