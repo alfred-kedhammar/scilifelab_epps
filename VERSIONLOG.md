@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210702.1
+Upgrade EPPs to support the new ONT protocol
+
 ## 20210617.1
 Support additional 10X index types in samplesheet generator
 Update 10X index list
