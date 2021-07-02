@@ -389,6 +389,11 @@ lims_process_record={
               "dest_file" : "PCR"
           }
       },
+      "ONT End-Prep and Cleanup" : {
+          "lims_instrument" : {
+              "dest_file" : "PCR"
+          }
+      },
       "PCR1 (Amplicon)" : {
           "lims_instrument" : {
               "dest_file" : "Bravo",
