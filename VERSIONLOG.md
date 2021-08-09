@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210809.1
+Update threshold of max undet per lane percentage for demux step
+
 ## 20210702.1
 Upgrade EPPs to support the new ONT protocol
 

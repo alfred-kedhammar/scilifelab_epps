@@ -8,7 +8,7 @@ class Thresholds():
         self.logger = logging.getLogger('demux_logger.thresholds')
         self.Q30 = None
         self.exp_lane_clust = None
-        self.undet_indexes_perc = 10
+        self.undet_indexes_perc = None
         self.correction_factor_for_sample_in_pool = 0.75
 
         #Checks that only supported values are entered
@@ -33,6 +33,12 @@ class Thresholds():
             sys.stderr.write(message)
         else:
             self.logger.info(message)
+
+    def set_undet_indexes_perc(self):
+        if self.instrument == "miseq" and self.paired:
+            self.undet_indexes_perc = 20
+        else:
+            self.undet_indexes_perc = 10
 
     """Q30 values are derived from governing document 1244:4"""
     def set_Q30(self):
