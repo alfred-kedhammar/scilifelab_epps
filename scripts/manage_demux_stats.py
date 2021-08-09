@@ -128,6 +128,7 @@ def manipulate_process(demux_process, proc_stats):
 
     #Would REALLY prefer "Maximum % Undetermined Reads per Lane" over "Threshold for Undemultiplexed Index Yield"
     if not "Maximum % Undetermined Reads per Lane" in demux_process.udf:
+        thresholds.set_undet_indexes_perc()
         try:
             demux_process.udf["Maximum % Undetermined Reads per Lane"] = thresholds.undet_indexes_perc
             logger.info("Maximum percentage of undetermined per lane set to {} %".\
