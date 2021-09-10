@@ -706,7 +706,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
 
         if org_vol < MIN_WARNING_VOLUME:
             logContext.write("WARN : Sample {0} located {1} {2}  has a LOW original volume : {3}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                  art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], org_vol))
+                                                                                                  art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], "{0:.2f}".format(org_vol)))
             volume = min(org_vol, volume)
             checkTheLog[0] = True
         elif volume < MIN_WARNING_VOLUME:
@@ -716,24 +716,25 @@ def calc_vol(art_tuple, logContext, checkTheLog):
                 final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_ng)/float(final_volume))
                 if final_volume <= MAX_WARNING_VOLUME:
                     logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. CSV adjusted by taking {4} uL sample and diluting in a total volume {5} uL.\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                          art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume, MIN_WARNING_VOLUME, final_volume))
+                                                                                                          art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], "{0:.2f}".format(volume), MIN_WARNING_VOLUME, "{0:.2f}".format(final_volume)))
                     volume = MIN_WARNING_VOLUME
                 else:
                     logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. It cannot be adjusted due to too high sample concentration.\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                          art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume))
+                                                                                                          art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], "{0:.2f}".format(volume)))
+                    final_volume = art_tuple[1]['uri'].udf["Total Volume (uL)"]
             else:
                 logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                  art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume))
+                                                                                                  art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], "{0:.2f}".format(volume)))
             checkTheLog[0] = True
         elif volume > org_vol or volume > art_tuple[1]['uri'].udf['Total Volume (uL)']:
             # check against the "original sample volume" and the "total dilution volume"
             new_volume = min(org_vol, art_tuple[1]['uri'].udf['Total Volume (uL)'])
             if org_vol <= art_tuple[1]['uri'].udf['Total Volume (uL)']:
                 logContext.write("WARN : Sample {0} located {1} {2}  has a HIGHER volume than the original: {3}, over {4}. Take original volume: {4}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                             art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume, org_vol))
+                                                                                                             art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], "{0:.2f}".format(volume), "{0:.2f}".format(org_vol)))
             else:
                 logContext.write("WARN : Sample {0} located {1} {2}  has a HIGHER volume than the total: {3}, over {4}. Take total volume: {4}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                                             art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume, art_tuple[1]['uri'].udf["Total Volume (uL)"]))
+                                                                                                                             art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], "{0:.2f}".format(volume), art_tuple[1]['uri'].udf["Total Volume (uL)"]))
             volume = new_volume
             checkTheLog[0] = False
         else:
