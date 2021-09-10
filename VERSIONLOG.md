@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20210910.1
+Update bravo_csv to support volume adjustment for high conc samples
+
 ## 20210809.1
 Update threshold of max undet per lane percentage for demux step
 

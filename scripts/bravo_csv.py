@@ -6,11 +6,13 @@ import os
 import sys
 import re
 import pandas as pd
+import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
+
 
 DESC = """EPP used to create csv files for the bravo robot"""
 
@@ -315,17 +317,10 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                     dest_fc_name = art_tuple[1]['uri'].location[0].name
                     dest_plate.append(dest_fc_name)
                     if with_total_vol:
-                        try:
-                            # might not be filled in
-                            final_volume = art_tuple[1]['uri'].udf["Total Volume (uL)"]
-                        except KeyError:
-                            logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
-                            checkTheLog[0] = True
-                        else:
-                            volume = calc_vol(art_tuple, logContext, checkTheLog)
-                            csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
+                        volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
+                        csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
                     else:
-                        volume = calc_vol(art_tuple, logContext, checkTheLog)
+                        volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
                         csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
 
     df = pd.read_csv("bravo.csv", header=None)
@@ -333,7 +328,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
     df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
     df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
     df.to_csv('bravo.csv', header=False, index=False)
-    
+
     # For now only one output plate is supported:
     if len(list(set(dest_plate))) == 1:
         dest_plate_name = list(set(dest_plate))[0]
@@ -682,6 +677,10 @@ def main(lims, args):
 
 
 def calc_vol(art_tuple, logContext, checkTheLog):
+    art_workflows = []
+    for stage in art_tuple[0]['uri'].workflow_stages_and_statuses:
+        if stage[1] == 'IN_PROGRESS':
+            art_workflows.append(stage[0].workflow.name)
     try:
         # not handling different units yet. Might be needed at some point.
         assert art_tuple[0]['uri'].udf['Conc. Units'] in ["ng/ul", "ng/uL"]
@@ -698,14 +697,32 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             org_vol = art_tuple[0]['uri'].udf['Volume (ul)']
         volume = float(amount_ng) / float(conc)
 
+        try:
+            # might not be filled in
+            final_volume = art_tuple[1]['uri'].udf["Total Volume (uL)"]
+        except KeyError:
+            logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
+            checkTheLog[0] = True
+
         if org_vol < MIN_WARNING_VOLUME:
             logContext.write("WARN : Sample {0} located {1} {2}  has a LOW original volume : {3}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                   art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], org_vol))
             volume = min(org_vol, volume)
             checkTheLog[0] = True
         elif volume < MIN_WARNING_VOLUME:
-            # arbitrarily determined by Sverker Lundin
-            logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}\n".format(art_tuple[1]['uri'].samples[0].name,
+            # When the volume is lower than the MIN_WARNING_VOLUME, set volume to MIN_WARNING_VOLUME
+            # for the TruSeq RNA, TruSeq DNA PCR-free and ThruPLEX protocols
+            if any(x in y for y in art_workflows for x in ['TruSeq RNA', 'TruSeq DNA PCR-free', 'ThruPlex']):
+                final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_ng)/float(final_volume))
+                if final_volume <= MAX_WARNING_VOLUME:
+                    logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. CSV adjusted by taking {4} uL sample and diluting in a total volume {5} uL.\n".format(art_tuple[1]['uri'].samples[0].name,
+                                                                                                          art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume, MIN_WARNING_VOLUME, final_volume))
+                    volume = MIN_WARNING_VOLUME
+                else:
+                    logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. It cannot be adjusted due to too high sample concentration.\n".format(art_tuple[1]['uri'].samples[0].name,
+                                                                                                          art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume))
+            else:
+                logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                   art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1], volume))
             checkTheLog[0] = True
         elif volume > org_vol or volume > art_tuple[1]['uri'].udf['Total Volume (uL)']:
@@ -721,7 +738,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             checkTheLog[0] = False
         else:
             logContext.write("INFO : Sample {0} looks okay.\n".format(art_tuple[1]['uri'].samples[0].name))
-        return "{0:.2f}".format(volume)
+        return ("{0:.2f}".format(volume), "{0:.2f}".format(final_volume))
     except KeyError as e:
         logContext.write("ERROR : The input artifact is lacking a field : {0}\n".format(e))
         checkTheLog[0] = True
