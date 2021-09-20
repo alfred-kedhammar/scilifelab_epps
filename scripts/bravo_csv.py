@@ -688,6 +688,9 @@ def calc_vol(art_tuple, logContext, checkTheLog):
     for stage in art_tuple[0]['uri'].workflow_stages_and_statuses:
         if stage[1] == 'IN_PROGRESS':
             art_workflows.append(stage[0].workflow.name)
+    no_depletion_flag = False
+    if (art_tuple[0]['uri'].samples[0].project.udf.get('Library construction method') and 'no depletion' in art_tuple[0]['uri'].samples[0].project.udf['Library construction method']) or (art_tuple[0]['uri'].samples[0].project.udf.get('Library prep option') and 'No depletion' in art_tuple[0]['uri'].samples[0].project.udf['Library prep option']):
+        no_depletion_flag = True
     try:
         # not handling different units yet. Might be needed at some point.
         assert art_tuple[0]['uri'].udf['Conc. Units'] in ["ng/ul", "ng/uL"]
@@ -715,8 +718,8 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             checkTheLog[0] = True
         elif volume < MIN_WARNING_VOLUME:
             # When the volume is lower than the MIN_WARNING_VOLUME, set volume to MIN_WARNING_VOLUME
-            # for the TruSeq RNA, TruSeq DNA PCR-free and ThruPLEX protocols
-            if any(x in y for y in art_workflows for x in ['TruSeq RNA', 'TruSeq DNA PCR-free', 'ThruPlex']):
+            # for the TruSeq RNA, TruSeq DNA PCR-free and ThruPLEX protocols. But not apply to the no-depletion RNA protocol
+            if any(x in y for y in art_workflows for x in ['TruSeq RNA', 'TruSeq DNA PCR-free', 'ThruPlex']) and not no_depletion_flag:
                 final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_ng)/float(final_volume))
                 if final_volume <= MAX_WARNING_VOLUME:
                     logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. CSV adjusted by taking {4} uL sample and diluting in a total volume {5} uL.\n".format(art_tuple[1]['uri'].samples[0].name,
