@@ -316,15 +316,12 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                     dest_fc_name = art_tuple[1]['uri'].location[0].name
                     dest_plate.append(dest_fc_name)
                     if with_total_vol:
-                        try:
-                            # might not be filled in
-                            art_tuple[1]['uri'].udf["Total Volume (uL)"]
-                        except KeyError:
-                            logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
-                            checkTheLog[0] = True
-                        else:
+                        if art_tuple[1]['uri'].udf.get("Total Volume (uL)"):
                             volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
                             csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
+                        else:
+                            logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
+                            checkTheLog[0] = True
                     else:
                         volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
                         csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
@@ -688,7 +685,8 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         if stage[1] == 'IN_PROGRESS':
             art_workflows.append(stage[0].workflow.name)
     no_depletion_flag = False
-    if (art_tuple[0]['uri'].samples[0].project.udf.get('Library construction method') and 'no depletion' in art_tuple[0]['uri'].samples[0].project.udf['Library construction method']) or (art_tuple[0]['uri'].samples[0].project.udf.get('Library prep option') and 'No depletion' in art_tuple[0]['uri'].samples[0].project.udf['Library prep option']):
+    project = art_tuple[0]['uri'].samples[0].project
+    if (project.udf.get('Library construction method') and 'no depletion' in project.udf['Library construction method']) or (project.udf.get('Library prep option') and 'No depletion' in project.udf['Library prep option']):
         no_depletion_flag = True
     try:
         # not handling different units yet. Might be needed at some point.
