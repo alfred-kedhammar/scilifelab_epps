@@ -6,7 +6,6 @@ import os
 import sys
 import re
 import pandas as pd
-import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
