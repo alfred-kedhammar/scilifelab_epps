@@ -1,7 +1,7 @@
 # Scilifelab_epps Version Log
 
 ## 20210930.1
-Fix bug that controls has no project
+Fix bug with control samples for bravo_csv
 
 ## 20210920.1
 Exclude RNA no depletion protocol from volume adjustment

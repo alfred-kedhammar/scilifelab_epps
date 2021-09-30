@@ -686,7 +686,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             art_workflows.append(stage[0].workflow.name)
     no_depletion_flag = False
     project = art_tuple[0]['uri'].samples[0].project
-    if project and 'no depletion' in project.udf.get('Library construction method', '') or 'No depletion' in project.udf.get('Library prep option', ''):
+    if project and ('no depletion' in project.udf.get('Library construction method', '') or 'No depletion' in project.udf.get('Library prep option', '')):
         no_depletion_flag = True
     try:
         # not handling different units yet. Might be needed at some point.
@@ -768,7 +768,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         logContext.write("ERROR: Sample {0} has a concentration of 0\n".format(art_tuple[1]['uri'].samples[0].name))
         checkTheLog[0] = True
     # this allows to still write the file. Won't be readable though
-    return "#ERROR#"
+    return ("#ERROR#", "#ERROR#")
 
 def check_barcode_collision(step):
     for output in step.all_outputs():
