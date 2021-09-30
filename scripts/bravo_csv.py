@@ -686,7 +686,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             art_workflows.append(stage[0].workflow.name)
     no_depletion_flag = False
     project = art_tuple[0]['uri'].samples[0].project
-    if 'no depletion' in project.udf.get('Library construction method', '') or 'No depletion' in project.udf.get('Library prep option', ''):
+    if project and 'no depletion' in project.udf.get('Library construction method', '') or 'No depletion' in project.udf.get('Library prep option', ''):
         no_depletion_flag = True
     try:
         # not handling different units yet. Might be needed at some point.
