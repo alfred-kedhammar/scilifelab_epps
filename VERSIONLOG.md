@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20211007.1
+Support fmol amount calculation
+
 ## 20210930.1
 Fix bug with control samples for bravo_csv
 
