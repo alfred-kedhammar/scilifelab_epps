@@ -3,7 +3,7 @@ from __future__ import print_function
 DESC="""EPP script to calculate amount in ng from concentration and volume
 udf:s in Clarity LIMS. The script checks that the 'Volume (ul)' and
 'Concentration' udf:s are defined and that the udf. 'Conc. Units'
- have the correct value: 'ng/ul', otherwise that artifact is skipped,
+ have the correct value, otherwise that artifact is skipped,
 left unchanged, by the script.
 
 Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden
@@ -52,6 +52,8 @@ def apply_calculations(lims,artifacts,udf1,op,udf2,result_udf,epp_logger,process
         prod = eval('{0}{1}{2}'.format(artifact.udf[udf1],op,artifact.udf[udf2]))
         if dil_fold:
             prod = eval('{0}{1}{2}'.format(prod, op, dil_fold))
+        if artifact.udf['Conc. Units'] == 'pM':
+            prod = eval('{0}{1}{2}'.format(prod, op, 1/1000))
         artifact.udf[result_udf] = prod
         artifact.put()
         logging.info('Updated {0} to {1}.'.format(result_udf,
@@ -91,11 +93,18 @@ def check_udf_has_value(artifacts, udf, value):
 
 def main(lims,args,epp_logger):
     p = Process(lims,id = args.pid)
-    udf_check = 'Conc. Units'
-    value_check = ['ng/ul', 'ng/uL']
-    udf_factor1 = 'Concentration'
-    udf_factor2 = 'Volume (ul)'
-    result_udf = 'Amount (ng)'
+    if p.type.name == 'Aggregate QC (Library Validation) 4.0':
+        udf_check = 'Conc. Units'
+        value_check = ['nM', 'pM']
+        udf_factor1 = 'Concentration'
+        udf_factor2 = 'Volume (ul)'
+        result_udf = 'Amount (fmol)'
+    else:
+        udf_check = 'Conc. Units'
+        value_check = ['ng/ul', 'ng/uL']
+        udf_factor1 = 'Concentration'
+        udf_factor2 = 'Volume (ul)'
+        result_udf = 'Amount (ng)'
 
     if args.aggregate:
         artifacts = p.all_inputs(unique=True)
