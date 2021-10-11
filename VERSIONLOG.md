@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20211011.1
+Update anglerfish results parser to support outputfile with new format
+
 ## 20211007.1
 Support fmol amount calculation
 
