@@ -235,19 +235,19 @@ lims_process_record={
           }
       },
       "Fragment Analyzer QC (DNA) 4.0" : {
-          "default" : {
+          "lims_instrument" : {
               "dest_file" : "FragmentAnalyzer",
               "details" : ["Lot no: Fragment Analyzer Reagents"]
           }
       },
       "Fragment Analyzer QC (Library Validation) 4.0" : {
-          "default" : {
+          "lims_instrument" : {
               "dest_file" : "FragmentAnalyzer",
               "details" : ["Lot no: Fragment Analyzer Reagents"]
           }
       },
       "Fragment Analyzer QC (RNA) 4.0" : {
-          "default" : {
+          "lims_instrument" : {
               "dest_file" : "FragmentAnalyzer",
               "details" : ["Lot no: Fragment Analyzer Reagents"]
           }
