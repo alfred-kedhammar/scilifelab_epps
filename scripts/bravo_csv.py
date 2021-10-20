@@ -253,11 +253,14 @@ def prepooling(currentStep, lims):
 
         # Couple files to LIMS
         for out in currentStep.all_outputs():
-            # attach the csv file and the log file
             if out.name == "Mosquito CSV File":
-                attach_file(os.path.join(os.getcwd(), wl_filename), out)
-            if log and out.name == "Mosquito Log":
-                attach_file(os.path.join(os.getcwd(), log_filename), out)
+                for f in out.files:
+                    lims.request_session.delete(f.uri)
+                lims.upload_new_file(out, wl_filename)
+            if out.name == "Mosquito Log":
+                for f in out.files:
+                    lims.request_session.delete(f.uri)
+                lims.upload_new_file(out, log_filename)
 
         # LIMS messages
         if any("Error:" in entry for entry in log):
