@@ -457,8 +457,8 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     target_pool_amount = target_pool_vol * target_pool_conc
     target_sample_amount = target_pool_amount / n_src
 
-    log.append("\nAttempting to calculate pooling of {} samples into {}".format(n_src,pool_name))
-    log.append("Target vol: {} ul, Target conc: {} nM".format(target_pool_vol, target_pool_conc))
+    log.append("\nPooling {} samples into {}...".format(n_src,pool_name))
+    log.append("Target conc: {} nM, Target vol: {} ul".format(target_pool_vol, target_pool_conc))
 
     df = pd.DataFrame(samples)
 
@@ -489,7 +489,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     pool_boundaries = [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc]
 
     if highest_min_amount < lowest_max_amount:
-        log.append("Perfect pooling is possible for conc. range {} - {} nM and vol. range {} - {} ul.".format(
+        log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul.".format(
             round(pool_min_conc,2), round(pool_max_conc,2), round(pool_min_vol,2), round(pool_max_vol,2)))
 
         # Nudge conc, if necessary
@@ -500,8 +500,8 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
         else:
             pool_conc = target_pool_conc
         if target_pool_conc != pool_conc:
-            log.append("WARNING: Target pool conc. {} nM is out of range and adjusted to {} nM".format(
-                target_pool_conc, round(pool_conc,0)))
+            log.append("WARNING: Target pool conc {} nM is out of range and adjusted to {} nM".format(
+                target_pool_conc, round(pool_conc,2)))
         
         #  Nudge vol, if necessary
         if target_pool_vol < conc2vol(pool_conc, pool_boundaries)[0]:
@@ -512,10 +512,13 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
             pool_vol = target_pool_vol
         if target_pool_vol != pool_vol:
             log.append(
-                "WARNING: Target pool vol. {} ul is out of range and adjusted to {} ul".format(target_pool_vol, round(pool_vol,2)))
+                "WARNING: Target pool vol {} ul is not possible for conc {} nM and is adjusted to {} ul".format(target_pool_vol, round(pool_conc,2), round(pool_vol,2)))
+    
+        if target_pool_conc == pool_conc and target_pool_vol == pool_vol:
+            log.append("Pooling OK")
     else:
         log.append("WARNING: Perfect pooling is not possible, some samples will be below target levels.")
-        log.append("Pool conc. is maximized to {} nM and pool vol. is minimized to {} ul.".format(pool_max_conc,round(pool_min_vol,2)))
+        log.append("Pool conc is maximized to {} nM and pool vol is minimized to {} ul.".format(pool_max_conc,round(pool_min_vol,2)))
         pool_conc = pool_max_conc
         pool_vol = pool_min_vol
 
