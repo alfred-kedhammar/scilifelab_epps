@@ -529,7 +529,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
 
     # If needed, add buffer w/o assigning source
     total_sample_vol = sum(df["transfer_vol"])
-    if target_pool_vol - total_sample_vol > zika_min_vol:
+    if pool_vol - total_sample_vol > zika_min_vol:
         df = df.append({'name':"buffer",
                         "src_fc":"buffer",
                         "src_fc_id":df["dst_fc"][0],
