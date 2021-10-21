@@ -398,10 +398,10 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
         csvContext.write("worklist,\n")
         csvContext.write("[VAR1]TipChangeStrategy,never,[VAR2]TipChangeStrategy,always\n")
         csvContext.write("COMMENT, This is a Zika advanced worklist for LIMS process {} generated {}\n".format(pid, date.today()))
-        csvContext.write("COMMENT, The worklist will enact transfers of {} samples from {} src plate(s) into {} pool(s), via {} layout(s)\n".format(
+        csvContext.write("COMMENT, The worklist will enact transfers of {} samples from {} src plate(s) into {} pool(s) via {} layout(s)\n".format(
             len(df[df.id.notna()]), n_src_plates, len(df.dst_well.unique()), n_layouts))
         if not wl_buffer.empty:
-            csvContext.write("COMMENT, Please make sure well(s) {} of the destination plate are filled with 170 ul buffer\n".format(", ".join(buffer_wells)))
+            csvContext.write("COMMENT, Please make sure well(s) [{}] of the destination plate are filled with 170 ul buffer\n".format(" ".join(buffer_wells)))
 
         # Loop over layouts
         for i in range(1, n_layouts + 1):
