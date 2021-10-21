@@ -263,10 +263,10 @@ def prepooling(currentStep, lims):
                 lims.upload_new_file(out, log_filename)
 
         # LIMS messages
-        if any("Error:" in entry for entry in log):
+        if any("ERROR:" in entry for entry in log):
             sys.stderr.write("Critical error, please check the Log file\n")
             sys.exit(2)
-        elif any("Warning:" in entry for entry in log):
+        elif any("WARNING:" in entry for entry in log):
             # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
             sys.stderr.write("CSV-file generated with warnings, please check the Log file\n")
             sys.exit(2)
@@ -346,7 +346,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
             current_vol = pool_max_vol
     # Raise error if buffer well assignment conflicts with pool well assignment
     if any(df.loc[df.id.notna(),"dst_well"].isin(buffer_wells)):
-        log.append("Error: Selected pool wells conflict with auto-assigned buffer wells ({}). Buffer wells are assigned starting in the bottom right corner of the destination plate.".format(", ".join(buffer_wells)))
+        log.append("ERROR: Selected pool wells conflict with auto-assigned buffer wells ({}). Buffer wells are assigned starting in the bottom right corner of the destination plate.".format(", ".join(buffer_wells)))
         raise Exception
 
     # Determine plate layout
@@ -475,7 +475,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     df["minimized_vol"] = highest_min_amount / df.conc
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
-        log.append("Error: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers.".format(pool_name))
+        log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers.".format(pool_name))
         raise Exception("Overflow in {}".format(pool_name))
 
     # Given our input samples, which volumes / concs. are possible as output?
@@ -546,16 +546,6 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
 
     return df
 
-def vol2conc(vol, pool_boundaries):
-    # Nudge target conc based on vol and pool boundaries
-    # Not in use
-    [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc] = pool_boundaries
-    if pool_min_vol <= vol <= pool_max_vol:
-        min_conc = pool_min_vol * pool_max_conc / vol
-        max_conc = min(pool_max_conc, pool_min_vol2 * pool_max_conc / vol)
-        return (min_conc, max_conc)
-    else:
-        raise Exception
 def conc2vol(conc, pool_boundaries):
     # Nudge target vol based on conc. and pool boundaries
     [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc] = pool_boundaries
@@ -651,7 +641,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         os.rename("bravo.csv", "{}_bravo.csv".format(dest_plate_name))
         os.rename("bravo.log", "{}_bravo.log".format(dest_plate_name))
     else:
-        sys.stderr.write("Error: Multiple output plates!\n")
+        sys.stderr.write("ERROR: Multiple output plates!\n")
         sys.exit(2)
 
     for out in currentStep.all_outputs():
