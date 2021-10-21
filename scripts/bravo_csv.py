@@ -203,10 +203,14 @@ def compute_transfer_volume(currentStep, lims, log):
             # else try to optimize:
             if all(s["conc"] == conc for s in valid_inputs):
                 vols = lazy_volumes(valid_inputs, final_vol)
+                if sum(vols) > MAX_WARNING_VOLUME:
+                    log.append("ERROR: Total volume of pool {} is too high: {}. Redo the calculations manually!".format(pool.name, sum(vols)))
                 pool.udf['Normalized conc. (nM)'] = conc
             else:
                 vols = optimize_volumes(valid_inputs, final_vol, MIN_WARNING_VOLUME)
                 # Calculate and add the theoretical pool conc:
+                if sum(vols) > MAX_WARNING_VOLUME:
+                    log.append("ERROR: Total volume of pool {} is too high: {}. Redo the calculations manually!".format(pool.name, sum(vols)))
                 z = list(zip([s["conc"] for s in valid_inputs], vols))
                 v = (sum(x[0] * x[1] for x in z) / sum(vols))
                 pool.udf['Normalized conc. (nM)'] = v
@@ -265,6 +269,10 @@ def prepooling(currentStep, lims):
     if log:
         # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
         sys.stderr.write("Errors were met, please check the Log file\n")
+        # Also write the Fatal Errors
+        for entry in log:
+            if "ERROR:" in entry:
+                sys.stderr.write("{} ".format(entry))
         sys.exit(2)
     else:
         logging.info("Work done")

@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20211021.1
+Show ERROR messages when pool volume is too high
+
 ## 20211013.1
 Support selectable Fragment Analyzer for logbook
 
