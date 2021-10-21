@@ -536,7 +536,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
                         "pool_id":df["pool_id"][0],
                         "dst_fc":df["dst_fc"][0],
                         "dst_well":df["dst_well"][0],
-                        "transfer_vol":target_pool_vol-total_sample_vol},
+                        "transfer_vol":pool_vol - total_sample_vol},
                         ignore_index = True)
     
     # Report low-conc samples
