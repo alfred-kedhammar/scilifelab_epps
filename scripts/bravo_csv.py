@@ -487,7 +487,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     df["min_amount"] = zika_min_vol * df.conc
     df["max_amount"] = df.live_vol * df.conc
     highest_min_amount = max(df.min_amount)  # Let highest conc. sample set the ceiling
-    lowest_max_amount = min(df.max_amount)  # Let lowest conc. sample set the floor
+    lowest_max_amount = min(df.max_amount)  # Let lowest amount sample set the floor
 
     df["minimized_vol"] = highest_min_amount / df.conc
     pool_min_vol = sum(df.minimized_vol)
@@ -542,7 +542,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     # Append transfer volumes and corresponding fraction of target conc. for each sample
     sample_transfer_amount = pool_conc * pool_vol / n_src
     df["transfer_vol"] = minimum(sample_transfer_amount / df.conc, df.live_vol)
-    df["final_target_fraction"] = round((df.transfer_vol * df.conc / pool_vol) / (target_pool_conc / n_src), 2)
+    df["final_target_fraction"] = round((df.transfer_vol * df.conc / pool_vol) / (pool_conc / n_src), 2)
 
     # If needed, add buffer w/o assigning source
     total_sample_vol = sum(df["transfer_vol"])
