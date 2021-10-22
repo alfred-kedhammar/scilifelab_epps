@@ -458,7 +458,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     target_sample_amount = target_pool_amount / n_src
 
     log.append("\nPooling {} samples into {}...".format(n_src,pool_name))
-    log.append("Target conc: {} nM, Target vol: {} ul".format(target_pool_vol, target_pool_conc))
+    log.append("Target conc: {} nM, Target vol: {} ul".format(target_pool_conc, target_pool_vol))
 
     df = pd.DataFrame(samples)
 
@@ -552,12 +552,11 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
 def conc2vol(conc, pool_boundaries):
     # Nudge target vol based on conc. and pool boundaries
     [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc] = pool_boundaries
-    if pool_min_conc <= conc <= pool_max_conc:
-        min_vol = pool_min_vol * pool_max_conc / conc
-        max_vol = min(pool_max_vol, pool_min_vol2 * pool_max_conc / conc)
-        return (min_vol, max_vol)
-    else:
-        raise Exception
+    assert pool_min_conc <= conc <= pool_max_conc
+    
+    min_vol = pool_min_vol * pool_max_conc / conc
+    max_vol = min(pool_max_vol, pool_min_vol2 * pool_max_conc / conc)
+    return (min_vol, max_vol)
 
 def well2rowcol(well_iter):
     # Mosquitos use two integers (row and column) to specify well location
