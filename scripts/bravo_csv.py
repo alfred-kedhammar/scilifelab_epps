@@ -236,6 +236,26 @@ def aliquot_fixed_volume(currentStep, lims, volume, log):
     return data
 
 
+def zika_upload_csv(currentStep, lims, wl_filename):
+    for out in currentStep.all_outputs():
+        if out.name == "Mosquito CSV File":
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, wl_filename)
+
+def zika_upload_log(currentStep, lims, log_filename):
+    for out in currentStep.all_outputs():
+        if out.name == "Mosquito Log":
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, log_filename)
+
+def zika_write_log(log, pid):
+    log_filename = "zika_log_" + pid + "_" + date.today().strftime("%y%m%d") + ".log"
+    with open(log_filename, "w") as logContext:
+        logContext.write("\n".join(log))
+    return log_filename
+
 def prepooling(currentStep, lims):
     log = []
     if currentStep.instrument.name == "Zika":
@@ -245,33 +265,28 @@ def prepooling(currentStep, lims):
         src_dead_vol = 5
         pool_max_vol = 170
 
-        # Create dataframe of all transfers incl. transfer volume
-        df = zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol)
+        try:
+            # Create dataframe of all transfers incl. transfer volume
+            df = zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol)
 
-        # Create worklist and log files
-        wl_filename, log_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, currentStep.id)
+            # Create worklist file
+            wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, currentStep.id)
 
-        # Couple files to LIMS
-        for out in currentStep.all_outputs():
-            if out.name == "Mosquito CSV File":
-                for f in out.files:
-                    lims.request_session.delete(f.uri)
-                lims.upload_new_file(out, wl_filename)
-            if out.name == "Mosquito Log":
-                for f in out.files:
-                    lims.request_session.delete(f.uri)
-                lims.upload_new_file(out, log_filename)
-
-        # LIMS messages
-        if any("ERROR:" in entry for entry in log):
-            sys.stderr.write("Critical error, please check the Log file\n")
+        except PoolCollision or PoolOverflow:
+            # Upload log and display last log message in LIMS
+            zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
+            sys.stderr.write(log[-1]+'\n')
             sys.exit(2)
-        elif any("WARNING:" in entry for entry in log):
-            # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
-            sys.stderr.write("CSV-file generated with warnings, please check the Log file\n")
-            sys.exit(2)
+            
         else:
-            logging.info("Work done")
+            zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
+            zika_upload_csv(currentStep, lims, wl_filename)
+
+            if any("WARNING:" in entry for entry in log):
+                sys.stderr.write("CSV-file generated with warnings, please check the Log file\n")
+                sys.exit(2)
+            else:
+                logging.info("Work done")
 
     else:
         # First thing to do is to grab the volumes of the input artifacts. The method is ... rather unique.
@@ -300,7 +315,7 @@ def prepooling(currentStep, lims):
             if log and out.name == "Bravo Log":
                 attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
         if log:
-            # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
+            # to get an error display in the lims, you need a non-zero exit code AND a message in STDERR
             sys.stderr.write("Errors were met, please check the Log file\n")
             sys.exit(2)
         else:
@@ -346,8 +361,8 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
             current_vol = pool_max_vol
     # Raise error if buffer well assignment conflicts with pool well assignment
     if any(df.loc[df.id.notna(),"dst_well"].isin(buffer_wells)):
-        log.append("ERROR: Selected pool wells conflict with auto-assigned buffer wells ({}). Buffer wells are assigned starting in the bottom right corner of the destination plate.".format(", ".join(buffer_wells)))
-        raise Exception
+        log.append("ERROR: Assigned pool wells conflict with auto-assigned buffer wells ({}). Buffer wells are assigned starting in the bottom right corner of the destination plate.\n".format(", ".join(buffer_wells)))
+        raise PoolCollision()
 
     # Determine plate layout
     # In a VERY UGLY way TODO
@@ -388,11 +403,10 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
                 "vol_nl", "VAR", "layout", "src_fc"]]
     
     # GENERATE WORKLIST
-    today = date.today().strftime("%y%m%d")
     wl_buffer = wl3[wl3.layout.isna()].sort_values(by = "vol_nl", ascending = False)
     wl_sample = wl3[wl3.layout.notna()].sort_values(by = ["layout","vol_nl"], ascending = [True, False])
 
-    wl_filename = "_".join(["zika_worklist", pid, today]) + ".csv"
+    wl_filename = "_".join(["zika_worklist", pid, date.today().strftime("%y%m%d")]) + ".csv"
     with open(wl_filename, "w") as csvContext:
         # Write header
         csvContext.write("worklist,\n")
@@ -423,13 +437,8 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
             # Write transfers
             for idx, row in wl_current.iterrows():
                 csvContext.write(",".join(["COPY"] + [str(e) for e in row["src_pos":"VAR"]])+"\n")
-    
-    # GENERATE LOG
-    log_filename = "zika_log_" + pid + "_" + today + ".log"
-    with open(log_filename, "w") as logContext:
-        logContext.write("\n".join(log))
 
-    return wl_filename, log_filename
+    return wl_filename
 
 def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
     # Calculate volumes via zika_vols() for one pooling at a time
@@ -448,6 +457,11 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
             returndata = returndata.append(df, ignore_index = True)
 
     return returndata
+
+class PoolOverflow(Exception):
+    pass
+class PoolCollision(Exception):
+    pass
 
 def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
               zika_min_vol, src_dead_vol, pool_max_vol):
@@ -475,8 +489,8 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     df["minimized_vol"] = highest_min_amount / df.conc
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
-        log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers.".format(pool_name))
-        raise Exception("Overflow in {}".format(pool_name))
+        log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers.\n".format(pool_name))
+        raise PoolOverflow()
 
     # Given our input samples, which volumes / concs. are possible as output?
     # Minimize amount
@@ -553,7 +567,7 @@ def conc2vol(conc, pool_boundaries):
     # Nudge target vol based on conc. and pool boundaries
     [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc] = pool_boundaries
     assert pool_min_conc <= conc <= pool_max_conc
-    
+
     min_vol = pool_min_vol * pool_max_conc / conc
     max_vol = min(pool_max_vol, pool_min_vol2 * pool_max_conc / conc)
     return (min_vol, max_vol)
