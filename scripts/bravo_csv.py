@@ -447,6 +447,9 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
     returndata = pd.DataFrame()
     for pool in currentStep.all_outputs():
         if pool.type == 'Analyte':
+            # Replace commas with semicolons, so pool names can be printed in worklist
+            pool.name = pool.name.replace(",",";")
+
             valid_inputs = [x for x in data if x['pool_id'] == pool.id]
             
             target_pool_vol = float(pool.udf["Final Volume (uL)"])
