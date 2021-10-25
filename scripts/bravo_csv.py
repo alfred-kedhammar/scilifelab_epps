@@ -671,9 +671,9 @@ def main(lims, args):
     if currentStep.type.name in ['Library Pooling (HiSeq X) 1.0']:
         check_barcode_collision(currentStep)
         prepooling(currentStep, lims)
-    elif currentStep.type.name in ['Pre-Pooling (MiSeq) 4.0', 'Pre-Pooling (Illumina SBS) 4.0', 'Library Pooling (RAD-seq) v1.0', 'Library Pooling (TruSeq Small RNA) 1.0', 'Pre-Pooling (NovaSeq) v2.0', 'Pre-Pooling (NextSeq) v1.0']:
+    elif currentStep.type.name in ['Pre-Pooling (MiSeq) 4.0', 'Pre-Pooling (Illumina SBS) 4.0', 'Library Pooling (RAD-seq) v1.0', 'Library Pooling (TruSeq Small RNA) 1.0', 'Pre-Pooling (NovaSeq) v2.0', 'Pre-Pooling (NextSeq) v1.0', 'Pre-Pooling']:
         prepooling(currentStep, lims)
-    elif currentStep.type.name in ['Library Normalization (HiSeq X) 1.0', 'Library Normalization (Illumina SBS) 4.0', 'Library Normalization (MiSeq) 4.0', 'Library Normalization (NovaSeq) v2.0', 'Library Normalization (NextSeq) v1.0']:
+    elif currentStep.type.name in ['Library Normalization (HiSeq X) 1.0', 'Library Normalization (Illumina SBS) 4.0', 'Library Normalization (MiSeq) 4.0', 'Library Normalization (NovaSeq) v2.0', 'Library Normalization (NextSeq) v1.0', 'Library Normalization']:
         normalization(currentStep)
     elif currentStep.type.name == 'Library Pooling (RAD-seq) 1.0':
         default_bravo(lims, currentStep, False)
