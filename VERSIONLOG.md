@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20211025.1
+EPP support for new library normalization and pooling steps
+
 ## 20211021.1
 Show ERROR messages when pool volume is too high
 

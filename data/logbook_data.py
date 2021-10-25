@@ -299,6 +299,12 @@ lims_process_record={
               "details" : ["Processname"]
           }
       },
+      "Library Normalization" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
       "Library Normalization (HiSeq X) 1.0" : {
           "lims_instrument" : {
               "dest_file" : "Bravo",
@@ -413,6 +419,12 @@ lims_process_record={
           }
       },
       "Post-GEM Cleanup (Chromium Genome v2)" : {
+          "lims_instrument" : {
+              "dest_file" : "Bravo",
+              "details" : ["Processname"]
+          }
+      },
+      "Pre-Pooling" : {
           "lims_instrument" : {
               "dest_file" : "Bravo",
               "details" : ["Processname"]
