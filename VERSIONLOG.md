@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20211025.2
+Bravo CSV EPP for new library normalization and pooling steps
+
 ## 20211025.1
 EPP support for new library normalization and pooling steps
 
