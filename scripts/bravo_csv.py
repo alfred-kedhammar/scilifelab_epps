@@ -272,7 +272,7 @@ def prepooling(currentStep, lims):
             # Create worklist file
             wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, currentStep.id)
 
-        except PoolCollision or PoolOverflow:
+        except (PoolCollision, PoolOverflow):
             # Upload log and display last log message in LIMS
             zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
             sys.stderr.write(log[-1]+'\n')
