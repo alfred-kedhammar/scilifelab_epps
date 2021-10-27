@@ -403,7 +403,13 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
                 "vol_nl", "VAR", "layout", "src_fc"]]
     
     # GENERATE WORKLIST
+    
+    # For buffer transfers, switch tip every n transfers
+    switch_every_n = 10
     wl_buffer = wl3[wl3.layout.isna()].sort_values(by = "vol_nl", ascending = False)
+    wl_buffer.reset_index(drop = True, inplace = True)
+    wl_buffer.loc[switch_every_n::switch_every_n,"VAR"] = "[VAR2]"
+
     wl_sample = wl3[wl3.layout.notna()].sort_values(by = ["layout","vol_nl"], ascending = [True, False])
 
     wl_filename = "_".join(["zika_worklist", pid, date.today().strftime("%y%m%d")]) + ".csv"
