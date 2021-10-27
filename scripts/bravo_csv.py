@@ -268,15 +268,13 @@ def prepooling(currentStep, lims):
         try:
             # Create dataframe of all transfers incl. transfer volume
             df = zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol)
-
             # Create worklist file
             wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, currentStep.id)
-
+        
         except PoolOverflow:
             zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
             sys.stderr.write("ERROR: Overflow in pool(s). Check log for more info.")
             sys.exit(2)
-
         except PoolCollision:
             # Upload log and display last log message in LIMS
             zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
@@ -286,7 +284,6 @@ def prepooling(currentStep, lims):
         else:
             zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
             zika_upload_csv(currentStep, lims, wl_filename)
-
             if any("WARNING:" in entry for entry in log):
                 sys.stderr.write("CSV-file generated with warnings, please check the Log file\n")
                 sys.exit(2)
@@ -463,14 +460,14 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
     pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
     pools.sort(key=lambda pool: pool.location[1])
 
-    pool_overflow_state = False
+    pool_overflow_state = False # Store here, whether any pooling will overflow
     for pool in pools:
         try:
             # Replace commas with semicolons, so pool names can be printed in worklist
             pool.name = pool.name.replace(",",";")
             valid_inputs = [x for x in data if x['pool_id'] == pool.id]
 
-            # If no target conc/vol has been supplied, max conc and min vol will be used downstream
+            # If no target conc/vol has been supplied, max conc and min vol will be assigned downstream
             try:
                 target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
             except KeyError:
@@ -486,9 +483,9 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
             returndata = returndata.append(df, ignore_index = True)
         
         except PoolOverflow:
-            pool_overflow_state = True
+            pool_overflow_state = True # Record overflow, then continue
             continue
-    if pool_overflow_state:
+    if pool_overflow_state: # If any of the poolings had overflow, raise exception
         raise PoolOverflow()
     return returndata
 
@@ -503,6 +500,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
 
     n_src = len(samples)
     log.append("\nPooling {} samples into {}...".format(n_src,pool_name))
+    log.append("Target conc: {} nM, Target vol: {} ul".format(target_pool_conc or "[none]", target_pool_vol or "[none]"))
 
     df = pd.DataFrame(samples)
 
@@ -537,9 +535,6 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     # Pack all metrics into a list, to decrease number of input arguments later
     pool_boundaries = [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc]
 
-    # Adress target conc/vol
-    log.append("Target conc: {} nM, Target vol: {} ul".format(target_pool_conc or "[none]", target_pool_vol or "[none]"))
-
     if highest_min_amount < lowest_max_amount:
         log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul".format(
             round(pool_min_conc,2), round(pool_max_conc,2), round(pool_min_vol,2), round(pool_max_vol,2)))
@@ -564,7 +559,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
             pool_vol = target_pool_vol
         if target_pool_vol != pool_vol:
             log.append("WARNING: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
-            
+
         if target_pool_conc == pool_conc and target_pool_vol == pool_vol:
             log.append("Pooling OK")
     else:
@@ -597,7 +592,6 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
         log.append("Sample\tFraction of target conc.")
         for l in low_samples.values:
             log.append("{}\t{}".format(l[0],l[1]))
-
     return df
 
 def conc2vol(conc, pool_boundaries):
