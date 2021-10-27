@@ -403,7 +403,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
                 "vol_nl", "VAR", "layout", "src_fc"]]
     
     # GENERATE WORKLIST
-    
+
     # For buffer transfers, switch tip every n transfers
     switch_every_n = 10
     wl_buffer = wl3[wl3.layout.isna()].sort_values(by = "vol_nl", ascending = False)
@@ -461,7 +461,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
         pool.name = pool.name.replace(",",";")
 
         valid_inputs = [x for x in data if x['pool_id'] == pool.id]
-        
+
         target_pool_vol = float(pool.udf["Final Volume (uL)"])
         target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
         
@@ -488,6 +488,9 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     log.append("Target conc: {} nM, Target vol: {} ul".format(target_pool_conc, target_pool_vol))
 
     df = pd.DataFrame(samples)
+
+    # Set any negative concentrations to 0.01 nM
+    df.loc[df.conc < 0.01, "conc"] = 0.01
 
     # Take dead volume into account for calculating transferrable amount
     df = df.rename(columns = {"vol":"full_vol"})
