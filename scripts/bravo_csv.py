@@ -272,7 +272,12 @@ def prepooling(currentStep, lims):
             # Create worklist file
             wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, currentStep.id)
 
-        except (PoolCollision, PoolOverflow):
+        except PoolOverflow:
+            zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
+            sys.stderr.write("ERROR: Overflow in pool(s). Check log for more info.\n")
+            sys.exit(2)
+
+        except PoolCollision:
             # Upload log and display last log message in LIMS
             zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
             sys.stderr.write(log[-1]+'\n')
@@ -456,18 +461,28 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
     pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
     pools.sort(key=lambda pool: pool.location[1])
 
+    pool_overflow_state = False
     for pool in pools:
-        # Replace commas with semicolons, so pool names can be printed in worklist
-        pool.name = pool.name.replace(",",";")
+        try:
+            # Replace commas with semicolons, so pool names can be printed in worklist
+            pool.name = pool.name.replace(",",";")
 
-        valid_inputs = [x for x in data if x['pool_id'] == pool.id]
+            valid_inputs = [x for x in data if x['pool_id'] == pool.id]
 
-        target_pool_vol = float(pool.udf["Final Volume (uL)"])
-        target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
+            target_pool_vol = float(pool.udf["Final Volume (uL)"])
+            target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
+            
+            df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool.name, log,
+                            zika_min_vol, src_dead_vol, pool_max_vol)
+            
+            returndata = returndata.append(df, ignore_index = True)
         
-        df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool.name, log,
-                        zika_min_vol, src_dead_vol, pool_max_vol)
-        returndata = returndata.append(df, ignore_index = True)
+        except PoolOverflow:
+            pool_overflow_state = True
+            continue
+    
+    if pool_overflow_state:
+        raise PoolOverflow()
 
     return returndata
 
@@ -502,7 +517,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     highest_min_amount = max(df.min_amount)  # Let highest conc. sample set the ceiling
     lowest_max_amount = min(df.max_amount)  # Let lowest amount sample set the floor
 
-    df["minimized_vol"] = highest_min_amount / df.conc
+    df["minimized_vol"] = minimum(highest_min_amount / df.conc, df.live_vol)
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
         log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers.\n".format(pool_name))
