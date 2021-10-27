@@ -274,7 +274,7 @@ def prepooling(currentStep, lims):
 
         except PoolOverflow:
             zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
-            sys.stderr.write("ERROR: Overflow in pool(s). Check log for more info.\n")
+            sys.stderr.write("ERROR: Overflow in pool(s). Check log for more info.")
             sys.exit(2)
 
         except PoolCollision:
@@ -520,7 +520,9 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     df["minimized_vol"] = minimum(highest_min_amount / df.conc, df.live_vol)
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
-        log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers.\n".format(pool_name))
+        log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers\n".format(pool_name))
+        log.append("Highest concentrated sample: {} at {} nM".format(*df.loc[df.conc.idxmax,["name","conc"]]))
+        log.append("Pooling cannot be normalized to less than {} ul".format(pool_min_vol))
         raise PoolOverflow()
 
     # Given our input samples, which volumes / concs. are possible as output?
@@ -534,7 +536,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     pool_boundaries = [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc]
 
     if highest_min_amount < lowest_max_amount:
-        log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul.".format(
+        log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul".format(
             round(pool_min_conc,2), round(pool_max_conc,2), round(pool_min_vol,2), round(pool_max_vol,2)))
 
         # Nudge conc, if necessary
