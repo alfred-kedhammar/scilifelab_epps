@@ -327,6 +327,8 @@ def prepooling(currentStep, lims):
             logging.info("Work done")
 
 def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid):
+    """Create and write the worklist"""
+
     # Calculate how many buffer wells we need and place them on the destination plate
     if not df[df.name == "buffer"].empty:
         tot_buffer_vol = sum(df[df.name == "buffer"]["transfer_vol"])
@@ -452,7 +454,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
     return wl_filename
 
 def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
-    # Calculate volumes via zika_vols() for one pooling at a time
+    """Calculate volumes via zika_vols() for one pooling at a time"""
 
     data = make_datastructure(currentStep, lims, log)
     returndata = pd.DataFrame()
@@ -466,12 +468,18 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
         try:
             # Replace commas with semicolons, so pool names can be printed in worklist
             pool.name = pool.name.replace(",",";")
-
             valid_inputs = [x for x in data if x['pool_id'] == pool.id]
 
-            target_pool_vol = float(pool.udf["Final Volume (uL)"])
-            target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
-            
+            # If no target conc/vol has been supplied, max conc and min vol will be used downstream
+            try:
+                target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
+            except KeyError:
+                target_pool_conc = None
+            try:
+                target_pool_vol = float(pool.udf["Final Volume (uL)"])
+            except KeyError:
+                target_pool_vol = None
+
             df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool.name, log,
                             zika_min_vol, src_dead_vol, pool_max_vol)
             
@@ -480,10 +488,8 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
         except PoolOverflow:
             pool_overflow_state = True
             continue
-    
     if pool_overflow_state:
         raise PoolOverflow()
-
     return returndata
 
 class PoolOverflow(Exception):
@@ -493,14 +499,10 @@ class PoolCollision(Exception):
 
 def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
               zika_min_vol, src_dead_vol, pool_max_vol):
-    # Takes a pooling, then calculates and returns a df w. the associated transfer volumes
+    """Takes a pooling, then calculates and returns a df w. the associated transfer volumes"""
 
     n_src = len(samples)
-    target_pool_amount = target_pool_vol * target_pool_conc
-    target_sample_amount = target_pool_amount / n_src
-
     log.append("\nPooling {} samples into {}...".format(n_src,pool_name))
-    log.append("Target conc: {} nM, Target vol: {} ul".format(target_pool_conc, target_pool_vol))
 
     df = pd.DataFrame(samples)
 
@@ -535,37 +537,39 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     # Pack all metrics into a list, to decrease number of input arguments later
     pool_boundaries = [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc]
 
+    # Adress target conc/vol
+    log.append("Target conc: {} nM, Target vol: {} ul".format(target_pool_conc or "[none]", target_pool_vol or "[none]"))
+
     if highest_min_amount < lowest_max_amount:
         log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul".format(
             round(pool_min_conc,2), round(pool_max_conc,2), round(pool_min_vol,2), round(pool_max_vol,2)))
 
         # Nudge conc, if necessary
-        if target_pool_conc < pool_min_conc:
-            pool_conc = pool_min_conc
-        elif target_pool_conc > pool_max_conc:
+        if not target_pool_conc or target_pool_conc > pool_max_conc:
             pool_conc = pool_max_conc
+        elif target_pool_conc < pool_min_conc:
+            pool_conc = pool_min_conc
         else:
             pool_conc = target_pool_conc
         if target_pool_conc != pool_conc:
-            log.append("WARNING: Target pool conc {} nM is out of range and adjusted to {} nM".format(
-                target_pool_conc, round(pool_conc,2)))
+            log.append("WARNING: Target pool conc is adjusted to {} nM".format(round(pool_conc,2)))
         
         #  Nudge vol, if necessary
-        if target_pool_vol < conc2vol(pool_conc, pool_boundaries)[0]:
-            pool_vol = conc2vol(pool_conc, pool_boundaries)[0]
-        elif target_pool_vol > conc2vol(pool_conc, pool_boundaries)[1]:
-            pool_vol = conc2vol(pool_conc, pool_boundaries)[1]
+        min_vol_given_pool_conc, max_vol_given_pool_conc = conc2vol(pool_conc, pool_boundaries)
+        if not target_pool_vol or target_pool_vol < min_vol_given_pool_conc:
+            pool_vol = min_vol_given_pool_conc
+        elif target_pool_vol > max_vol_given_pool_conc:
+            pool_vol = max_vol_given_pool_conc
         else:
             pool_vol = target_pool_vol
         if target_pool_vol != pool_vol:
-            log.append(
-                "WARNING: Target pool vol {} ul is not possible for conc {} nM and is adjusted to {} ul".format(target_pool_vol, round(pool_conc,2), round(pool_vol,2)))
-    
+            log.append("WARNING: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
+            
         if target_pool_conc == pool_conc and target_pool_vol == pool_vol:
             log.append("Pooling OK")
     else:
         log.append("WARNING: Perfect pooling is not possible, some samples will be below target levels.")
-        log.append("Pool conc is maximized to {} nM and pool vol is minimized to {} ul.".format(pool_max_conc,round(pool_min_vol,2)))
+        log.append("Pool conc is maximized to {} nM and pool vol is minimized to {} ul.".format(round(pool_max_conc,2),round(pool_min_vol,2)))
         pool_conc = pool_max_conc
         pool_vol = pool_min_vol
 
@@ -597,7 +601,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     return df
 
 def conc2vol(conc, pool_boundaries):
-    # Nudge target vol based on conc. and pool boundaries
+    """Nudge target vol based on conc. and pool boundaries."""
     [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc] = pool_boundaries
     assert pool_min_conc <= conc <= pool_max_conc
 
@@ -606,7 +610,7 @@ def conc2vol(conc, pool_boundaries):
     return (min_vol, max_vol)
 
 def well2rowcol(well_iter):
-    # Mosquitos use two integers (row and column) to specify well location
+    """Translates iterable of well names to list of row/column integer tuples to specify well location in Mosquito worklists."""
     # In an advanced worklist: startcol, endcol, row
     rows = []
     cols = []
