@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20211027.1
+Remove FastQ path from MinION samplesheet
+
 ## 20211025.2
 Bravo CSV EPP for new library normalization and pooling steps
 

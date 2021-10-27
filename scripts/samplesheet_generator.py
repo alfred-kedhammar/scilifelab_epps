@@ -383,10 +383,6 @@ def gen_Nextseq_lane_data(pro):
 
 def gen_MinION_QC_data(pro):
     data=[]
-    try:
-        fastq_path = pro.udf['Path of Output FastQ Files']
-    except KeyError:
-        fastq_path = ''
     for out in pro.all_outputs():
         if NGISAMPLE_PAT.findall(out.name):
             nanopore_barcode_name = out.udf['Nanopore Barcode'].split('_')[0] if out.udf['Nanopore Barcode'] != 'None' else ''
@@ -397,7 +393,6 @@ def gen_MinION_QC_data(pro):
             sp_obj = {}
             sp_obj['sn'] = sample_name
             sp_obj['npbs'] = nanopore_barcode_seq
-            sp_obj['fp'] = fastq_path+nanopore_barcode_name+'.fastq.gz' if nanopore_barcode_name != '' else fastq_path+sample_name+'.fastq.gz'
 
             #Case of 10X indexes
             if TENX_PAT.findall(idxs):
@@ -408,7 +403,6 @@ def gen_MinION_QC_data(pro):
                     sp_obj_sub['npbs'] = sp_obj['npbs']
                     sp_obj_sub['idxt'] = 'truseq'
                     sp_obj_sub['idx'] = tenXidx.replace(',','')
-                    sp_obj_sub['fp'] = sp_obj['fp']
                     data.append(sp_obj_sub)
             #Case of ST indexes
             elif ST_PAT.findall(idxs):
@@ -443,7 +437,7 @@ def gen_MinION_QC_data(pro):
                 data.append(sp_obj)
     str_data = ""
     for line in sorted(data, key=lambda x: x['sn']):
-        l_data = [line['sn'], line['npbs'], line['idxt'], line['idx'], line['fp']]
+        l_data = [line['sn'], line['npbs'], line['idxt'], line['idx']]
         str_data = str_data + ",".join(l_data) + "\n"
 
     return str_data
