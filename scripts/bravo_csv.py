@@ -445,19 +445,23 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
 
     data = make_datastructure(currentStep, lims, log)
     returndata = pd.DataFrame()
-    for pool in currentStep.all_outputs():
-        if pool.type == 'Analyte':
-            # Replace commas with semicolons, so pool names can be printed in worklist
-            pool.name = pool.name.replace(",",";")
 
-            valid_inputs = [x for x in data if x['pool_id'] == pool.id]
-            
-            target_pool_vol = float(pool.udf["Final Volume (uL)"])
-            target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
-            
-            df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool.name, log,
-                           zika_min_vol, src_dead_vol, pool_max_vol)
-            returndata = returndata.append(df, ignore_index = True)
+    # Get pools and sort by destination row, col
+    pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
+    pools.sort(key=lambda pool: pool.location[1])
+
+    for pool in pools:
+        # Replace commas with semicolons, so pool names can be printed in worklist
+        pool.name = pool.name.replace(",",";")
+
+        valid_inputs = [x for x in data if x['pool_id'] == pool.id]
+        
+        target_pool_vol = float(pool.udf["Final Volume (uL)"])
+        target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
+        
+        df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool.name, log,
+                        zika_min_vol, src_dead_vol, pool_max_vol)
+        returndata = returndata.append(df, ignore_index = True)
 
     return returndata
 
