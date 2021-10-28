@@ -589,12 +589,12 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
                         ignore_index = True)
     
     # Report low-conc samples
-    low_samples = df[df.final_target_fraction < 1][["name", "final_target_fraction"]]
-    if len(low_samples) > 0:
+    low_samples = df[df.final_target_fraction < 0.995][["name", "final_target_fraction"]]
+    if not low_samples.empty:
         log.append("The following samples are pooled below target concentration:")
         log.append("Sample\tFraction of target conc.")
-        for l in low_samples.values:
-            log.append("{}\t{}".format(l[0],l[1]))
+        for name, frac in low_samples.values:
+            log.append("{}\t{}".format(name, round(frac,2)))
     return df
 
 def conc2vol(conc, pool_boundaries):
