@@ -485,6 +485,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
         except PoolOverflow:
             pool_overflow_state = True # Record overflow, then continue
             continue
+    log.append("\n")
     if pool_overflow_state: # If any of the poolings had overflow, raise exception
         raise PoolOverflow()
     return returndata
@@ -557,8 +558,10 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
             pool_vol = max_vol_given_pool_conc
         else:
             pool_vol = target_pool_vol
-        if target_pool_vol != pool_vol:
+        if target_pool_vol > pool_vol:
             log.append("WARNING: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
+        elif target_pool_vol < pool_vol:
+            log.append("INFO: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
 
         if target_pool_conc == pool_conc and target_pool_vol == pool_vol:
             log.append("Pooling OK")
