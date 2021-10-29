@@ -520,7 +520,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     df["minimized_vol"] = minimum(highest_min_amount / df.conc, df.live_vol)
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
-        log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers\n".format(pool_name))
+        log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers".format(pool_name))
         log.append("Highest concentrated sample: {} at {} nM".format(*df.loc[df.conc.idxmax,["name","conc"]]))
         log.append("Pooling cannot be normalized to less than {} ul".format(pool_min_vol))
         raise PoolOverflow()
