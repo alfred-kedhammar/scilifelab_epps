@@ -558,7 +558,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
             log.append("Pooling OK")
             
     else:
-        log.append("WARNING: Sample concentration ranges are too far apart. Some samples will be below target levels.")
+        log.append("WARNING: Transferrable sample amounts are too far apart. Some samples will be below target levels.")
         log.append("Pool conc is maximized to {} nM and pool vol is minimized to {} ul.".format(round(pool_max_conc,2),round(pool_min_vol,2)))
         pool_conc = pool_max_conc
         pool_vol = pool_min_vol
