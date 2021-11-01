@@ -275,8 +275,11 @@ def prepooling(currentStep, lims):
             zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
             sys.stderr.write("ERROR: Overflow in pool(s). Check log for more info.")
             sys.exit(2)
+        except LowVolume:
+            zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
+            sys.stderr.write("ERROR: Some samples have too low volume to be transferred. Check log for more info.")
+            sys.exit(2)
         except PoolCollision:
-            # Upload log and display last log message in LIMS
             zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
             sys.stderr.write(log[-1]+'\n')
             sys.exit(2)
@@ -460,7 +463,9 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
     pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
     pools.sort(key=lambda pool: pool.location[1])
 
-    pool_overflow_state = False # Store here, whether any pooling will overflow
+    # Store here, whether any pooling has critical error
+    pool_overflow_state = False 
+    low_volume_state = False
     for pool in pools:
         try:
             # Replace commas with semicolons, so pool names can be printed in worklist
@@ -475,17 +480,27 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
             
             returndata = returndata.append(df, ignore_index = True)
         
+        # Record critical error has occured, then continue
         except PoolOverflow:
-            pool_overflow_state = True # Record overflow, then continue
+            pool_overflow_state = True
             continue
+        except LowVolume:
+            low_volume_state = True
+            continue
+    
     log.append("\n")
-    if pool_overflow_state: # If any of the poolings had overflow, raise exception
+    # If any of the poolings had overflow, raise exception
+    if pool_overflow_state:
         raise PoolOverflow()
+    if low_volume_state:
+        raise LowVolume()
     return returndata
 
 class PoolOverflow(Exception):
     pass
 class PoolCollision(Exception):
+    pass
+class LowVolume(Exception):
     pass
 
 def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
@@ -504,6 +519,9 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     # Take dead volume into account for calculating transferrable amount
     df = df.rename(columns = {"vol":"full_vol"})
     df["live_vol"] = df.full_vol - src_dead_vol
+    if any(df.live_vol < zika_min_vol):
+        log.append("ERROR: The following sample(s) did not have enough recorded volume to be transferred: {}".format(", ".join(df[df.live_vol < zika_min_vol].name)))
+        raise LowVolume()
 
     # Determine lowest / highest common transfer amount
     df["min_amount"] = zika_min_vol * df.conc
