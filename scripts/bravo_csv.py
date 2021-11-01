@@ -529,40 +529,40 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     # Pack all metrics into a list, to decrease number of input arguments later
     pool_boundaries = [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc]
 
-    if highest_min_amount < lowest_max_amount:
-        log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul".format(
-            round(pool_min_conc,2), round(pool_max_conc,2), round(pool_min_vol,2), round(pool_max_vol,2)))
+    # Make any necessary adjustments to pool vol / conc
+    log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul".format(
+        round(pool_min_conc,2), round(pool_max_conc,2), round(pool_min_vol,2), round(pool_max_vol,2)))
 
-        # Nudge conc, if necessary
-        if target_pool_conc > pool_max_conc:
-            pool_conc = pool_max_conc
-        elif target_pool_conc < pool_min_conc:
-            pool_conc = pool_min_conc
-        else:
-            pool_conc = target_pool_conc
-        if target_pool_conc != pool_conc:
-            log.append("WARNING: Target pool conc is adjusted to {} nM".format(round(pool_conc,2)))
-        
-        #  Nudge vol, if necessary
-        min_vol_given_pool_conc, max_vol_given_pool_conc = conc2vol(pool_conc, pool_boundaries)
-        if target_pool_vol < min_vol_given_pool_conc:
-            pool_vol = min_vol_given_pool_conc
-            log.append("INFO: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
-        elif target_pool_vol > max_vol_given_pool_conc:
-            pool_vol = max_vol_given_pool_conc
-            log.append("WARNING: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
-        else:
-            pool_vol = target_pool_vol
-            
-        if target_pool_vol == pool_vol and target_pool_conc == pool_conc:
-            log.append("Pooling OK")
-            
-    else:
-        log.append("WARNING: Transferrable sample amounts are too far apart. Some samples will be below target levels.")
-        log.append("Pool conc is maximized to {} nM and pool vol is minimized to {} ul.".format(round(pool_max_conc,2),round(pool_min_vol,2)))
+    # Nudge conc, if necessary
+    if target_pool_conc > pool_max_conc:
         pool_conc = pool_max_conc
-        pool_vol = pool_min_vol
-
+    elif target_pool_conc < pool_min_conc:
+        pool_conc = pool_min_conc
+    else:
+        pool_conc = target_pool_conc
+    if target_pool_conc != pool_conc:
+        log.append("WARNING: Target pool conc is adjusted to {} nM".format(round(pool_conc,2)))
+    
+    #  Nudge vol, if necessary
+    min_vol_given_pool_conc, max_vol_given_pool_conc = conc2vol(pool_conc, pool_boundaries)
+    if highest_min_amount > lowest_max_amount:
+        log.append("WARNING: Some samples will be depleted and under-represented in the final pool")
+        log.append("The common sample transfer amount is minimized in order to get all samples as equal as possible".format(round(pool_max_conc,2),round(pool_min_vol,2)))
+    if target_pool_vol < min_vol_given_pool_conc:
+        pool_vol = min_vol_given_pool_conc
+        log.append("INFO: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
+    elif target_pool_vol > min_vol_given_pool_conc and highest_min_amount > lowest_max_amount:
+        pool_vol = min_vol_given_pool_conc
+        log.append("WARNING: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
+    elif target_pool_vol > max_vol_given_pool_conc:
+        pool_vol = max_vol_given_pool_conc
+        log.append("WARNING: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
+    else:
+        pool_vol = target_pool_vol
+        
+    if target_pool_vol == pool_vol and target_pool_conc == pool_conc:
+        log.append("Pooling OK")
+            
     # Append transfer volumes and corresponding fraction of target conc. for each sample
     sample_transfer_amount = pool_conc * pool_vol / n_src
     df["transfer_vol"] = minimum(sample_transfer_amount / df.conc, df.live_vol)
