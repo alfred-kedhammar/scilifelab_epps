@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20211104.1
+Update samplesheet generator to handle non-QC Minion sequencing step
+
 ## 20211027.1
 Remove FastQ path from MinION samplesheet
 
