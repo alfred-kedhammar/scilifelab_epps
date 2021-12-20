@@ -372,18 +372,20 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
         raise PoolCollision()
 
     # Determine plate layout
-    # In a VERY UGLY way TODO
-    plate_counts = wl.loc[wl.src_fc_id != wl.dst_fc[0],"src_fc"].value_counts()
+    src_plates = wl.loc[wl.src_fc_id != wl.dst_fc[0],"src_fc"].value_counts()
     src_plates = pd.DataFrame({"src_fc":plate_counts.index, "count":plate_counts.values})
     src_plates.sort_values(inplace = True, by="count", ascending=False)
 
     n_src_plates = len(src_plates)
     n_layouts = n_src_plates // 4 + 1
 
+    # Make list of deck positions, sorted by proximity
     pos = [2]*n_layouts + [4]*n_layouts + [1]*n_layouts + [5]*n_layouts
     pos = pos[0:n_src_plates]
+    # Make a corresponding list of layouts
     layout = list(range(1,n_layouts+1))*(n_src_plates // 2 + 1)
     layout = layout[0:n_src_plates]
+    # Position the plates with the most samples closest to the dest plate
     src_plates["src_pos"] = pos
     src_plates["dst_pos"] = 3
     src_plates["layout"] = layout
@@ -466,10 +468,12 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
     # Store here, whether any pooling has critical error
     pool_overflow_state = False 
     low_volume_state = False
+    
     for pool in pools:
         try:
             # Replace commas with semicolons, so pool names can be printed in worklist
             pool.name = pool.name.replace(",",";")
+
             valid_inputs = [x for x in data if x['pool_id'] == pool.id]
 
             target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
@@ -514,7 +518,10 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     df = pd.DataFrame(samples)
 
     # Set any negative concentrations to 0.01 nM
-    df.loc[df.conc < 0.01, "conc"] = 0.01
+    if not df.loc[df.conc < 0.01, "conc"].empty:
+        neg_conc_sample_names = df.loc[df.conc < 0.01, "name"]
+        df.loc[df.conc < 0.01, "conc"] = 0.01
+        log.append("The following samples had a negative concentration and will be treated as 0.01 nM: {}".format(", ".join(neg_conc_sample_names)))
 
     # Take dead volume into account for calculating transferrable amount
     df = df.rename(columns = {"vol":"full_vol"})
@@ -526,8 +533,8 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     # Determine lowest / highest common transfer amount
     df["min_amount"] = zika_min_vol * df.conc
     df["max_amount"] = df.live_vol * df.conc
-    highest_min_amount = max(df.min_amount)  # Let highest conc. sample set the ceiling
-    lowest_max_amount = min(df.max_amount)  # Let lowest amount sample set the floor
+    highest_min_amount = max(df.min_amount)
+    lowest_max_amount = min(df.max_amount)
 
     df["minimized_vol"] = minimum(highest_min_amount / df.conc, df.live_vol)
     pool_min_vol = sum(df.minimized_vol)
