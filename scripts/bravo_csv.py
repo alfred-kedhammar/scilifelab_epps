@@ -263,7 +263,7 @@ def prepooling(currentStep, lims):
         zika_min_vol = 0.5  # Possible to run on 0.1
         zika_max_vol = 5
         src_dead_vol = 5
-        pool_max_vol = 170
+        pool_max_vol = 180
 
         try:
             # Create dataframe of all transfers incl. transfer volume
