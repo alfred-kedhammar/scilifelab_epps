@@ -543,7 +543,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
         log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers".format(pool_name))
         highest_conc_sample_name, highest_conc_sample_conc = df.loc[df.conc.idxmax,["name","conc"]]
         log.append("Highest concentrated sample: {} at {} nM".format(highest_conc_sample_name, round(highest_conc_sample_conc,2)))
-        log.append("Pooling cannot be normalized to less than {} ul".format(pool_min_vol))
+        log.append("Pooling cannot be normalized to less than {} ul".format(round(pool_min_vol,2)))
         raise PoolOverflow()
 
     # Given our input samples, which volumes / concs. are possible as output?
