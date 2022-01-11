@@ -542,7 +542,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     if pool_min_vol > pool_max_vol:
         log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers".format(pool_name))
         highest_conc_sample_name, highest_conc_sample_conc = df.loc[df.conc.idxmax,["name","conc"]]
-        log.append("Highest concentrated sample: {} at {} nM".format(round(highest_conc_sample_name,2), round(highest_conc_sample_conc,2)))
+        log.append("Highest concentrated sample: {} at {} nM".format(highest_conc_sample_name, round(highest_conc_sample_conc,2)))
         log.append("Pooling cannot be normalized to less than {} ul".format(pool_min_vol))
         raise PoolOverflow()
 
@@ -558,7 +558,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
 
     # Log perfect pool or not
     if highest_min_amount > lowest_max_amount:
-        log.append("WARNING: Some samples will be depleted and under-represented in the final pool. The common sample transfer amount is minimized in order to get all samples as equal as possible")
+        log.append("WARNING: Some samples will be depleted and under-represented in the final pool. \nThe common sample transfer amount is minimized in order to get all samples as equal as possible")
     else:
         log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul".format(
         round(pool_min_conc,2), round(pool_max_conc,2), round(pool_min_vol,2), round(pool_max_vol,2)))
