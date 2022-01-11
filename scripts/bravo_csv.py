@@ -373,7 +373,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
 
     # Determine plate layout
     src_plates = wl.loc[wl.src_fc_id != wl.dst_fc[0],"src_fc"].value_counts()
-    src_plates = pd.DataFrame({"src_fc":plate_counts.index, "count":plate_counts.values})
+    src_plates = pd.DataFrame({"src_fc":src_plates.index, "count":src_plates.values})
     src_plates.sort_values(inplace = True, by="count", ascending=False)
 
     n_src_plates = len(src_plates)
@@ -430,7 +430,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
         csvContext.write("COMMENT, The worklist will enact transfers of {} samples from {} src plate(s) into {} pool(s) via {} layout(s)\n".format(
             len(df[df.id.notna()]), n_src_plates, len(df.dst_well.unique()), n_layouts))
         if not wl_buffer.empty:
-            csvContext.write("COMMENT, Please make sure well(s) [{}] of the destination plate are filled with 170 ul buffer\n".format(" ".join(buffer_wells)))
+            csvContext.write("COMMENT, Please make sure well(s) [{}] of the destination plate are filled with {} ul buffer\n".format(" + ".join(buffer_wells), pool_max_vol))
 
         # Loop over layouts
         for i in range(1, n_layouts + 1):
@@ -540,7 +540,8 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
         log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers".format(pool_name))
-        log.append("Highest concentrated sample: {} at {} nM".format(*df.loc[df.conc.idxmax,["name","conc"]]))
+        highest_conc_sample_name, highest_conc_sample_conc = df.loc[df.conc.idxmax,["name","conc"]]
+        log.append("Highest concentrated sample: {} at {} nM".format(round(highest_conc_sample_name,2), round(highest_conc_sample_conc,2)))
         log.append("Pooling cannot be normalized to less than {} ul".format(pool_min_vol))
         raise PoolOverflow()
 
