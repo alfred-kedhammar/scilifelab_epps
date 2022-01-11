@@ -536,6 +536,9 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     highest_min_amount = max(df.min_amount)
     lowest_max_amount = min(df.max_amount)
 
+    if highest_min_amount > lowest_max_amount:
+        log.append("WARNING: Some samples will be depleted and under-represented in the final pool. The common sample transfer amount is minimized in order to get all samples as equal as possible")
+
     df["minimized_vol"] = minimum(highest_min_amount / df.conc, df.live_vol)
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
@@ -571,9 +574,6 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     
     #  Nudge vol, if necessary
     min_vol_given_pool_conc, max_vol_given_pool_conc = conc2vol(pool_conc, pool_boundaries)
-    if highest_min_amount > lowest_max_amount:
-        log.append("WARNING: Some samples will be depleted and under-represented in the final pool")
-        log.append("The common sample transfer amount is minimized in order to get all samples as equal as possible".format(round(pool_max_conc,2),round(pool_min_vol,2)))
     if target_pool_vol < min_vol_given_pool_conc:
         pool_vol = min_vol_given_pool_conc
         log.append("INFO: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
