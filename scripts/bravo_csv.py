@@ -329,18 +329,6 @@ def prepooling(currentStep, lims):
 def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid):
     """Create and write the worklist"""
 
-    # Calculate how many buffer wells we need and place them on the destination plate
-    if not df[df.name == "buffer"].empty:
-        tot_buffer_vol = sum(df[df.name == "buffer"]["transfer_vol"])
-        num_buffer_wells = int(tot_buffer_vol // (pool_max_vol - src_dead_vol - zika_max_vol) + 1)
-        # Place wells starting from bottom right corner
-        all_wells = []
-        for l in "ABCDEFGH":
-            for n in range(1,13):
-                all_wells.append(l+":"+str(n))
-        all_wells.reverse()
-        buffer_wells = all_wells[0:num_buffer_wells]
-
     # Determine subtransfers
     wl = pd.DataFrame()
     for idx, row in df.iterrows():
@@ -356,20 +344,33 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
     wl.reset_index(inplace = True)
     wl = wl.rename(columns={'index': 'transfer_id'}, inplace = False)
 
-    # Assign buffer src wells, switch if we run out
-    iter_buffer_well = iter(buffer_wells)
-    current_buffer_well = next(iter_buffer_well)
-    current_vol = pool_max_vol
-    for idx, row in wl[wl.src_well.isna()].iterrows():
-        wl.at[idx,'src_well'] = current_buffer_well
-        current_vol -= row.transfer_vol
-        if current_vol < src_dead_vol + zika_max_vol:
-            next(iter_buffer_well)
-            current_vol = pool_max_vol
-    # Raise error if buffer well assignment conflicts with pool well assignment
-    if any(df.loc[df.id.notna(),"dst_well"].isin(buffer_wells)):
-        log.append("ERROR: Assigned pool wells conflict with auto-assigned buffer wells ({}). Buffer wells are assigned starting in the bottom right corner of the destination plate.\n".format(", ".join(buffer_wells)))
-        raise PoolCollision()
+    # Determine buffer wells and transfers
+    if not df[df.name == "buffer"].empty:
+        # Calculate how many buffer wells we need and place them on the destination plate
+        tot_buffer_vol = sum(df[df.name == "buffer"]["transfer_vol"])
+        num_buffer_wells = int(tot_buffer_vol // (pool_max_vol - src_dead_vol - zika_max_vol) + 1)
+        # Place wells starting from bottom right corner
+        all_wells = []
+        for l in "ABCDEFGH":
+            for n in range(1,13):
+                all_wells.append(l+":"+str(n))
+        all_wells.reverse()
+        buffer_wells = all_wells[0:num_buffer_wells]
+
+        # Assign buffer src wells, switch if we run out
+        iter_buffer_well = iter(buffer_wells)
+        current_buffer_well = next(iter_buffer_well)
+        current_vol = pool_max_vol
+        for idx, row in wl[wl.src_well.isna()].iterrows():
+            wl.at[idx,'src_well'] = current_buffer_well
+            current_vol -= row.transfer_vol
+            if current_vol < src_dead_vol + zika_max_vol:
+                next(iter_buffer_well)
+                current_vol = pool_max_vol
+        # Raise error if buffer well assignment conflicts with pool well assignment
+        if any(df.loc[df.id.notna(),"dst_well"].isin(buffer_wells)):
+            log.append("ERROR: Assigned pool wells conflict with auto-assigned buffer wells ({}). Buffer wells are assigned starting in the bottom right corner of the destination plate.\n".format(", ".join(buffer_wells)))
+            raise PoolCollision()
 
     # Determine plate layout
     src_plates = wl.loc[wl.src_fc_id != wl.dst_fc[0],"src_fc"].value_counts()
@@ -536,9 +537,6 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     highest_min_amount = max(df.min_amount)
     lowest_max_amount = min(df.max_amount)
 
-    if highest_min_amount > lowest_max_amount:
-        log.append("WARNING: Some samples will be depleted and under-represented in the final pool. The common sample transfer amount is minimized in order to get all samples as equal as possible")
-
     df["minimized_vol"] = minimum(highest_min_amount / df.conc, df.live_vol)
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
@@ -558,8 +556,11 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     # Pack all metrics into a list, to decrease number of input arguments later
     pool_boundaries = [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc]
 
-    # Make any necessary adjustments to pool vol / conc
-    log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul".format(
+    # Log perfect pool or not
+    if highest_min_amount > lowest_max_amount:
+        log.append("WARNING: Some samples will be depleted and under-represented in the final pool. The common sample transfer amount is minimized in order to get all samples as equal as possible")
+    else:
+        log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul".format(
         round(pool_min_conc,2), round(pool_max_conc,2), round(pool_min_vol,2), round(pool_max_vol,2)))
 
     # Nudge conc, if necessary
@@ -607,10 +608,10 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
                         ignore_index = True)
     
     # Report low-conc samples
-    low_samples = df[df.final_target_fraction < 0.995][["name", "final_target_fraction"]]
+    low_samples = df[df.final_target_fraction < 0.995][["name", "final_target_fraction"]].sort_values("name")
     if not low_samples.empty:
-        log.append("The following samples are pooled below target concentration:")
-        log.append("Sample\tFraction of target conc.")
+        log.append("The following samples are pooled below target:")
+        log.append("Sample\tFraction")
         for name, frac in low_samples.values:
             log.append("{}\t{}".format(name, round(frac,2)))
     return df
