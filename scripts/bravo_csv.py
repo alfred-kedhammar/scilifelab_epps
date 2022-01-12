@@ -464,7 +464,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
 
     # Get pools and sort by destination row, col
     pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
-    pools.sort(key=lambda pool: pool.location[1])
+    pools.sort(key=lambda pool: pool.name)
 
     # Store here, whether any pooling has critical error
     pool_overflow_state = False 
