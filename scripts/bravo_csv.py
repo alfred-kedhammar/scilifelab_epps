@@ -522,13 +522,14 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     if not df.loc[df.conc < 0.01, "conc"].empty:
         neg_conc_sample_names = df.loc[df.conc < 0.01, "name"].sort_values()
         df.loc[df.conc < 0.01, "conc"] = 0.01
-        log.append("WARNING: The following samples fell short of, and will be treated as, 0.01 nM: {}".format(", ".join(neg_conc_sample_names)))
+        log.append("WARNING: The following {} sample(s) fell short of, and will be treated as, 0.01 nM: {}".format(len(neg_conc_sample_names), ", ".join(neg_conc_sample_names)))
 
     # Take dead volume into account for calculating transferrable amount
     df = df.rename(columns = {"vol":"full_vol"})
     df["live_vol"] = df.full_vol - src_dead_vol
     if any(df.live_vol < zika_min_vol):
-        log.append("ERROR: The following sample(s) did not have enough recorded volume to be transferred: {}".format(", ".join(df[df.live_vol < zika_min_vol].sort_values("name").name)))
+        low_vol_sample_names = df[df.live_vol < zika_min_vol].sort_values("name").name
+        log.append("ERROR: The following {} sample(s) did not have enough recorded volume to be transferred: {}".format(len(low_vol_sample_names), ", ".join(low_vol_sample_names)))
         raise LowVolume()
 
     # Determine lowest / highest common transfer amount
