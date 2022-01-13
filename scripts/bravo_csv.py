@@ -273,19 +273,19 @@ def prepooling(currentStep, lims):
             wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, file_meta)
         
         except PoolOverflow:
-            zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
+            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             sys.stderr.write("ERROR: Overflow in pool(s). Check log for more info.")
             sys.exit(2)
         except LowVolume:
-            zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
+            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             sys.stderr.write("ERROR: Some samples have too low volume to be transferred. Check log for more info.")
             sys.exit(2)
         except PoolCollision:
-            zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
+            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             sys.stderr.write(log[-1]+'\n')
             sys.exit(2)
         except MultipleDst:
-            zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
+            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             sys.stderr.write(log[-1]+'\n')
             sys.exit(2)
             
