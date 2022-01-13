@@ -284,6 +284,10 @@ def prepooling(currentStep, lims):
             zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
             sys.stderr.write(log[-1]+'\n')
             sys.exit(2)
+        except MultipleDst:
+            zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
+            sys.stderr.write(log[-1]+'\n')
+            sys.exit(2)
             
         else:
             zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
@@ -500,6 +504,9 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
         raise PoolOverflow()
     if low_volume_state:
         raise LowVolume()
+    if len(df.dst_fc.unique()) > 1:
+        log.append("ERROR: Only one destination plate is allowed.")
+        raise MultipleDst()
     return returndata
 
 class PoolOverflow(Exception):
@@ -507,6 +514,8 @@ class PoolOverflow(Exception):
 class PoolCollision(Exception):
     pass
 class LowVolume(Exception):
+    pass
+class MultipleDst(Exception):
     pass
 
 def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
