@@ -12,7 +12,7 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
 from numpy import minimum, where
-from datetime import date
+from datetime import datetime as dt
 
 DESC = """EPP used to create csv files for the bravo robot"""
 
@@ -250,8 +250,8 @@ def zika_upload_log(currentStep, lims, log_filename):
                 lims.request_session.delete(f.uri)
             lims.upload_new_file(out, log_filename)
 
-def zika_write_log(log, pid):
-    log_filename = "zika_log_" + pid + "_" + date.today().strftime("%y%m%d") + ".log"
+def zika_write_log(log, file_meta):
+    log_filename = "_".join(["zika_log", file_meta["pid"], file_meta["timestamp"].strftime("%y%m%d_%H%M%S")]) + ".log"
     with open(log_filename, "w") as logContext:
         logContext.write("\n".join(log))
     return log_filename
@@ -266,10 +266,11 @@ def prepooling(currentStep, lims):
         pool_max_vol = 180
 
         try:
+            file_meta = {"pid":currentStep.id, "timestamp":dt.now()}
             # Create dataframe of all transfers incl. transfer volume
             df = zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol)
             # Create worklist file
-            wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, currentStep.id)
+            wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, file_meta)
         
         except PoolOverflow:
             zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
@@ -285,7 +286,7 @@ def prepooling(currentStep, lims):
             sys.exit(2)
             
         else:
-            zika_upload_log(currentStep, lims, zika_write_log(log, currentStep.id))
+            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             zika_upload_csv(currentStep, lims, wl_filename)
             if any("WARNING:" in entry for entry in log):
                 sys.stderr.write("CSV-file generated with warnings, please check the Log file\n")
@@ -326,7 +327,7 @@ def prepooling(currentStep, lims):
         else:
             logging.info("Work done")
 
-def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid):
+def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, file_meta):
     """Create and write the worklist"""
 
     # Determine subtransfers
@@ -422,12 +423,12 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, pid
 
     wl_sample = wl3[wl3.layout.notna()].sort_values(by = ["layout","vol_nl"], ascending = [True, False])
 
-    wl_filename = "_".join(["zika_worklist", pid, date.today().strftime("%y%m%d")]) + ".csv"
+    wl_filename = "_".join(["zika_worklist", file_meta["pid"], file_meta["timestamp"].strftime("%y%m%d_%H%M%S")]) + ".csv"
     with open(wl_filename, "w") as csvContext:
         # Write header
         csvContext.write("worklist,\n")
         csvContext.write("[VAR1]TipChangeStrategy,never,[VAR2]TipChangeStrategy,always\n")
-        csvContext.write("COMMENT, This is a Zika advanced worklist for LIMS process {} generated {}\n".format(pid, date.today()))
+        csvContext.write("COMMENT, This is a Zika advanced worklist for LIMS process {} generated {}\n".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
         csvContext.write("COMMENT, The worklist will enact transfers of {} samples from {} src plate(s) into {} pool(s) via {} layout(s)\n".format(
             len(df[df.id.notna()]), n_src_plates, len(df.dst_well.unique()), n_layouts))
         if not wl_buffer.empty:
