@@ -504,7 +504,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
         raise PoolOverflow()
     if low_volume_state:
         raise LowVolume()
-    if len(df.dst_fc.unique()) > 1:
+    if len(returndata.dst_fc.unique()) > 1:
         log.append("ERROR: Only one destination plate is allowed.")
         raise MultipleDst()
     return returndata
