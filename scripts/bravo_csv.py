@@ -356,8 +356,8 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
         num_buffer_wells = int(tot_buffer_vol // (pool_max_vol - src_dead_vol - zika_max_vol) + 1)
         # Place wells starting from bottom right corner
         all_wells = []
-        for l in "ABCDEFGH":
-            for n in range(1,13):
+        for n in range(1,13):
+            for l in "ABCDEFGH":
                 all_wells.append(l+":"+str(n))
         all_wells.reverse()
         buffer_wells = all_wells[0:num_buffer_wells]
@@ -370,7 +370,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
             wl.at[idx,'src_well'] = current_buffer_well
             current_vol -= row.transfer_vol
             if current_vol < src_dead_vol + zika_max_vol:
-                next(iter_buffer_well)
+                current_buffer_well = next(iter_buffer_well)
                 current_vol = pool_max_vol
         # Raise error if buffer well assignment conflicts with pool well assignment
         if any(df.loc[df.id.notna(),"dst_well"].isin(buffer_wells)):
