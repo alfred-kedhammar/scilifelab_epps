@@ -561,18 +561,23 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
     # Minimize amount
     pool_max_conc = highest_min_amount * n_src / pool_min_vol
     pool_min_conc = highest_min_amount * n_src / pool_max_vol
-    # Maximize amount
-    pool_min_vol2 = min(pool_min_vol*lowest_max_amount/highest_min_amount, pool_max_vol)
-    pool_min_conc2 = pool_max_conc * pool_min_vol2 / pool_max_vol
-    # Pack all metrics into a list, to decrease number of input arguments later
-    pool_boundaries = [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc]
 
     # Log perfect pool or not
     if highest_min_amount > lowest_max_amount:
         log.append("WARNING: Some samples will be depleted and under-represented in the final pool. \nThe common sample transfer amount is minimized in order to get all samples as equal as possible")
+        # No room to maximize amount
+        pool_min_vol2 = pool_min_vol
+        pool_min_conc2 = pool_min_conc
     else:
+        # Maximize amount
+        pool_min_vol2 = min(pool_min_vol*lowest_max_amount/highest_min_amount, pool_max_vol)
+        pool_min_conc2 = pool_max_conc * pool_min_vol2 / pool_max_vol
+
         log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul".format(
         round(pool_min_conc,2), round(pool_max_conc,2), round(pool_min_vol,2), round(pool_max_vol,2)))
+
+    # Pack all metrics into a list, to decrease number of input arguments later
+    pool_boundaries = [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc]
 
     # Nudge conc, if necessary
     if target_pool_conc > pool_max_conc:
