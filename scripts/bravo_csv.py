@@ -603,7 +603,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
     else:
         pool_vol = target_pool_vol
         
-    if target_pool_vol == pool_vol and target_pool_conc == pool_conc:
+    if highest_min_amount < lowest_max_amount and target_pool_vol == pool_vol and target_pool_conc == pool_conc:
         log.append("Pooling OK")
 
     # Update UDF:s to match the pool concs and vols that are logged
