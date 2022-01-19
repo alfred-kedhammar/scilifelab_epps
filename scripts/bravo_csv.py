@@ -485,7 +485,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
             target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
             target_pool_vol = float(pool.udf["Final Volume (uL)"])
 
-            df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool.name, log,
+            df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool, log,
                             zika_min_vol, src_dead_vol, pool_max_vol)
             
             returndata = returndata.append(df, ignore_index = True)
@@ -518,12 +518,12 @@ class LowVolume(Exception):
 class MultipleDst(Exception):
     pass
 
-def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
+def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
               zika_min_vol, src_dead_vol, pool_max_vol):
     """Takes a pooling, then calculates and returns a df w. the associated transfer volumes"""
 
     n_src = len(samples)
-    log.append("\nPooling {} samples into {}...".format(n_src,pool_name))
+    log.append("\nPooling {} samples into {}...".format(n_src,pool.name))
     log.append("Target conc: {} nM, Target vol: {} ul".format(target_pool_conc or "[none]", target_pool_vol or "[none]"))
 
     df = pd.DataFrame(samples)
@@ -551,7 +551,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
     df["minimized_vol"] = minimum(highest_min_amount / df.conc, df.live_vol)
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
-        log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers".format(pool_name))
+        log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers".format(pool.name))
         highest_conc_sample_name, highest_conc_sample_conc = df.loc[df.conc.idxmax,["name","conc"]]
         log.append("Highest concentrated sample: {} at {} nM".format(highest_conc_sample_name, round(highest_conc_sample_conc,2)))
         log.append("Pooling cannot be normalized to less than {} ul".format(round(pool_min_vol,2)))
@@ -600,6 +600,11 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool_name, log,
         
     if target_pool_vol == pool_vol and target_pool_conc == pool_conc:
         log.append("Pooling OK")
+
+    # Update UDF:s to match the pool concs and vols that are logged
+    pool.udf["Pool Conc. (nM)"] = pool_conc
+    pool.udf["Final Volume (uL)"] = pool_vol
+    pool.put()
             
     # Append transfer volumes and corresponding fraction of target conc. for each sample
     sample_transfer_amount = pool_conc * pool_vol / n_src
