@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220202.1
+Update to send email to proj coord when a running note is written from LIMS
+
 ## 20211104.1
 Update samplesheet generator to handle non-QC Minion sequencing step
 
