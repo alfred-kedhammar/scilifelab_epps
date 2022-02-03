@@ -607,8 +607,8 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
         log.append("Pooling OK")
 
     # Update UDF:s to match the pool concs and vols that are logged
-    pool.udf["Pool Conc. (nM)"] = round(pool_conc,2)
-    pool.udf["Final Volume (uL)"] = round(pool_vol,2)
+    pool.udf["Pool Conc. (nM)"] = pool_conc
+    pool.udf["Final Volume (uL)"] = pool_vol
     pool.put()
             
     # Append transfer volumes and corresponding fraction of target conc. for each sample
