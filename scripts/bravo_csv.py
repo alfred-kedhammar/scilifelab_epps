@@ -642,7 +642,7 @@ def conc2vol(conc, pool_boundaries):
     [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc] = pool_boundaries
     assert pool_min_conc <= conc <= pool_max_conc
 
-    min_vol = pool_min_vol * pool_max_conc / conc
+    min_vol = min(pool_max_vol, pool_min_vol * pool_max_conc / conc)
     max_vol = min(pool_max_vol, pool_min_vol2 * pool_max_conc / conc)
     return (min_vol, max_vol)
 
