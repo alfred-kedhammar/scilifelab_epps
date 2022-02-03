@@ -380,7 +380,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
     # Determine plate layout
     src_plates = wl.loc[wl.src_fc_id != wl.dst_fc[0],"src_fc"].value_counts()
     src_plates = pd.DataFrame({"src_fc":src_plates.index, "count":src_plates.values})
-    src_plates.sort_values(inplace = True, by="count", ascending=False)
+    src_plates.sort_values(inplace = True, by=["count","src_fc"], ascending=[False,True])
 
     n_src_plates = len(src_plates)
     n_layouts = n_src_plates // 4 + 1
