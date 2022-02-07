@@ -69,7 +69,7 @@ def write_note_to_couch(pid, timestamp, note, lims):
                 <p>{}</p>\
             </div></div></blockquote></body></html>'.format(pid, doc['project_name'], note['user'],
                                     time_in_format, note.get('category'), markdown.markdown(note.get('note')))
-            email_responsible(text, resp_email, error=False, subject=subject, html=html)
+            email_responsible(text, proj_coord, error=False, subject=subject, html=html)
 
 def email_responsible(message, resp_email, error=True, subject=None, html=None):
     if error:
