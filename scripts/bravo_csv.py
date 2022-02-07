@@ -383,13 +383,13 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
     src_plates.sort_values(inplace = True, by=["count","src_fc"], ascending=[False,True])
 
     n_src_plates = len(src_plates)
-    n_layouts = n_src_plates // 4 + 1
+    n_layouts = ((n_src_plates - 1) // 4) + 1
 
     # Make list of deck positions, sorted by proximity
     pos = [2]*n_layouts + [4]*n_layouts + [1]*n_layouts + [5]*n_layouts
     pos = pos[0:n_src_plates]
     # Make a corresponding list of layouts
-    layout = list(range(1,n_layouts+1))*(n_src_plates // 2 + 1)
+    layout = list(range(1,n_layouts+1))*(n_src_plates // n_layouts + 1)
     layout = layout[0:n_src_plates]
     # Position the plates with the most samples closest to the dest plate
     src_plates["src_pos"] = pos
