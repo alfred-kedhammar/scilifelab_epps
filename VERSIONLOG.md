@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220211.1
+Replace UDF for samplesheet generator for MiSeq
+
 ## 20220202.1
 Update to send email to proj coord when a running note is written from LIMS
 
