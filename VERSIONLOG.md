@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220215.1
+Put back Workflow for samplesheet generator for MiSeq
+
 ## 20220211.1
 Replace UDF for samplesheet generator for MiSeq
 
