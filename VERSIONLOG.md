@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220217.1
+Update illumina_run_parameter_parser for parsing run stats for MiSeq
+
 ## 20220215.1
 Put back Workflow for samplesheet generator for MiSeq
 
