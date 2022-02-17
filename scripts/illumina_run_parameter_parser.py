@@ -163,6 +163,37 @@ def set_run_stats_in_lims(process, run_stats_summary):
     process.put()
 
 
+def set_run_stats_in_lims_miseq(process, run_stats_summary):
+    art = process.input_output_maps[0][0]['uri']
+    lane_nbr = 1
+    read = 1
+    for i in list(run_stats_summary[lane_nbr].keys()):
+        lane_stats_for_read = run_stats_summary[lane_nbr][i]
+        if not math.isnan(lane_stats_for_read['density']):
+            art.udf["Cluster Density (K/mm^2) R{}".format(read)]  =  lane_stats_for_read['density']
+        if not math.isnan(lane_stats_for_read['error_rate']):
+            art.udf["% Error Rate R{}".format(read)]              =  lane_stats_for_read['error_rate']
+        if not math.isnan(lane_stats_for_read['first_cycle_intensity']):
+            art.udf["Intensity Cycle 1 R{}".format(read)]         =  lane_stats_for_read['first_cycle_intensity']
+        if not math.isnan(lane_stats_for_read['percent_aligned']):
+            art.udf["% Aligned R{}".format(read)]                 =  lane_stats_for_read['percent_aligned']
+        if not math.isnan(lane_stats_for_read['percent_gt_q30']):
+            art.udf["% Bases >=Q30 R{}".format(read)]             =  lane_stats_for_read['percent_gt_q30']
+        if not math.isnan(lane_stats_for_read['percent_pf']):
+            art.udf["%PF R{}".format(read)]                       =  lane_stats_for_read['percent_pf']
+        if not math.isnan(lane_stats_for_read['phasing']):
+            art.udf["% Phasing R{}".format(read)]                 =  lane_stats_for_read['phasing']
+        if not math.isnan(lane_stats_for_read['prephasing']):
+            art.udf["% Prephasing R{}".format(read)]              =  lane_stats_for_read['prephasing']
+        if not math.isnan(lane_stats_for_read['reads_pf']):
+            art.udf["Clusters PF R{}".format(read)]              =  lane_stats_for_read['reads_pf']
+        if not math.isnan(lane_stats_for_read['yield_g']):
+            art.udf["Yield PF (Gb) R{}".format(read)]             =  lane_stats_for_read['yield_g']
+        read += 1
+    art.put()
+    process.put()
+
+
 def lims_for_nextseq(process, run_dir):
     # Parse run
     runParserObj, RunParametersParserObj = parse_run(run_dir)
@@ -229,9 +260,12 @@ def lims_for_miseq(process, run_dir):
     process.udf['Reagent Cartridge Part #'] = runParameters['ReagentKitRFIDTag']['PartNumber']
     process.udf['PR2 Bottle ID'] = runParameters['PR2BottleRFIDTag']['SerialNumber']
     process.udf['Chemistry'] = runParameters['Chemistry']
-    process.udf['Workflow'] = runParameters['Workflow']['Analysis']
+    process.udf['Workflow'] = runParameters['Workflow']['Analysis'] if runParameters.get('Workflow') else runParameters['ModuleName']
     # Put in LIMS
     process.put()
+    # Set run stats parsed from InterOp
+    run_stats_summary = parse_illumina_interop(run_dir)
+    set_run_stats_in_lims_miseq(process, run_stats_summary)
 
 
 def lims_for_novaseq(process, run_dir):
