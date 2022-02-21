@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220221.2
+Refactor index checker to support 10X indexes
+
 ## 20220221.1
 New EPP for checking index distance
 
