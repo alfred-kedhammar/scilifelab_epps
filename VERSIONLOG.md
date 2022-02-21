@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220221.1
+New EPP for checking index distance
+
 ## 20220217.1
 Update illumina_run_parameter_parser for parsing run stats for MiSeq
 
