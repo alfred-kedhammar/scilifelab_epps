@@ -38,49 +38,62 @@ def check_index_distance(data, log):
         for i, sample_a in enumerate(subset[:-1]):
             j = i+1
             for sample_b in subset[j:]:
-                idx_a = sample_a.get('idx1', '') + '-' + sample_a.get('idx2', '')
-                idx_b = sample_b.get('idx1', '') + '-' + sample_b.get('idx2', '')
-                d = my_distance(idx_a, idx_b)
-                if d<2:
-                    log.append("Found index {} for sample {} and index {} for sample {} in pool {}, indexes are too close".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
+                d = 0
+                if sample_a.get('idx1', '') and sample_b.get('idx1', ''):
+                    d += my_distance(sample_a['idx1'], sample_b['idx1'])
+                if sample_a.get('idx2', '') and sample_b.get('idx2', ''):
+                    d += my_distance(sample_a['idx2'], sample_b['idx2'])
+                if d == 0:
+                    idx_a = sample_a.get('idx1', '') + '-' + sample_a.get('idx2', '')
+                    idx_b = sample_b.get('idx1', '') + '-' + sample_b.get('idx2', '')
+                    log.append("INDEX COLLISION ERROR: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
 
 
 def my_distance(idx_a, idx_b):
-    idx_a_1 = idx_a.split('-')[0]
-    idx_a_2 = idx_a.split('-')[1]
-    idx_b_1 = idx_b.split('-')[0]
-    idx_b_2 = idx_b.split('-')[1]
     diffs = 0
-    if idx_a_1 and idx_b_1:
-        diffs += calculate_diffs(idx_a_1, idx_b_1)
-    if idx_a_2 and idx_b_2:
-        diffs += calculate_diffs(idx_a_2, idx_b_2)
-    return diffs
-
-
-def calculate_diffs(a, b):
-    diffs = 0
-    short = min((a, b), key=len)
-    lon = a if short == b else b
+    short = min((idx_a, idx_b), key=len)
+    lon = idx_a if short == idx_b else idx_b
     for i, c in enumerate(short):
         if c != lon[i]:
             diffs += 1
     return diffs
 
 
-def prepare_index_table(process):
+def prepare_index_table(process, log):
     data=[]
     for out in process.all_outputs():
-        if  out.type == "Analyte":
+        if out.type == "Analyte":
             pool_name = out.name
             for sample in out.samples:
                 sp_obj = {}
                 idxs = find_barcode(sample, process)
-                sp_obj['pool'] = pool_name
-                sp_obj['sn'] = sample.name.replace(',','')
-                sp_obj['idx1'] = idxs[0].replace(',','') if idxs[0] else ''
-                sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
-                data.append(sp_obj)
+                if not idxs or idxs[0] == 'NoIndex':
+                    sp_obj['pool'] = pool_name
+                    sp_obj['sn'] = sample.name.replace(',','')
+                    sp_obj['idx1'] = ''
+                    sp_obj['idx2'] = ''
+                    data.append(sp_obj)
+                    log.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sp_obj['sn'], sp_obj['pool']))
+                elif ST_PAT.findall(idxs[0]):
+                    sp_obj['pool'] = pool_name
+                    sp_obj['sn'] = sample.name.replace(',','')
+                    sp_obj['idx1'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][0].replace(',','')
+                    sp_obj['idx2'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][1].replace(',','')
+                    data.append(sp_obj)
+                elif TENX_PAT.findall(idxs[0]):
+                    for tenXidx in Chromium_10X_indexes[TENX_PAT.findall(idxs[0])[0]]:
+                        sp_obj_sub = {}
+                        sp_obj_sub['pool'] = pool_name
+                        sp_obj_sub['sn'] = sample.name.replace(',','')
+                        sp_obj_sub['idx1'] = tenXidx.replace(',','')
+                        sp_obj_sub['idx2'] = ''
+                        data.append(sp_obj_sub)
+                else:
+                    sp_obj['pool'] = pool_name
+                    sp_obj['sn'] = sample.name.replace(',','')
+                    sp_obj['idx1'] = idxs[0].replace(',','') if idxs[0] else ''
+                    sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
+                    data.append(sp_obj)
     return data
 
 
@@ -104,7 +117,7 @@ def find_barcode(sample, process):
                             rt = lims.get_reagent_types(name=reagent_label_name)[0]
                             idxs = IDX_PAT.findall(rt.sequence)[0]
                         except:
-                            return ("NoIndex","")
+                            return ("NoIndex", "")
                 return idxs
             else:
                 if art == sample.artifact or not art.parent_process:
@@ -116,11 +129,10 @@ def find_barcode(sample, process):
 def main(lims, pid, epp_logger):
     log=[]
     process = Process(lims, id = pid)
-    data = prepare_index_table(process)
+    data = prepare_index_table(process, log)
     check_index_distance(data, log)
     if log:
         print('\n'.join(log), file=sys.stderr)
-
 
 
 if __name__ == "__main__":
