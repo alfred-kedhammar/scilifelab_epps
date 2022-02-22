@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220222.1
+Return message when no issue detected for index checker
+
 ## 20220221.2
 Refactor index checker to support 10X indexes
 
