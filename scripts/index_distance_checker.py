@@ -133,6 +133,8 @@ def main(lims, pid, epp_logger):
     check_index_distance(data, log)
     if log:
         print('\n'.join(log), file=sys.stderr)
+    else:
+        print('No issue detected with indexes', file=sys.stderr)
 
 
 if __name__ == "__main__":
