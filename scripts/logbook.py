@@ -141,7 +141,10 @@ def main(lims, pid, epp_logger):
                 continue
         details = get_details(record[instrument],pro)
         log.append(details)
-        write_record(log,record[instrument]["dest_file"])
+        if isinstance(record[instrument]["dest_file"], list):
+            write_record(log,pro.instrument.type)
+        else:
+            write_record(log,record[instrument]["dest_file"])
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
