@@ -167,7 +167,7 @@ lims_process_record={
       },
       "Diluting Samples" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
@@ -301,73 +301,73 @@ lims_process_record={
       },
       "Library Normalization" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Normalization (HiSeq X) 1.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Normalization (Illumina SBS) 4.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Normalization (MiSeq) 4.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Normalization (NextSeq) v1.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Normalization (NovaSeq) v2.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Pooling (HiSeq X) 1.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Pooling (Illumina SBS) 4.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Pooling (MiSeq) 4.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Pooling (NextSeq) v1.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Pooling (RAD-seq) v1.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Library Pooling (TruSeq Small RNA) 1.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
@@ -426,31 +426,31 @@ lims_process_record={
       },
       "Pre-Pooling" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Pre-Pooling (Illumina SBS) 4.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Pre-Pooling (MiSeq) 4.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Pre-Pooling (NextSeq) v1.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
       "Pre-Pooling (NovaSeq) v2.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
@@ -563,7 +563,7 @@ lims_process_record={
       },
       "Setup Workset/Plate" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
           }
       },
@@ -619,6 +619,7 @@ GDoc_logbook = {
     "Covaris" : { "File" : "1wpSzEdiZcRWk1YFo59Pzt4y-AVSb0Fi9AOg2VFrQOVE" },
     "FragmentAnalyzer" : { "File" : "1T4Cy3ywZvl0-kQR-QbtXzu_sErPaYymXeGMf81fqK8k" },
     "MiSeq" : { "File" : "1ThnEbahwm3InlF_tUJ0riyT3RImVKQINfMD4rB6VThU" },
+    "Mosquito" : { "File" : "1ssFoSdcWV-CRK5TR--hObNkM42zJ8X3ED5q_YmU-m_o" },
     "PCR" : { "File" : "1YE_M4ywhr5HuQEV2DhO0oVLDPRkThhuAytAEawcdTZM" },
     "Pippin" : { "File" : "1cJd2Wo9GMVq0HjXrVahxF2o_I_LqIipAreWOXeWwObM" },
     "Qubit" : { "File" : "1-sByQA6XVrbli0V24n4CxdxogLUlRlGvykkxOpBG-_U" },

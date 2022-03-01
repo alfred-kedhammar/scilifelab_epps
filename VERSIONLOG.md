@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220301.1
+Support Mosquito for logbook
+
 ## 20220222.1
 Return message when no issue detected for index checker
 
