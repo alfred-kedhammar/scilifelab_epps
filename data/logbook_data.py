@@ -299,6 +299,12 @@ lims_process_record={
               "details" : ["Processname"]
           }
       },
+      "Intermediate QC" : {
+          "lims_instrument" : {
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
+          }
+      },
       "Library Normalization" : {
           "lims_instrument" : {
               "dest_file" : ["Bravo", "Mosquito"],
@@ -369,6 +375,11 @@ lims_process_record={
           "lims_instrument" : {
               "dest_file" : ["Bravo", "Mosquito"],
               "details" : ["Processname"]
+          }
+      },
+      "Library Preparation & Amplification" : {
+          "lims_instrument" : {
+              "dest_file" : "PCR"
           }
       },
       "Library preparation (Chromium Genome v2)" : {
