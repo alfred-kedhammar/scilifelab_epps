@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220304.1
+Multiple EPP changes to support the new OmniC protocol
+
 ## 20220301.1
 Support Mosquito for logbook
 
