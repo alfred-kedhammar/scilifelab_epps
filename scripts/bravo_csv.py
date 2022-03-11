@@ -11,6 +11,8 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
+from numpy import minimum, where
+from datetime import datetime as dt
 
 
 DESC = """EPP used to create csv files for the bravo robot"""
@@ -239,44 +241,429 @@ def aliquot_fixed_volume(currentStep, lims, volume, log):
     return data
 
 
+def zika_upload_csv(currentStep, lims, wl_filename):
+    for out in currentStep.all_outputs():
+        if out.name == "Mosquito CSV File":
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, wl_filename)
+
+def zika_upload_log(currentStep, lims, log_filename):
+    for out in currentStep.all_outputs():
+        if out.name == "Mosquito Log":
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, log_filename)
+
+def zika_write_log(log, file_meta):
+    log_filename = "_".join(["zika_log", file_meta["pid"], file_meta["timestamp"].strftime("%y%m%d_%H%M%S")]) + ".log"
+    with open(log_filename, "w") as logContext:
+        logContext.write("\n".join(log))
+    return log_filename
+
 def prepooling(currentStep, lims):
     log = []
-    # First thing to do is to grab the volumes of the input artifacts. The method is ... rather unique.
-    data = compute_transfer_volume(currentStep, lims, log)
-    with open("bravo.csv", "w") as csvContext:
-        for s in data:
-            if s['vol_to_take'] > MAX_WARNING_VOLUME:
-                log.append("Volume for sample {} is above {}, redo the calculations manually".format(MAX_WARNING_VOLUME, s['name']))
-            if s['vol_to_take'] < MIN_WARNING_VOLUME:
-                log.append("Volume for sample {} is below {}, redo the calculations manually".format(MIN_WARNING_VOLUME, s['name']))
-            csvContext.write("{0},{1},{2},{3},{4}\n".format(s['src_fc_id'], s['src_well'], s['vol_to_take'], s['dst_fc'], s['dst_well']))
-    if log:
-        with open("bravo.log", "w") as logContext:
-            logContext.write("\n".join(log))
+    if currentStep.instrument.name == "Zika":
+        # Constraints
+        zika_min_vol = 0.5  # Possible to run on 0.1
+        zika_max_vol = 5
+        src_dead_vol = 5
+        pool_max_vol = 180
 
-    df = pd.read_csv("bravo.csv", header=None)
-    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
-    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
-    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
-    df.to_csv('bravo.csv', header=False, index=False)
-
-    for out in currentStep.all_outputs():
-        # attach the csv file and the log file
-        if out.name == "EPP Generated Bravo CSV File":
-            attach_file(os.path.join(os.getcwd(), "bravo.csv"), out)
-        if log and out.name == "Bravo Log":
-            attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
-    if log:
-        # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
-        sys.stderr.write("Errors were met, please check the Log file\n")
-        # Also write the Fatal Errors
-        for entry in log:
-            if "ERROR:" in entry:
-                sys.stderr.write("{} ".format(entry))
-        sys.exit(2)
+        try:
+            file_meta = {"pid":currentStep.id, "timestamp":dt.now()}
+            # Create dataframe of all transfers incl. transfer volume
+            df = zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol)
+            # Create worklist file
+            wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, file_meta)
+        
+        except PoolOverflow:
+            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
+            sys.stderr.write("ERROR: Overflow in pool(s). Check log for more info.")
+            sys.exit(2)
+        except LowVolume:
+            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
+            sys.stderr.write("ERROR: Some samples have too low volume to be transferred. Check log for more info.")
+            sys.exit(2)
+        except PoolCollision:
+            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
+            sys.stderr.write(log[-1]+'\n')
+            sys.exit(2)
+        except MultipleDst:
+            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
+            sys.stderr.write(log[-1]+'\n')
+            sys.exit(2)
+            
+        else:
+            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
+            zika_upload_csv(currentStep, lims, wl_filename)
+            if any("WARNING:" in entry for entry in log):
+                sys.stderr.write("CSV-file generated with warnings, please check the Log file\n")
+                sys.exit(2)
+            else:
+                logging.info("Work done")
+                
     else:
-        logging.info("Work done")
+        # First thing to do is to grab the volumes of the input artifacts. The method is ... rather unique.
+        data = compute_transfer_volume(currentStep, lims, log)
+        with open("bravo.csv", "w") as csvContext:
+            for s in data:
+                if s['vol_to_take'] > MAX_WARNING_VOLUME:
+                    log.append("Volume for sample {} is above {}, redo the calculations manually".format(MAX_WARNING_VOLUME, s['name']))
+                if s['vol_to_take'] < MIN_WARNING_VOLUME:
+                    log.append("Volume for sample {} is below {}, redo the calculations manually".format(MIN_WARNING_VOLUME, s['name']))
+                csvContext.write("{0},{1},{2},{3},{4}\n".format(s['src_fc_id'], s['src_well'], s['vol_to_take'], s['dst_fc'], s['dst_well']))
+        if log:
+            with open("bravo.log", "w") as logContext:
+                logContext.write("\n".join(log))
 
+        df = pd.read_csv("bravo.csv", header=None)
+        df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
+        df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
+        df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
+        df.to_csv('bravo.csv', header=False, index=False)
+
+        for out in currentStep.all_outputs():
+            # attach the csv file and the log file
+            if out.name == "EPP Generated Bravo CSV File":
+                attach_file(os.path.join(os.getcwd(), "bravo.csv"), out)
+            if log and out.name == "Bravo Log":
+                attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
+        if log:
+            # to get an error display in the lims, you need a non-zero exit code AND a message in STDERR
+            sys.stderr.write("Errors were met, please check the Log file\n")
+            sys.exit(2)
+        else:
+            logging.info("Work done")
+
+def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, file_meta):
+    """Create and write the worklist"""
+
+    # Determine subtransfers
+    wl = pd.DataFrame()
+    for idx, row in df.iterrows():
+        if row.transfer_vol > zika_max_vol:
+            n_splits = int(row.transfer_vol // zika_max_vol + 1)
+            split_transfer_vol = row.transfer_vol / n_splits
+            row.transfer_vol = split_transfer_vol
+            for i in range(0,n_splits):
+                wl = wl.append(row)
+        else:
+            wl = wl.append(row)
+    # New index --> subtransfer ID, old index --> transfer ID
+    wl.reset_index(inplace = True)
+    wl = wl.rename(columns={'index': 'transfer_id'}, inplace = False)
+
+    # Determine buffer wells and transfers
+    if not df[df.name == "buffer"].empty:
+        # Calculate how many buffer wells we need and place them on the destination plate
+        tot_buffer_vol = sum(df[df.name == "buffer"]["transfer_vol"])
+        num_buffer_wells = int(tot_buffer_vol // (pool_max_vol - src_dead_vol - zika_max_vol) + 1)
+        # Place wells starting from bottom right corner
+        all_wells = []
+        for n in range(1,13):
+            for l in "ABCDEFGH":
+                all_wells.append(l+":"+str(n))
+        all_wells.reverse()
+        buffer_wells = all_wells[0:num_buffer_wells]
+
+        # Assign buffer src wells, switch if we run out
+        iter_buffer_well = iter(buffer_wells)
+        current_buffer_well = next(iter_buffer_well)
+        current_vol = pool_max_vol
+        for idx, row in wl[wl.src_well.isna()].iterrows():
+            wl.at[idx,'src_well'] = current_buffer_well
+            current_vol -= row.transfer_vol
+            if current_vol < src_dead_vol + zika_max_vol:
+                current_buffer_well = next(iter_buffer_well)
+                current_vol = pool_max_vol
+        # Raise error if buffer well assignment conflicts with pool well assignment
+        if any(df.loc[df.id.notna(),"dst_well"].isin(buffer_wells)):
+            log.append("ERROR: Assigned pool wells conflict with auto-assigned buffer wells ({}). Buffer wells are assigned starting in the bottom right corner of the destination plate.\n".format(", ".join(buffer_wells)))
+            raise PoolCollision()
+
+    # Determine plate layout
+    src_plates = wl.loc[wl.src_fc_id != wl.dst_fc[0],"src_fc"].value_counts()
+    src_plates = pd.DataFrame({"src_fc":src_plates.index, "count":src_plates.values})
+    src_plates.sort_values(inplace = True, by=["count","src_fc"], ascending=[False,True])
+
+    n_src_plates = len(src_plates)
+    n_layouts = ((n_src_plates - 1) // 4) + 1
+
+    # Make list of deck positions, sorted by proximity
+    pos = [2]*n_layouts + [4]*n_layouts + [1]*n_layouts + [5]*n_layouts
+    pos = pos[0:n_src_plates]
+    # Make a corresponding list of layouts
+    layout = list(range(1,n_layouts+1))*(n_src_plates // n_layouts + 1)
+    layout = layout[0:n_src_plates]
+    # Position the plates with the most samples closest to the dest plate
+    src_plates["src_pos"] = pos
+    src_plates["dst_pos"] = 3
+    src_plates["layout"] = layout
+
+    # Merge layout info and add buffer transfer info
+    wl2 = pd.merge(wl,src_plates,how="left")
+    wl2.loc[wl2['src_fc'] == "buffer", 'src_pos'] = 3
+    wl2.loc[wl2['src_fc'] == "buffer", 'dst_pos'] = 3
+
+    # Change tips for sample but not for buffer transfers
+    wl2['VAR'] = where(wl2['src_fc']=='buffer', '[VAR1]', '[VAR2]')
+
+    # Add row/col info
+    wl2["src_row"], wl2["src_col1"] = well2rowcol(wl2.src_well)
+    wl2["src_col2"] = wl2.src_col1
+    wl2["dst_row"], wl2["dst_col"] = well2rowcol(wl2.dst_well)
+
+    # Transform to integers
+    wl2["vol_nl"] = round(wl2.transfer_vol * 1000)
+    wl2 = wl2.astype({"src_pos": int, "dst_pos": int, "vol_nl": int}, errors = "ignore")
+
+    # Keep only the worklist-related columns
+    wl3 = wl2[["src_pos", "src_col1", "src_col2", "src_row", "dst_pos", "dst_col", "dst_row",
+                "vol_nl", "VAR", "layout", "src_fc"]]
+    
+    # GENERATE WORKLIST
+
+    # For buffer transfers, switch tip every n transfers
+    switch_every_n = 10
+    wl_buffer = wl3[wl3.layout.isna()].sort_values(by = ["src_row","src_col1"], ascending = False)
+    wl_buffer.reset_index(drop = True, inplace = True)
+    wl_buffer.loc[switch_every_n::switch_every_n,"VAR"] = "[VAR2]"
+
+    wl_sample = wl3[wl3.layout.notna()].sort_values(by = ["layout","vol_nl"], ascending = [True, False])
+
+    wl_filename = "_".join(["zika_worklist", file_meta["pid"], file_meta["timestamp"].strftime("%y%m%d_%H%M%S")]) + ".csv"
+    with open(wl_filename, "w") as csvContext:
+        # Write header
+        csvContext.write("worklist,\n")
+        csvContext.write("[VAR1]TipChangeStrategy,never,[VAR2]TipChangeStrategy,always\n")
+        csvContext.write("COMMENT, This is a Zika advanced worklist for LIMS process {} generated {}\n".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
+        csvContext.write("COMMENT, The worklist will enact transfers of {} samples from {} src plate(s) into {} pool(s) via {} layout(s)\n".format(
+            len(df[df.id.notna()]), n_src_plates, len(df.dst_well.unique()), n_layouts))
+        if not wl_buffer.empty:
+            csvContext.write("COMMENT, Please make sure well(s) [{}] of the destination plate are filled with {} ul buffer\n".format(" + ".join(buffer_wells), pool_max_vol))
+
+        # Loop over layouts
+        for i in range(1, n_layouts + 1):
+            # In the first layout, start with the buffer transfers
+            if i == 1 and not wl_buffer.empty:
+                wl_current = wl_buffer.append(wl_sample[wl_sample.layout == i])
+            else:
+                wl_current = wl_sample[wl_sample.layout == i]
+
+            # Get the deck layout to print in comment
+            sample_deck = src_plates.loc[src_plates.layout == i,["src_fc","src_pos"]]
+            deck = pd.merge(pd.DataFrame({"src_pos":[1,2,3,4,5]}), sample_deck, how = "left", on = "src_pos")
+            deck.loc[deck.src_pos==3, "src_fc"] = "[Destination plate]"
+            deck.fillna("[Empty]", inplace = True)
+
+            csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc))
+            csvContext.write("\nPAUSE, 0\n")
+            
+            # Write transfers
+            for idx, row in wl_current.iterrows():
+                csvContext.write(",".join(["COPY"] + [str(e) for e in row["src_pos":"VAR"]])+"\n")
+
+    return wl_filename
+
+def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
+    """Calculate volumes via zika_vols() for one pooling at a time"""
+
+    data = make_datastructure(currentStep, lims, log)
+    returndata = pd.DataFrame()
+
+    # Get pools and sort by destination row, col
+    pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
+    pools.sort(key=lambda pool: pool.name)
+
+    # Store here, whether any pooling has critical error
+    pool_overflow_state = False 
+    low_volume_state = False
+    
+    for pool in pools:
+        try:
+            # Replace commas with semicolons, so pool names can be printed in worklist
+            pool.name = pool.name.replace(",",";")
+
+            valid_inputs = [x for x in data if x['pool_id'] == pool.id]
+
+            target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
+            target_pool_vol = float(pool.udf["Final Volume (uL)"])
+
+            df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool, log,
+                            zika_min_vol, src_dead_vol, pool_max_vol)
+            
+            returndata = returndata.append(df, ignore_index = True)
+        
+        # Record critical error has occured, then continue
+        except PoolOverflow:
+            pool_overflow_state = True
+            continue
+        except LowVolume:
+            low_volume_state = True
+            continue
+    
+    log.append("\n")
+    # If any of the poolings had overflow, raise exception
+    if pool_overflow_state:
+        raise PoolOverflow()
+    if low_volume_state:
+        raise LowVolume()
+    if len(returndata.dst_fc.unique()) > 1:
+        log.append("ERROR: Only one destination plate is allowed.")
+        raise MultipleDst()
+    return returndata
+
+class PoolOverflow(Exception):
+    pass
+class PoolCollision(Exception):
+    pass
+class LowVolume(Exception):
+    pass
+class MultipleDst(Exception):
+    pass
+
+def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
+              zika_min_vol, src_dead_vol, pool_max_vol):
+    """Takes a pooling, then calculates and returns a df w. the associated transfer volumes"""
+
+    n_src = len(samples)
+    log.append("\nPooling {} samples into {}...".format(n_src,pool.name))
+    log.append("Target conc: {} nM, Target vol: {} ul".format(target_pool_conc or "[none]", target_pool_vol or "[none]"))
+
+    df = pd.DataFrame(samples)
+
+    # Set any negative concentrations to 0.01 nM
+    if not df.loc[df.conc < 0.01, "conc"].empty:
+        neg_conc_sample_names = df.loc[df.conc < 0.01, "name"].sort_values()
+        df.loc[df.conc < 0.01, "conc"] = 0.01
+        log.append("WARNING: The following {} sample(s) fell short of, and will be treated as, 0.01 nM: {}".format(len(neg_conc_sample_names), ", ".join(neg_conc_sample_names)))
+
+    # Take dead volume into account for calculating transferrable amount
+    df = df.rename(columns = {"vol":"full_vol"})
+    df["live_vol"] = df.full_vol - src_dead_vol
+    if any(df.live_vol < zika_min_vol):
+        low_vol_sample_names = df[df.live_vol < zika_min_vol].sort_values("name").name
+        log.append("ERROR: The following {} sample(s) did not have enough recorded volume to be transferred: {}".format(len(low_vol_sample_names), ", ".join(low_vol_sample_names)))
+        raise LowVolume()
+
+    # Determine lowest / highest common transfer amount
+    df["min_amount"] = zika_min_vol * df.conc
+    df["max_amount"] = df.live_vol * df.conc
+    highest_min_amount = max(df.min_amount)
+    lowest_max_amount = min(df.max_amount)
+
+    df["minimized_vol"] = minimum(highest_min_amount / df.conc, df.live_vol)
+    pool_min_vol = sum(df.minimized_vol)
+    if pool_min_vol > pool_max_vol:
+        log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers".format(pool.name))
+        highest_conc_sample_name, highest_conc_sample_conc = df.loc[df.conc.idxmax,["name","conc"]]
+        log.append("Highest concentrated sample: {} at {} nM".format(highest_conc_sample_name, round(highest_conc_sample_conc,2)))
+        log.append("Pooling cannot be normalized to less than {} ul".format(round(pool_min_vol,2)))
+        raise PoolOverflow()
+
+    # Given our input samples, which volumes / concs. are possible as output?
+    # Minimize amount
+    pool_max_conc = highest_min_amount * n_src / pool_min_vol
+    pool_min_conc = highest_min_amount * n_src / pool_max_vol
+
+    # Log perfect pool or not
+    if highest_min_amount > lowest_max_amount:
+        log.append("WARNING: Some samples will be depleted and under-represented in the final pool. \nThe common sample transfer amount is minimized in order to get all samples as equal as possible")
+        # No room to maximize amount
+        pool_min_vol2 = pool_min_vol
+        pool_min_conc2 = pool_min_conc
+    else:
+        # Maximize amount
+        pool_min_vol2 = min(pool_min_vol*lowest_max_amount/highest_min_amount, pool_max_vol)
+        pool_min_conc2 = pool_max_conc * pool_min_vol2 / pool_max_vol
+
+        log.append("Pool can be created for conc {}-{} nM and vol {}-{} ul".format(
+        round(pool_min_conc,2), round(pool_max_conc,2), round(pool_min_vol,2), round(pool_max_vol,2)))
+
+    # Pack all metrics into a list, to decrease number of input arguments later
+    pool_boundaries = [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc]
+
+    # Nudge conc, if necessary
+    if target_pool_conc > pool_max_conc:
+        pool_conc = pool_max_conc
+    elif target_pool_conc < pool_min_conc:
+        pool_conc = pool_min_conc
+    else:
+        pool_conc = target_pool_conc
+    if target_pool_conc != pool_conc:
+        log.append("WARNING: Target pool conc is adjusted to {} nM".format(round(pool_conc,2)))
+    
+    #  Nudge vol, if necessary
+    min_vol_given_pool_conc, max_vol_given_pool_conc = conc2vol(pool_conc, pool_boundaries)
+    if target_pool_vol < min_vol_given_pool_conc:
+        pool_vol = min_vol_given_pool_conc
+        log.append("INFO: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
+    elif target_pool_vol > min_vol_given_pool_conc and highest_min_amount > lowest_max_amount:
+        pool_vol = min_vol_given_pool_conc
+        log.append("WARNING: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
+    elif target_pool_vol > max_vol_given_pool_conc:
+        pool_vol = max_vol_given_pool_conc
+        log.append("WARNING: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
+    else:
+        pool_vol = target_pool_vol
+        
+    if highest_min_amount < lowest_max_amount and target_pool_vol == pool_vol and target_pool_conc == pool_conc:
+        log.append("Pooling OK")
+
+    # Update UDF:s to match the pool concs and vols that are logged
+    pool.udf["Pool Conc. (nM)"] = round(pool_conc,2)
+    pool.udf["Final Volume (uL)"] = round(pool_vol,2)
+    pool.put()
+            
+    # Append transfer volumes and corresponding fraction of target conc. for each sample
+    sample_transfer_amount = pool_conc * pool_vol / n_src
+    df["transfer_vol"] = minimum(sample_transfer_amount / df.conc, df.live_vol)
+    df["final_target_fraction"] = round((df.transfer_vol * df.conc / pool_vol) / (pool_conc / n_src), 2)
+
+    # If needed, add buffer w/o assigning source
+    total_sample_vol = sum(df["transfer_vol"])
+    if pool_vol - total_sample_vol > zika_min_vol:
+        df = df.append({'name':"buffer",
+                        "src_fc":"buffer",
+                        "src_fc_id":df["dst_fc"][0],
+                        "pool_id":df["pool_id"][0],
+                        "dst_fc":df["dst_fc"][0],
+                        "dst_well":df["dst_well"][0],
+                        "transfer_vol":pool_vol - total_sample_vol},
+                        ignore_index = True)
+    
+    # Report low-conc samples
+    low_samples = df[df.final_target_fraction < 0.995][["name", "final_target_fraction"]].sort_values("name")
+    if not low_samples.empty:
+        log.append("The following samples are pooled below target:")
+        log.append("Sample\tFraction")
+        for name, frac in low_samples.values:
+            log.append("{}\t{}".format(name, round(frac,2)))
+    return df
+
+def conc2vol(conc, pool_boundaries):
+    """Nudge target vol based on conc. and pool boundaries."""
+    [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc] = pool_boundaries
+    assert pool_min_conc <= conc <= pool_max_conc
+
+    min_vol = min(pool_max_vol, pool_min_vol * pool_max_conc / conc)
+    max_vol = min(pool_max_vol, pool_min_vol2 * pool_max_conc / conc)
+    return (min_vol, max_vol)
+
+def well2rowcol(well_iter):
+    """Translates iterable of well names to list of row/column integer tuples to specify well location in Mosquito worklists."""
+    # In an advanced worklist: startcol, endcol, row
+    rows = []
+    cols = []
+    for well in well_iter:
+        [row_letter, col_number] = str.split(well, sep=":")
+        rowdict = {}
+        for l,n in zip("ABCDEFGH","12345678"):
+            rowdict[l] = n
+        rows.append(rowdict[row_letter])
+        cols.append(col_number)
+    return rows, cols
 
 def setup_qpcr(currentStep, lims):
     log = []
@@ -301,7 +688,7 @@ def setup_qpcr(currentStep, lims):
         if log and out.name == "Bravo Log":
             attach_file(os.path.join(os.getcwd(), "bravo.log"), out)
     if log:
-        # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
+        # to get an error display in the lims, you need a non-zero exit code AND a message in STDERR
         sys.stderr.write("Errors were met, please check the Log file\n")
         sys.exit(2)
     else:
@@ -346,7 +733,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         os.rename("bravo.csv", "{}_bravo.csv".format(dest_plate_name))
         os.rename("bravo.log", "{}_bravo.log".format(dest_plate_name))
     else:
-        sys.stderr.write("Error: Multiple output plates!\n")
+        sys.stderr.write("ERROR: Multiple output plates!\n")
         sys.exit(2)
 
     for out in currentStep.all_outputs():
