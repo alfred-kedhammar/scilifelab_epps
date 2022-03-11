@@ -1,5 +1,65 @@
 # Scilifelab_epps Version Log
 
+## 20220304.1
+Multiple EPP changes to support the new OmniC protocol
+
+## 20220301.1
+Support Mosquito for logbook
+
+## 20220222.1
+Return message when no issue detected for index checker
+
+## 20220221.2
+Refactor index checker to support 10X indexes
+
+## 20220221.1
+New EPP for checking index distance
+
+## 20220217.1
+Update illumina_run_parameter_parser for parsing run stats for MiSeq
+
+## 20220215.1
+Put back Workflow for samplesheet generator for MiSeq
+
+## 20220211.1
+Replace UDF for samplesheet generator for MiSeq
+
+## 20220202.1
+Update to send email to proj coord when a running note is written from LIMS
+
+## 20211104.1
+Update samplesheet generator to handle non-QC Minion sequencing step
+
+## 20211027.1
+Remove FastQ path from MinION samplesheet
+
+## 20211025.2
+Bravo CSV EPP for new library normalization and pooling steps
+
+## 20211025.1
+EPP support for new library normalization and pooling steps
+
+## 20211021.1
+Show ERROR messages when pool volume is too high
+
+## 20211013.1
+Support selectable Fragment Analyzer for logbook
+
+## 20211011.1
+Update anglerfish results parser to support outputfile with new format
+
+## 20211007.1
+Support fmol amount calculation
+
+## 20210930.1
+Fix bug with control samples for bravo_csv
+
+## 20210920.1
+Exclude RNA no depletion protocol from volume adjustment
+
+## 20210910.1
+Update bravo_csv to support volume adjustment for high conc samples
+
 ## 20210809.1
 Update threshold of max undet per lane percentage for demux step
 

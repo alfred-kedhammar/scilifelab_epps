@@ -222,7 +222,7 @@ def gen_Miseq_header(pro):
         if len(idxs) == 2:
            chem="amplicon"
 
-    header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=datetime.now().strftime("%Y-%m-%d"), wf=pro.udf["Workflow"], ass="null", dsc=pro.udf['Description'], chem=chem)
+    header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nModule,{mod}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Experiment Name"], dt=datetime.now().strftime("%Y-%m-%d"), wf=pro.udf["Workflow"], mod=pro.udf["Module"], ass="null", dsc=pro.udf['Description'], chem=chem)
     return header
 
 def gen_Miseq_reads(pro):
@@ -382,11 +382,8 @@ def gen_Nextseq_lane_data(pro):
 
 
 def gen_MinION_QC_data(pro):
+    keep_idx_flag = True if pro.type.name == 'MinION QC' else False
     data=[]
-    try:
-        fastq_path = pro.udf['Path of Output FastQ Files']
-    except KeyError:
-        fastq_path = ''
     for out in pro.all_outputs():
         if NGISAMPLE_PAT.findall(out.name):
             nanopore_barcode_name = out.udf['Nanopore Barcode'].split('_')[0] if out.udf['Nanopore Barcode'] != 'None' else ''
@@ -397,7 +394,6 @@ def gen_MinION_QC_data(pro):
             sp_obj = {}
             sp_obj['sn'] = sample_name
             sp_obj['npbs'] = nanopore_barcode_seq
-            sp_obj['fp'] = fastq_path+nanopore_barcode_name+'.fastq.gz' if nanopore_barcode_name != '' else fastq_path+sample_name+'.fastq.gz'
 
             #Case of 10X indexes
             if TENX_PAT.findall(idxs):
@@ -408,7 +404,6 @@ def gen_MinION_QC_data(pro):
                     sp_obj_sub['npbs'] = sp_obj['npbs']
                     sp_obj_sub['idxt'] = 'truseq'
                     sp_obj_sub['idx'] = tenXidx.replace(',','')
-                    sp_obj_sub['fp'] = sp_obj['fp']
                     data.append(sp_obj_sub)
             #Case of ST indexes
             elif ST_PAT.findall(idxs):
@@ -443,7 +438,10 @@ def gen_MinION_QC_data(pro):
                 data.append(sp_obj)
     str_data = ""
     for line in sorted(data, key=lambda x: x['sn']):
-        l_data = [line['sn'], line['npbs'], line['idxt'], line['idx'], line['fp']]
+        if keep_idx_flag:
+            l_data = [line['sn'], line['npbs'], line['idxt'], line['idx']]
+        else:
+            l_data = [line['sn'], line['npbs'], '', '']
         str_data = str_data + ",".join(l_data) + "\n"
 
     return str_data
@@ -543,9 +541,10 @@ def main(lims, args):
                 except Exception as e:
                     log.append(str(e))
 
-        elif process.type.name == 'MinION QC':
+        elif process.type.name in ['MinION QC', 'Load Sample and Sequencing (MinION) 1.0']:
             content = gen_MinION_QC_data(process)
-            fc_name = process.udf['Nanopore Kit'] + "_" + process.udf['Flowcell ID'].upper() + "_" + "Samplesheet" + "_" + process.id
+            run_type = 'QC' if process.type.name == 'MinION QC' else 'DELIVERY'
+            fc_name = run_type + "_" + process.udf['Nanopore Kit'] + "_" + process.udf['Flowcell ID'].upper() + "_" + "Samplesheet" + "_" + process.id
             if os.path.exists("/srv/mfs/samplesheets/nanopore/{}".format(thisyear)):
                 try:
                     with open("/srv/mfs/samplesheets/nanopore/{}/{}.csv".format(thisyear, fc_name), 'w') as sf:
@@ -564,8 +563,9 @@ def main(lims, args):
                         fc_name = process.udf['Experiment Name'] if process.udf['Experiment Name'] else out.location[0].name
                     else:
                         fc_name = out.location[0].name
-                elif process.type.name == 'MinION QC':
-                    fc_name = process.udf['Nanopore Kit'] + "_" + process.udf['Flowcell ID'].upper() + "_" + "Samplesheet" + "_" + process.id
+                elif process.type.name in ['MinION QC', 'Load Sample and Sequencing (MinION) 1.0']:
+                    run_type = 'QC' if process.type.name == 'MinION QC' else 'DELIVERY'
+                    fc_name = run_type + "_" + process.udf['Nanopore Kit'] + "_" + process.udf['Flowcell ID'].upper() + "_" + "Samplesheet" + "_" + process.id
                 else:
                     fc_name = "Samplesheet" + "_" + process.id
 

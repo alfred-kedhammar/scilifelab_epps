@@ -68,10 +68,17 @@ def get_data(content, log):
         if 'sample_name' in line and '#reads' in line:
             header_flag = False
             continue
-        if not header_flag:
-            sample_id = line.split('\t')[0]
-            read_count = int(line.split('\t')[1].replace('\n',''))
+        if (not header_flag) and (line != '\n'):
+            if '\t' in line:
+                sample_id = line.split('\t')[0]
+                read_count = int(line.split('\t')[1].replace('\n',''))
+            else:
+                sample_id = line.split()[0]
+                read_count = int(line.split()[1])
             raw_data.update({sample_id: read_count})
+        # Read file until an empty line
+        if (not header_flag) and (line == '\n'):
+            break
         else:
             continue
     #Process raw data
