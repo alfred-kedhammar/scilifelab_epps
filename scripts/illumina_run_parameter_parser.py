@@ -249,7 +249,8 @@ def lims_for_miseq(process, run_dir):
     if len(non_index_read_idx) == 2:
         process.udf['Read 2 Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(max(list(map(int,non_index_read_idx))))])[0]['NumCycles'])
 
-    process.udf['Index 1 Read Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(min(list(map(int,index_read_idx))))])[0]['NumCycles'])
+    if len(index_read_idx) > 0:
+        process.udf['Index 1 Read Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(min(list(map(int,index_read_idx))))])[0]['NumCycles'])
     if len(index_read_idx) == 2:
         process.udf['Index 2 Read Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(max(list(map(int,index_read_idx))))])[0]['NumCycles'])
 

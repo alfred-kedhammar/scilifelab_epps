@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220313.1
+Update illumina_run_parameter_parser for handling MiSeq run without index cycles
+
 ## 20220304.1
 Multiple EPP changes to support the new OmniC protocol
 
