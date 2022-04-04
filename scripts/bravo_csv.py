@@ -695,48 +695,84 @@ def setup_qpcr(currentStep, lims):
         logging.info("Work done")
 
 
-def zika_amp_norm(lims, currentStep, with_total_vol=True):
-    """Normalize amplicon libraries to specified concentration and volume based on user measurements"""
-    
-    # Our input requirements for amplicon projects 
-    target_conc = 0.25
-    target_vol = 12
+def zika_norm(lims, currentStep):
+    """ Written for the purposes of normalization given user-supplied concentrations and volumes """
+    file_meta = {"pid":currentStep.id, "timestamp":dt.now()}
+    log = []
 
     # Zika is only validated (by us and SPT) for transfers down to 0.5 ul but in theory perform transfers down to 0.1 ul
     zika_min_vol = 0.1
     zika_max_vol = 5
-    zika_dead_vol = 5
+    zika_dead_vol = 5   # Estimated dead volume of TwinTec96 wells
 
     df_dict = {
+        "name" : [],
         "source_fc" : [],
         "source_well" :[],
         "dest_fc" : [],
         "dest_well" : [],
         "dest_fc_name" : [],
         "conc" : [],
-        "vol" : []
+        "full_vol" : [],
+        "target_vol" : [],
+        "target_amt" : []
     }
 
     for art_tuple in currentStep.input_output_maps:
         if art_tuple[0]['uri'].type == 'Analyte' and art_tuple[1]['uri'].type == 'Analyte':
+            df_dict["name"].append(art_tuple[0]["uri"].name)
             df_dict["source_fc"].append(art_tuple[0]['uri'].location[0].name)
             df_dict["source_well"].append(art_tuple[0]['uri'].location[1])
             df_dict["dest_fc"].append(art_tuple[1]['uri'].location[0].id)
             df_dict["dest_well"].append(art_tuple[1]['uri'].location[1])
             df_dict["dest_fc_name"].append(art_tuple[1]['uri'].location[0].name)
+            # Fetch user-supplied conc and vol
             df_dict["conc"].append(art_tuple[0]["uri"].samples[0].udf['Customer Conc'])
-            df_dict["vol"].append(art_tuple[0]["uri"].samples[0].udf['Customer Volume'])
+            df_dict["full_vol"].append(art_tuple[0]["uri"].samples[0].udf['Customer Volume'])
+            # Fetch target conc and vol
+            df_dict["target_vol"].append(art_tuple[1]["uri"].udf['Total Volume (uL)'])
+            df_dict["target_amt"].append(art_tuple[1]["uri"].udf['Amount taken (ng)'])
+                
 
     df = pd.DataFrame(df_dict)
 
-    df["live_vol"] = maximum(0, df.vol - zika_dead_vol)
-    df["amt"] = df.conc * df.vol
-    df["live_amt"] = df.conc * df.live_vol
+    log.append("Log for Zika normalization, LIMS process {}, generated {}".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
+    log.append("Normalizing {} samples from plate {}...\n".format(len(df), df.dest_fc[0]))
+
+    df["live_vol"] = maximum(0, df.full_vol - zika_dead_vol)
+
+    assert len(df.source_fc.unique()) == len(df.dest_fc.unique()) == 1  # One plate in, one plate out
+    assert all(df.live_vol > zika_min_vol) # Sufficient sample volumes
+
+    # Calculate min and max transferrable amounts
+    df["min_amt"] = df.conc * zika_min_vol
+    df["max_amt"] = df.conc * df.live_vol
+
+    # Transfer volume must be higher than zika_min_vol and leq to sample target_vol
+    df["transfer_vol"] = maximum(minimum(df.target_amt / df.conc, df.target_vol), zika_min_vol)
+    df["transfer_amt"] = df.transfer_vol * df.conc
+    df["buffer_vol"] = df.target_vol - df.transfer_vol
+    df["tot_vol"] = df.buffer_vol + df.transfer_vol
+
+    # Summarize sample warnings. Volumes should always be on-target. Amount can be below due to depletion or above due to high sample conc.
+    for idx, row in df.iterrows():
+        if min([row.transfer_amt, row.target_amt]) / max([row.transfer_amt, row.target_amt]) < 0.995:
+            log.append("WARNING: Sample {} normalized to {} ng in {} ul, {}% of target".format(
+                row.name, round(row.transfer_amt,2), round(row.tot_vol,2), round(row.transfer_amt / row.target_amt * 100,2)
+                ))
+
+    # Prepare values for worklist
+    df["src_row"], df["src_col"] = well2rowcol(df.source_well)
+    df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
+    df.sort_values(by = ["src_col", "src_row"], inplace = True)
+    df["wl_vol"] = round(df.transfer_vol * 1000, 0)
+
+      
 
 def default_bravo(lims, currentStep, with_total_vol=True):
     if currentStep.instrument.name == "Zika":
-        
-        zika_amp_norm(lims, currentStep, with_total_vol)
+        # The primary intended application here is amplicon normalization in "Amplicon w/o RC" workflow and "Setup Workset/Plate" step
+        zika_norm(lims, currentStep)
 
     else:
         checkTheLog = [False]
@@ -790,7 +826,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                     lims.request_session.delete(f.uri)
                 lims.upload_new_file(out, "{}_bravo.log".format(dest_plate_name))
         if checkTheLog[0]:
-            # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
+            # to get an error display in the lims, you need a non-zero exit code AND a message in STDERR
             sys.stderr.write("Errors were met, please check the Log file\n")
             sys.exit(2)
         else:
