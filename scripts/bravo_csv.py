@@ -11,7 +11,7 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
-from numpy import minimum, where
+from numpy import minimum, maximum, where
 from datetime import datetime as dt
 
 
@@ -695,63 +695,106 @@ def setup_qpcr(currentStep, lims):
         logging.info("Work done")
 
 
+def zika_amp_norm(lims, currentStep, with_total_vol=True):
+    """Normalize amplicon libraries to specified concentration and volume based on user measurements"""
+    
+    # Our input requirements for amplicon projects 
+    target_conc = 0.25
+    target_vol = 12
+
+    # Zika is only validated (by us and SPT) for transfers down to 0.5 ul but in theory perform transfers down to 0.1 ul
+    zika_min_vol = 0.1
+    zika_max_vol = 5
+    zika_dead_vol = 5
+
+    df_dict = {
+        "source_fc" : [],
+        "source_well" :[],
+        "dest_fc" : [],
+        "dest_well" : [],
+        "dest_fc_name" : [],
+        "conc" : [],
+        "vol" : []
+    }
+
+    for art_tuple in currentStep.input_output_maps:
+        if art_tuple[0]['uri'].type == 'Analyte' and art_tuple[1]['uri'].type == 'Analyte':
+            df_dict["source_fc"].append(art_tuple[0]['uri'].location[0].name)
+            df_dict["source_well"].append(art_tuple[0]['uri'].location[1])
+            df_dict["dest_fc"].append(art_tuple[1]['uri'].location[0].id)
+            df_dict["dest_well"].append(art_tuple[1]['uri'].location[1])
+            df_dict["dest_fc_name"].append(art_tuple[1]['uri'].location[0].name)
+            df_dict["conc"].append(art_tuple[0]["uri"].samples[0].udf['Customer Conc'])
+            df_dict["vol"].append(art_tuple[0]["uri"].samples[0].udf['Customer Volume'])
+
+    df = pd.DataFrame(df_dict)
+
+    df["live_vol"] = maximum(0, df.vol - zika_dead_vol)
+    df["amt"] = df.conc * df.vol
+    df["live_amt"] = df.conc * df.live_vol
+
 def default_bravo(lims, currentStep, with_total_vol=True):
-    checkTheLog = [False]
-    dest_plate = []
-    with open("bravo.csv", "w") as csvContext:
-        with open("bravo.log", "w") as logContext:
-            # working directly with the map allows easier input/output handling
-            for art_tuple in currentStep.input_output_maps:
-            # filter out result files
-                if art_tuple[0]['uri'].type == 'Analyte' and art_tuple[1]['uri'].type == 'Analyte':
-                    source_fc = art_tuple[0]['uri'].location[0].name
-                    source_well = art_tuple[0]['uri'].location[1]
-                    dest_fc = art_tuple[1]['uri'].location[0].id
-                    dest_well = art_tuple[1]['uri'].location[1]
-                    dest_fc_name = art_tuple[1]['uri'].location[0].name
-                    dest_plate.append(dest_fc_name)
-                    if with_total_vol:
-                        if art_tuple[1]['uri'].udf.get("Total Volume (uL)"):
-                            volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
-                            csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
+    if currentStep.instrument.name == "Zika":
+        
+        zika_amp_norm(lims, currentStep, with_total_vol)
+
+    else:
+        checkTheLog = [False]
+        dest_plate = []
+        with open("bravo.csv", "w") as csvContext:
+            with open("bravo.log", "w") as logContext:
+                # working directly with the map allows easier input/output handling
+                for art_tuple in currentStep.input_output_maps:
+                # filter out result files
+                    if art_tuple[0]['uri'].type == 'Analyte' and art_tuple[1]['uri'].type == 'Analyte':
+                        source_fc = art_tuple[0]['uri'].location[0].name
+                        source_well = art_tuple[0]['uri'].location[1]
+                        dest_fc = art_tuple[1]['uri'].location[0].id
+                        dest_well = art_tuple[1]['uri'].location[1]
+                        dest_fc_name = art_tuple[1]['uri'].location[0].name
+                        dest_plate.append(dest_fc_name)
+                        if with_total_vol:
+                            if art_tuple[1]['uri'].udf.get("Total Volume (uL)"):
+                                volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
+                                csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
+                            else:
+                                logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
+                                checkTheLog[0] = True
                         else:
-                            logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
-                            checkTheLog[0] = True
-                    else:
-                        volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
-                        csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
+                            volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
+                            csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
 
-    df = pd.read_csv("bravo.csv", header=None)
-    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
-    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
-    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
-    df.to_csv('bravo.csv', header=False, index=False)
+        df = pd.read_csv("bravo.csv", header=None)
+        df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
+        df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
+        df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
+        df.to_csv('bravo.csv', header=False, index=False)
 
-    # For now only one output plate is supported:
-    if len(list(set(dest_plate))) == 1:
-        dest_plate_name = list(set(dest_plate))[0]
-        os.rename("bravo.csv", "{}_bravo.csv".format(dest_plate_name))
-        os.rename("bravo.log", "{}_bravo.log".format(dest_plate_name))
-    else:
-        sys.stderr.write("ERROR: Multiple output plates!\n")
-        sys.exit(2)
+        # For now only one output plate is supported:
+        if len(list(set(dest_plate))) == 1:
+            dest_plate_name = list(set(dest_plate))[0]
+            os.rename("bravo.csv", "{}_bravo.csv".format(dest_plate_name))
+            os.rename("bravo.log", "{}_bravo.log".format(dest_plate_name))
+        else:
+            sys.stderr.write("ERROR: Multiple output plates!\n")
+            sys.exit(2)
 
-    for out in currentStep.all_outputs():
-        # attach the csv file and the log file
-        if out.name == "EPP Generated Bravo CSV File":
-            for f in out.files:
-                lims.request_session.delete(f.uri)
-            lims.upload_new_file(out, "{}_bravo.csv".format(dest_plate_name))
-        if out.name == "Bravo Log":
-            for f in out.files:
-                lims.request_session.delete(f.uri)
-            lims.upload_new_file(out, "{}_bravo.log".format(dest_plate_name))
-    if checkTheLog[0]:
-        # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
-        sys.stderr.write("Errors were met, please check the Log file\n")
-        sys.exit(2)
-    else:
-        logging.info("Work done")
+        for out in currentStep.all_outputs():
+            # attach the csv file and the log file
+            if out.name == "EPP Generated Bravo CSV File":
+                for f in out.files:
+                    lims.request_session.delete(f.uri)
+                lims.upload_new_file(out, "{}_bravo.csv".format(dest_plate_name))
+            if out.name == "Bravo Log":
+                for f in out.files:
+                    lims.request_session.delete(f.uri)
+                lims.upload_new_file(out, "{}_bravo.log".format(dest_plate_name))
+        if checkTheLog[0]:
+            # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
+            sys.stderr.write("Errors were met, please check the Log file\n")
+            sys.exit(2)
+        else:
+            logging.info("Work done")
 
 
 def dilution(currentStep):
