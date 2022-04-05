@@ -704,6 +704,7 @@ def zika_norm(lims, currentStep):
     zika_min_vol = 0.1
     zika_max_vol = 5
     zika_dead_vol = 5   # Estimated dead volume of TwinTec96 wells
+    well_max_vol = 180
 
     df_dict = {
         "name" : [],
@@ -731,10 +732,14 @@ def zika_norm(lims, currentStep):
             df_dict["full_vol"].append(art_tuple[0]["uri"].samples[0].udf['Customer Volume'])
             # Fetch target conc and vol
             df_dict["target_vol"].append(art_tuple[1]["uri"].udf['Total Volume (uL)'])
-            df_dict["target_amt"].append(art_tuple[1]["uri"].udf['Amount taken (ng)'])
-                
+            df_dict["target_amt"].append(art_tuple[1]["uri"].udf['Amount taken (ng)'])         
 
     df = pd.DataFrame(df_dict)
+    df.sort_values(by = "name", inplace = True)
+    df.reset_index(drop = True, inplace = True)
+
+    # Specify low target volume to optimize for multi-aspiration
+    assert max(df.target_vol) <= zika_max_vol   
 
     log.append("Log for Zika normalization, LIMS process {}, generated {}".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
     log.append("Normalizing {} samples from plate {}...\n".format(len(df), df.dest_fc[0]))
@@ -761,13 +766,58 @@ def zika_norm(lims, currentStep):
                 row.name, round(row.transfer_amt,2), round(row.tot_vol,2), round(row.transfer_amt / row.target_amt * 100,2)
                 ))
 
+    # Calc number of buffer wells needed
+    buffer_volume = sum(df.buffer_vol)
+    num_buffer_wells = int(buffer_volume // (well_max_vol - zika_dead_vol - zika_max_vol) + 1)
+    # Assign buffer wells
+    all_wells = []
+    for n in range(1,13):
+        for l in "ABCDEFGH":
+            all_wells.append(l+":"+str(n))
+    buffer_wells = all_wells[0:num_buffer_wells]
+    # Assign buffer src wells, switch if we run out
+    iter_buffer_well = iter(buffer_wells)
+    current_buffer_well = next(iter_buffer_well)
+    current_vol = well_max_vol
+    for idx, row in df.iterrows():
+        if current_vol < zika_dead_vol + zika_max_vol:
+            current_buffer_well = next(iter_buffer_well)
+            current_vol = well_max_vol
+        df.at[idx,'buffer_well'] = current_buffer_well
+        current_vol -= row.buffer_vol
+
     # Prepare values for worklist
     df["src_row"], df["src_col"] = well2rowcol(df.source_well)
     df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
-    df.sort_values(by = ["src_col", "src_row"], inplace = True)
-    df["wl_vol"] = round(df.transfer_vol * 1000, 0)
+    df["buff_row"], df["buff_col"] = well2rowcol(df.buffer_well)
 
-      
+    df.sort_values(by = ["src_col", "src_row"], inplace = True)
+
+    # Plate positions
+    buff_pos = "2"
+    src_pos = "3"
+    dst_pos = "4"
+    deck = ["[Empty]", "[Buffer plate]", "[Sample plate]", "[Destination plate]", "[Empty]"]
+
+    # Write worklist
+    wl_filename = "_".join(["zika_worklist", file_meta["pid"], file_meta["timestamp"].strftime("%y%m%d_%H%M%S")]) + ".csv"
+    with open(wl_filename, "w") as csvContext:
+        # Write header
+        csvContext.write("worklist,\n")
+        csvContext.write("[VAR1]TipChangeStrategy,always\n")
+        csvContext.write("COMMENT, This is a Zika advanced worklist for LIMS process {} generated {}\n".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
+        csvContext.write("COMMENT, The worklist will enact normalization of {} samples.\n".format(len(df)))
+        csvContext.write("COMMENT, Set up layout:    " + "     ".join(deck) + "\n")
+        if not all(df.buffer_vol == 0):
+            csvContext.write("COMMENT, Please make sure well(s) [{}] of the destination plate are filled with {} ul buffer\n".format("  ".join(buffer_wells), well_max_vol))
+
+        # Write transfers
+        for idx, row in df.iterrows():
+            if row.buffer_vol >= zika_min_vol / 2:
+                csvContext.write(",".join(["MULTI_ASPIRATE", buff_pos, str(row.buff_col), str(row.buff_row), "1", str(int(round(row.buffer_vol*1000)))]) + "\n")
+            csvContext.write(",".join(["COPY", src_pos, str(row.src_col), str(row.src_col), str(row.src_row), 
+                                               dst_pos, str(row.dst_col),                   str(row.dst_row),
+                                               str(int(round(row.transfer_vol*1000))), "[VAR1]"]) + "\n")    
 
 def default_bravo(lims, currentStep, with_total_vol=True):
     if currentStep.instrument.name == "Zika":
