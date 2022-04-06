@@ -696,12 +696,12 @@ def setup_qpcr(currentStep, lims):
 
 
 def zika_norm(lims, currentStep):
-    """ Written for the purposes of normalization given user-supplied concentrations and volumes """
+    """ Perform multi-aspirate low-volume normalization based on user concentrations and volumes """
     file_meta = {"pid":currentStep.id, "timestamp":dt.now()}
     log = []
 
     # Zika is only validated (by us and SPT) for transfers down to 0.5 ul but in theory perform transfers down to 0.1 ul
-    zika_min_vol = 0.1
+    zika_min_vol = 0.3  # For 0.3 ul, <5% systematic error has been observed compared to manual reference
     zika_max_vol = 5
     zika_dead_vol = 5   # Estimated dead volume of TwinTec96 wells
     well_max_vol = 180  # Estimated max volume of TwinTec96 wells
@@ -832,8 +832,8 @@ def default_bravo(lims, currentStep, with_total_vol=True):
 
     # Zika for amplicon normalization re-route
     target_workflow = 'Amplicon without RC for MiSeq'
-    workflow_correct = all([art.workflow_stages[0].workflow.name == target_workflow for art in currentStep.all_inputs()])
-    if currentStep.instrument.name == "Zika" and workflow_correct:
+    workflow_is_correct = all([art.workflow_stages[0].workflow.name == target_workflow for art in currentStep.all_inputs()])
+    if currentStep.instrument.name == "Zika" and workflow_is_correct:
         zika_norm(lims, currentStep)
 
     else:
