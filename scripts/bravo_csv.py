@@ -738,16 +738,35 @@ def zika_norm(lims, currentStep):
     df.sort_values(by = "name", inplace = True)
     df.reset_index(drop = True, inplace = True)
 
-    # Specify low target volume to optimize for multi-aspiration
-    assert max(df.target_vol) <= zika_max_vol   
-
-    log.append("Log for Zika normalization, LIMS process {}, generated {}".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
-    log.append("Normalizing {} samples from plate {}...\n".format(len(df), df.dest_fc[0]))
+    log.append("Log for Zika amplicon normalization, LIMS process {}, generated {}".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
+    log.append("Calculations are based on user-supplied volumes and concentrations.")
+    log.append("Highest allowed final volume is {} uL.".format(zika_max_vol))   
+    log.append("Lowest allowed pipetting volume is {} uL.".format(zika_min_vol))
+    log.append("\nNormalizing {} samples from plate {}...\n".format(len(df), df.dest_fc[0]))
 
     df["live_vol"] = maximum(0, df.full_vol - zika_dead_vol)
 
-    assert len(df.source_fc.unique()) == len(df.dest_fc.unique()) == 1  # One plate in, one plate out
-    assert all(df.live_vol > zika_min_vol) # Sufficient sample volumes
+    try:
+        assert max(df.target_vol) <= zika_max_vol
+    except AssertionError:
+        msg = "ERROR: This script is designed for one multi-aspirate buffer-sample transfer per normalization, meaning the final volume can't exceed {} uL".format(zika_max_vol)
+        log.append(msg)
+        sys.stderr.write(msg)
+        sys.exit(2)
+    try:
+        assert len(df.source_fc.unique()) == len(df.dest_fc.unique()) == 1  # One plate in, one plate out
+    except AssertionError:
+        msg = "ERROR: Currently only one input plate and one output plate allowed"
+        log.append(msg)
+        sys.stderr.write(msg)
+        sys.exit(2)
+    try:
+        assert all(df.live_vol > zika_min_vol) # Sufficient sample volumes
+    except AssertionError:
+        msg = "ERROR: Insufficient sample volume"
+        log.append(msg)
+        sys.stderr.write(msg)
+        sys.exit(2)
 
     # Calculate min and max transferrable amounts
     df["min_amt"] = df.conc * zika_min_vol
@@ -765,6 +784,7 @@ def zika_norm(lims, currentStep):
             log.append("WARNING: Sample {} normalized to {} ng in {} ul, {}% of target".format(
                 row.name, round(row.transfer_amt,2), round(row.tot_vol,2), round(row.transfer_amt / row.target_amt * 100,2)
                 ))
+    log.append("Done.\n")
 
     # Calc number of buffer wells needed
     buffer_volume = sum(df.buffer_vol)
