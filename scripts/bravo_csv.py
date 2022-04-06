@@ -704,7 +704,7 @@ def zika_norm(lims, currentStep):
     zika_min_vol = 0.1
     zika_max_vol = 5
     zika_dead_vol = 5   # Estimated dead volume of TwinTec96 wells
-    well_max_vol = 180
+    well_max_vol = 180  # Estimated max volume of TwinTec96 wells
 
     df_dict = {
         "name" : [],
@@ -820,8 +820,11 @@ def zika_norm(lims, currentStep):
                                                str(int(round(row.transfer_vol*1000))), "[VAR1]"]) + "\n")    
 
 def default_bravo(lims, currentStep, with_total_vol=True):
-    if currentStep.instrument.name == "Zika":
-        # The primary intended application here is amplicon normalization in "Amplicon w/o RC" workflow and "Setup Workset/Plate" step
+
+    # Zika for amplicon normalization re-route
+    target_workflow = 'Amplicon without RC for MiSeq'
+    workflow_correct = all([art.workflow_stages[0].workflow.name == target_workflow for art in currentStep.all_inputs()])
+    if currentStep.instrument.name == "Zika" and workflow_correct:
         zika_norm(lims, currentStep)
 
     else:
