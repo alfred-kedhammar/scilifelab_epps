@@ -818,6 +818,15 @@ def zika_norm(lims, currentStep):
             csvContext.write(",".join(["COPY", src_pos, str(row.src_col), str(row.src_col), str(row.src_row), 
                                                dst_pos, str(row.dst_col),                   str(row.dst_row),
                                                str(int(round(row.transfer_vol*1000))), "[VAR1]"]) + "\n")    
+    
+    # Write and upload log and worklist
+    zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
+    zika_upload_csv(currentStep, lims, wl_filename)
+    if any("WARNING:" in entry for entry in log):
+        sys.stderr.write("CSV-file generated with warnings, please check the Log file\n")
+        sys.exit(2)
+    else:
+        logging.info("Work done")
 
 def default_bravo(lims, currentStep, with_total_vol=True):
 
