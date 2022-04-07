@@ -458,7 +458,8 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
             deck.fillna("[Empty]", inplace = True)
 
             csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc))
-            csvContext.write("\nPAUSE, 0\n")
+            if i != 1:
+                csvContext.write("\nPAUSE, 0\n")
             
             # Write transfers
             for idx, row in wl_current.iterrows():
