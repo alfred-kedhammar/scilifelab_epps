@@ -440,28 +440,28 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
         csvContext.write("COMMENT, This is a Zika advanced worklist for LIMS process {} generated {}\n".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
         csvContext.write("COMMENT, The worklist will enact transfers of {} samples from {} src plate(s) into {} pool(s) via {} layout(s)\n".format(
             len(df[df.id.notna()]), n_src_plates, len(df.dst_well.unique()), n_layouts))
-        if not wl_buffer.empty:
-            csvContext.write("COMMENT, Please make sure well(s) [{}] of the destination plate are filled with {} ul buffer\n".format(" + ".join(buffer_wells), pool_max_vol))
 
         # Loop over layouts
         for i in range(1, n_layouts + 1):
-            # In the first layout, start with the buffer transfers
-            if i == 1 and not wl_buffer.empty:
-                wl_current = wl_buffer.append(wl_sample[wl_sample.layout == i])
-            else:
-                wl_current = wl_sample[wl_sample.layout == i]
-
             # Get the deck layout to print in comment
             sample_deck = src_plates.loc[src_plates.layout == i,["src_fc","src_pos"]]
             deck = pd.merge(pd.DataFrame({"src_pos":[1,2,3,4,5]}), sample_deck, how = "left", on = "src_pos")
             deck.loc[deck.src_pos==3, "src_fc"] = "[Destination plate]"
             deck.fillna("[Empty]", inplace = True)
 
-            csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc))
+            csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc) + "\n")
             if i != 1:
-                csvContext.write("\nPAUSE, 0\n")
+                csvContext.write("PAUSE, 0\n")
             
-            # Write transfers
+            # Write buffer transfers
+            if i == 1 and not wl_buffer.empty:
+                csvContext.write("COMMENT, " + ">"*20 + " Buffer transfers START\n")
+                csvContext.write("COMMENT, Please make sure well(s) [{}] of the destination plate are filled with {} ul buffer\n".format(" + ".join(buffer_wells), pool_max_vol))
+                for idx, row in wl_buffer.iterrows():
+                    csvContext.write(",".join(["COPY"] + [str(e) for e in row["src_pos":"VAR"]])+"\n")
+                csvContext.write("COMMENT, " + "<"*20 + " Buffer transfers END\n")
+            # Write sample transfers
+            wl_current = wl_sample[wl_sample.layout == i]
             for idx, row in wl_current.iterrows():
                 csvContext.write(",".join(["COPY"] + [str(e) for e in row["src_pos":"VAR"]])+"\n")
 
