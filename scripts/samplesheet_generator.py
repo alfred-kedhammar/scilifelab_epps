@@ -89,8 +89,7 @@ def gen_X_lane_data(pro):
             idxs = find_barcode(sample, pro)
             sp_obj['idx1'] = idxs[0].replace(',','')
             try:
-                compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
-                sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
+                sp_obj['idx2'] = idxs[1].replace(',','').upper()
                 single_end = False
             except KeyError:
                 sp_obj['idx2'] = ''
@@ -191,11 +190,11 @@ def gen_Novaseq_lane_data(pro):
                     sp_obj['idx1'] = "NoIndex"
                 else:
                     idxs = find_barcode(sample, pro)
-                    sp_obj['idx1'] = idxs[0].replace(',','')
+                    sp_obj['idx1'] = idxs[0].replace(',','').upper()
                     if idxs[1]:
-                        if pro.udf['Reagent Version'] == 'v1.0':
-                            sp_obj['idx2'] = idxs[1].replace(',','')
-                        elif pro.udf['Reagent Version'] == 'v1.5':
+                        if pro.udf['Reagent Version'] == 'v1.5':
+                            sp_obj['idx2'] = idxs[1].replace(',','').upper()
+                        elif pro.udf['Reagent Version'] == 'v1.0':
                             compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
                             sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
                     else:
@@ -296,12 +295,13 @@ def gen_Miseq_data(pro):
                     sp_obj_sub['idx1ref'] = tenXidx.replace(',','')
                     data.append(sp_obj_sub)
             else:
-                sp_obj['idx1'] = idxs[0].replace(',','')
-                sp_obj['idx1ref'] = idxs[0].replace(',','')
+                sp_obj['idx1'] = idxs[0].replace(',','').upper()
+                sp_obj['idx1ref'] = idxs[0].replace(',','').upper()
                 if len(idxs) == 2:
                     dualindex=True
-                    sp_obj['idx2']=idxs[1].replace(',','')
-                    sp_obj['idx2ref']=idxs[1].replace(',','')
+                    compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+                    sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
+                    sp_obj['idx2ref'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
                 else:
                     header_ar.remove('index2')
                     header_ar.remove('I5_Index_ID')
@@ -362,8 +362,7 @@ def gen_Nextseq_lane_data(pro):
                     idxs = find_barcode(sample, pro)
                     sp_obj['idx1'] = idxs[0].replace(',','')
                     if idxs[1]:
-                        compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
-                        sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
+                        sp_obj['idx2'] = idxs[1].replace(',','').upper()
                     else:
                         sp_obj['idx2'] = ''
                 data.append(sp_obj)
