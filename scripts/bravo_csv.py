@@ -273,7 +273,7 @@ def prepooling(currentStep, lims):
         try:
             file_meta = {"pid":currentStep.id, "timestamp":dt.now()}
             # Create dataframe of all transfers incl. transfer volume
-            df = zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol)
+            df = zika_calc(currentStep, lims, log, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol)
             # Create worklist file
             wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, file_meta)
         
@@ -452,6 +452,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
             csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc) + "\n")
             if i != 1:
                 csvContext.write("PAUSE, 0\n")
+            csvContext.write("COMMENT,\n")
             
             # Write buffer transfers
             if i == 1 and not wl_buffer.empty:
@@ -467,7 +468,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
 
     return wl_filename
 
-def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
+def zika_calc(currentStep, lims, log, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol):
     """Calculate volumes via zika_vols() for one pooling at a time"""
 
     data = make_datastructure(currentStep, lims, log)
@@ -492,7 +493,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
             target_pool_vol = float(pool.udf["Final Volume (uL)"])
 
             df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool, log,
-                            zika_min_vol, src_dead_vol, pool_max_vol)
+                            zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol)
             
             returndata = returndata.append(df, ignore_index = True)
         
@@ -525,7 +526,7 @@ class MultipleDst(Exception):
     pass
 
 def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
-              zika_min_vol, src_dead_vol, pool_max_vol):
+              zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol):
     """Takes a pooling, then calculates and returns a df w. the associated transfer volumes"""
 
     n_src = len(samples)
@@ -625,13 +626,16 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
     # If needed, add buffer w/o assigning source
     total_sample_vol = sum(df["transfer_vol"])
     if pool_vol - total_sample_vol > zika_min_vol:
+        buffer_vol = pool_vol - total_sample_vol
+        log.append("Pool buffer volume: {} uL ({} transfers)".format(
+            round(buffer_vol,1), (buffer_vol // zika_max_vol) + 1))
         df = df.append({'name':"buffer",
                         "src_fc":"buffer",
                         "src_fc_id":df["dst_fc"][0],
                         "pool_id":df["pool_id"][0],
                         "dst_fc":df["dst_fc"][0],
                         "dst_well":df["dst_well"][0],
-                        "transfer_vol":pool_vol - total_sample_vol},
+                        "transfer_vol":buffer_vol},
                         ignore_index = True)
     
     # Report low-conc samples
