@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220407.1
+New index handling method for samplesheet generator
+
 ## 20220313.1
 Update illumina_run_parameter_parser for handling MiSeq run without index cycles
 
