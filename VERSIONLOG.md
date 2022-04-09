@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220409.1
+Do not convert index 2 for finished library samples for MiSeq
+
 ## 20220407.1
 New index handling method for samplesheet generator
 

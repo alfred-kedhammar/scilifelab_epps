@@ -249,6 +249,7 @@ def gen_Miseq_data(pro):
             continue
         for sample in out.samples:
             sp_obj = {}
+            pj_type = ''
             sp_obj['lane'] = "1"
             sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
             sp_obj['sn'] = sample.name.replace(',','')
@@ -257,6 +258,7 @@ def gen_Miseq_data(pro):
             sp_obj['gf'] = pro.udf['GenomeFolder'].replace(',','')
             try:
                 sp_obj['pj'] = sample.project.name.replace('.','_').replace(',','')
+                pj_type = 'by user' if sample.project.udf['Library construction method'] == 'Finished library (by user)' else 'inhouse'
             except:
                 #control samples have no project
                 continue
@@ -299,9 +301,13 @@ def gen_Miseq_data(pro):
                 sp_obj['idx1ref'] = idxs[0].replace(',','').upper()
                 if len(idxs) == 2:
                     dualindex=True
-                    compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
-                    sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
-                    sp_obj['idx2ref'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
+                    if pj_type != 'by user':
+                        compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+                        sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
+                        sp_obj['idx2ref'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
+                    else:
+                        sp_obj['idx2'] = idxs[1].replace(',','').upper()
+                        sp_obj['idx2ref'] = idxs[1].replace(',','').upper()
                 else:
                     header_ar.remove('index2')
                     header_ar.remove('I5_Index_ID')
