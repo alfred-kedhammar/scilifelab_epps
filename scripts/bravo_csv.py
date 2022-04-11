@@ -442,6 +442,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
         csvContext.write("COMMENT, This is a Zika advanced worklist for LIMS process {} generated {}\n".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
         csvContext.write("COMMENT, The worklist will enact transfers of {} samples from {} src plate(s) into {} pool(s) via {} layout(s)\n".format(
             len(df[df.id.notna()]), n_src_plates, len(df.dst_well.unique()), n_layouts))
+        csvContext.write("COMMENT, \n")
 
         # Loop over layouts
         for i in range(1, n_layouts + 1):
@@ -451,10 +452,9 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
             deck.loc[deck.src_pos==3, "src_fc"] = "[Destination plate]"
             deck.fillna("[Empty]", inplace = True)
 
-            csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc) + "\n")
             if i != 1:
                 csvContext.write("PAUSE, 0\n")
-            csvContext.write("COMMENT,\n")
+            csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc) + "\n")
             
             # Write buffer transfers
             if i == 1 and not wl_buffer.empty:
