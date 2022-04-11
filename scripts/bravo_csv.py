@@ -630,7 +630,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
     if pool_vol - total_sample_vol > zika_min_vol:
         buffer_vol = pool_vol - total_sample_vol
         log.append("Pool buffer volume: {} uL ({} transfers)".format(
-            round(buffer_vol,1), (buffer_vol // zika_max_vol) + 1))
+            round(buffer_vol,1), int((buffer_vol // zika_max_vol) + 1)))
         df = df.append({'name':"buffer",
                         "src_fc":"buffer",
                         "src_fc_id":df["dst_fc"][0],
