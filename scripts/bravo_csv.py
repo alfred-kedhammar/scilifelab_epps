@@ -846,7 +846,7 @@ def zika_norm(lims, currentStep):
     for art_tuple, amt in zip(art_tuples, df.transfer_amt):
         if float(art_tuple[1]["uri"].udf['Amount taken (ng)']) != round(amt,2):
             art_tuple[1]["uri"].udf['Amount taken (ng)'] = amt
-            art_tuple[1].put()
+            art_tuple[1]["uri"].put()
             
     # Write and upload log and worklist
     zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
