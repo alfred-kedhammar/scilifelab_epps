@@ -22,8 +22,8 @@ DESC = """EPP used to create samplesheets for Illumina sequencing platforms"""
 
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,}N*)-?([ATCG]*)")
-TENX_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
-ST_PAT = re.compile("SI-(?:TT|NT|NN|TN)-[A-H][1-9][0-2]?")
+TENX_SINGLE_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
+TENX_DUAL_PAT = re.compile("SI-(?:TT|NT|NN|TN)-[A-H][1-9][0-2]?")
 SMARTSEQ_PAT = re.compile('SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]')
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
@@ -270,18 +270,18 @@ def gen_Miseq_data(pro):
                 header_ar.remove('index2')
                 header_ar.remove('I5_Index_ID')
                 data.append(sp_obj)
-            elif ST_PAT.findall(idxs[0]):
+            elif TENX_DUAL_PAT.findall(idxs[0]):
                 dualindex=True
-                sp_obj['idx1'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][0].replace(',','')
-                sp_obj['idx1ref'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][0].replace(',','')
-                sp_obj['idx2'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][1].replace(',','')
-                sp_obj['idx2ref'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][1].replace(',','')
+                sp_obj['idx1'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][0].replace(',','')
+                sp_obj['idx1ref'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][0].replace(',','')
+                sp_obj['idx2'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][1].replace(',','')
+                sp_obj['idx2ref'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][1].replace(',','')
                 data.append(sp_obj_sub)
-            elif TENX_PAT.findall(idxs[0]):
+            elif TENX_SINGLE_PAT.findall(idxs[0]):
                 if 'index2' in header_ar and 'I5_Index_ID' in header_ar:
                     header_ar.remove('index2')
                     header_ar.remove('I5_Index_ID')
-                for tenXidx in Chromium_10X_indexes[TENX_PAT.findall(idxs[0])[0]]:
+                for tenXidx in Chromium_10X_indexes[TENX_SINGLE_PAT.findall(idxs[0])[0]]:
                     sp_obj_sub = {}
                     sp_obj_sub['lane'] = sp_obj['lane']
                     sp_obj_sub['sid'] = sp_obj['sid']
@@ -401,19 +401,19 @@ def gen_MinION_QC_data(pro):
             sp_obj['npbs'] = nanopore_barcode_seq
 
             #Case of 10X indexes
-            if TENX_PAT.findall(idxs):
-                for tenXidx in Chromium_10X_indexes[TENX_PAT.findall(idxs)[0]]:
-                    tenXidx_no = Chromium_10X_indexes[TENX_PAT.findall(idxs)[0]].index(tenXidx)+1
+            if TENX_SINGLE_PAT.findall(idxs):
+                for tenXidx in Chromium_10X_indexes[TENX_SINGLE_PAT.findall(idxs)[0]]:
+                    tenXidx_no = Chromium_10X_indexes[TENX_SINGLE_PAT.findall(idxs)[0]].index(tenXidx)+1
                     sp_obj_sub = {}
                     sp_obj_sub['sn'] = sp_obj['sn']+'_'+str(tenXidx_no)
                     sp_obj_sub['npbs'] = sp_obj['npbs']
                     sp_obj_sub['idxt'] = 'truseq'
                     sp_obj_sub['idx'] = tenXidx.replace(',','')
                     data.append(sp_obj_sub)
-            #Case of ST indexes
-            elif ST_PAT.findall(idxs):
+            #Case of 10X dual indexes
+            elif TENX_DUAL_PAT.findall(idxs):
                 sp_obj['idxt'] = 'truseq_dual'
-                sp_obj['idx'] = Chromium_10X_indexes[ST_PAT.findall(idxs)[0]][0]+'-'+Chromium_10X_indexes[ST_PAT.findall(idxs)[0]][1]
+                sp_obj['idx'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs)[0]][0]+'-'+Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs)[0]][1]
                 data.append(sp_obj)
             #Case of NoIndex
             elif idxs == 'NoIndex' or idxs == '' or not idxs:
@@ -457,7 +457,7 @@ def find_barcode(sample, process):
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
                 reagent_label_name=art.reagent_labels[0].upper().replace(' ', '')
-                idxs = TENX_PAT.findall(reagent_label_name) or ST_PAT.findall(reagent_label_name) or SMARTSEQ_PAT.findall(reagent_label_name)
+                idxs = TENX_SINGLE_PAT.findall(reagent_label_name) or TENX_DUAL_PAT.findall(reagent_label_name) or SMARTSEQ_PAT.findall(reagent_label_name)
                 if idxs:
                     # Put in tuple with empty string as second index to
                     # match expected type:
