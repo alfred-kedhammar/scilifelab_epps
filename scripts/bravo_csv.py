@@ -741,7 +741,8 @@ def zika_norm(lims, currentStep):
 
     log.append("Log for Zika amplicon normalization, LIMS process {}, generated {}".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
     log.append("Calculations are based on user-supplied volumes and concentrations.")
-    log.append("Highest allowed final volume is {} uL.".format(zika_max_vol))   
+    log.append("Highest allowed final volume is {} uL.".format(zika_max_vol))
+    log.append("Lowest validated pipetting volume is {} uL.".format(zika_min_val_vol))
     log.append("Lowest allowed pipetting volume is {} uL.".format(zika_min_vol))
     log.append("\nNormalizing {} samples from plate {}...\n".format(len(df), df.dest_fc[0]))
 
@@ -833,7 +834,7 @@ def zika_norm(lims, currentStep):
         csvContext.write("COMMENT, The worklist will enact normalization of {} samples.\n".format(len(df)))
         csvContext.write("COMMENT, Set up layout:    " + "     ".join(deck) + "\n")
         if not all(df.buffer_vol == 0):
-            csvContext.write("COMMENT, Please make sure well(s) [{}] of the destination plate are filled with {} ul buffer\n".format("  ".join(buffer_wells), well_max_vol))
+            csvContext.write("COMMENT, Please make sure well(s) [{}] of the buffer plate are filled with {} ul buffer\n".format("  ".join(buffer_wells), well_max_vol))
 
         # Write transfers
         for idx, row in df.iterrows():
