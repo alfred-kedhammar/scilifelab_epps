@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220412.1
+Refactor 10X index pattern names
+
 ## 20220409.1
 Do not convert index 2 for finished library samples for MiSeq
 
