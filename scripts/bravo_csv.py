@@ -720,20 +720,20 @@ def zika_norm(lims, currentStep):
         "target_amt" : []
     }
 
-    for art_tuple in currentStep.input_output_maps:
-        if art_tuple[0]['uri'].type == 'Analyte' and art_tuple[1]['uri'].type == 'Analyte':
-            df_dict["name"].append(art_tuple[0]["uri"].name)
-            df_dict["source_fc"].append(art_tuple[0]['uri'].location[0].name)
-            df_dict["source_well"].append(art_tuple[0]['uri'].location[1])
-            df_dict["dest_fc"].append(art_tuple[1]['uri'].location[0].id)
-            df_dict["dest_well"].append(art_tuple[1]['uri'].location[1])
-            df_dict["dest_fc_name"].append(art_tuple[1]['uri'].location[0].name)
-            # Fetch user-supplied conc and vol
-            df_dict["conc"].append(art_tuple[0]["uri"].samples[0].udf['Customer Conc'])
-            df_dict["full_vol"].append(art_tuple[0]["uri"].samples[0].udf['Customer Volume'])
-            # Fetch target amt and vol
-            df_dict["target_vol"].append(art_tuple[1]["uri"].udf['Total Volume (uL)'])
-            df_dict["target_amt"].append(art_tuple[1]["uri"].udf['Amount taken (ng)'])         
+    art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[0]["uri"].type == "Analyte" == art_tuple[1]["uri"].type == "Analyte"]
+    for art_tuple in art_tuples:
+        df_dict["name"].append(art_tuple[0]["uri"].name)
+        df_dict["source_fc"].append(art_tuple[0]['uri'].location[0].name)
+        df_dict["source_well"].append(art_tuple[0]['uri'].location[1])
+        df_dict["dest_fc"].append(art_tuple[1]['uri'].location[0].id)
+        df_dict["dest_well"].append(art_tuple[1]['uri'].location[1])
+        df_dict["dest_fc_name"].append(art_tuple[1]['uri'].location[0].name)
+        # Fetch user-supplied conc and vol
+        df_dict["conc"].append(art_tuple[0]["uri"].samples[0].udf['Customer Conc'])
+        df_dict["full_vol"].append(art_tuple[0]["uri"].samples[0].udf['Customer Volume'])
+        # Fetch target amt and vol
+        df_dict["target_vol"].append(art_tuple[1]["uri"].udf['Total Volume (uL)'])
+        df_dict["target_amt"].append(art_tuple[1]["uri"].udf['Amount taken (ng)'])         
 
     df = pd.DataFrame(df_dict)
     df.sort_values(by = "name", inplace = True)
@@ -779,8 +779,10 @@ def zika_norm(lims, currentStep):
     df["buffer_vol"] = df.target_vol - df.transfer_vol
     df["tot_vol"] = df.buffer_vol + df.transfer_vol
 
-    # Summarize sample warnings. Volumes should always be on-target. Amount can be below due to depletion or above due to high sample conc.
+    # Summarize sample amount deviations. Volumes should always be on-target. Amount can be below due to depletion or above due to high sample conc.
     for idx, row in df.iterrows():
+        if row.transfer_vol < zika_min_val_vol:
+            log.append("INFO: Sample {} transferred via non-validated volume {} ul.".format(row.name, round(row.transfer_vol,2)))
         if min([row.transfer_amt, row.target_amt]) / max([row.transfer_amt, row.target_amt]) < 0.995:
             log.append("WARNING: Sample {} normalized to {} ng in {} ul, {}% of target".format(
                 row.name, round(row.transfer_amt,2), round(row.tot_vol,2), round(row.transfer_amt / row.target_amt * 100,2)
@@ -838,8 +840,14 @@ def zika_norm(lims, currentStep):
                 csvContext.write(",".join(["MULTI_ASPIRATE", buff_pos, str(row.buff_col), str(row.buff_row), "1", str(int(round(row.buffer_vol*1000)))]) + "\n")
             csvContext.write(",".join(["COPY", src_pos, str(row.src_col), str(row.src_col), str(row.src_row), 
                                                dst_pos, str(row.dst_col),                   str(row.dst_row),
-                                               str(int(round(row.transfer_vol*1000))), "[VAR1]"]) + "\n")    
-    
+                                               str(int(round(row.transfer_vol*1000))), "[VAR1]"]) + "\n")
+
+    # Update sample UDFs
+    for art_tuple, amt in zip(art_tuples, df.transfer_amt):
+        if float(art_tuple[1]["uri"].udf['Amount taken (ng)']) != round(amt,2):
+            art_tuple[1]["uri"].udf['Amount taken (ng)'] = amt
+            art_tuple[1].put()
+            
     # Write and upload log and worklist
     zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
     zika_upload_csv(currentStep, lims, wl_filename)
