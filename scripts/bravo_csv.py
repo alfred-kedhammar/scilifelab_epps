@@ -781,13 +781,14 @@ def zika_norm(lims, currentStep):
 
     # Summarize sample amount deviations. Volumes should always be on-target. Amount can be below due to depletion or above due to high sample conc.
     for idx, row in df.iterrows():
-        if row.transfer_vol < zika_min_val_vol:
-            log.append("INFO: Sample {} transferred via non-validated volume {} ul.".format(row.name, round(row.transfer_vol,2)))
         if min([row.transfer_amt, row.target_amt]) / max([row.transfer_amt, row.target_amt]) < 0.995:
             log.append("WARNING: Sample {} normalized to {} ng in {} ul, {}% of target".format(
-                row.name, round(row.transfer_amt,2), round(row.tot_vol,2), round(row.transfer_amt / row.target_amt * 100,2)
-                ))
-    log.append("Done.\n")
+                row.name, round(row.transfer_amt,2), round(row.tot_vol,2), round(row.transfer_amt / row.target_amt * 100,2)))
+    log.append("\nNon-validated transfer volumes:")
+    for idx, row in df.iterrows():
+        if row.transfer_vol < zika_min_val_vol:
+            log.append("INFO: Sample {} transferred via non-validated volume {} ul.".format(row.name, round(row.transfer_vol,2)))
+    log.append("\nDone.\n")
 
     # Calc number of buffer wells needed
     buffer_volume = sum(df.buffer_vol)
