@@ -701,7 +701,8 @@ def zika_norm(lims, currentStep):
     log = []
 
     # Zika is only validated (by us and SPT) for transfers down to 0.5 ul but in theory perform transfers down to 0.1 ul
-    zika_min_vol = 0.3  # For 0.3 ul, <5% systematic error has been observed compared to manual reference
+    zika_min_vol = 0.1  # Lowest possible transfer volume
+    zika_min_val_vol = 0.5 # Lowest validated transfer volume
     zika_max_vol = 5
     zika_dead_vol = 5   # Estimated dead volume of TwinTec96 wells
     well_max_vol = 180  # Estimated max volume of TwinTec96 wells
@@ -730,7 +731,7 @@ def zika_norm(lims, currentStep):
             # Fetch user-supplied conc and vol
             df_dict["conc"].append(art_tuple[0]["uri"].samples[0].udf['Customer Conc'])
             df_dict["full_vol"].append(art_tuple[0]["uri"].samples[0].udf['Customer Volume'])
-            # Fetch target conc and vol
+            # Fetch target amt and vol
             df_dict["target_vol"].append(art_tuple[1]["uri"].udf['Total Volume (uL)'])
             df_dict["target_amt"].append(art_tuple[1]["uri"].udf['Amount taken (ng)'])         
 
