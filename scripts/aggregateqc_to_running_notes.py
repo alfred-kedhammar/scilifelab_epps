@@ -72,10 +72,10 @@ def make_summary(process, sample_table):
         key = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         noteobj[key] = {}
         note = "Summary from {0} ({1}) : \n{2}".format(process.type.name, '[LIMS]({0}/clarity/work-details/{1})'.format(BASEURI, process.id.split('-')[1]), comments)
-        noteobj[key]['note']=note
-        noteobj[key]['user']="{0} {1}".format(pro.technician.first_name,pro.technician.last_name)
-        noteobj[key]['email']=pro.technician.email
-        noteobj[key]['category']='Lab'
+        noteobj[key]['note'] = note
+        noteobj[key]['user'] = "{0} {1}".format(process.technician.first_name,process.technician.last_name)
+        noteobj[key]['email'] = process.technician.email
+        noteobj[key]['category'] = 'Lab'
         summary.update({proj: noteobj})
     return summary
 
