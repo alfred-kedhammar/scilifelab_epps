@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220415.2
+New EPP for summarizing Aggregate QC stats into running notes, stats for QC metrics
+
 ## 20220415.1
 New EPP for summarizing Aggregate QC stats into running notes
 

@@ -17,6 +17,7 @@ import sys
 import json
 
 from write_notes_to_couchdb import write_note_to_couch
+from data.QC_criteria import QC_criteria
 
 
 # Prepare a table with all sample details
@@ -42,8 +43,72 @@ def prepare_sample_table(artifacts):
     return sample_table
 
 
+def QC_details(lims, process, proj, sample_table):
+    QC_details = ''
+    QC_metrics = {}
+    library = False
+    # Retrieve the QC metrics from the QC critera file
+    project = Project(lims,id=proj)
+    library_construction_method = project.udf.get('Library construction method')
+    if library_construction_method in QC_critera.keys():
+        if process.type.name in ['Aggregate QC (RNA) 4.0', 'Aggregate QC (DNA) 4.0']:
+            library = False
+            library_prep_option = project.udf.get('Library prep option') if project.udf.get('Library prep option') else 'default'
+            if library_prep_option in QC_critera[library_construction_method].keys():
+                QC_metrics = QC_critera[library_construction_method][library_prep_option]
+        elif process.type.name in ['Aggregate QC (Library Validation) 4.0'] and library_construction_method=='Finished library (by user)':
+            library = True
+            sequencing_platform = project.udf.get('Sequencing platform')
+            if sequencing_platform in QC_critera[library_construction_method].keys():
+                flowcell = project.udf.get('Flowcell')
+                flowcell_type = flowcell.split('-')[0] if flowcell else 'default'
+                if flowcell_type in QC_critera[library_construction_method][sequencing_platform].keys():
+                    flowcell_option = project.udf.get('Flowcell option') if project.udf.get('Flowcell option') else 'default'
+                    if flowcell_option in QC_critera[library_construction_method][sequencing_platform][flowcell_type].keys()
+                        QC_metrics = QC_critera[library_construction_method][sequencing_platform][flowcell_type][flowcell_option]
+    # Decide QC status on individual metrix
+    filtered_sample_table = {k: v for k, v in sample_table.items() if v['project'] == proj}
+    if QC_metrics:
+        # Check concentration units
+        conc_units = set()
+        for k, v in filtered_sample_table.items():
+            conc_units.add(v['measurements']['Conc. Units'])
+        if library:
+            if any(i != 'nM' for i in list(conc_units)):
+                sys.exit("Wrong concentration unit detected!")
+        else:
+            if any(i not in ['ng/ul', 'ng/uL'] for i in list(conc_units)):
+                sys.exit("Wrong concentration unit detected!")
+        # Start working on QC metrics
+        for k, v in QC_metrics.items():
+            low_theshold = 0
+            high_theshold = 0
+            lower_than_theshold_counter = 0
+            higher_than_theshold_counter = 0
+            for k1, v1 in filtered_sample_table.items():
+                if k in v1['measurements'].keys():
+                    value = v1['measurements'].get(k)
+                    if isinstance(v, tuple):
+                        low_theshold = v[0]
+                        high_theshold = v[1]
+                        if value and value < low_theshold:
+                            lower_than_theshold_counter += 1
+                        elif value and value > high_theshold:
+                            higher_than_theshold_counter += 1
+                    else:
+                        low_theshold = v
+                        if value and value < low_theshold:
+                            lower_than_theshold_counter += 1
+            conc_unit = list(conc_units)[0] if k=='Concentration' else ''
+            if lower_than_theshold_counter != 0:
+                QC_details += '**{}**: {} samples lower than theshold {}{}.\n'.format(k, lower_than_theshold_counter, low_theshold, conc_unit)
+            if higher_than_theshold_counter != 0:
+                QC_details += '**{}**: {} samples higher than theshold {}{}.\n'.format(k, higher_than_theshold_counter, high_theshold, conc_unit)
+    return QC_details
+
+
 # Prepare the summary text
-def make_summary(process, sample_table):
+def make_summary(lims, process, sample_table):
     summary = {}
     # Prepare project list
     projects = set()
@@ -62,12 +127,21 @@ def make_summary(process, sample_table):
         containers = list(set(i[0] for i in qc_flag_by_container))
         if len(containers) == 1:
             comments += ' in container **{}**. \n'.format(containers[0])
+            QC_details = QC_details(lims, process, proj, sample_table)
+            if QC_details != '':
+                comments += '\n**QC details for all samples: **\n'
+                comments += QC_details
         else:
             comments += '\n\n'
             for container in containers:
                 total_sample_number_by_container = len([i for i in qc_flag_by_container if i[0]==container])
                 passed_sample_number_by_container = len([i for i in qc_flag_by_container if i[0]==container and i[1]=='PASSED'])
                 comments += 'Container **{}**: {}/{} samples passed QC. \n'.format(container, passed_sample_number_by_container, total_sample_number_by_container)
+                container_sample_table = {k: v for k, v in sample_table.items() if v['container'] == container}
+                QC_details = QC_details(lims, process, proj, container_sample_table)
+                if QC_details != '':
+                    comments += '\nQC details for container {}: \n'.format(container)
+                    comments += QC_details
         noteobj = {}
         key = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         noteobj[key] = {}
@@ -85,7 +159,7 @@ def main(lims, args):
     pro = Process(lims, id=args.pid)
     artifacts = pro.all_inputs(unique=True)
     sample_table = prepare_sample_table(artifacts)
-    summary = make_summary(pro, sample_table)
+    summary = make_summary(lims, pro, sample_table)
 
     # Write summary to couch
     for proj, noteobj in summary.items():
