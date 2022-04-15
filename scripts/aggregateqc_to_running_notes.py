@@ -25,21 +25,25 @@ def prepare_sample_table(artifacts):
     sample_table = {}
     key = 1;
     for art in artifacts:
-        name = art.name
-        project = art.samples[0].project.id
-        container = art.container.name
-        qc_flag = art.qc_flag
-        measurements = {}
-        for i in art.udf.items():
-            measurements.update({i[0] : i[1]})
-        sample_table.update({key : {'name' : name,
-                                    'project' : project,
-                                    'container' : container,
-                                    'qc_flag' : qc_flag,
-                                    'measurements' : measurements
-                                    }
-                            })
-        key += 1
+        try:
+            name = art.name
+            project = art.samples[0].project.id
+            container = art.container.name
+            qc_flag = art.qc_flag
+            measurements = {}
+            for i in art.udf.items():
+                measurements.update({i[0] : i[1]})
+            sample_table.update({key : {'name' : name,
+                                        'project' : project,
+                                        'container' : container,
+                                        'qc_flag' : qc_flag,
+                                        'measurements' : measurements
+                                        }
+                                })
+            key += 1
+        # ignore control samples
+        except AttributeError:
+            pass
     return sample_table
 
 
