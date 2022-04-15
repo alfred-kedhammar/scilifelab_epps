@@ -43,29 +43,29 @@ def prepare_sample_table(artifacts):
     return sample_table
 
 
-def QC_details(lims, process, proj, sample_table):
+def prepare_QC_details(lims, process, proj, sample_table):
     QC_details = ''
     QC_metrics = {}
     library = False
     # Retrieve the QC metrics from the QC critera file
     project = Project(lims,id=proj)
     library_construction_method = project.udf.get('Library construction method')
-    if library_construction_method in QC_critera.keys():
+    if library_construction_method in QC_criteria.keys():
         if process.type.name in ['Aggregate QC (RNA) 4.0', 'Aggregate QC (DNA) 4.0']:
             library = False
             library_prep_option = project.udf.get('Library prep option') if project.udf.get('Library prep option') else 'default'
-            if library_prep_option in QC_critera[library_construction_method].keys():
-                QC_metrics = QC_critera[library_construction_method][library_prep_option]
+            if library_prep_option in QC_criteria[library_construction_method].keys():
+                QC_metrics = QC_criteria[library_construction_method][library_prep_option]
         elif process.type.name in ['Aggregate QC (Library Validation) 4.0'] and library_construction_method=='Finished library (by user)':
             library = True
             sequencing_platform = project.udf.get('Sequencing platform')
-            if sequencing_platform in QC_critera[library_construction_method].keys():
+            if sequencing_platform in QC_criteria[library_construction_method].keys():
                 flowcell = project.udf.get('Flowcell')
                 flowcell_type = flowcell.split('-')[0] if flowcell else 'default'
-                if flowcell_type in QC_critera[library_construction_method][sequencing_platform].keys():
+                if flowcell_type in QC_criteria[library_construction_method][sequencing_platform].keys():
                     flowcell_option = project.udf.get('Flowcell option') if project.udf.get('Flowcell option') else 'default'
-                    if flowcell_option in QC_critera[library_construction_method][sequencing_platform][flowcell_type].keys()
-                        QC_metrics = QC_critera[library_construction_method][sequencing_platform][flowcell_type][flowcell_option]
+                    if flowcell_option in QC_criteria[library_construction_method][sequencing_platform][flowcell_type].keys():
+                        QC_metrics = QC_criteria[library_construction_method][sequencing_platform][flowcell_type][flowcell_option]
     # Decide QC status on individual metrix
     filtered_sample_table = {k: v for k, v in sample_table.items() if v['project'] == proj}
     if QC_metrics:
@@ -123,25 +123,23 @@ def make_summary(lims, process, sample_table):
                 qc_flag_by_container.append((v['container'], v['qc_flag']))
         total_sample_number = len(qc_flag_by_container)
         passed_sample_number = len([i for i in qc_flag_by_container if i[1] == 'PASSED'])
-        comments += '**Overall QC summary:** {}/{} samples passed QC'.format(passed_sample_number, total_sample_number)
         containers = list(set(i[0] for i in qc_flag_by_container))
-        if len(containers) == 1:
-            comments += ' in container **{}**. \n'.format(containers[0])
-            QC_details = QC_details(lims, process, proj, sample_table)
-            if QC_details != '':
-                comments += '\n**QC details for all samples: **\n'
-                comments += QC_details
-        else:
+        comments += '**Overall QC summary: {}/{} samples passed QC in container {}**.\n'.format(passed_sample_number, total_sample_number, ','.join(containers))
+        QC_details_all_samples = prepare_QC_details(lims, process, proj, sample_table)
+        if QC_details_all_samples != '':
+            comments += '\n**QC details for all samples: **\n'
+            comments += QC_details_all_samples
+        if len(containers) > 1:
             comments += '\n\n'
             for container in containers:
                 total_sample_number_by_container = len([i for i in qc_flag_by_container if i[0]==container])
                 passed_sample_number_by_container = len([i for i in qc_flag_by_container if i[0]==container and i[1]=='PASSED'])
-                comments += 'Container **{}**: {}/{} samples passed QC. \n'.format(container, passed_sample_number_by_container, total_sample_number_by_container)
+                comments += '\nContainer **{}**: {}/{} samples passed QC.\n'.format(container, passed_sample_number_by_container, total_sample_number_by_container)
                 container_sample_table = {k: v for k, v in sample_table.items() if v['container'] == container}
-                QC_details = QC_details(lims, process, proj, container_sample_table)
+                QC_details_per_container = prepare_QC_details(lims, process, proj, container_sample_table)
                 if QC_details != '':
-                    comments += '\nQC details for container {}: \n'.format(container)
-                    comments += QC_details
+                    comments += '\nQC details for container **{}**: \n'.format(container)
+                    comments += QC_details_per_container
         noteobj = {}
         key = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         noteobj[key] = {}
