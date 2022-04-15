@@ -124,20 +124,20 @@ def make_summary(lims, process, sample_table):
         total_sample_number = len(qc_flag_by_container)
         passed_sample_number = len([i for i in qc_flag_by_container if i[1] == 'PASSED'])
         containers = list(set(i[0] for i in qc_flag_by_container))
-        comments += '**Overall QC summary: {}/{} samples passed QC in container {}**.\n'.format(passed_sample_number, total_sample_number, ','.join(containers))
+        comments += '**Overall QC summary: {}/{} samples passed QC in container {}**.\n'.format(passed_sample_number, total_sample_number, ','.join(sorted(containers)))
         QC_details_all_samples = prepare_QC_details(lims, process, proj, sample_table)
         if QC_details_all_samples != '':
             comments += '\n**QC details for all samples: **\n'
             comments += QC_details_all_samples
         if len(containers) > 1:
             comments += '\n\n'
-            for container in containers:
+            for container in sorted(containers):
                 total_sample_number_by_container = len([i for i in qc_flag_by_container if i[0]==container])
                 passed_sample_number_by_container = len([i for i in qc_flag_by_container if i[0]==container and i[1]=='PASSED'])
                 comments += '\nContainer **{}**: {}/{} samples passed QC.\n'.format(container, passed_sample_number_by_container, total_sample_number_by_container)
                 container_sample_table = {k: v for k, v in sample_table.items() if v['container'] == container}
                 QC_details_per_container = prepare_QC_details(lims, process, proj, container_sample_table)
-                if QC_details != '':
+                if QC_details_per_container != '':
                     comments += '\nQC details for container **{}**: \n'.format(container)
                     comments += QC_details_per_container
         noteobj = {}
