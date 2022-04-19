@@ -17,8 +17,11 @@ import sys
 import json
 
 from write_notes_to_couchdb import write_note_to_couch
-from data.QC_criteria import QC_criteria
 
+QC_criteria_json = '/home/glsai/repos/scilifelab_epps/data/QC_criteria.json'
+
+with open(QC_criteria_json,'r') as file:
+    QC_criteria = json.loads(file.read())
 
 # Prepare a table with all sample details
 def prepare_sample_table(artifacts):
@@ -92,7 +95,7 @@ def prepare_QC_details(lims, process, proj, sample_table):
             for k1, v1 in filtered_sample_table.items():
                 if k in v1['measurements'].keys():
                     value = v1['measurements'].get(k)
-                    if isinstance(v, tuple):
+                    if isinstance(v, list):
                         low_theshold = v[0]
                         high_theshold = v[1]
                         if value and value < low_theshold:
