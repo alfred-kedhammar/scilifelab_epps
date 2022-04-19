@@ -404,8 +404,9 @@ def zika_wl(df, zika_max_vol, file_meta, pool_info):
         csvContext.write("COMMENT, \n")
 
         # Write manual buffer transfers
-        for i, row in pool_info.iterrows():
-            csvContext.write("COMMENT, Fill well {} ({}) with {} uL buffer.\n".format(*list(row)))
+        for i, row in pool_info.sort_values(by="well").iterrows():
+            if row.buffer_vol != 0:
+                csvContext.write("COMMENT, Fill well {} ({}) with {} uL buffer.\n".format(*list(row)))
         csvContext.write("COMMENT, \n")
 
         # Loop over layouts
@@ -587,6 +588,8 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
     if pool_vol - total_sample_vol > zika_min_vol:
         buffer_vol = pool_vol - total_sample_vol
         log.append("Pool buffer volume: {} uL".format(round(buffer_vol,1)))
+    else:
+        buffer_vol = 0
     
     # Report low-conc samples
     low_samples = df[df.final_target_fraction < 0.995][["name", "final_target_fraction"]].sort_values("name")
