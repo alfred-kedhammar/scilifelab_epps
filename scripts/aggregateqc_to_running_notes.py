@@ -88,29 +88,29 @@ def prepare_QC_details(lims, process, proj, sample_table):
                 sys.exit("Wrong concentration unit detected!")
         # Start working on QC metrics
         for k, v in QC_metrics.items():
-            low_theshold = 0
-            high_theshold = 0
-            lower_than_theshold_counter = 0
-            higher_than_theshold_counter = 0
+            low_threshold = 0
+            high_threshold = 0
+            lower_than_threshold_counter = 0
+            higher_than_threshold_counter = 0
             for k1, v1 in filtered_sample_table.items():
                 if k in v1['measurements'].keys():
                     value = v1['measurements'].get(k)
                     if isinstance(v, list):
-                        low_theshold = v[0]
-                        high_theshold = v[1]
-                        if value and value < low_theshold:
-                            lower_than_theshold_counter += 1
-                        elif value and value > high_theshold:
-                            higher_than_theshold_counter += 1
+                        low_threshold = v[0]
+                        high_threshold = v[1]
+                        if value and value < low_threshold:
+                            lower_than_threshold_counter += 1
+                        elif value and value > high_threshold:
+                            higher_than_threshold_counter += 1
                     else:
-                        low_theshold = v
-                        if value and value < low_theshold:
-                            lower_than_theshold_counter += 1
+                        low_threshold = v
+                        if value and value < low_threshold:
+                            lower_than_threshold_counter += 1
             conc_unit = list(conc_units)[0] if k=='Concentration' else ''
-            if lower_than_theshold_counter != 0:
-                QC_details += '**{}**: {} samples lower than theshold {}{}.\n'.format(k, lower_than_theshold_counter, low_theshold, conc_unit)
-            if higher_than_theshold_counter != 0:
-                QC_details += '**{}**: {} samples higher than theshold {}{}.\n'.format(k, higher_than_theshold_counter, high_theshold, conc_unit)
+            if lower_than_threshold_counter != 0:
+                QC_details += '**{}**: {} samples lower than threshold {}{}.\n'.format(k, lower_than_threshold_counter, low_threshold, conc_unit)
+            if higher_than_threshold_counter != 0:
+                QC_details += '**{}**: {} samples higher than threshold {}{}.\n'.format(k, higher_than_threshold_counter, high_threshold, conc_unit)
     return QC_details
 
 
