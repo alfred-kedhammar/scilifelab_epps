@@ -67,7 +67,6 @@ def verify_sample_table(lims, sample_table, library=False):
         # Remove the UDFs that should skip checking
         if measurements_keys & optional_keys:
             measurements_keys -= optional_keys
-
     # Check value for each measurement
     for measurement in measurements_keys:
         for k, v in sample_table.items():

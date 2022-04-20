@@ -21,10 +21,50 @@
             "Concentration": [1, 75],
             "Volume (ul)": 10,
             "Amount (ng)": 10
+        },
+        "Covaris 180bp": {
+            "Concentration": [1, 75],
+            "Volume (ul)": 10,
+            "Amount (ng)": 10
+        },
+        "Covaris 350bp": {
+            "Concentration": [1, 75],
+            "Volume (ul)": 10,
+            "Amount (ng)": 10
+        },
+        "Covaris 670bp": {
+            "Concentration": [1, 75],
+            "Volume (ul)": 10,
+            "Amount (ng)": 10
+        },
+        "No fragmentation": {
+            "Concentration": [1, 75],
+            "Volume (ul)": 10,
+            "Amount (ng)": 10
         }
     },
     "SMARTer ThruPLEX DNA-seq (small genome)": {
         "default": {
+            "Concentration": [0.2, 75],
+            "Volume (ul)": 10,
+            "Amount (ng)": 1
+        },
+        "Covaris 180bp": {
+            "Concentration": [0.2, 75],
+            "Volume (ul)": 10,
+            "Amount (ng)": 1
+        },
+        "Covaris 350bp": {
+            "Concentration": [0.2, 75],
+            "Volume (ul)": 10,
+            "Amount (ng)": 1
+        },
+        "Covaris 670bp": {
+            "Concentration": [0.2, 75],
+            "Volume (ul)": 10,
+            "Amount (ng)": 1
+        },
+        "No fragmentation": {
             "Concentration": [0.2, 75],
             "Volume (ul)": 10,
             "Amount (ng)": 1
@@ -35,10 +75,20 @@
             "Concentration": [0.2, 75],
             "Volume (ul)": 10,
             "Amount (ng)": 0.1
+        },
+        "No fragmentation": {
+            "Concentration": [0.2, 75],
+            "Volume (ul)": 10,
+            "Amount (ng)": 0.1
         }
     },
     "SMARTer ThruPLEX DNA-seq (FFPE)": {
         "default": {
+            "Concentration": [10, 50],
+            "Volume (ul)": 10,
+            "Amount (ng)": 100
+        },
+        "No fragmentation": {
             "Concentration": [10, 50],
             "Volume (ul)": 10,
             "Amount (ng)": 100
@@ -57,10 +107,34 @@
             "Volume (ul)": 10,
             "Amount (ng)": 200,
             "RIN": 8
+        },
+        "No selection": {
+            "Concentration": [10, 25],
+            "Volume (ul)": 10,
+            "Amount (ng)": 50,
+            "RIN": 8
+        },
+        "No depletion": {
+            "Concentration": [10, 25],
+            "Volume (ul)": 10,
+            "Amount (ng)": 50,
+            "RIN": 8
         }
     },
     "Illumina TruSeq Stranded total RNA": {
         "default": {
+            "Concentration": [50, 500],
+            "Volume (ul)": 15,
+            "Amount (ng)": 500,
+            "RIN": 8
+        },
+        "Ribozero: Gold": {
+            "Concentration": [50, 500],
+            "Volume (ul)": 15,
+            "Amount (ng)": 500,
+            "RIN": 8
+        },
+        "Ribozero: Globin": {
             "Concentration": [50, 500],
             "Volume (ul)": 15,
             "Amount (ng)": 500,
@@ -95,6 +169,13 @@
             "DV200": 30
         },
         "No fragmentation": {
+            "Concentration": [1.25, 25],
+            "Volume (ul)": 10,
+            "Amount (ng)": 10,
+            "RIN": 8,
+            "DV200": 30
+        },
+        "No depletion": {
             "Concentration": [1.25, 25],
             "Volume (ul)": 10,
             "Amount (ng)": 10,
