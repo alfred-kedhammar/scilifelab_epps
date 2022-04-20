@@ -58,7 +58,7 @@ def verify_sample_table(lims, sample_table, library=False):
         measurements_keys |= set(v['measurements'].keys())
         # Check samples with unknown QC flag
         if v['qc_flag'] not in ['PASSED', 'FAILED']:
-            error_message.append('Sample {} is missing QC flag!\n'.format(v['name']))
+            error_message.append('Sample {} is missing QC flag!'.format(v['name']))
     # No measurement is filled in
     if len(measurements_keys) == 0:
         error_message.append('No measurement is available!')
@@ -67,12 +67,12 @@ def verify_sample_table(lims, sample_table, library=False):
         for k, v in sample_table.items():
             # Check missing value
             if measurement not in v['measurements'].keys():
-                error_message.append('Sample {} is missing {}!\n'.format(v['name'], measurement))
+                error_message.append('Sample {} is missing {}!'.format(v['name'], measurement))
             else:
                 # Verify concentration unit
                 if measurement == 'Conc. Units':
                     if (library and v['measurements'][measurement] != 'nM') or (not library and v['measurements'][measurement] not in ['ng/ul', 'ng/uL']):
-                        error_message.append('Sample {} has a wrong concentration unit!\n'.format(v['name']))
+                        error_message.append('Sample {} has a wrong concentration unit!'.format(v['name']))
     return error_message
 
 
