@@ -51,28 +51,28 @@ def prepare_sample_table(artifacts):
 
 
 def verify_sample_table(lims, sample_table, library=False):
-    error_message = ''
+    error_message = []
     measurements_keys = set()
     for k, v in sample_table.items():
         # Prepare a set of all existing measurement keys
         measurements_keys |= set(v['measurements'].keys())
         # Check samples with unknown QC flag
         if v['qc_flag'] not in ['PASSED', 'FAILED']:
-            error_message += 'Sample {} is missing QC flag!\n'.format(v['name'])
+            error_message.append('Sample {} is missing QC flag!\n'.format(v['name']))
     # No measurement is filled in
     if len(measurements_keys) == 0:
-        error_message += 'No measurement is available!'
+        error_message.append('No measurement is available!')
     # Check value for each measurement
     for measurement in measurements_keys:
         for k, v in sample_table.items():
             # Check missing value
             if measurement not in v['measurements'].keys():
-                error_message += 'Sample {} is missing {}!\n'.format(v['name'], measurement)
+                error_message.append('Sample {} is missing {}!\n'.format(v['name'], measurement))
             else:
                 # Verify concentration unit
                 if measurement == 'Conc. Units':
                     if (library and v['measurements'][measurement] != 'nM') or (not library and v['measurements'][measurement] not in ['ng/ul', 'ng/uL']):
-                        error_message += 'Sample {} has a wrong concentration unit!\n'.format(v['name'])
+                        error_message.append('Sample {} has a wrong concentration unit!\n'.format(v['name']))
     return error_message
 
 
@@ -183,8 +183,8 @@ def main(lims, args):
     artifacts = pro.all_inputs(unique=True)
     sample_table = prepare_sample_table(artifacts)
     error_message = verify_sample_table(lims, sample_table, library)
-    if error_message != '':
-        sys.exit(error_message)
+    if error_message:
+        sys.exit(' '.join(error_message))
     summary = make_summary(lims, pro, sample_table, library)
 
     # Write summary to couch
