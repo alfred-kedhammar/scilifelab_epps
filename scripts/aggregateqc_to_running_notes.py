@@ -53,7 +53,7 @@ def prepare_sample_table(artifacts):
 def verify_sample_table(lims, sample_table, library=False):
     error_message = []
     measurements_keys = set()
-    skip_checking_keys = {'Amount (fmol)', 'Dilution Fold', 'Failure Reason', 'Max Size (bp)', 'Min Size (bp)', 'Rerun', 'Size (bp)'}
+    optional_keys = {'Amount (fmol)', 'Dilution Fold', 'Failure Reason', 'Max Size (bp)', 'Min Size (bp)', 'Rerun', 'Size (bp)'}
     for k, v in sample_table.items():
         # Prepare a set of all existing measurement keys
         measurements_keys |= set(v['measurements'].keys())
@@ -65,8 +65,8 @@ def verify_sample_table(lims, sample_table, library=False):
         error_message.append('No measurement is available!')
     else:
         # Remove the UDFs that should skip checking
-        if measurements_keys & skip_checking_keys:
-            measurements_keys -= skip_checking_keys
+        if measurements_keys & optional_keys:
+            measurements_keys -= optional_keys
 
     # Check value for each measurement
     for measurement in measurements_keys:
