@@ -62,6 +62,11 @@ def verify_sample_table(lims, sample_table, library=False):
     # No measurement is filled in
     if len(measurements_keys) == 0:
         error_message.append('No measurement is available!')
+    else:
+        # Remove the hidden UDF 'Rerun'
+        if 'Rerun' in measurements_keys:
+            measurements_keys.remove('Rerun')
+
     # Check value for each measurement
     for measurement in measurements_keys:
         for k, v in sample_table.items():
