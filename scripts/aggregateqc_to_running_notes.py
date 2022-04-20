@@ -18,7 +18,7 @@ import json
 
 from write_notes_to_couchdb import write_note_to_couch
 
-QC_criteria_json = '{}/data/QC_criteria.json'.format(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+QC_criteria_json = '/home/glsai/repos/scilifelab_epps/data/QC_criteria.json'
 
 with open(QC_criteria_json,'r') as file:
     QC_criteria = json.loads(file.read())
@@ -50,21 +50,44 @@ def prepare_sample_table(artifacts):
     return sample_table
 
 
-def prepare_QC_details(lims, process, proj, sample_table):
+def verify_sample_table(lims, sample_table, library=False):
+    error_message = ''
+    measurements_keys = set()
+    for k, v in sample_table.items():
+        # Prepare a set of all existing measurement keys
+        measurements_keys |= set(v['measurements'].keys())
+        # Check samples with unknown QC flag
+        if v['qc_flag'] not in ['PASSED', 'FAILED']:
+            error_message += 'Sample {} is missing QC flag!\n'.format(v['name'])
+    # No measurement is filled in
+    if len(measurements_keys) == 0:
+        error_message += 'No measurement is available!'
+    # Check value for each measurement
+    for measurement in measurements_keys:
+        for k, v in sample_table.items():
+            # Check missing value
+            if measurement not in v['measurements'].keys():
+                error_message += 'Sample {} is missing {}!\n'.format(v['name'], measurement)
+            else:
+                # Verify concentration unit
+                if measurement == 'Conc. Units':
+                    if (library and v['measurements'][measurement] != 'nM') or (not library and v['measurements'][measurement] not in ['ng/ul', 'ng/uL']):
+                        error_message += 'Sample {} has a wrong concentration unit!\n'.format(v['name'])
+    return error_message
+
+
+def prepare_QC_details(lims, process, proj, sample_table, library=False):
     QC_details = ''
     QC_metrics = {}
-    library = False
     # Retrieve the QC metrics from the QC critera file
     project = Project(lims,id=proj)
     library_construction_method = project.udf.get('Library construction method')
     if library_construction_method in QC_criteria.keys():
-        if process.type.name in ['Aggregate QC (RNA) 4.0', 'Aggregate QC (DNA) 4.0']:
-            library = False
+        if not library:
             library_prep_option = project.udf.get('Library prep option') if project.udf.get('Library prep option') else 'default'
             if library_prep_option in QC_criteria[library_construction_method].keys():
                 QC_metrics = QC_criteria[library_construction_method][library_prep_option]
-        elif process.type.name in ['Aggregate QC (Library Validation) 4.0'] and library_construction_method=='Finished library (by user)':
-            library = True
+        elif library and library_construction_method=='Finished library (by user)':
             sequencing_platform = project.udf.get('Sequencing platform')
             if sequencing_platform in QC_criteria[library_construction_method].keys():
                 flowcell = project.udf.get('Flowcell')
@@ -76,16 +99,9 @@ def prepare_QC_details(lims, process, proj, sample_table):
     # Decide QC status on individual metrix
     filtered_sample_table = {k: v for k, v in sample_table.items() if v['project'] == proj}
     if QC_metrics:
-        # Check concentration units
         conc_units = set()
         for k, v in filtered_sample_table.items():
             conc_units.add(v['measurements']['Conc. Units'])
-        if library:
-            if any(i != 'nM' for i in list(conc_units)):
-                sys.exit("Wrong concentration unit detected!")
-        else:
-            if any(i not in ['ng/ul', 'ng/uL'] for i in list(conc_units)):
-                sys.exit("Wrong concentration unit detected!")
         # Start working on QC metrics
         for k, v in QC_metrics.items():
             low_threshold = 0
@@ -98,13 +114,13 @@ def prepare_QC_details(lims, process, proj, sample_table):
                     if isinstance(v, list):
                         low_threshold = v[0]
                         high_threshold = v[1]
-                        if value and value < low_threshold:
+                        if value < low_threshold:
                             lower_than_threshold_counter += 1
-                        elif value and value > high_threshold:
+                        elif value > high_threshold:
                             higher_than_threshold_counter += 1
                     else:
                         low_threshold = v
-                        if value and value < low_threshold:
+                        if value < low_threshold:
                             lower_than_threshold_counter += 1
             conc_unit = list(conc_units)[0] if k=='Concentration' else ''
             if lower_than_threshold_counter != 0:
@@ -115,7 +131,7 @@ def prepare_QC_details(lims, process, proj, sample_table):
 
 
 # Prepare the summary text
-def make_summary(lims, process, sample_table):
+def make_summary(lims, process, sample_table, library):
     summary = {}
     # Prepare project list
     projects = set()
@@ -132,7 +148,7 @@ def make_summary(lims, process, sample_table):
         passed_sample_number = len([i for i in qc_flag_by_container if i[1] == 'PASSED'])
         containers = list(set(i[0] for i in qc_flag_by_container))
         comments += '**Overall QC summary: {}/{} samples passed QC in container {}**.\n'.format(passed_sample_number, total_sample_number, ','.join(sorted(containers)))
-        QC_details_all_samples = prepare_QC_details(lims, process, proj, sample_table)
+        QC_details_all_samples = prepare_QC_details(lims, process, proj, sample_table, library)
         if QC_details_all_samples != '':
             comments += '\n**QC details for all samples: **\n'
             comments += QC_details_all_samples
@@ -162,9 +178,14 @@ def make_summary(lims, process, sample_table):
 def main(lims, args):
 
     pro = Process(lims, id=args.pid)
+    library = True if pro.type.name in ['Aggregate QC (Library Validation) 4.0'] else False
+
     artifacts = pro.all_inputs(unique=True)
     sample_table = prepare_sample_table(artifacts)
-    summary = make_summary(lims, pro, sample_table)
+    error_message = verify_sample_table(lims, sample_table, library)
+    if error_message != '':
+        sys.exit(error_message)
+    summary = make_summary(lims, pro, sample_table, library)
 
     # Write summary to couch
     for proj, noteobj in summary.items():
