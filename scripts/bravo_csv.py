@@ -273,9 +273,9 @@ def prepooling(currentStep, lims):
         try:
             file_meta = {"pid":currentStep.id, "timestamp":dt.now()}
             # Create dataframe of all transfers incl. transfer volume
-            df = zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol)
+            df, pool_info = zika_calc(currentStep, lims, log, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol)
             # Create worklist file
-            wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, file_meta)
+            wl_filename = zika_wl(df, zika_max_vol, file_meta, pool_info)
         
         except PoolOverflow:
             zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
@@ -284,10 +284,6 @@ def prepooling(currentStep, lims):
         except LowVolume:
             zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             sys.stderr.write("ERROR: Some samples have too low volume to be transferred. Check log for more info.")
-            sys.exit(2)
-        except PoolCollision:
-            zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
-            sys.stderr.write(log[-1]+'\n')
             sys.exit(2)
         except MultipleDst:
             zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
@@ -336,7 +332,7 @@ def prepooling(currentStep, lims):
         else:
             logging.info("Work done")
 
-def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, file_meta):
+def zika_wl(df, zika_max_vol, file_meta, pool_info):
     """Create and write the worklist"""
 
     # Determine subtransfers
@@ -354,34 +350,6 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
     wl.reset_index(inplace = True)
     wl = wl.rename(columns={'index': 'transfer_id'}, inplace = False)
 
-    # Determine buffer wells and transfers
-    if not df[df.name == "buffer"].empty:
-        # Calculate how many buffer wells we need and place them on the destination plate
-        tot_buffer_vol = sum(df[df.name == "buffer"]["transfer_vol"])
-        num_buffer_wells = int(tot_buffer_vol // (pool_max_vol - src_dead_vol - zika_max_vol) + 1)
-        # Place wells starting from bottom right corner
-        all_wells = []
-        for n in range(1,13):
-            for l in "ABCDEFGH":
-                all_wells.append(l+":"+str(n))
-        all_wells.reverse()
-        buffer_wells = all_wells[0:num_buffer_wells]
-
-        # Assign buffer src wells, switch if we run out
-        iter_buffer_well = iter(buffer_wells)
-        current_buffer_well = next(iter_buffer_well)
-        current_vol = pool_max_vol
-        for idx, row in wl[wl.src_well.isna()].iterrows():
-            wl.at[idx,'src_well'] = current_buffer_well
-            current_vol -= row.transfer_vol
-            if current_vol < src_dead_vol + zika_max_vol:
-                current_buffer_well = next(iter_buffer_well)
-                current_vol = pool_max_vol
-        # Raise error if buffer well assignment conflicts with pool well assignment
-        if any(df.loc[df.id.notna(),"dst_well"].isin(buffer_wells)):
-            log.append("ERROR: Assigned pool wells conflict with auto-assigned buffer wells ({}). Buffer wells are assigned starting in the bottom right corner of the destination plate.\n".format(", ".join(buffer_wells)))
-            raise PoolCollision()
-
     # Determine plate layout
     src_plates = wl.loc[wl.src_fc_id != wl.dst_fc[0],"src_fc"].value_counts()
     src_plates = pd.DataFrame({"src_fc":src_plates.index, "count":src_plates.values})
@@ -391,23 +359,23 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
     n_layouts = ((n_src_plates - 1) // 4) + 1
 
     # Make list of deck positions, sorted by proximity
-    pos = [2]*n_layouts + [4]*n_layouts + [1]*n_layouts + [5]*n_layouts
+    pos = [2,4,1,5]*n_layouts
     pos = pos[0:n_src_plates]
     # Make a corresponding list of layouts
-    layout = list(range(1,n_layouts+1))*(n_src_plates // n_layouts + 1)
+    layout = []
+    for i in range(1,n_layouts+1):
+        layout += [i]*4
     layout = layout[0:n_src_plates]
     # Position the plates with the most samples closest to the dest plate
     src_plates["src_pos"] = pos
     src_plates["dst_pos"] = 3
     src_plates["layout"] = layout
 
-    # Merge layout info and add buffer transfer info
+    # Merge layout info
     wl2 = pd.merge(wl,src_plates,how="left")
-    wl2.loc[wl2['src_fc'] == "buffer", 'src_pos'] = 3
-    wl2.loc[wl2['src_fc'] == "buffer", 'dst_pos'] = 3
 
     # Change tips for sample but not for buffer transfers
-    wl2['VAR'] = where(wl2['src_fc']=='buffer', '[VAR1]', '[VAR2]')
+    wl2['VAR'] = '[VAR1]'
 
     # Add row/col info
     wl2["src_row"], wl2["src_col1"] = well2rowcol(wl2.src_well)
@@ -423,50 +391,44 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
                 "vol_nl", "VAR", "layout", "src_fc"]]
     
     # GENERATE WORKLIST
-
-    # For buffer transfers, switch tip every n transfers
-    switch_every_n = 10
-    wl_buffer = wl3[wl3.layout.isna()].sort_values(by = ["src_row","src_col1"], ascending = False)
-    wl_buffer.reset_index(drop = True, inplace = True)
-    wl_buffer.loc[switch_every_n::switch_every_n,"VAR"] = "[VAR2]"
-
     wl_sample = wl3[wl3.layout.notna()].sort_values(by = ["layout","vol_nl"], ascending = [True, False])
 
     wl_filename = "_".join(["zika_worklist", file_meta["pid"], file_meta["timestamp"].strftime("%y%m%d_%H%M%S")]) + ".csv"
     with open(wl_filename, "w") as csvContext:
         # Write header
         csvContext.write("worklist,\n")
-        csvContext.write("[VAR1]TipChangeStrategy,never,[VAR2]TipChangeStrategy,always\n")
+        csvContext.write("[VAR1]TipChangeStrategy,always\n")
         csvContext.write("COMMENT, This is a Zika advanced worklist for LIMS process {} generated {}\n".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
         csvContext.write("COMMENT, The worklist will enact transfers of {} samples from {} src plate(s) into {} pool(s) via {} layout(s)\n".format(
             len(df[df.id.notna()]), n_src_plates, len(df.dst_well.unique()), n_layouts))
-        if not wl_buffer.empty:
-            csvContext.write("COMMENT, Please make sure well(s) [{}] of the destination plate are filled with {} ul buffer\n".format(" + ".join(buffer_wells), pool_max_vol))
+        csvContext.write("COMMENT, \n")
+
+        # Write manual buffer transfers
+        for i, row in pool_info.sort_values(by="well").iterrows():
+            if row.buffer_vol != 0:
+                csvContext.write("COMMENT, Fill well {} ({}) with {} uL buffer.\n".format(*list(row)))
+        csvContext.write("COMMENT, \n")
 
         # Loop over layouts
         for i in range(1, n_layouts + 1):
-            # In the first layout, start with the buffer transfers
-            if i == 1 and not wl_buffer.empty:
-                wl_current = wl_buffer.append(wl_sample[wl_sample.layout == i])
-            else:
-                wl_current = wl_sample[wl_sample.layout == i]
-
             # Get the deck layout to print in comment
             sample_deck = src_plates.loc[src_plates.layout == i,["src_fc","src_pos"]]
             deck = pd.merge(pd.DataFrame({"src_pos":[1,2,3,4,5]}), sample_deck, how = "left", on = "src_pos")
             deck.loc[deck.src_pos==3, "src_fc"] = "[Destination plate]"
             deck.fillna("[Empty]", inplace = True)
 
-            csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc))
-            csvContext.write("\nPAUSE, 0\n")
+            if i != 1:
+                csvContext.write("PAUSE, 0\n")
+            csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc) + "\n")
             
-            # Write transfers
+            # Write sample transfers
+            wl_current = wl_sample[wl_sample.layout == i]
             for idx, row in wl_current.iterrows():
                 csvContext.write(",".join(["COPY"] + [str(e) for e in row["src_pos":"VAR"]])+"\n")
 
     return wl_filename
 
-def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
+def zika_calc(currentStep, lims, log, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol):
     """Calculate volumes via zika_vols() for one pooling at a time"""
 
     data = make_datastructure(currentStep, lims, log)
@@ -475,11 +437,12 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
     # Get pools and sort by destination row, col
     pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
     pools.sort(key=lambda pool: pool.name)
+    pool_info = pd.DataFrame(columns=["well","name","buffer_vol"])
 
     # Store here, whether any pooling has critical error
     pool_overflow_state = False 
     low_volume_state = False
-    
+
     for pool in pools:
         try:
             # Replace commas with semicolons, so pool names can be printed in worklist
@@ -490,10 +453,11 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
             target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
             target_pool_vol = float(pool.udf["Final Volume (uL)"])
 
-            df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool, log,
+            (df, pool_buffer_vol) = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool, log,
                             zika_min_vol, src_dead_vol, pool_max_vol)
             
             returndata = returndata.append(df, ignore_index = True)
+            pool_info.loc[len(pool_info)] = [pool.location[1], pool.name, round(pool_buffer_vol,1)]
         
         # Record critical error has occured, then continue
         except PoolOverflow:
@@ -512,11 +476,9 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
     if len(returndata.dst_fc.unique()) > 1:
         log.append("ERROR: Only one destination plate is allowed.")
         raise MultipleDst()
-    return returndata
+    return returndata, pool_info
 
 class PoolOverflow(Exception):
-    pass
-class PoolCollision(Exception):
     pass
 class LowVolume(Exception):
     pass
@@ -621,17 +583,13 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
     df["transfer_vol"] = minimum(sample_transfer_amount / df.conc, df.live_vol)
     df["final_target_fraction"] = round((df.transfer_vol * df.conc / pool_vol) / (pool_conc / n_src), 2)
 
-    # If needed, add buffer w/o assigning source
+    # Calculate and store pool buffer volume
     total_sample_vol = sum(df["transfer_vol"])
     if pool_vol - total_sample_vol > zika_min_vol:
-        df = df.append({'name':"buffer",
-                        "src_fc":"buffer",
-                        "src_fc_id":df["dst_fc"][0],
-                        "pool_id":df["pool_id"][0],
-                        "dst_fc":df["dst_fc"][0],
-                        "dst_well":df["dst_well"][0],
-                        "transfer_vol":pool_vol - total_sample_vol},
-                        ignore_index = True)
+        buffer_vol = pool_vol - total_sample_vol
+        log.append("Pool buffer volume: {} uL".format(round(buffer_vol,1)))
+    else:
+        buffer_vol = 0
     
     # Report low-conc samples
     low_samples = df[df.final_target_fraction < 0.995][["name", "final_target_fraction"]].sort_values("name")
@@ -640,7 +598,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
         log.append("Sample\tFraction")
         for name, frac in low_samples.values:
             log.append("{}\t{}".format(name, round(frac,2)))
-    return df
+    return df, buffer_vol
 
 def conc2vol(conc, pool_boundaries):
     """Nudge target vol based on conc. and pool boundaries."""
