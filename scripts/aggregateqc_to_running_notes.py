@@ -50,7 +50,7 @@ def prepare_sample_table(artifacts):
     return sample_table
 
 
-def verify_sample_table(lims, sample_table, library=False):
+def verify_sample_table(sample_table, library=False):
     error_message = []
     measurements_keys = set()
     optional_keys = {'Amount (fmol)', 'Dilution Fold', 'Failure Reason', 'Max Size (bp)', 'Min Size (bp)', 'Rerun', 'Size (bp)'}
@@ -81,11 +81,10 @@ def verify_sample_table(lims, sample_table, library=False):
     return error_message
 
 
-def prepare_QC_details(lims, process, proj, sample_table, library=False):
+def prepare_QC_details(project, sample_table, library=False):
     QC_details = ''
     QC_metrics = {}
     # Retrieve the QC metrics from the QC critera file
-    project = Project(lims,id=proj)
     library_construction_method = project.udf.get('Library construction method')
     if library_construction_method in QC_criteria.keys():
         if not library:
@@ -102,18 +101,17 @@ def prepare_QC_details(lims, process, proj, sample_table, library=False):
                     if flowcell_option in QC_criteria[library_construction_method][sequencing_platform][flowcell_type].keys():
                         QC_metrics = QC_criteria[library_construction_method][sequencing_platform][flowcell_type][flowcell_option]
     # Decide QC status on individual metrix
-    filtered_sample_table = {k: v for k, v in sample_table.items() if v['project'] == proj}
+    filtered_sample_table = {k: v for k, v in sample_table.items() if v['project'] == project.id}
     if QC_metrics:
-        conc_units = set()
-        for k, v in filtered_sample_table.items():
-            conc_units.add(v['measurements']['Conc. Units'])
         # Start working on QC metrics
+        conc_units = set()
         for k, v in QC_metrics.items():
             low_threshold = 0
             high_threshold = 0
             lower_than_threshold_counter = 0
             higher_than_threshold_counter = 0
             for k1, v1 in filtered_sample_table.items():
+                conc_units.add(v1['measurements']['Conc. Units'])
                 if k in v1['measurements'].keys():
                     value = v1['measurements'].get(k)
                     if isinstance(v, list):
@@ -146,6 +144,7 @@ def make_summary(lims, process, sample_table, library):
     for proj in projects:
         comments = ''
         qc_flag_by_container = []
+        project = Project(lims,id=proj)
         for k, v in sample_table.items():
             if v['project'] == proj:
                 qc_flag_by_container.append((v['container'], v['qc_flag']))
@@ -153,7 +152,7 @@ def make_summary(lims, process, sample_table, library):
         passed_sample_number = len([i for i in qc_flag_by_container if i[1] == 'PASSED'])
         containers = list(set(i[0] for i in qc_flag_by_container))
         comments += '**Overall QC summary: {}/{} samples passed QC in container {}**.\n'.format(passed_sample_number, total_sample_number, ','.join(sorted(containers)))
-        QC_details_all_samples = prepare_QC_details(lims, process, proj, sample_table, library)
+        QC_details_all_samples = prepare_QC_details(project, sample_table, library)
         if QC_details_all_samples != '':
             comments += '\n**QC details for all samples: **\n'
             comments += QC_details_all_samples
@@ -164,7 +163,7 @@ def make_summary(lims, process, sample_table, library):
                 passed_sample_number_by_container = len([i for i in qc_flag_by_container if i[0]==container and i[1]=='PASSED'])
                 comments += '\nContainer **{}**: {}/{} samples passed QC.\n'.format(container, passed_sample_number_by_container, total_sample_number_by_container)
                 container_sample_table = {k: v for k, v in sample_table.items() if v['container'] == container}
-                QC_details_per_container = prepare_QC_details(lims, process, proj, container_sample_table)
+                QC_details_per_container = prepare_QC_details(project, container_sample_table, library)
                 if QC_details_per_container != '':
                     comments += '\nQC details for container **{}**: \n'.format(container)
                     comments += QC_details_per_container
@@ -187,7 +186,7 @@ def main(lims, args):
 
     artifacts = pro.all_inputs(unique=True)
     sample_table = prepare_sample_table(artifacts)
-    error_message = verify_sample_table(lims, sample_table, library)
+    error_message = verify_sample_table(sample_table, library)
     if error_message:
         sys.exit(' '.join(error_message))
     summary = make_summary(lims, pro, sample_table, library)
