@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220428.1
+Enable illumina_run_parameter_parser for parsing run stats for NovaSeq
+
 ## 20220427.1
 Support 10X SI-TS indexes
 

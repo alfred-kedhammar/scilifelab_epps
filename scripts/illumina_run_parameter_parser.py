@@ -302,6 +302,9 @@ def lims_for_novaseq(process, run_dir):
     process.udf['Loading Workflow Type'] = runParameters['WorkflowType']
     # Put in LIMS
     process.put()
+    # Set run stats parsed from InterOp
+    run_stats_summary = parse_illumina_interop(run_dir)
+    set_run_stats_in_lims(process, run_stats_summary)
 
 
 def main(lims, args):
