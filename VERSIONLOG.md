@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220503.1
+Include controls in samplesheet for MiSeq, NextSeq and NovaSeq
+
 ## 20220428.1
 Enable illumina_run_parameter_parser for parsing run stats for NovaSeq
 
