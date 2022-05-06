@@ -289,7 +289,7 @@ def prepooling(currentStep, lims):
             zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             sys.stderr.write(log[-1]+'\n')
             sys.exit(2)
-            
+
         else:
             zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             zika_upload_csv(currentStep, lims, wl_filename)
@@ -298,7 +298,7 @@ def prepooling(currentStep, lims):
                 sys.exit(2)
             else:
                 logging.info("Work done")
-                
+
     else:
         # First thing to do is to grab the volumes of the input artifacts. The method is ... rather unique.
         data = compute_transfer_volume(currentStep, lims, log)
@@ -389,7 +389,7 @@ def zika_wl(df, zika_max_vol, file_meta, pool_info):
     # Keep only the worklist-related columns
     wl3 = wl2[["src_pos", "src_col1", "src_col2", "src_row", "dst_pos", "dst_col", "dst_row",
                 "vol_nl", "VAR", "layout", "src_fc"]]
-    
+
     # GENERATE WORKLIST
     wl_sample = wl3[wl3.layout.notna()].sort_values(by = ["layout","vol_nl"], ascending = [True, False])
 
@@ -440,7 +440,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, zika_max_vol, src_dead_vol, 
     pool_info = pd.DataFrame(columns=["well","name","buffer_vol"])
 
     # Store here, whether any pooling has critical error
-    pool_overflow_state = False 
+    pool_overflow_state = False
     low_volume_state = False
 
     for pool in pools:
@@ -455,7 +455,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, zika_max_vol, src_dead_vol, 
 
             (df, pool_buffer_vol) = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool, log,
                             zika_min_vol, src_dead_vol, pool_max_vol)
-            
+
             returndata = returndata.append(df, ignore_index = True)
             pool_info.loc[len(pool_info)] = [pool.location[1], pool.name, round(pool_buffer_vol,1)]
         
@@ -466,7 +466,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, zika_max_vol, src_dead_vol, 
         except LowVolume:
             low_volume_state = True
             continue
-    
+
     log.append("\n")
     # If any of the poolings had overflow, raise exception
     if pool_overflow_state:
@@ -555,7 +555,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
         pool_conc = target_pool_conc
     if target_pool_conc != pool_conc:
         log.append("WARNING: Target pool conc is adjusted to {} nM".format(round(pool_conc,2)))
-    
+
     #  Nudge vol, if necessary
     min_vol_given_pool_conc, max_vol_given_pool_conc = conc2vol(pool_conc, pool_boundaries)
     if target_pool_vol < min_vol_given_pool_conc:
@@ -569,7 +569,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
         log.append("WARNING: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
     else:
         pool_vol = target_pool_vol
-        
+
     if highest_min_amount < lowest_max_amount and target_pool_vol == pool_vol and target_pool_conc == pool_conc:
         log.append("Pooling OK")
 
@@ -577,7 +577,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
     pool.udf["Pool Conc. (nM)"] = round(pool_conc,2)
     pool.udf["Final Volume (uL)"] = round(pool_vol,2)
     pool.put()
-            
+
     # Append transfer volumes and corresponding fraction of target conc. for each sample
     sample_transfer_amount = pool_conc * pool_vol / n_src
     df["transfer_vol"] = minimum(sample_transfer_amount / df.conc, df.live_vol)
@@ -1069,7 +1069,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         elif volume < MIN_WARNING_VOLUME:
             # When the volume is lower than the MIN_WARNING_VOLUME, set volume to MIN_WARNING_VOLUME
             # for the TruSeq RNA, TruSeq DNA PCR-free and ThruPLEX protocols. But not apply to the no-depletion RNA protocol
-            if any(x in y for y in art_workflows for x in ['TruSeq RNA', 'TruSeq DNA PCR-free', 'ThruPlex']) and not no_depletion_flag:
+            if any(x in y for y in art_workflows for x in ['TruSeq RNA', 'TruSeq DNA PCR-free', 'ThruPlex', 'SMARTer Pico RNA']) and not no_depletion_flag:
                 final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_ng)/float(final_volume))
                 if final_volume <= MAX_WARNING_VOLUME:
                     logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. CSV adjusted by taking {4} uL sample and diluting in a total volume {5} uL.\n".format(art_tuple[1]['uri'].samples[0].name,
