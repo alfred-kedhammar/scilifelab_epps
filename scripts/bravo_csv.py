@@ -276,7 +276,7 @@ def prepooling(currentStep, lims):
             df = zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol)
             # Create worklist file
             wl_filename = zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, file_meta)
-        
+
         except PoolOverflow:
             zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             sys.stderr.write("ERROR: Overflow in pool(s). Check log for more info.")
@@ -293,7 +293,7 @@ def prepooling(currentStep, lims):
             zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             sys.stderr.write(log[-1]+'\n')
             sys.exit(2)
-            
+
         else:
             zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             zika_upload_csv(currentStep, lims, wl_filename)
@@ -302,7 +302,7 @@ def prepooling(currentStep, lims):
                 sys.exit(2)
             else:
                 logging.info("Work done")
-                
+
     else:
         # First thing to do is to grab the volumes of the input artifacts. The method is ... rather unique.
         data = compute_transfer_volume(currentStep, lims, log)
@@ -421,7 +421,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
     # Keep only the worklist-related columns
     wl3 = wl2[["src_pos", "src_col1", "src_col2", "src_row", "dst_pos", "dst_col", "dst_row",
                 "vol_nl", "VAR", "layout", "src_fc"]]
-    
+
     # GENERATE WORKLIST
 
     # For buffer transfers, switch tip every n transfers
@@ -459,7 +459,7 @@ def zika_wl(df, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol, log, fil
 
             csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc))
             csvContext.write("\nPAUSE, 0\n")
-            
+
             # Write transfers
             for idx, row in wl_current.iterrows():
                 csvContext.write(",".join(["COPY"] + [str(e) for e in row["src_pos":"VAR"]])+"\n")
@@ -477,9 +477,9 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
     pools.sort(key=lambda pool: pool.name)
 
     # Store here, whether any pooling has critical error
-    pool_overflow_state = False 
+    pool_overflow_state = False
     low_volume_state = False
-    
+
     for pool in pools:
         try:
             # Replace commas with semicolons, so pool names can be printed in worklist
@@ -492,9 +492,9 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
 
             df = zika_vols(valid_inputs, target_pool_vol, target_pool_conc, pool, log,
                             zika_min_vol, src_dead_vol, pool_max_vol)
-            
+
             returndata = returndata.append(df, ignore_index = True)
-        
+
         # Record critical error has occured, then continue
         except PoolOverflow:
             pool_overflow_state = True
@@ -502,7 +502,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, src_dead_vol, pool_max_vol):
         except LowVolume:
             low_volume_state = True
             continue
-    
+
     log.append("\n")
     # If any of the poolings had overflow, raise exception
     if pool_overflow_state:
@@ -593,7 +593,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
         pool_conc = target_pool_conc
     if target_pool_conc != pool_conc:
         log.append("WARNING: Target pool conc is adjusted to {} nM".format(round(pool_conc,2)))
-    
+
     #  Nudge vol, if necessary
     min_vol_given_pool_conc, max_vol_given_pool_conc = conc2vol(pool_conc, pool_boundaries)
     if target_pool_vol < min_vol_given_pool_conc:
@@ -607,7 +607,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
         log.append("WARNING: Target pool vol is adjusted to {} ul".format(round(pool_vol,2)))
     else:
         pool_vol = target_pool_vol
-        
+
     if highest_min_amount < lowest_max_amount and target_pool_vol == pool_vol and target_pool_conc == pool_conc:
         log.append("Pooling OK")
 
@@ -615,7 +615,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
     pool.udf["Pool Conc. (nM)"] = round(pool_conc,2)
     pool.udf["Final Volume (uL)"] = round(pool_vol,2)
     pool.put()
-            
+
     # Append transfer volumes and corresponding fraction of target conc. for each sample
     sample_transfer_amount = pool_conc * pool_vol / n_src
     df["transfer_vol"] = minimum(sample_transfer_amount / df.conc, df.live_vol)
@@ -632,7 +632,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
                         "dst_well":df["dst_well"][0],
                         "transfer_vol":pool_vol - total_sample_vol},
                         ignore_index = True)
-    
+
     # Report low-conc samples
     low_samples = df[df.final_target_fraction < 0.995][["name", "final_target_fraction"]].sort_values("name")
     if not low_samples.empty:
@@ -1111,7 +1111,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         elif volume < MIN_WARNING_VOLUME:
             # When the volume is lower than the MIN_WARNING_VOLUME, set volume to MIN_WARNING_VOLUME
             # for the TruSeq RNA, TruSeq DNA PCR-free and ThruPLEX protocols. But not apply to the no-depletion RNA protocol
-            if any(x in y for y in art_workflows for x in ['TruSeq RNA', 'TruSeq DNA PCR-free', 'ThruPlex']) and not no_depletion_flag:
+            if any(x in y for y in art_workflows for x in ['TruSeq RNA', 'TruSeq DNA PCR-free', 'ThruPlex', 'SMARTer Pico RNA']) and not no_depletion_flag:
                 final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_ng)/float(final_volume))
                 if final_volume <= MAX_WARNING_VOLUME:
                     logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. CSV adjusted by taking {4} uL sample and diluting in a total volume {5} uL.\n".format(art_tuple[1]['uri'].samples[0].name,

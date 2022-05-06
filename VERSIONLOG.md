@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220506.1
+Take 2uL sample for low pipetting volume cases for the SMARTer Pico RNA workflows
+
 ## 20220503.1
 Include controls in samplesheet for MiSeq, NextSeq and NovaSeq
 
