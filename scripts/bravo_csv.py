@@ -702,7 +702,6 @@ def zika_norm(lims, currentStep):
 
     # Zika is only validated (by us and SPT) for transfers down to 0.5 ul but in theory perform transfers down to 0.1 ul
     zika_min_vol = 0.1  # Lowest possible transfer volume
-    zika_min_val_vol = 0.5 # Lowest validated transfer volume
     zika_max_vol = 5
     zika_dead_vol = 5   # Estimated dead volume of TwinTec96 wells
     well_max_vol = 180  # Estimated max volume of TwinTec96 wells
@@ -742,7 +741,6 @@ def zika_norm(lims, currentStep):
     log.append("Log for Zika amplicon normalization, LIMS process {}, generated {}".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
     log.append("Calculations are based on user-supplied volumes and concentrations.")
     log.append("Highest allowed final volume is {} uL.".format(zika_max_vol))
-    log.append("Lowest validated pipetting volume is {} uL.".format(zika_min_val_vol))
     log.append("Lowest allowed pipetting volume is {} uL.".format(zika_min_vol))
     log.append("\nNormalizing {} samples from plate {}...\n".format(len(df), df.dest_fc[0]))
 
@@ -785,36 +783,15 @@ def zika_norm(lims, currentStep):
         if min([row.transfer_amt, row.target_amt]) / max([row.transfer_amt, row.target_amt]) < 0.995:
             log.append("WARNING: Sample {} normalized to {} ng in {} ul, {}% of target".format(
                 row.name, round(row.transfer_amt,2), round(row.tot_vol,2), round(row.transfer_amt / row.target_amt * 100,2)))
-    log.append("\nNon-validated transfer volumes:")
-    for idx, row in df.iterrows():
-        if row.transfer_vol < zika_min_val_vol:
-            log.append("INFO: Sample {} transferred via non-validated volume {} ul.".format(row.name, round(row.transfer_vol,2)))
     log.append("\nDone.\n")
-
-    # Calc number of buffer wells needed
-    buffer_volume = sum(df.buffer_vol)
-    num_buffer_wells = int(buffer_volume // (well_max_vol - zika_dead_vol - zika_max_vol) + 1)
-    # Assign buffer wells
-    all_wells = []
-    for n in range(1,13):
-        for l in "ABCDEFGH":
-            all_wells.append(l+":"+str(n))
-    buffer_wells = all_wells[0:num_buffer_wells]
-    # Assign buffer src wells, switch if we run out
-    iter_buffer_well = iter(buffer_wells)
-    current_buffer_well = next(iter_buffer_well)
-    current_vol = well_max_vol
-    for idx, row in df.iterrows():
-        if current_vol < zika_dead_vol + zika_max_vol:
-            current_buffer_well = next(iter_buffer_well)
-            current_vol = well_max_vol
-        df.at[idx,'buffer_well'] = current_buffer_well
-        current_vol -= row.buffer_vol
 
     # Prepare values for worklist
     df["src_row"], df["src_col"] = well2rowcol(df.source_well)
     df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
-    df["buff_row"], df["buff_col"] = well2rowcol(df.buffer_well)
+    # Take buffer from same row, last column
+    # A buffer volume of 70 ul takes into account dead volume, 12*(5+0.2) ul transfers
+    df["buff_row"] = df["src_row"]
+    buffer_col = 12
 
     df.sort_values(by = ["src_col", "src_row"], inplace = True)
 
@@ -839,7 +816,7 @@ def zika_norm(lims, currentStep):
         # Write transfers
         for idx, row in df.iterrows():
             if row.buffer_vol >= zika_min_vol / 2:
-                csvContext.write(",".join(["MULTI_ASPIRATE", buff_pos, str(row.buff_col), str(row.buff_row), "1", str(int(round(row.buffer_vol*1000)))]) + "\n")
+                csvContext.write(",".join(["MULTI_ASPIRATE", buff_pos, str(row.buff_col), str(row.buff_row), buffer_col, str(int(round(row.buffer_vol*1000)))]) + "\n")
             csvContext.write(",".join(["COPY", src_pos, str(row.src_col), str(row.src_col), str(row.src_row), 
                                                dst_pos, str(row.dst_col),                   str(row.dst_row),
                                                str(int(round(row.transfer_vol*1000))), "[VAR1]"]) + "\n")
