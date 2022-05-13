@@ -808,10 +808,8 @@ def zika_norm(lims, currentStep):
         csvContext.write("worklist,\n")
         csvContext.write("[VAR1]TipChangeStrategy,always\n")
         csvContext.write("COMMENT, This is a Zika advanced worklist for LIMS process {} generated {}\n".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
-        csvContext.write("COMMENT, The worklist will enact normalization of {} samples.\n".format(len(df)))
+        csvContext.write("COMMENT, The worklist will enact normalization of {} samples\n".format(len(df)))
         csvContext.write("COMMENT, Set up layout:    " + "     ".join(deck) + "\n")
-        if not all(df.buffer_vol == 0):
-            csvContext.write("COMMENT, Please make sure well(s) [{}] of the buffer plate are filled with {} ul buffer\n".format("  ".join(buffer_wells), well_max_vol))
 
         # Write transfers
         for idx, row in df.iterrows():
