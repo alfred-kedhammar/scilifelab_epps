@@ -791,9 +791,9 @@ def zika_norm(lims, currentStep):
     # Take buffer from same row, last column
     # A buffer volume of 70 ul takes into account dead volume, 12*(5+0.2) ul transfers
     df["buff_row"] = df["src_row"]
-    buffer_col = 12
+    buffer_col = "12"
 
-    df.sort_values(by = ["src_col", "src_row"], inplace = True)
+    df.sort_values(by = ["src_col", "src_row"], key = lambda x : [int(s) for s in x], inplace = True)
 
     # Plate positions
     buff_pos = "2"
@@ -814,7 +814,7 @@ def zika_norm(lims, currentStep):
         # Write transfers
         for idx, row in df.iterrows():
             if row.buffer_vol >= zika_min_vol / 2:
-                csvContext.write(",".join(["MULTI_ASPIRATE", buff_pos, str(row.buff_col), str(row.buff_row), buffer_col, str(int(round(row.buffer_vol*1000)))]) + "\n")
+                csvContext.write(",".join(["MULTI_ASPIRATE", buff_pos, buffer_col, str(row.buff_row), "1", str(int(round(row.buffer_vol*1000)))]) + "\n")
             csvContext.write(",".join(["COPY", src_pos, str(row.src_col), str(row.src_col), str(row.src_row), 
                                                dst_pos, str(row.dst_col),                   str(row.dst_row),
                                                str(int(round(row.transfer_vol*1000))), "[VAR1]"]) + "\n")
