@@ -565,7 +565,7 @@ def main(lims, args):
         elif process.type.name == 'Load to Flowcell (NextSeq v1.0)':
             (content, obj) = gen_Nextseq_lane_data(process)
             check_index_distance(obj, log)
-            nextseq_fc = process.udf['Experiment Name'] if process.udf['Experiment Name'] else obj[0]['fc']
+            nextseq_fc = process.udf['Flowcell Series Number'] if process.udf['Flowcell Series Number'] else obj[0]['fc']
             if os.path.exists("/srv/mfs/samplesheets/nextseq/{}".format(thisyear)):
                 try:
                     with open("/srv/mfs/samplesheets/nextseq/{}/{}.csv".format(thisyear, nextseq_fc), 'w') as sf:
@@ -592,7 +592,7 @@ def main(lims, args):
                     log_id= out.id
                 elif out.type == "Analyte":
                     if process.type.name == 'Load to Flowcell (NextSeq v1.0)':
-                        fc_name = process.udf['Experiment Name'] if process.udf['Experiment Name'] else out.location[0].name
+                        fc_name = process.udf['Flowcell Series Number'] if process.udf['Flowcell Series Number'] else out.location[0].name
                     else:
                         fc_name = out.location[0].name
                 elif process.type.name in ['MinION QC', 'Load Sample and Sequencing (MinION) 1.0']:

@@ -14,7 +14,7 @@ class Thresholds():
         #Checks that only supported values are entered
         self.valid_instruments = ["miseq", "hiseq", "HiSeq_X", "NovaSeq", "NextSeq"]
         self.valid_chemistry = ["MiSeq", "Version3", "Version2", "Version2Nano", "HiSeq Rapid Flow Cell v1","HiSeq Rapid Flow Cell v2",
-                             "TruSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v3", "HiSeq Flow Cell v4", "HiSeqX v2.5", "SP", "S1", "S2", "S4", "NextSeq Mid", "NextSeq High", "NextSeq 2000 P2", "NextSeq 2000 P3"]
+                             "TruSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v3", "HiSeq Flow Cell v4", "HiSeqX v2.5", "SP", "S1", "S2", "S4", "NextSeq Mid", "NextSeq High", "NextSeq 2000 P1", "NextSeq 2000 P2", "NextSeq 2000 P3"]
 
         if not instrument in self.valid_instruments or not chemistry in self.valid_chemistry:
             self.problem_handler("exit", "Detected instrument and chemistry combination are not classed as valid in manage_demux_stats_thresholds.py")
@@ -145,6 +145,8 @@ class Thresholds():
                 self.exp_lane_clust = 25000000
             elif self.chemistry == "NextSeq High":
                 self.exp_lane_clust = 75000000
+            elif self.chemistry == "NextSeq 2000 P1":
+                self.exp_lane_clust = 100000000
             elif self.chemistry == "NextSeq 2000 P2":
                 self.exp_lane_clust = 400000000
             elif self.chemistry == "NextSeq 2000 P3":

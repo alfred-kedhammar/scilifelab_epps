@@ -20,10 +20,10 @@ DESC = """EPP for parsing run paramters for Illumina MiSeq, NextSeq and NovaSeq 
 def fetch_fc(process):
     fc_id = ''
     if process.parent_processes()[0].type.name == 'Load to Flowcell (NextSeq v1.0)':
-        if process.parent_processes()[0].udf['Experiment Name']:
-            fc_id = process.parent_processes()[0].udf['Experiment Name'].upper()
+        if process.parent_processes()[0].udf['Flowcell Series Number']:
+            fc_id = process.parent_processes()[0].udf['Flowcell Series Number'].upper()
         else:
-            sys.stderr.write("Experiment Name is empty in the associated Load to Flowcell (NextSeq v1.0) step.")
+            sys.stderr.write("Flowcell Series Number is empty in the associated Load to Flowcell (NextSeq v1.0) step.")
             sys.exit(2)
     elif process.parent_processes()[0].type.name == 'Denature, Dilute and Load Sample (MiSeq) 4.0':
         if process.parent_processes()[0].udf['Flowcell ID']:

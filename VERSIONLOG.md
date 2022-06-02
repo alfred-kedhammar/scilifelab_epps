@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220602.1
+Rename FC and cartridge UDFs for NextSeq and add NextSeq 2000 P1
+
 ## 20220506.1
 Take 2uL sample for low pipetting volume cases for the SMARTer Pico RNA workflows
 
