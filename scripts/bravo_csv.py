@@ -11,7 +11,7 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
-from numpy import minimum, where
+from numpy import minimum, maximum, where
 from datetime import datetime as dt
 
 
@@ -653,63 +653,210 @@ def setup_qpcr(currentStep, lims):
         logging.info("Work done")
 
 
-def default_bravo(lims, currentStep, with_total_vol=True):
-    checkTheLog = [False]
-    dest_plate = []
-    with open("bravo.csv", "w") as csvContext:
-        with open("bravo.log", "w") as logContext:
-            # working directly with the map allows easier input/output handling
-            for art_tuple in currentStep.input_output_maps:
-            # filter out result files
-                if art_tuple[0]['uri'].type == 'Analyte' and art_tuple[1]['uri'].type == 'Analyte':
-                    source_fc = art_tuple[0]['uri'].location[0].name
-                    source_well = art_tuple[0]['uri'].location[1]
-                    dest_fc = art_tuple[1]['uri'].location[0].id
-                    dest_well = art_tuple[1]['uri'].location[1]
-                    dest_fc_name = art_tuple[1]['uri'].location[0].name
-                    dest_plate.append(dest_fc_name)
-                    if with_total_vol:
-                        if art_tuple[1]['uri'].udf.get("Total Volume (uL)"):
-                            volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
-                            csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
-                        else:
-                            logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
-                            checkTheLog[0] = True
-                    else:
-                        volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
-                        csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
+def zika_norm(lims, currentStep):
+    """ Perform multi-aspirate low-volume normalization based on user concentrations and volumes """
+    file_meta = {"pid":currentStep.id, "timestamp":dt.now()}
+    log = []
 
-    df = pd.read_csv("bravo.csv", header=None)
-    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
-    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
-    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
-    df.to_csv('bravo.csv', header=False, index=False)
+    # Zika is only validated (by us and SPT) for transfers down to 0.5 ul but in theory perform transfers down to 0.1 ul
+    zika_min_vol = 0.1  # Lowest possible transfer volume
+    zika_max_vol = 5
+    zika_dead_vol = 5   # Estimated dead volume of TwinTec96 wells
+    well_max_vol = 180  # Estimated max volume of TwinTec96 wells
 
-    # For now only one output plate is supported:
-    if len(list(set(dest_plate))) == 1:
-        dest_plate_name = list(set(dest_plate))[0]
-        os.rename("bravo.csv", "{}_bravo.csv".format(dest_plate_name))
-        os.rename("bravo.log", "{}_bravo.log".format(dest_plate_name))
-    else:
-        sys.stderr.write("ERROR: Multiple output plates!\n")
+    df_dict = {
+        "name" : [],
+        "source_fc" : [],
+        "source_well" :[],
+        "dest_fc" : [],
+        "dest_well" : [],
+        "dest_fc_name" : [],
+        "conc" : [],
+        "full_vol" : [],
+        "target_vol" : [],
+        "target_amt" : []
+    }
+
+    art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[0]["uri"].type == "Analyte" == art_tuple[1]["uri"].type == "Analyte"]
+    for art_tuple in art_tuples:
+        df_dict["name"].append(art_tuple[0]["uri"].name)
+        df_dict["source_fc"].append(art_tuple[0]['uri'].location[0].name)
+        df_dict["source_well"].append(art_tuple[0]['uri'].location[1])
+        df_dict["dest_fc"].append(art_tuple[1]['uri'].location[0].id)
+        df_dict["dest_well"].append(art_tuple[1]['uri'].location[1])
+        df_dict["dest_fc_name"].append(art_tuple[1]['uri'].location[0].name)
+        # Fetch user-supplied conc and vol
+        df_dict["conc"].append(art_tuple[0]["uri"].samples[0].udf['Customer Conc'])
+        df_dict["full_vol"].append(art_tuple[0]["uri"].samples[0].udf['Customer Volume'])
+        # Fetch target amt and vol
+        df_dict["target_vol"].append(art_tuple[1]["uri"].udf['Total Volume (uL)'])
+        df_dict["target_amt"].append(art_tuple[1]["uri"].udf['Amount taken (ng)'])         
+
+    df = pd.DataFrame(df_dict)
+    df.sort_values(by = "name", inplace = True)
+    df.reset_index(drop = True, inplace = True)
+
+    log.append("Log for Zika amplicon normalization, LIMS process {}, generated {}".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
+    log.append("Calculations are based on user-supplied volumes and concentrations.")
+    log.append("Highest allowed final volume is {} uL.".format(zika_max_vol))
+    log.append("Lowest allowed pipetting volume is {} uL.".format(zika_min_vol))
+    log.append("\nNormalizing {} samples from plate {}...\n".format(len(df), df.dest_fc[0]))
+
+    df["live_vol"] = maximum(0, df.full_vol - zika_dead_vol)
+
+    try:
+        assert max(df.target_vol) <= zika_max_vol
+    except AssertionError:
+        msg = "ERROR: This script is designed for one multi-aspirate buffer-sample transfer per normalization, meaning the final volume can't exceed {} uL".format(zika_max_vol)
+        log.append(msg)
+        sys.stderr.write(msg)
+        sys.exit(2)
+    try:
+        assert len(df.source_fc.unique()) == len(df.dest_fc.unique()) == 1  # One plate in, one plate out
+    except AssertionError:
+        msg = "ERROR: Currently only one input plate and one output plate allowed"
+        log.append(msg)
+        sys.stderr.write(msg)
+        sys.exit(2)
+    try:
+        assert all(df.live_vol > zika_min_vol) # Sufficient sample volumes
+    except AssertionError:
+        msg = "ERROR: Insufficient sample volume"
+        log.append(msg)
+        sys.stderr.write(msg)
         sys.exit(2)
 
-    for out in currentStep.all_outputs():
-        # attach the csv file and the log file
-        if out.name == "EPP Generated Bravo CSV File":
-            for f in out.files:
-                lims.request_session.delete(f.uri)
-            lims.upload_new_file(out, "{}_bravo.csv".format(dest_plate_name))
-        if out.name == "Bravo Log":
-            for f in out.files:
-                lims.request_session.delete(f.uri)
-            lims.upload_new_file(out, "{}_bravo.log".format(dest_plate_name))
-    if checkTheLog[0]:
-        # to get an eror display in the lims, you need a non-zero exit code AND a message in STDERR
-        sys.stderr.write("Errors were met, please check the Log file\n")
+    # Calculate min and max transferrable amounts
+    df["min_amt"] = df.conc * zika_min_vol
+    df["max_amt"] = df.conc * df.live_vol
+
+    # Transfer volume must be higher than zika_min_vol and leq to sample target_vol
+    df["transfer_vol"] = maximum(minimum(df.target_amt / df.conc, df.target_vol), zika_min_vol)
+    df["transfer_amt"] = df.transfer_vol * df.conc
+    df["buffer_vol"] = df.target_vol - df.transfer_vol
+    df["tot_vol"] = df.buffer_vol + df.transfer_vol
+
+    # Summarize sample amount deviations. Volumes should always be on-target. Amount can be below due to depletion or above due to high sample conc.
+    for idx, row in df.iterrows():
+        if min([row.transfer_amt, row.target_amt]) / max([row.transfer_amt, row.target_amt]) < 0.995:
+            log.append("WARNING: Sample {} normalized to {} ng in {} ul, {}% of target".format(
+                row.name, round(row.transfer_amt,2), round(row.tot_vol,2), round(row.transfer_amt / row.target_amt * 100,2)))
+    log.append("\nDone.\n")
+
+    # Prepare values for worklist
+    df["src_row"], df["src_col"] = well2rowcol(df.source_well)
+    df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
+    # Take buffer from same row, last column
+    # A buffer volume of 70 ul takes into account dead volume, 12*(5+0.2) ul transfers
+    df["buff_row"] = df["src_row"]
+    buffer_col = "12"
+
+    df.sort_values(by = ["src_col", "src_row"], key = lambda x : [int(s) for s in x], inplace = True)
+
+    # Plate positions
+    buff_pos = "2"
+    src_pos = "3"
+    dst_pos = "4"
+    deck = ["[Empty]", "[Buffer plate]", "[Sample plate]", "[Destination plate]", "[Empty]"]
+
+    # Write worklist
+    wl_filename = "_".join(["zika_worklist", file_meta["pid"], file_meta["timestamp"].strftime("%y%m%d_%H%M%S")]) + ".csv"
+    with open(wl_filename, "w") as csvContext:
+        # Write header
+        csvContext.write("worklist,\n")
+        csvContext.write("[VAR1]TipChangeStrategy,always\n")
+        csvContext.write("COMMENT, This is a Zika advanced worklist for LIMS process {} generated {}\n".format(file_meta["pid"], file_meta["timestamp"].strftime("%Y-%m-%d %H:%M:%S")))
+        csvContext.write("COMMENT, The worklist will enact normalization of {} samples\n".format(len(df)))
+        csvContext.write("COMMENT, Set up layout:    " + "     ".join(deck) + "\n")
+
+        # Write transfers
+        for idx, row in df.iterrows():
+            if row.buffer_vol >= zika_min_vol / 2:
+                csvContext.write(",".join(["MULTI_ASPIRATE", buff_pos, buffer_col, str(row.buff_row), "1", str(int(round(row.buffer_vol*1000)))]) + "\n")
+            csvContext.write(",".join(["COPY", src_pos, str(row.src_col), str(row.src_col), str(row.src_row), 
+                                               dst_pos, str(row.dst_col),                   str(row.dst_row),
+                                               str(int(round(row.transfer_vol*1000))), "[VAR1]"]) + "\n")
+
+    # Update sample UDFs
+    for art_tuple, amt in zip(art_tuples, df.transfer_amt):
+        if float(art_tuple[1]["uri"].udf['Amount taken (ng)']) != round(amt,2):
+            art_tuple[1]["uri"].udf['Amount taken (ng)'] = amt
+            art_tuple[1]["uri"].put()
+            
+    # Write and upload log and worklist
+    zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
+    zika_upload_csv(currentStep, lims, wl_filename)
+    if any("WARNING:" in entry for entry in log):
+        sys.stderr.write("CSV-file generated with warnings, please check the Log file\n")
         sys.exit(2)
     else:
         logging.info("Work done")
+
+def default_bravo(lims, currentStep, with_total_vol=True):
+
+    # Zika for amplicon normalization re-route
+    target_workflow = 'Amplicon without RC for MiSeq'
+    workflow_is_correct = all([art.workflow_stages[0].workflow.name == target_workflow for art in currentStep.all_inputs()])
+    if currentStep.instrument.name == "Zika" and workflow_is_correct:
+        zika_norm(lims, currentStep)
+
+    else:
+        checkTheLog = [False]
+        dest_plate = []
+        with open("bravo.csv", "w") as csvContext:
+            with open("bravo.log", "w") as logContext:
+                # working directly with the map allows easier input/output handling
+                for art_tuple in currentStep.input_output_maps:
+                # filter out result files
+                    if art_tuple[0]['uri'].type == 'Analyte' and art_tuple[1]['uri'].type == 'Analyte':
+                        source_fc = art_tuple[0]['uri'].location[0].name
+                        source_well = art_tuple[0]['uri'].location[1]
+                        dest_fc = art_tuple[1]['uri'].location[0].id
+                        dest_well = art_tuple[1]['uri'].location[1]
+                        dest_fc_name = art_tuple[1]['uri'].location[0].name
+                        dest_plate.append(dest_fc_name)
+                        if with_total_vol:
+                            if art_tuple[1]['uri'].udf.get("Total Volume (uL)"):
+                                volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
+                                csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
+                            else:
+                                logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
+                                checkTheLog[0] = True
+                        else:
+                            volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
+                            csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
+
+        df = pd.read_csv("bravo.csv", header=None)
+        df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
+        df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
+        df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
+        df.to_csv('bravo.csv', header=False, index=False)
+
+        # For now only one output plate is supported:
+        if len(list(set(dest_plate))) == 1:
+            dest_plate_name = list(set(dest_plate))[0]
+            os.rename("bravo.csv", "{}_bravo.csv".format(dest_plate_name))
+            os.rename("bravo.log", "{}_bravo.log".format(dest_plate_name))
+        else:
+            sys.stderr.write("ERROR: Multiple output plates!\n")
+            sys.exit(2)
+
+        for out in currentStep.all_outputs():
+            # attach the csv file and the log file
+            if out.name == "EPP Generated Bravo CSV File":
+                for f in out.files:
+                    lims.request_session.delete(f.uri)
+                lims.upload_new_file(out, "{}_bravo.csv".format(dest_plate_name))
+            if out.name == "Bravo Log":
+                for f in out.files:
+                    lims.request_session.delete(f.uri)
+                lims.upload_new_file(out, "{}_bravo.log".format(dest_plate_name))
+        if checkTheLog[0]:
+            # to get an error display in the lims, you need a non-zero exit code AND a message in STDERR
+            sys.stderr.write("Errors were met, please check the Log file\n")
+            sys.exit(2)
+        else:
+            logging.info("Work done")
 
 
 def dilution(currentStep):
