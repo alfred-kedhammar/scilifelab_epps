@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+##20220606.1
+Fix samplesheet generator for cases that one sample with multiple indexes
+
 ## 20220602.1
 Rename FC and cartridge UDFs for NextSeq and add NextSeq 2000 P1
 
