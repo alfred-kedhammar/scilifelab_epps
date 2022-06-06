@@ -80,7 +80,7 @@ def gen_Novaseq_lane_data(pro):
         if  out.type == "Analyte":
             for sample in out.samples:
                 sample_idxs = set()
-                find_barcode(sample, pro)
+                find_barcode(sample_idxs, sample, pro)
                 for idxs in sample_idxs:
                     sp_obj = {}
                     sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
@@ -136,7 +136,7 @@ def gen_Miseq_header(pro):
     chem = "Default"
     for io in pro.input_output_maps:
         sample_idxs = set()
-        find_barcode(io[1]["uri"].samples[0], pro)
+        find_barcode(sample_idxs, io[1]["uri"].samples[0], pro)
         idxs = list(sample_idxs)[0]
         if len(idxs) == 2:
            chem="amplicon"
@@ -169,7 +169,7 @@ def gen_Miseq_data(pro):
             continue
         for sample in out.samples:
             sample_idxs = set()
-            find_barcode(sample, pro)
+            find_barcode(sample_idxs, sample, pro)
             if not sample_idxs:
                 noindex = True
                 header_ar.remove('index')
@@ -281,7 +281,7 @@ def gen_Nextseq_lane_data(pro):
         if  out.type == "Analyte":
             for sample in out.samples:
                 sample_idxs = set()
-                find_barcode(sample, pro)
+                find_barcode(sample_idxs, sample, pro)
                 for idxs in sample_idxs:
                     sp_obj = {}
                     sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
@@ -394,7 +394,7 @@ def gen_MinION_QC_data(pro):
 
     return str_data
 
-def find_barcode(sample, process):
+def find_barcode(sample_idxs, sample, process):
     # print "trying to find {} barcode in {}".format(sample.name, process.name)
     for art in process.all_inputs():
         if sample in art.samples:
@@ -421,7 +421,7 @@ def find_barcode(sample, process):
                 if art == sample.artifact or not art.parent_process:
                     pass
                 else:
-                    find_barcode(sample, art.parent_process)
+                    find_barcode(sample_idxs, sample, art.parent_process)
 
 
 def test():
