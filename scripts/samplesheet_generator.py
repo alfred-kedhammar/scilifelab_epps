@@ -79,7 +79,8 @@ def gen_Novaseq_lane_data(pro):
     for out in pro.all_outputs():
         if  out.type == "Analyte":
             for sample in out.samples:
-                sample_idxs = find_barcode(sample, pro)
+                sample_idxs = set()
+                find_barcode(sample, pro)
                 for idxs in sample_idxs:
                     sp_obj = {}
                     sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
@@ -134,7 +135,9 @@ def gen_Miseq_header(pro):
     project_name=pro.all_inputs()[0].samples[0].project.name
     chem = "Default"
     for io in pro.input_output_maps:
-        idxs = list(find_barcode(io[1]["uri"].samples[0], pro))[0]
+        sample_idxs = set()
+        find_barcode(io[1]["uri"].samples[0], pro)
+        idxs = list(sample_idxs)[0]
         if len(idxs) == 2:
            chem="amplicon"
 
@@ -165,7 +168,8 @@ def gen_Miseq_data(pro):
         if  out.type != "Analyte":
             continue
         for sample in out.samples:
-            sample_idxs = find_barcode(sample, pro)
+            sample_idxs = set()
+            find_barcode(sample, pro)
             if not sample_idxs:
                 noindex = True
                 header_ar.remove('index')
@@ -276,7 +280,8 @@ def gen_Nextseq_lane_data(pro):
     for out in pro.all_outputs():
         if  out.type == "Analyte":
             for sample in out.samples:
-                sample_idxs = find_barcode(sample, pro)
+                sample_idxs = set()
+                find_barcode(sample, pro)
                 for idxs in sample_idxs:
                     sp_obj = {}
                     sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
@@ -394,31 +399,29 @@ def find_barcode(sample, process):
     for art in process.all_inputs():
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
-                output_idxs = set()
                 reagent_label_name=art.reagent_labels[0].upper().replace(' ', '')
                 idxs = TENX_SINGLE_PAT.findall(reagent_label_name) or TENX_DUAL_PAT.findall(reagent_label_name) or SMARTSEQ_PAT.findall(reagent_label_name)
                 if idxs:
                     # Put in tuple with empty string as second index to
                     # match expected type:
-                    output_idxs.add((idxs[0], ""))
+                    sample_idxs.add((idxs[0], ""))
                 else:
                     try:
                         idxs = IDX_PAT.findall(reagent_label_name)[0]
-                        output_idxs.add(idxs)
+                        sample_idxs.add(idxs)
                     except IndexError:
                         try:
                             # we only have the reagent label name.
                             rt = lims.get_reagent_types(name=reagent_label_name)[0]
                             idxs = IDX_PAT.findall(rt.sequence)[0]
-                            output_idxs.add(idxs)
+                            sample_idxs.add(idxs)
                         except:
-                            return [("NoIndex","")]
-                return output_idxs
+                            sample_idxs.add(("NoIndex",""))
             else:
                 if art == sample.artifact or not art.parent_process:
-                    return []
+                    pass
                 else:
-                    return find_barcode(sample, art.parent_process)
+                    find_barcode(sample, art.parent_process)
 
 
 def test():
