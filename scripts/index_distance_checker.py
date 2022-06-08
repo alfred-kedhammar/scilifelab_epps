@@ -23,8 +23,8 @@ DESC = """EPP used to check index distance in library pool"""
 
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,}N*)-?([ATCG]*)")
-TENX_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
-ST_PAT = re.compile("SI-(?:TT|NT|NN|TN)-[A-H][1-9][0-2]?")
+TENX_SINGLE_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
+TENX_DUAL_PAT = re.compile("SI-(?:TT|NT|NN|TN|TS)-[A-H][1-9][0-2]?")
 SMARTSEQ_PAT = re.compile('SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]')
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
@@ -65,65 +65,76 @@ def prepare_index_table(process, log):
         if out.type == "Analyte":
             pool_name = out.name
             for sample in out.samples:
-                sp_obj = {}
-                idxs = find_barcode(sample, process)
-                if not idxs or idxs[0] == 'NoIndex':
+                sample_idxs = set()
+                find_barcode(sample_idxs, sample, process)
+                if sample_idxs:
+                    for idxs in sample_idxs:
+                        sp_obj = {}
+                        if idxs[0] == 'NoIndex':
+                            sp_obj['pool'] = pool_name
+                            sp_obj['sn'] = sample.name.replace(',','')
+                            sp_obj['idx1'] = ''
+                            sp_obj['idx2'] = ''
+                            data.append(sp_obj)
+                            log.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sp_obj['sn'], sp_obj['pool']))
+                        elif TENX_DUAL_PAT.findall(idxs[0]):
+                            sp_obj['pool'] = pool_name
+                            sp_obj['sn'] = sample.name.replace(',','')
+                            sp_obj['idx1'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][0].replace(',','')
+                            sp_obj['idx2'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][1].replace(',','')
+                            data.append(sp_obj)
+                        elif TENX_SINGLE_PAT.findall(idxs[0]):
+                            for tenXidx in Chromium_10X_indexes[TENX_SINGLE_PAT.findall(idxs[0])[0]]:
+                                sp_obj_sub = {}
+                                sp_obj_sub['pool'] = pool_name
+                                sp_obj_sub['sn'] = sample.name.replace(',','')
+                                sp_obj_sub['idx1'] = tenXidx.replace(',','')
+                                sp_obj_sub['idx2'] = ''
+                                data.append(sp_obj_sub)
+                        else:
+                            sp_obj['pool'] = pool_name
+                            sp_obj['sn'] = sample.name.replace(',','')
+                            sp_obj['idx1'] = idxs[0].replace(',','') if idxs[0] else ''
+                            sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
+                            data.append(sp_obj)
+                else:
                     sp_obj['pool'] = pool_name
                     sp_obj['sn'] = sample.name.replace(',','')
                     sp_obj['idx1'] = ''
                     sp_obj['idx2'] = ''
                     data.append(sp_obj)
                     log.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sp_obj['sn'], sp_obj['pool']))
-                elif ST_PAT.findall(idxs[0]):
-                    sp_obj['pool'] = pool_name
-                    sp_obj['sn'] = sample.name.replace(',','')
-                    sp_obj['idx1'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][0].replace(',','')
-                    sp_obj['idx2'] = Chromium_10X_indexes[ST_PAT.findall(idxs[0])[0]][1].replace(',','')
-                    data.append(sp_obj)
-                elif TENX_PAT.findall(idxs[0]):
-                    for tenXidx in Chromium_10X_indexes[TENX_PAT.findall(idxs[0])[0]]:
-                        sp_obj_sub = {}
-                        sp_obj_sub['pool'] = pool_name
-                        sp_obj_sub['sn'] = sample.name.replace(',','')
-                        sp_obj_sub['idx1'] = tenXidx.replace(',','')
-                        sp_obj_sub['idx2'] = ''
-                        data.append(sp_obj_sub)
-                else:
-                    sp_obj['pool'] = pool_name
-                    sp_obj['sn'] = sample.name.replace(',','')
-                    sp_obj['idx1'] = idxs[0].replace(',','') if idxs[0] else ''
-                    sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
-                    data.append(sp_obj)
     return data
 
 
-def find_barcode(sample, process):
+def find_barcode(sample_idxs, sample, process):
     # print "trying to find {} barcode in {}".format(sample.name, process.name)
     for art in process.all_inputs():
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
                 reagent_label_name = art.reagent_labels[0].upper().replace(' ', '')
-                idxs = TENX_PAT.findall(reagent_label_name) or ST_PAT.findall(reagent_label_name) or SMARTSEQ_PAT.findall(reagent_label_name)
+                idxs = TENX_SINGLE_PAT.findall(reagent_label_name) or TENX_DUAL_PAT.findall(reagent_label_name) or SMARTSEQ_PAT.findall(reagent_label_name)
                 if idxs:
                     # Put in tuple with empty string as second index to
                     # match expected type:
-                    idxs = (idxs[0], "")
+                    sample_idxs.add((idxs[0], ""))
                 else:
                     try:
                         idxs = IDX_PAT.findall(reagent_label_name)[0]
+                        sample_idxs.add(idxs)
                     except IndexError:
                         try:
                             # we only have the reagent label name.
                             rt = lims.get_reagent_types(name=reagent_label_name)[0]
                             idxs = IDX_PAT.findall(rt.sequence)[0]
+                            sample_idxs.add(idxs)
                         except:
-                            return ("NoIndex", "")
-                return idxs
+                            sample_idxs.add(("NoIndex",""))
             else:
                 if art == sample.artifact or not art.parent_process:
-                    return []
+                    pass
                 else:
-                    return find_barcode(sample, art.parent_process)
+                    find_barcode(sample_idxs, sample, art.parent_process)
 
 
 def main(lims, pid, epp_logger):
