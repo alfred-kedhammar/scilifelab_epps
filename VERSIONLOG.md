@@ -1,6 +1,9 @@
 # Scilifelab_epps Version Log
 
-##20220606.1
+## 20220608.1
+Fix index distance checker for cases that one sample with multiple indexes
+
+## 20220606.1
 Fix samplesheet generator for cases that one sample with multiple indexes
 
 ## 20220602.1
