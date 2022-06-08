@@ -47,6 +47,10 @@ def check_index_distance(data, log):
                     idx_a = sample_a.get('idx1', '') + '-' + sample_a.get('idx2', '')
                     idx_b = sample_b.get('idx1', '') + '-' + sample_b.get('idx2', '')
                     log.append("INDEX COLLISION ERROR: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
+                if d == 1:
+                    idx_a = sample_a.get('idx1', '') + '-' + sample_a.get('idx2', '')
+                    idx_b = sample_b.get('idx1', '') + '-' + sample_b.get('idx2', '')
+                    log.append("SIMILAR INDEX WARNING: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
 
 
 def my_distance(idx_a, idx_b):
