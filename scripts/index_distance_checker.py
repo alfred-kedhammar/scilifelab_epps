@@ -143,8 +143,7 @@ def main(lims, pid, epp_logger):
     data = prepare_index_table(process, log)
     check_index_distance(data, log)
     if log:
-        sys.stderr.write('\n'.join(log))
-        sys.exit(2)
+        print('\n'.join(log), file=sys.stderr)
     else:
         print('No issue detected with indexes', file=sys.stderr)
 
