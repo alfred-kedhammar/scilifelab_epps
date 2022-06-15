@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220615.1
+Update statusdb URL to use https
+
 ## 20220608.1
 Fix index distance checker for cases that one sample with multiple indexes
 
