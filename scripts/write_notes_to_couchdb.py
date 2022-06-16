@@ -19,6 +19,7 @@ def write_note_to_couch(pid, timestamp, note, lims):
         email_responsible('Statusdb credentials not found in {}\n '.format(lims), 'genomics-bioinfo@scilifelab.se')
         email_responsible('Running note save for {} failed on LIMS! Please contact {} to resolve the issue!'.format(pid, 'genomics-bioinfo@scilifelab.se'), note['email'])
         sys.exit(1)
+
     url_string = 'https://{}:{}@{}'.format(config['statusdb'].get('username'), config['statusdb'].get('password'),
                                               config['statusdb'].get('url'))
     couch = couchdb.Server(url=url_string)
