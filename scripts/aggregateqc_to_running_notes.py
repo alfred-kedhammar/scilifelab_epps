@@ -18,7 +18,7 @@ import json
 
 from write_notes_to_couchdb import write_note_to_couch
 
-QC_criteria_json = '/home/glsai/repos/scilifelab_epps/data/QC_criteria.json'
+QC_criteria_json = '/opt/gls/clarity/users/glsai/repos/scilifelab_epps/data/QC_criteria.json'
 
 with open(QC_criteria_json,'r') as file:
     QC_criteria = json.loads(file.read())

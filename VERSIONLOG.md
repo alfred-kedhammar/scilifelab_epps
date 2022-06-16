@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220616.1
+Fix path of QC_criteria.json
+
 ## 20220615.1
 Update statusdb URL to use https
 
