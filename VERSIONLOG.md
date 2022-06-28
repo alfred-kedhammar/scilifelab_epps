@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220628.1
+Remove workset tag for CaliperGX in comments_to_running_notes
+
 ## 20220616.1
 Fix path of QC_criteria.json
 
