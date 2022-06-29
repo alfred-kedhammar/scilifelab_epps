@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220629.1
+Support Biomek for logbook
+
 ## 20220628.1
 Remove workset tag for CaliperGX in comments_to_running_notes
 
