@@ -199,7 +199,7 @@ lims_process_record={
       },
       "End repair, size selection, A-tailing and adapter ligation (TruSeq PCR-free DNA) 4.0" : {
           "lims_instrument" : {
-              "dest_file" : "Bravo",
+              "dest_file" : ["Bravo", "Biomek"],
               "details" : ["Processname"]
           },
           "udf_PCR machine" : {
@@ -623,6 +623,7 @@ lims_process_record={
 #A full list of GDoc electronic logooks of instruments
 GDoc_logbook = {
     "Bioanalyzer" : { "File" : "1m2_kGf-vTi-XP8RCnuxZ3yAR1xIw_ySCpGMuRlb2gFs" },
+    "Biomek" : { "File" : "1-0KQUfcnS1ekVVWQyLurudqVBnMu1ekpYguzdQTtnRM" },
     "Bravo" : { "File" : "1Di5uRlEI7zlQ7DgvQuEYpwDslf8VMrRnhruk5GWNtIo" },
     "Caliper" : { "File" : "1x3w-0s1-xENQORthMSF1GLTezfXQcsaVEiAfJRRjsoc" },
     "CFX" : { "File" : "19LKni8LO-Dzkvs7gkVHLEcTqzqX2zOerT3SOF9GPHNQ" },
