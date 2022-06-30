@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220630.1
+Make a new logbook EPP based on Google service account
+
 ## 20220629.1
 Support Biomek for logbook
 
