@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220701.1
+Fix bug with single read MiSeq run for illumina_run_parameter_parser
+
 ## 20220630.1
 Make a new logbook EPP based on Google service account
 

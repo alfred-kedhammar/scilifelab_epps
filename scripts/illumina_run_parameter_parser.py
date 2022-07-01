@@ -236,16 +236,23 @@ def lims_for_miseq(process, run_dir):
         process.udf['Run Type'] = 'Version2Nano'
     else:
         process.udf['Run Type'] = 'null'
-    total_cycles = sum(list(map(int, [read['NumCycles'] for read in runParameters['Reads']['RunInfoRead']])))
+    # Runs with single read return a dict object
+    if isinstance(runParameters['Reads']['RunInfoRead'], list):
+        total_cycles = sum(list(map(int, [read['NumCycles'] for read in runParameters['Reads']['RunInfoRead']])))
+        non_index_read_idx = [read['Number'] for read in runParameters['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'N']
+        index_read_idx = [read['Number'] for read in runParameters['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'Y']
+        process.udf['Read 1 Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(min(list(map(int,non_index_read_idx))))])[0]['NumCycles'])
+    elif isinstance(runParameters['Reads']['RunInfoRead'], dict):
+        total_cycles = int(runParameters['Reads']['RunInfoRead']['NumCycles'])
+        non_index_read_idx = [runParameters['Reads']['RunInfoRead']['Number']]
+        index_read_idx = []
+        process.udf['Read 1 Cycles'] = int(runParameters['Reads']['RunInfoRead']['NumCycles'])
+
     process.udf['Status'] = "Cycle {} of {}".format(total_cycles, total_cycles)
     process.udf['Flow Cell ID'] = runParameters['FlowcellRFIDTag']['SerialNumber']
     process.udf['Flow Cell Version'] = runParameters['FlowcellRFIDTag']['PartNumber']
     process.udf['Experiment Name'] = process.all_inputs()[0].name
 
-    non_index_read_idx = [read['Number'] for read in runParameters['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'N']
-    index_read_idx = [read['Number'] for read in runParameters['Reads']['RunInfoRead'] if read['IsIndexedRead'] == 'Y']
-
-    process.udf['Read 1 Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(min(list(map(int,non_index_read_idx))))])[0]['NumCycles'])
     if len(non_index_read_idx) == 2:
         process.udf['Read 2 Cycles'] = int(list([read for read in runParameters['Reads']['RunInfoRead'] if read['Number'] == str(max(list(map(int,non_index_read_idx))))])[0]['NumCycles'])
 
