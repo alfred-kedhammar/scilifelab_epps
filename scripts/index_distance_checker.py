@@ -29,12 +29,13 @@ SMARTSEQ_PAT = re.compile('SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]')
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
 
-def verify_indexes(data, message):
+def verify_indexes(data):
+    message = []
     pools = set([x['pool'] for x in data])
     for p in pools:
         subset = [i for i in data if i['pool'] == p]
         if len(subset) == 1:
-            return None
+            continue
         idx_length = set()
         for i, sample_a in enumerate(subset[:-1]):
             idx_a = sample_a.get('idx1', '') + '-' + sample_a.get('idx2', '')
@@ -53,14 +54,16 @@ def verify_indexes(data, message):
             message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_last.get('sn', ''), p))
         if len(idx_length) >1:
             message.append("Multiple index lengths noticed in pool {}".format(p))
+    return message
 
 
-def check_index_distance(data, message):
+def check_index_distance(data):
+    message = []
     pools = set([x['pool'] for x in data])
     for p in pools:
         subset = [i for i in data if i['pool'] == p]
         if len(subset) == 1:
-            return None
+            continue
         for i, sample_a in enumerate(subset[:-1]):
             if sample_a.get('idx1', '') == '' and sample_a.get('idx2', '') == '':
                 message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_a.get('sn', ''), p))
@@ -82,6 +85,7 @@ def check_index_distance(data, message):
         sample_last = subset[-1]
         if sample_last.get('idx1', '') == '' and sample_last.get('idx2', '') == '':
             message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_last.get('sn', ''), p))
+    return message
 
 
 def my_distance(idx_a, idx_b):
@@ -171,13 +175,12 @@ def find_barcode(sample_idxs, sample, process):
 
 
 def main(lims, pid, epp_logger):
-    message=[]
     process = Process(lims, id = pid)
     data = prepare_index_table(process)
     if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
-        verify_indexes(data, message)
+        message = verify_indexes(data)
     else:
-        check_index_distance(data, message)
+        message = check_index_distance(data)
     if message:
         print(';'.join(message), file=sys.stderr)
     else:
