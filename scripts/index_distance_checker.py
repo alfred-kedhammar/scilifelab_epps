@@ -29,7 +29,7 @@ SMARTSEQ_PAT = re.compile('SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]')
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
 
-def verify_indexes(data, log):
+def verify_indexes(data, message):
     pools = set([x['pool'] for x in data])
     for p in pools:
         subset = [i for i in data if i['pool'] == p]
@@ -40,22 +40,22 @@ def verify_indexes(data, log):
             idx_a = sample_a.get('idx1', '') + '-' + sample_a.get('idx2', '')
             idx_length.add(len(idx_a))
             if sample_a.get('idx1', '') == '' and sample_a.get('idx2', '') == '':
-                log.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_a.get('sn', ''), p))
+                message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_a.get('sn', ''), p))
             j = i+1
             for sample_b in subset[j:]:
                 idx_b = sample_b.get('idx1', '') + '-' + sample_b.get('idx2', '')
                 if idx_a == idx_b:
-                    log.append("INDEX COLLISION ERROR: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
+                    message.append("INDEX COLLISION ERROR: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
         sample_last = subset[-1]
         idx_last = sample_last.get('idx1', '') + '-' + sample_last.get('idx2', '')
         idx_length.add(len(idx_last))
         if sample_last.get('idx1', '') == '' and sample_last.get('idx2', '') == '':
-            log.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_last.get('sn', ''), p))
+            message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_last.get('sn', ''), p))
         if len(idx_length) >1:
-            log.append("Multiple index lengths noticed in pool {}".format(p))
+            message.append("Multiple index lengths noticed in pool {}".format(p))
 
 
-def check_index_distance(data, log):
+def check_index_distance(data, message):
     pools = set([x['pool'] for x in data])
     for p in pools:
         subset = [i for i in data if i['pool'] == p]
@@ -63,7 +63,7 @@ def check_index_distance(data, log):
             return None
         for i, sample_a in enumerate(subset[:-1]):
             if sample_a.get('idx1', '') == '' and sample_a.get('idx2', '') == '':
-                log.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_a.get('sn', ''), p))
+                message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_a.get('sn', ''), p))
             j = i+1
             for sample_b in subset[j:]:
                 d = 0
@@ -74,14 +74,14 @@ def check_index_distance(data, log):
                 if d == 0:
                     idx_a = sample_a.get('idx1', '') + '-' + sample_a.get('idx2', '')
                     idx_b = sample_b.get('idx1', '') + '-' + sample_b.get('idx2', '')
-                    log.append("INDEX COLLISION ERROR: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
+                    message.append("INDEX COLLISION ERROR: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
                 if d == 1:
                     idx_a = sample_a.get('idx1', '') + '-' + sample_a.get('idx2', '')
                     idx_b = sample_b.get('idx1', '') + '-' + sample_b.get('idx2', '')
-                    log.append("SIMILAR INDEX WARNING: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
+                    message.append("SIMILAR INDEX WARNING: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
         sample_last = subset[-1]
         if sample_last.get('idx1', '') == '' and sample_last.get('idx2', '') == '':
-            log.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_last.get('sn', ''), p))
+            message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_last.get('sn', ''), p))
 
 
 def my_distance(idx_a, idx_b):
@@ -94,7 +94,7 @@ def my_distance(idx_a, idx_b):
     return diffs
 
 
-def prepare_index_table(process, log):
+def prepare_index_table(process):
     data=[]
     for out in process.all_outputs():
         if out.type == "Analyte":
@@ -171,15 +171,15 @@ def find_barcode(sample_idxs, sample, process):
 
 
 def main(lims, pid, epp_logger):
-    log=[]
+    message=[]
     process = Process(lims, id = pid)
-    data = prepare_index_table(process, log)
-    if process.type.name = 'Library Pooling (Finished Libraries) 4.0':
-        verify_indexes(data, log)
+    data = prepare_index_table(process)
+    if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
+        verify_indexes(data, message)
     else:
-        check_index_distance(data, log)
-    if log:
-        print('\n'.join(log), file=sys.stderr)
+        check_index_distance(data, message)
+    if message:
+        print(';'.join(message), file=sys.stderr)
     else:
         print('No issue detected with indexes', file=sys.stderr)
 
