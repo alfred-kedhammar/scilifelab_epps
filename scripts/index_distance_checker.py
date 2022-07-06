@@ -32,7 +32,7 @@ NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 def verify_indexes(data):
     message = []
     pools = set([x['pool'] for x in data])
-    for p in pools:
+    for p in sorted(pools):
         subset = [i for i in data if i['pool'] == p]
         if len(subset) == 1:
             continue
@@ -60,7 +60,7 @@ def verify_indexes(data):
 def check_index_distance(data):
     message = []
     pools = set([x['pool'] for x in data])
-    for p in pools:
+    for p in sorted(pools):
         subset = [i for i in data if i['pool'] == p]
         if len(subset) == 1:
             continue
@@ -182,7 +182,7 @@ def main(lims, pid, epp_logger):
     else:
         message = check_index_distance(data)
     if message:
-        print(';'.join(message), file=sys.stderr)
+        print('; '.join(message), file=sys.stderr)
     else:
         print('No issue detected with indexes', file=sys.stderr)
 
