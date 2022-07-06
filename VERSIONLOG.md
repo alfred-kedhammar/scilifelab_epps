@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220706.1
+Upgrade index checker for verifying finished library projects
+
 ## 20220701.1
 Fix bug with single read MiSeq run for illumina_run_parameter_parser
 
