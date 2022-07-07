@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220707.1
+Write verify indexes comments to running notes
+
 ## 20220706.1
 Upgrade index checker for verifying finished library projects
 
