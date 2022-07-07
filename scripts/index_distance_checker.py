@@ -183,6 +183,14 @@ def main(lims, pid, epp_logger):
         message = check_index_distance(data)
     if message:
         print('; '.join(message), file=sys.stderr)
+        if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
+            if not process.udf.get('Comments'):
+                process.udf['Comments'] = '**Warnings from Verify Indexes EPP: **\n' + '\n'.join(message)
+            elif "Warnings from Verify Indexes EPP" not in process.udf['Comments']:
+                process.udf['Comments'] += '\n\n'
+                process.udf['Comments'] += '**Warnings from Verify Indexes EPP: **\n'
+                process.udf['Comments'] += '\n'.join(message)
+            process.put()
     else:
         print('No issue detected with indexes', file=sys.stderr)
 
