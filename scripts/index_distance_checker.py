@@ -129,6 +129,19 @@ def prepare_index_table(process):
                                 sp_obj_sub['idx1'] = tenXidx.replace(',','')
                                 sp_obj_sub['idx2'] = ''
                                 data.append(sp_obj_sub)
+                        elif SMARTSEQ_PAT.findall(idxs[0]):
+                            sp_obj['pool'] = pool_name
+                            sp_obj['sn'] = sample.name.replace(',','')
+                            smartseqver = idxs[0].replace(',','').split('-')[0]
+                            if len(idxs[0].replace(',','').split('-')[1]) == 3:
+                                smartseqnr = idxs[0].replace(',','').split('-')[1]
+                            elif len(idxs[0].replace(',','').split('-')[1]) == 2:
+                                smartseqnr = '0'+idxs[0].replace(',','').split('-')[1]
+                            else:
+                                smartseqnr = ''
+                            sp_obj['idx1'] = smartseqver + '-' + smartseqnr
+                            sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
+                            data.append(sp_obj)
                         else:
                             sp_obj['pool'] = pool_name
                             sp_obj['sn'] = sample.name.replace(',','')
