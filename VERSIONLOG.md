@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220708.1
+Refactor index checker for better handling of smartseq indexes
+
 ## 20220707.1
 Write verify indexes comments to running notes
 
