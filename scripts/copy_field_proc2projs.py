@@ -50,7 +50,10 @@ def main(lims, args, epp_logger):
         sys.exit(-1)
 
     for d_elt in d_elts:
-        project_names = ' '.join([project_names, d_elt.name])
+        if d_elt:
+            project_names = ' '.join([project_names, d_elt.name])
+        else:
+            project_names = ''
         for i in range(len(source_udfs)):
             source_udf = source_udfs[i]
             dest_udf = dest_udfs[i]
