@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220709.1
+Fix issue that record changes EPP cannot handle controls
+
 ## 20220708.1
 Refactor index checker for better handling of smartseq indexes
 
