@@ -41,19 +41,19 @@ def verify_indexes(data):
             idx_a = sample_a.get('idx1', '') + '-' + sample_a.get('idx2', '')
             idx_length.add(len(idx_a))
             if sample_a.get('idx1', '') == '' and sample_a.get('idx2', '') == '':
-                message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_a.get('sn', ''), p))
+                message.append("INDEX WARNING: Sample {} in pool {} has no index".format(sample_a.get('sn', ''), p))
             j = i+1
             for sample_b in subset[j:]:
                 idx_b = sample_b.get('idx1', '') + '-' + sample_b.get('idx2', '')
                 if idx_a == idx_b:
-                    message.append("INDEX COLLISION ERROR: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
+                    message.append("INDEX WARNING: Same index {} for samples {} and {} in pool {}".format(idx_a, sample_a.get('sn', ''), sample_b.get('sn', ''), p))
         sample_last = subset[-1]
         idx_last = sample_last.get('idx1', '') + '-' + sample_last.get('idx2', '')
         idx_length.add(len(idx_last))
         if sample_last.get('idx1', '') == '' and sample_last.get('idx2', '') == '':
-            message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_last.get('sn', ''), p))
+            message.append("INDEX WARNING: Sample {} in pool {} has no index".format(sample_last.get('sn', ''), p))
         if len(idx_length) >1:
-            message.append("Multiple index lengths noticed in pool {}".format(p))
+            message.append("INDEX WARNING: Multiple index lengths noticed in pool {}".format(p))
     return message
 
 
@@ -64,9 +64,9 @@ def verify_placement(data):
         subset = [i for i in data if i['pool'] == p]
         for sample in subset:
             if sample.get('step_container_name', '') != sample.get('submitted_container_name', ''):
-                message.append("WARNING: Sample {} in pool {} is placed in container {} which is different than the submitted container {}".format(sample.get('sn', ''), p, sample.get('step_container_name', ''), sample.get('submitted_container_name', '')))
+                message.append("PLACEMENT WARNING: Sample {} in pool {} is placed in container {} which is different than the submitted container {}".format(sample.get('sn', ''), p, sample.get('step_container_name', ''), sample.get('submitted_container_name', '')))
             if sample.get('step_pool_well', '') != sample.get('submitted_pool_well', ''):
-                message.append("WARNING: Sample {} in pool {} is placed in well {} which is different than the submitted well {}".format(sample.get('sn', ''), p, sample.get('step_pool_well', ''), sample.get('submitted_pool_well', '')))
+                message.append("PLACEMENT WARNING: Sample {} in pool {} is placed in well {} which is different than the submitted well {}".format(sample.get('sn', ''), p, sample.get('step_pool_well', ''), sample.get('submitted_pool_well', '')))
     return message
 
 
@@ -220,7 +220,7 @@ def main(lims, pid, epp_logger):
     data = prepare_index_table(process)
     if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
         message = verify_indexes(data)
-        message += verify_placement(data))
+        message += verify_placement(data)
     else:
         message = check_index_distance(data)
     if message:
