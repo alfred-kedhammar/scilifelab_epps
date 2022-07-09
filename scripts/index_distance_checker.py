@@ -34,6 +34,7 @@ def verify_indexes(data):
     pools = set([x['pool'] for x in data])
     for p in sorted(pools):
         subset = [i for i in data if i['pool'] == p]
+        subset = sorted(subset, key=lambda d: d['sn'])
         if len(subset) == 1:
             continue
         idx_length = set()
@@ -41,19 +42,33 @@ def verify_indexes(data):
             idx_a = sample_a.get('idx1', '') + '-' + sample_a.get('idx2', '')
             idx_length.add(len(idx_a))
             if sample_a.get('idx1', '') == '' and sample_a.get('idx2', '') == '':
-                message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_a.get('sn', ''), p))
+                message.append("INDEX WARNING: Sample {} in pool {} has no index".format(sample_a.get('sn', ''), p))
             j = i+1
             for sample_b in subset[j:]:
                 idx_b = sample_b.get('idx1', '') + '-' + sample_b.get('idx2', '')
                 if idx_a == idx_b:
-                    message.append("INDEX COLLISION ERROR: {} for sample {} and {} for sample {} in pool {}".format(idx_a, sample_a.get('sn', ''), idx_b, sample_b.get('sn', ''), p))
+                    message.append("INDEX WARNING: Same index {} for samples {} and {} in pool {}".format(idx_a, sample_a.get('sn', ''), sample_b.get('sn', ''), p))
         sample_last = subset[-1]
         idx_last = sample_last.get('idx1', '') + '-' + sample_last.get('idx2', '')
         idx_length.add(len(idx_last))
         if sample_last.get('idx1', '') == '' and sample_last.get('idx2', '') == '':
-            message.append("NO INDEX ERROR: Sample {} in pool {} has no index".format(sample_last.get('sn', ''), p))
+            message.append("INDEX WARNING: Sample {} in pool {} has no index".format(sample_last.get('sn', ''), p))
         if len(idx_length) >1:
-            message.append("Multiple index lengths noticed in pool {}".format(p))
+            message.append("INDEX WARNING: Multiple index lengths noticed in pool {}".format(p))
+    return message
+
+
+def verify_placement(data):
+    message = []
+    pools = set([x['pool'] for x in data])
+    for p in sorted(pools):
+        subset = [i for i in data if i['pool'] == p]
+        subset = sorted(subset, key=lambda d: d['sn'])
+        for sample in subset:
+            if sample.get('step_container_name', '') != sample.get('submitted_container_name', ''):
+                message.append("PLACEMENT WARNING: Sample {} in pool {} is placed in container {} which is different than the submitted container {}".format(sample.get('sn', ''), p, sample.get('step_container_name', ''), sample.get('submitted_container_name', '')))
+            if sample.get('step_pool_well', '') != sample.get('submitted_pool_well', ''):
+                message.append("PLACEMENT WARNING: Sample {} in pool {} is placed in well {} which is different than the submitted well {}".format(sample.get('sn', ''), p, sample.get('step_pool_well', ''), sample.get('submitted_pool_well', '')))
     return message
 
 
@@ -103,12 +118,22 @@ def prepare_index_table(process):
     for out in process.all_outputs():
         if out.type == "Analyte":
             pool_name = out.name
+            step_container_name = out.container.name
+            step_pool_well = out.location[1]
             for sample in out.samples:
+                submitted_container_name = sample.artifact.container.name.split('-')[0]
+                submitted_pool_well_row = re.findall("[a-zA-Z]+", sample.artifact.container.name.split('-')[2])[0]
+                submitted_pool_well_col = re.findall("[0-9]+", sample.artifact.container.name.split('-')[2])[0]
+                submitted_pool_well = submitted_pool_well_row + ':' + submitted_pool_well_col
                 sample_idxs = set()
                 find_barcode(sample_idxs, sample, process)
                 if sample_idxs:
                     for idxs in sample_idxs:
                         sp_obj = {}
+                        sp_obj['step_container_name'] = step_container_name
+                        sp_obj['step_pool_well'] = step_pool_well
+                        sp_obj['submitted_container_name'] = submitted_container_name
+                        sp_obj['submitted_pool_well'] = submitted_pool_well
                         if idxs[0] == 'NoIndex':
                             sp_obj['pool'] = pool_name
                             sp_obj['sn'] = sample.name.replace(',','')
@@ -149,6 +174,11 @@ def prepare_index_table(process):
                             sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
                             data.append(sp_obj)
                 else:
+                    sp_obj = {}
+                    sp_obj['step_container_name'] = step_container_name
+                    sp_obj['step_pool_well'] = step_pool_well
+                    sp_obj['submitted_container_name'] = submitted_container_name
+                    sp_obj['submitted_pool_well'] = submitted_pool_well
                     sp_obj['pool'] = pool_name
                     sp_obj['sn'] = sample.name.replace(',','')
                     sp_obj['idx1'] = ''
@@ -192,20 +222,21 @@ def main(lims, pid, epp_logger):
     data = prepare_index_table(process)
     if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
         message = verify_indexes(data)
+        message += verify_placement(data)
     else:
         message = check_index_distance(data)
     if message:
         print('; '.join(message), file=sys.stderr)
         if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
             if not process.udf.get('Comments'):
-                process.udf['Comments'] = '**Warnings from Verify Indexes EPP: **\n' + '\n'.join(message)
-            elif "Warnings from Verify Indexes EPP" not in process.udf['Comments']:
+                process.udf['Comments'] = '**Warnings from Verify Indexes and Placement EPP: **\n' + '\n'.join(message)
+            elif "Warnings from Verify Indexes and Placement EPP" not in process.udf['Comments']:
                 process.udf['Comments'] += '\n\n'
-                process.udf['Comments'] += '**Warnings from Verify Indexes EPP: **\n'
+                process.udf['Comments'] += '**Warnings from Verify Indexes and Placement EPP: **\n'
                 process.udf['Comments'] += '\n'.join(message)
             process.put()
     else:
-        print('No issue detected with indexes', file=sys.stderr)
+        print('No issue detected with indexes or placement', file=sys.stderr)
 
 
 if __name__ == "__main__":
