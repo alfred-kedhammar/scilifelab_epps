@@ -34,6 +34,7 @@ def verify_indexes(data):
     pools = set([x['pool'] for x in data])
     for p in sorted(pools):
         subset = [i for i in data if i['pool'] == p]
+        subset = sorted(subset, key=lambda d: d['sn'])
         if len(subset) == 1:
             continue
         idx_length = set()
@@ -62,6 +63,7 @@ def verify_placement(data):
     pools = set([x['pool'] for x in data])
     for p in sorted(pools):
         subset = [i for i in data if i['pool'] == p]
+        subset = sorted(subset, key=lambda d: d['sn'])
         for sample in subset:
             if sample.get('step_container_name', '') != sample.get('submitted_container_name', ''):
                 message.append("PLACEMENT WARNING: Sample {} in pool {} is placed in container {} which is different than the submitted container {}".format(sample.get('sn', ''), p, sample.get('step_container_name', ''), sample.get('submitted_container_name', '')))
