@@ -283,7 +283,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         #Fetches clusters from laneBarcode.html file
                         if noIndex:
                             # For the case of NovaSeq run, parse lane yield from the ResultsFile of all_outputs.
-                            if seqstep.type.name == "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)":
+                            if seqstep.type.name in ["AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)", "Illumina Sequencing (NextSeq) v1.0"]:
                                 try:
                                     for inp in seqstep.all_outputs():
                                         if inp.output_type == "ResultFile" and inp.name.split(' ')[1] == lane_no and "Reads PF (M) R1" in inp.udf:

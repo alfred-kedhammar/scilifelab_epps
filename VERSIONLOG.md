@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220718.1
+Fix bug with manage_demux_stats that noindex case cannot be handled for NextSeq
+
 ## 20220709.2
 Upgrade index checker for checking sample placement
 
