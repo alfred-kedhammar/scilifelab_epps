@@ -14,7 +14,6 @@ from argparse import ArgumentParser
 from datetime import datetime
 from genologics.lims import Lims
 from genologics.entities import Process
-from scilifelab_epps.epp import EppLogger
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
 from data.Chromium_10X_indexes import Chromium_10X_indexes
@@ -217,7 +216,7 @@ def find_barcode(sample_idxs, sample, process):
                     find_barcode(sample_idxs, sample, art.parent_process)
 
 
-def main(lims, pid, epp_logger):
+def main(lims, pid):
     process = Process(lims, id = pid)
     data = prepare_index_table(process)
     if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
@@ -250,5 +249,4 @@ if __name__ == "__main__":
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
-    with EppLogger(log_file=args.log, lims=lims, prepend=True) as epp_logger:
-        main(lims, args.pid, epp_logger)
+    main(lims, args.pid)
