@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220722.1
+Upgrade index checker to throw error for bad format indexes
+
 ## 20220718.1
 Fix bug with manage_demux_stats that noindex case cannot be handled for NextSeq
 
