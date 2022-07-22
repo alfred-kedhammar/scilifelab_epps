@@ -191,6 +191,12 @@ def find_barcode(sample_idxs, sample, process):
     for art in process.all_inputs():
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
+                if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
+                    reagent_label_name = art.reagent_labels[0].upper()
+                    if reagent_label_name and reagent_label_name != 'NOINDEX':
+                        if (IDX_PAT.findall(reagent_label_name) and len(IDX_PAT.findall(reagent_label_name))>1) or (not (IDX_PAT.findall(reagent_label_name) or TENX_SINGLE_PAT.findall(reagent_label_name) or TENX_DUAL_PAT.findall(reagent_label_name) or SMARTSEQ_PAT.findall(reagent_label_name))):
+                            sys.stderr.write('INDEX FORMAT ERROR: Sample {} has a bad format or unknown index category\n'.format(sample.name))
+                            sys.exit(2)
                 reagent_label_name = art.reagent_labels[0].upper().replace(' ', '')
                 idxs = TENX_SINGLE_PAT.findall(reagent_label_name) or TENX_DUAL_PAT.findall(reagent_label_name) or SMARTSEQ_PAT.findall(reagent_label_name)
                 if idxs:
