@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+# 20220804.1
+Add new control types for samplesheet generator
+
 ## 20220722.1
 Upgrade index checker to throw error for bad format indexes
 

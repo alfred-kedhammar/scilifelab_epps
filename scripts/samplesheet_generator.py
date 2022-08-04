@@ -33,6 +33,7 @@ control_names = [ 'AM7852',
                   'Exogenous Positive Control',
                   'Human Brain Reference RNA',
                   'lambda DNA',
+                  'Mouse Brain'
                   'mQ Negative Control',
                   'NA10860',
                   'NA11992',
@@ -44,6 +45,7 @@ control_names = [ 'AM7852',
                   'No Reverse Transcriptase Control',
                   'No Template Control',
                   'PhiX v3',
+                  'S.cerevisiae Genomic DNA',
                   'Universal Human Reference RNA',
                   'lambda DNA (qPCR)'
                 ]
