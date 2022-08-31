@@ -1,6 +1,9 @@
 # Scilifelab_epps Version Log
 
-# 20220804.1
+## 20220831.1
+For MiSeq samplesheet, replace Experiment Name with Flowcell ID
+
+## 20220804.1
 Add new control types for samplesheet generator
 
 ## 20220722.1
