@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220902.1
+New EPP for copying input UDF to output
+
 ## 20220831.1
 For MiSeq samplesheet, replace Experiment Name with Flowcell ID
 
