@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220902.2
+Fix bug with index checker with submitted container info for inhouse libraries
+
 ## 20220902.1
 New EPP for copying input UDF to output
 
