@@ -120,10 +120,13 @@ def prepare_index_table(process):
             step_container_name = out.container.name
             step_pool_well = out.location[1]
             for sample in out.samples:
-                submitted_container_name = sample.artifact.container.name.split('-')[0]
-                submitted_pool_well_row = re.findall("[a-zA-Z]+", sample.artifact.container.name.split('-')[2])[0]
-                submitted_pool_well_col = re.findall("[0-9]+", sample.artifact.container.name.split('-')[2])[0]
-                submitted_pool_well = submitted_pool_well_row + ':' + submitted_pool_well_col
+                submitted_container_name = ''
+                submitted_pool_well = ''
+                if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
+                    submitted_container_name = sample.artifact.container.name.split('-')[0]
+                    submitted_pool_well_row = re.findall("[a-zA-Z]+", sample.artifact.container.name.split('-')[2])[0]
+                    submitted_pool_well_col = re.findall("[0-9]+", sample.artifact.container.name.split('-')[2])[0]
+                    submitted_pool_well = submitted_pool_well_row + ':' + submitted_pool_well_col
                 sample_idxs = set()
                 find_barcode(sample_idxs, sample, process)
                 if sample_idxs:
