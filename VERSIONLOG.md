@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220904.1
+Add PromethION Sequencing in comments_to_running_notes
+
 ## 20220902.2
 Fix bug with index checker with submitted container info for inhouse libraries
 
