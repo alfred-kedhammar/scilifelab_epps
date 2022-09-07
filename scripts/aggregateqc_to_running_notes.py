@@ -53,7 +53,7 @@ def prepare_sample_table(artifacts):
 def verify_sample_table(sample_table, library=False):
     error_message = []
     measurements_keys = set()
-    optional_keys = {'Amount (fmol)', 'Dilution Fold', 'Failure Reason', 'Max Size (bp)', 'Min Size (bp)', 'Rerun', 'Size (bp)'}
+    optional_keys = {'Amount (fmol)', 'Dilution Fold', 'Failure Reason', 'Max Size (bp)', 'PCR Cycles', 'Min Size (bp)', 'Rerun', 'Size (bp)', 'Total Volume (uL)'}
     for k, v in sample_table.items():
         # Prepare a set of all existing measurement keys
         measurements_keys |= set(v['measurements'].keys())

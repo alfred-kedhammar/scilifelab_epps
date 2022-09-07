@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220907.1
+Add more optional keys for Aggregate QC
+
 ## 20220904.1
 Add PromethION Sequencing in comments_to_running_notes
 
