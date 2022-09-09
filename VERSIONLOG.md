@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220909.1
+Handle special characters in PCs name
+
 ## 20220907.1
 Add more optional keys for Aggregate QC
 
