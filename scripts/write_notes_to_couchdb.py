@@ -52,7 +52,10 @@ def write_note_to_couch(pid, timestamp, note, lims):
         else:
             time_in_format = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f').strftime("%a %b %d %Y, %I:%M:%S %p")
             subject = '[LIMS] Running Note:{}, {}'.format(pid, doc['project_name'])
-            proj_coord = '.'.join(doc['details'].get('project_coordinator','').lower().split()) + '@scilifelab.se'
+            proj_coord_name = doc['details'].get('project_coordinator','').lower()
+            trans_table = proj_coord_name.maketrans('áéíóú', 'aeiou')
+            proj_coord_name_trans = proj_coord_name.translate(trans_table)
+            proj_coord = '.'.join(proj_coord_name_trans.split()) + '@scilifelab.se'
             text = 'A note has been created from LIMS in the project {}, {}! The note is as follows\n\
             >{} - {}{}\
             >{}'.format(pid, doc['project_name'], note['user'], time_in_format, note.get('category'), note)
