@@ -29,7 +29,7 @@ def apply_calculations(lims,artifacts,udf1,op,udf2,result_udf,epp_logger,process
 
     'Amount (ng)' =  'Concentration'*'Volume (ul)'"""
 
-    if process.type.name == 'Intermediate QC' and process.udf['Total Lysate Calculation']:
+    if process.udf['Total Lysate Calculation']:
         logging.info(("result_udf: {0}, udf1: {1}, "
                       "operator: {2}, factor: {3}").format(result_udf,udf1,op,250))
     else:
@@ -49,7 +49,7 @@ def apply_calculations(lims,artifacts,udf1,op,udf2,result_udf,epp_logger,process
             dil_fold = None
 
         # Special calculation formula for total lysate
-        if process.type.name == 'Intermediate QC' and process.udf['Total Lysate Calculation']:
+        if process.udf['Total Lysate Calculation']:
             udf2_value = 250
         else:
             udf2_value = artifact.udf[udf2]
