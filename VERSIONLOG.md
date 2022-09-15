@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20220914.1
+Multiple EPP changes to support the OmniC protocol v2.0
+
 ## 20220909.1
 Handle special characters in PCs name
 
