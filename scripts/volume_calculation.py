@@ -72,14 +72,14 @@ def calculate_volume_postgres(process):
                 'and pot.displayname = \'ResultFile\' '
                 'and aus.numeric0 is not NULL '
                 'and aus.text0 is not NULL '
-                'and art.luid=\'{}\'; '
-            )
+                'and art.luid=\'{}\';')
 
     for art_tuple in process.input_output_maps:
         input = art_tuple[0]['uri']
         output = art_tuple[1]['uri']
         if input.type == 'Analyte' and output.type == 'Analyte':
-            query_output = cursor.execute(query.format(input.id))
+            cursor.execute(query.format(input.id))
+            query_output = cursor.fetchall()
             if len(query_output) == 1:
                 sample_id = query_output[0][1]
                 conc = query_output[0][2]
@@ -116,7 +116,7 @@ def main(lims, pid):
             if stage[1] == 'IN_PROGRESS':
                 art_workflows.add(stage[0].workflow.name)
 
-    if proces.type.name == 'Sample Setup':
+    if process.type.name == 'Sample Setup':
         calculate_volume_limsapi(process)
     elif process.type.name == 'Setup Workset/Plate' and any('OmniC' in i for i in art_workflows):
         calculate_volume_postgres(process)
