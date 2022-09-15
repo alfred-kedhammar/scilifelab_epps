@@ -29,7 +29,7 @@ def verify_inputs(process, value_list):
     return message
 
 
-def calculate_volume_limsapi(process):
+def calculate_volume_limsapi(process, use_total_lysate):
 
     message = verify_inputs(process, ['Concentration', 'Conc. Units', 'Amount (ng)'])
     if message:
@@ -42,8 +42,11 @@ def calculate_volume_limsapi(process):
         if input.type == 'Analyte' and output.type == 'Analyte':
             if output.udf.get('Amount taken (ng)'):
                 if input.udf['Amount (ng)'] >= output.udf['Amount taken (ng)']:
-                    factor = factors[input.udf['Conc. Units'].lower()]
-                    output.udf['Volume to take (uL)'] = output.udf['Amount taken (ng)']/input.udf['Concentration']*factor
+                    if use_total_lysate:
+                        output.udf['Volume to take (uL)'] = output.udf['Amount taken (ng)']*58.5/input.udf['Amount (ng)']
+                    else:
+                        factor = factors[input.udf['Conc. Units'].lower()]
+                        output.udf['Volume to take (uL)'] = output.udf['Amount taken (ng)']/input.udf['Concentration']*factor
                     output.put()
                 else:
                     sys.stderr.write("Insufficient Amount taken (ng) defined for sample {}.".format(output.name) + '\n')
@@ -117,7 +120,7 @@ def main(lims, pid):
                 art_workflows.add(stage[0].workflow.name)
 
     if process.type.name == 'Sample Setup':
-        calculate_volume_limsapi(process)
+        calculate_volume_limsapi(process, use_total_lysate=True)
     elif process.type.name == 'Setup Workset/Plate' and any('OmniC' in i for i in art_workflows):
         calculate_volume_postgres(process)
 
