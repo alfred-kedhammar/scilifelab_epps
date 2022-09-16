@@ -18,7 +18,9 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 
 from data.Chromium_10X_indexes import Chromium_10X_indexes
 
-DESC = """EPP used to check index distance in library pool"""
+DESC = """EPP used to check index distance in library pool
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
+"""
 
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,}N*)-?([ATCG]*)")

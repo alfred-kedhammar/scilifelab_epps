@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 DESC="""EPP script to summarize aggregate QC results to the projects running notes
-
-Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """
 from argparse import ArgumentParser
 from genologics.entities import *

@@ -11,7 +11,9 @@ from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
-DESC = """EPP for copying run recipe"""
+DESC = """EPP for copying run recipe
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
+"""
 
 def main(lims, args):
     process = Process(lims, id=args.pid)

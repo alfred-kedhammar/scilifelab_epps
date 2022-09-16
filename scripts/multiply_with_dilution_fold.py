@@ -4,7 +4,7 @@ from __future__ import print_function
 DESC="""EPP script to calculating final concentration
 by multiplying the current concentration with dilution fold.
 
-Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """
 import os
 import sys
