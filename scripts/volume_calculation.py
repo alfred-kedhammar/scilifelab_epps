@@ -31,10 +31,11 @@ def verify_inputs(process, value_list):
 
 def calculate_volume_limsapi(process, use_total_lysate):
 
-    message = verify_inputs(process, ['Concentration', 'Conc. Units', 'Amount (ng)'])
-    if message:
-        sys.stderr.write('; '.join(message)+ '\n')
-        sys.exit(2)
+    error_messages = []
+    log = []
+
+    verify_inputs_message = verify_inputs(process, ['Concentration', 'Conc. Units', 'Amount (ng)'])
+    error_messages += verify_inputs_message
 
     for art_tuple in process.input_output_maps:
         input = art_tuple[0]['uri']
@@ -44,19 +45,24 @@ def calculate_volume_limsapi(process, use_total_lysate):
                 if input.udf['Amount (ng)'] >= output.udf['Amount taken (ng)']:
                     if use_total_lysate:
                         output.udf['Volume to take (uL)'] = output.udf['Amount taken (ng)']*58.5/input.udf['Amount (ng)']
+                        log.append("Use formula: Amount taken (ng) x 58.5 / Total lysate (ng). Volume to take (uL) for sample {} is {}.".format(output.name, output.udf['Volume to take (uL)']))
                     else:
                         factor = factors[input.udf['Conc. Units'].lower()]
                         output.udf['Volume to take (uL)'] = output.udf['Amount taken (ng)']/input.udf['Concentration']*factor
+                        log.append("Use formula: Amount taken (ng) / Concentration (ng/ul). Volume to take (uL) for sample {} is {}.".format(output.name, output.udf['Volume to take (uL)']))
                     output.put()
                 else:
-                    sys.stderr.write("Insufficient Amount taken (ng) defined for sample {}.".format(output.name) + '\n')
-                    sys.exit(2)
+                    error_messages.append("ERROR: Amount taken (ng) is higher than Total Amount (ng) for sample {}.".format(output.name))
             else:
-                sys.stderr.write("Amount taken (ng) not defined for sample {}.".format(output.name) + '\n')
-                sys.exit(2)
+                error_messages.append("ERROR: Amount taken (ng) not defined for sample {}.".format(output.name))
+
+    return error_messages, log
 
 
 def calculate_volume_postgres(process):
+
+    error_messages = []
+    log = []
 
     connection = psycopg2.connect(user=config['username'], host=config['url'],database=config['db'], password=config['password'])
     cursor = connection.cursor()
@@ -94,20 +100,20 @@ def calculate_volume_postgres(process):
                 conc_unit = max(query_output, key=lambda tup:tup[0])[3]
             # No concentration could be found
             else:
-                sys.stderr.write("No measurement found for sample {}.".format(output.name) + '\n')
-                sys.exit(2)
+                error_messages.append("ERROR: No measurement found for sample {}.".format(output.name))
             # Calculation
             if output.udf.get('Amount taken (ng)'):
                 if conc and conc_unit.lower() in factors.keys():
                     factor = factors[conc_unit.lower()]
                     output.udf['Volume to take (uL)'] = output.udf['Amount taken (ng)']/conc*factor
+                    log.append("Volume to take (uL) for sample {} is {}.".format(output.name, output.udf['Volume to take (uL)']))
                     output.put()
                 else:
-                    sys.stderr.write("Invalid conc or conc unit for sample {}.".format(output.name) + '\n')
-                    sys.exit(2)
+                    error_messages.append("ERROR: Invalid conc or conc unit for sample {}.".format(output.name))
             else:
-                sys.stderr.write("Amount taken (ng) not defined for sample {}.".format(output.name) + '\n')
-                sys.exit(2)
+                error_messages.append("ERROR: Amount taken (ng) not defined for sample {}.".format(output.name))
+
+    return error_messages, log
 
 
 def main(lims, pid):
@@ -120,9 +126,23 @@ def main(lims, pid):
                 art_workflows.add(stage[0].workflow.name)
 
     if process.type.name == 'Sample Setup':
-        calculate_volume_limsapi(process, use_total_lysate=True)
+        (error_messages, log) = calculate_volume_limsapi(process, use_total_lysate=True)
     elif process.type.name == 'Setup Workset/Plate' and any('OmniC' in i for i in art_workflows):
-        calculate_volume_postgres(process)
+        (error_messages, log) = calculate_volume_postgres(process)
+
+    with open("volume_calculation.log", "w") as log_context:
+        log_context.write("\n".join(error_messages+log))
+
+    for out in process.all_outputs():
+        # Attach the the log file
+        if out.name == "Volume Calculation Log":
+            attach_file(os.path.join(os.getcwd(), "volume_calculation.log"), out)
+
+    if error_messages:
+        sys.stderr.write('; '.join(error_messages)+ '\n')
+        sys.exit(2)
+    else:
+        print('Job done', file=sys.stderr)
 
 
 if __name__ == "__main__":
