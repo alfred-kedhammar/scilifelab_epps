@@ -48,15 +48,16 @@ def calculate_volume_limsapi(process, use_total_lysate):
         if input.type == 'Analyte' and output.type == 'Analyte':
             if output.udf.get('Volume to take (uL)'):
                 del output.udf['Volume to take (uL)']
+                output.put()
             if output.udf.get('Amount taken (ng)'):
                 if input.udf['Amount (ng)'] >= output.udf['Amount taken (ng)']:
                     if use_total_lysate:
                         output.udf['Volume to take (uL)'] = output.udf['Amount taken (ng)']*58.5/input.udf['Amount (ng)']
-                        log.append("Use formula: Amount taken (ng) x 58.5 / Total lysate (ng). Volume to take (uL) for sample {} is {}.".format(output.name, output.udf['Volume to take (uL)']))
+                        log.append("Use formula: Amount taken (ng) x 58.5 / Total lysate (ng). Volume to take (uL) for sample {} is {}.".format(output.name, round(output.udf['Volume to take (uL)'], 2)))
                     else:
                         factor = factors[input.udf['Conc. Units'].lower()]
                         output.udf['Volume to take (uL)'] = output.udf['Amount taken (ng)']/input.udf['Concentration']*factor
-                        log.append("Use formula: Amount taken (ng) / Concentration (ng/ul). Volume to take (uL) for sample {} is {}.".format(output.name, output.udf['Volume to take (uL)']))
+                        log.append("Use formula: Amount taken (ng) / Concentration (ng/ul). Volume to take (uL) for sample {} is {}.".format(output.name, round(output.udf['Volume to take (uL)'], 2)))
                     output.put()
                 else:
                     error_messages.append("ERROR: Amount taken (ng) is higher than Total Amount (ng) for sample {}.".format(output.name))
@@ -97,6 +98,7 @@ def calculate_volume_postgres(process):
         if input.type == 'Analyte' and output.type == 'Analyte':
             if output.udf.get('Volume to take (uL)'):
                 del output.udf['Volume to take (uL)']
+                output.put()
             cursor.execute(query.format(input.id))
             query_output = cursor.fetchall()
             if len(query_output) == 1:
@@ -116,7 +118,7 @@ def calculate_volume_postgres(process):
                 if conc and conc_unit.lower() in factors.keys():
                     factor = factors[conc_unit.lower()]
                     output.udf['Volume to take (uL)'] = output.udf['Amount taken (ng)']/conc*factor
-                    log.append("Volume to take (uL) for sample {} is {}.".format(output.name, output.udf['Volume to take (uL)']))
+                    log.append("Volume to take (uL) for sample {} is {}.".format(output.name, round(output.udf['Volume to take (uL)'], 2)))
                     output.put()
                 else:
                     error_messages.append("ERROR: Invalid conc or conc unit for sample {}.".format(output.name))
