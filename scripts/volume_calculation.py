@@ -6,11 +6,14 @@ import yaml
 import psycopg2
 from argparse import ArgumentParser
 from datetime import datetime
+from scilifelab_epps.epp import attach_file
 from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
-DESC = """EPP for calculating volume for the OmniC protocol"""
+DESC = """EPP for calculating volume for the OmniC protocol
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
+"""
 
 factors = {'ng/ul': 1, 'ug/ul': 0.001, 'mg/ul': 0.000001, 'ng/ml': 1000, 'ug/ml': 1, 'mg/ml': 0.001}
 
@@ -18,6 +21,7 @@ with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 
+# Verify that inputs have necessary measurements for calculation
 def verify_inputs(process, value_list):
     message = []
     for inp in process.all_inputs():
@@ -29,6 +33,7 @@ def verify_inputs(process, value_list):
     return message
 
 
+# API-based method for Sample Setup
 def calculate_volume_limsapi(process, use_total_lysate):
 
     error_messages = []
@@ -41,6 +46,8 @@ def calculate_volume_limsapi(process, use_total_lysate):
         input = art_tuple[0]['uri']
         output = art_tuple[1]['uri']
         if input.type == 'Analyte' and output.type == 'Analyte':
+            if output.udf.get('Volume to take (uL)'):
+                del output.udf['Volume to take (uL)']
             if output.udf.get('Amount taken (ng)'):
                 if input.udf['Amount (ng)'] >= output.udf['Amount taken (ng)']:
                     if use_total_lysate:
@@ -59,6 +66,7 @@ def calculate_volume_limsapi(process, use_total_lysate):
     return error_messages, log
 
 
+# Postgres-based method for Setup Workset/Plate
 def calculate_volume_postgres(process):
 
     error_messages = []
@@ -87,6 +95,8 @@ def calculate_volume_postgres(process):
         input = art_tuple[0]['uri']
         output = art_tuple[1]['uri']
         if input.type == 'Analyte' and output.type == 'Analyte':
+            if output.udf.get('Volume to take (uL)'):
+                del output.udf['Volume to take (uL)']
             cursor.execute(query.format(input.id))
             query_output = cursor.fetchall()
             if len(query_output) == 1:
@@ -142,7 +152,7 @@ def main(lims, pid):
         sys.stderr.write('; '.join(error_messages)+ '\n')
         sys.exit(2)
     else:
-        print('Job done', file=sys.stderr)
+        print('Volume calculation completed without any error.', file=sys.stderr)
 
 
 if __name__ == "__main__":

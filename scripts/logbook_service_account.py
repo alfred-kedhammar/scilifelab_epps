@@ -4,6 +4,7 @@ from __future__ import print_function
 
 DESC = """EPP script for automatically logging the record of instrument use
 into the electronic logbooks in Google Doc.
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """
 
 import httplib2

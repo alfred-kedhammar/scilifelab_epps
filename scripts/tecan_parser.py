@@ -10,7 +10,9 @@ from genologics.config import BASEURI,USERNAME,PASSWORD
 from genologics.entities import *
 from scilifelab_epps.epp import attach_file, EppLogger
 
-DESC="""EPP used to parse csv files from the Tecan plate reader"""
+DESC="""EPP used to parse csv files from the Tecan plate reader
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
+"""
 
 # Display error message if any measurement has a standard deviation and CV above
 # these numbers:

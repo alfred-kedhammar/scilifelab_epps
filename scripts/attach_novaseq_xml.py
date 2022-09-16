@@ -11,7 +11,9 @@ from genologics.lims import Lims
 from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
-DESC = """EPP for attaching RunInfo.xml and RunParameters.xml from NovaSeq run dir, and copying run parameters from the previous step"""
+DESC = """EPP for attaching RunInfo.xml and RunParameters.xml from NovaSeq run dir, and copying run parameters from the previous step
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
+"""
 
 def main(lims, args):
     log=[]

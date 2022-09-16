@@ -14,7 +14,9 @@ from flowcell_parser.classes import RunParser, RunParametersParser
 from interop import py_interop_run_metrics, py_interop_run, py_interop_summary
 
 
-DESC = """EPP for parsing run paramters for Illumina MiSeq, NextSeq and NovaSeq runs"""
+DESC = """EPP for parsing run paramters for Illumina MiSeq, NextSeq and NovaSeq runs
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
+"""
 
 
 def fetch_fc(process):

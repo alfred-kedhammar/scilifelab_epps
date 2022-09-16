@@ -5,7 +5,7 @@ from __future__ import print_function
 DESC = """
 Python script for parsing output file from Caliper
 And copy data in correspoding step in Clarity LIMS
-Written by Chuan Wang
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """
 
 import os

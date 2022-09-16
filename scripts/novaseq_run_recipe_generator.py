@@ -11,7 +11,9 @@ from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
 
-DESC = """EPP used to create run recipe for NovaSeq sequencing"""
+DESC = """EPP used to create run recipe for NovaSeq sequencing
+Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
+"""
 
 def main(lims, args):
     log = []
