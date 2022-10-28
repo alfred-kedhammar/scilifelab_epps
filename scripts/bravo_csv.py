@@ -794,6 +794,7 @@ def zika_norm(lims, currentStep):
 
 
 def verify_step(lims, currentStep, target_instrument, target_workflow, target_step):
+    """ Verify the instrument, workflow and step for a given process is correct """
     
     workflows = [art.workflow_stages[0].workflow.name for art in currentStep.all_inputs()]
     
@@ -807,6 +808,10 @@ def verify_step(lims, currentStep, target_instrument, target_workflow, target_st
         return True
     else:
         return False
+
+
+def zika_setup(lims, currentStep):
+    print("Zika setup")
 
 
 def default_bravo(lims, currentStep, with_total_vol=True):
@@ -823,7 +828,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
      target_instrument = "Zika", 
      target_workflow = 'QIAseq miRNA for NextSeq', 
      target_step = "Setup Workset/Plate"):
-        print("Zika for QIAseq Setup re-route")
+        zika_setup(lims, currentStep)
         
 
     else:
