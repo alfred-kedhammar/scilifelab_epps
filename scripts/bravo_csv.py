@@ -810,43 +810,73 @@ def verify_step(lims, currentStep, target_instrument, target_workflow, target_st
         return False
 
 
-def zika_setup_QIAseq(lims, currentStep):
-    
-    df_dict = {
-    "name" : [],
-    "source_fc"  : [],
-    "source_well" : [],
-    "conc_units" : [],
-    "conc" : [],
-    "vol" : [],
-    "amt" : [],
-    "dest_fc" : [],
-    "dest_well" : [],
-    "dest_fc_name" : [],
-    "target_vol" : [],
-    "target_amt"  : []
-    }
+def zika_fetch_sample_data(currentStep, keys):
+    """
+    Within this function is the dictionary key2expr, its keys being the given name of a particular piece of information linked to a
+    transfer input/output sample and it's values being the string that when evaluated will yield the desired info from whatever
+    the variable "art_tuple" is currently pointing at.
 
+    Given the positional arguments of a LIMS transfer process and a list of keys, it will return a dataframe containing the information
+    fetched from each transfer based on the keys.
+    """
+
+    key2expr = {
+        "name" :            "art_tuple[0]['uri'].name",
+        "source_fc"  :      "art_tuple[0]['uri'].location[0].name",
+        "source_well" :     "art_tuple[0]['uri'].location[1]",
+        "conc_units" :      "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
+        "conc" :            "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
+        "vol" :             "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
+        "amt" :             "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']",
+        "dest_fc" :         "art_tuple[1]['uri'].location[0].id",
+        "dest_well" :       "art_tuple[1]['uri'].location[1]",
+        "dest_fc_name" :    "art_tuple[1]['uri'].location[0].name",
+        "target_vol" :      "art_tuple[1]['uri'].udf['Total Volume (uL)']",
+        "target_amt" :      "art_tuple[1]['uri'].udf['Amount taken (ng)']"
+        }
+    
+    assert all([k in key2expr.keys() for k in keys])
+
+    l = []
     art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[0]["uri"].type == art_tuple[1]["uri"].type == "Analyte"]
     for art_tuple in art_tuples:
-        input = art_tuple[0]["uri"]
-        output = art_tuple[1]["uri"]
-        
-        # Src
-        df_dict["name"].        append(input.name)
-        df_dict["source_fc"].   append(input.location[0].name)
-        df_dict["source_well"]. append(input.location[1])
-        df_dict["conc_units"].  append(input.samples[0].artifact.udf['Conc. Units'])
-        df_dict["conc"].        append(input.samples[0].artifact.udf['Concentration'])
-        df_dict["vol"].         append(input.samples[0].artifact.udf['Volume (ul)'])
-        df_dict["amt"].         append(input.samples[0].artifact.udf['Amount (ng)'])
-        
-        # Dst
-        df_dict["dest_fc"].     append(output.location[0].id)
-        df_dict["dest_well"].   append(output.location[1])
-        df_dict["dest_fc_name"].append(output.location[0].name)
-        df_dict["target_vol"].  append(output.udf['Total Volume (uL)'])
-        df_dict["target_amt"].  append(output.udf['Amount taken (ng)'])  
+
+        key2val = {}
+        for k in key2expr:
+            if k in keys:
+                key2val[k] = eval(key2expr[k])
+
+        l.append(key2val)
+    
+    df = pd.DataFrame(l)
+
+    return df
+
+
+def zika_setup_QIAseq(currentStep):
+    
+    keys = [
+        "name",
+        "source_fc",
+        "source_well",
+        "conc_units",
+        "conc",
+        "vol",
+        "amt",
+        "dest_fc",
+        "dest_well",
+        "dest_fc_name",
+        "target_vol",
+        "target_amt"
+    ]
+    
+    df = zika_fetch_sample_data(currentStep, keys)
+    
+    assert all(df.conc_units == "ng/ul")
+
+    # Calculate target concentrations, in case volumes need to be upscaled
+    df["target_conc"] = df.target_amt / df.target_vol
+
 
 
 def default_bravo(lims, currentStep, with_total_vol=True):
