@@ -810,7 +810,7 @@ def verify_step(lims, currentStep, target_instrument, target_workflow, target_st
         return False
 
 
-def zika_fetch_sample_data(currentStep, keys):
+def zika_fetch_sample_data(currentStep, to_fetch):
     """
     Within this function is the dictionary key2expr, its keys being the given name of a particular piece of information linked to a
     transfer input/output sample and it's values being the string that when evaluated will yield the desired info from whatever
@@ -821,7 +821,7 @@ def zika_fetch_sample_data(currentStep, keys):
     """
 
     key2expr = {
-        "name" :            "art_tuple[0]['uri'].name",
+        "sample_name" :     "art_tuple[0]['uri'].name",
         "source_fc"  :      "art_tuple[0]['uri'].location[0].name",
         "source_well" :     "art_tuple[0]['uri'].location[1]",
         "conc_units" :      "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
@@ -835,7 +835,7 @@ def zika_fetch_sample_data(currentStep, keys):
         "target_amt" :      "art_tuple[1]['uri'].udf['Amount taken (ng)']"
         }
     
-    assert all([k in key2expr.keys() for k in keys])
+    assert all([k in key2expr.keys() for k in to_fetch])
 
     l = []
     art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[0]["uri"].type == art_tuple[1]["uri"].type == "Analyte"]
@@ -843,7 +843,7 @@ def zika_fetch_sample_data(currentStep, keys):
 
         key2val = {}
         for k in key2expr:
-            if k in keys:
+            if k in to_fetch:
                 key2val[k] = eval(key2expr[k])
 
         l.append(key2val)
@@ -854,9 +854,9 @@ def zika_fetch_sample_data(currentStep, keys):
 
 
 def zika_setup_QIAseq(currentStep):
-    
-    keys = [
-        "name",
+        
+    to_fetch = [
+        "sample_name",
         "source_fc",
         "source_well",
         "conc_units",
@@ -870,13 +870,57 @@ def zika_setup_QIAseq(currentStep):
         "target_amt"
     ]
     
-    df = zika_fetch_sample_data(currentStep, keys)
-    
-    assert all(df.conc_units == "ng/ul")
+    df = zika_fetch_sample_data(currentStep, to_fetch)
+    assert all(df.conc_units == "ng/ul"),       "All sample concentrations are expected in 'ng/ul'"
+    assert len(df.source_fc.unique()) == 1,     "Only one input plate allowed"
+    assert len(df.dest_fc.unique()) == 1,       "Only one output plate allowed"
 
-    # Calculate target concentrations, in case volumes need to be upscaled
+    # Parameters
+    min_zika_vol = 0.1
+    max_zika_vol = 5
+    max_final_vol = 15
+
+    # Make calculations
     df["target_conc"] = df.target_amt / df.target_vol
+    df["min_transfer_amt"] = min_zika_vol * df.conc
+    df["max_transfer_amt"] = minimum(df.vol * df.conc, max_final_vol * df.conc)
 
+    # Cases
+    d = {"sample_vol" : [], "buffer_vol" : []}
+    log = []
+    for i, r in df.iterrows():
+        
+        # Ideal case
+        if r.min_transfer_amt <= r.target_amt <= r.max_transfer_amt:
+            
+            sample_vol = r.target_amt / r.conc
+            buffer_vol = r.target_vol - sample_vol
+        
+        # Sample too concentrated -> Increase final volume if possible
+        elif r.min_transfer_amt > r.target_amt:
+            
+            increased_vol = r.min_transfer_amt / r.target_conc
+            assert increased_vol < max_final_vol, \
+                f"Sample {r.name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
+
+            sample_vol = min_zika_vol
+            buffer_vol = increased_vol - min_zika_vol
+
+            log.append(f"WARNING: High concentration of sample {r.sample_name} (conc {r.conc} ng/ul, vol {r.vol} ul)")
+            log.append(f"\t--> Transferring {r.sample_vol} ul, corresponding to {r.sample_vol * r.conc} ng ({r.sample_vol * r.conc / r.target_amt * 100}% of target)")
+            log.append(f"\t--> Adding {buffer_vol} ul buffer, adjusting total volume to {sample_vol+buffer_vol}")
+
+        # Sample too dilute -> 
+        elif r.conc * r.target_vol < r.target_amt:
+            
+            sample_vol = r.target_vol
+            buffer_vol = 0
+            
+            log.append(f"WARNING: Insufficient amount of sample {r.sample_name} (conc {r.conc} ng/ul, vol {r.vol} ul)")
+            log.append(f"\t--> Transferring {sample_vol} ul, corresponding to {r.max_transfer_amt} ng ({r.max_transfer_amt / r.target_amt * 100}% of target)")
+
+        d["sample_vol"].append(sample_vol)
+        d["buffer_vol"].append(buffer_vol)
 
 
 def default_bravo(lims, currentStep, with_total_vol=True):
@@ -893,7 +937,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
      target_instrument = "Zika", 
      target_workflow = 'QIAseq miRNA for NextSeq', 
      target_step = "Setup Workset/Plate"):
-        zika_setup(lims, currentStep)
+        zika_setup_QIAseq(currentStep)
         
 
     else:
