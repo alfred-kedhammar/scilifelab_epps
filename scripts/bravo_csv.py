@@ -810,8 +810,43 @@ def verify_step(lims, currentStep, target_instrument, target_workflow, target_st
         return False
 
 
-def zika_setup(lims, currentStep):
-    print("Zika setup")
+def zika_setup_QIAseq(lims, currentStep):
+    
+    df_dict = {
+    "name" : [],
+    "source_fc"  : [],
+    "source_well" : [],
+    "conc_units" : [],
+    "conc" : [],
+    "vol" : [],
+    "amt" : [],
+    "dest_fc" : [],
+    "dest_well" : [],
+    "dest_fc_name" : [],
+    "target_vol" : [],
+    "target_amt"  : []
+    }
+
+    art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[0]["uri"].type == art_tuple[1]["uri"].type == "Analyte"]
+    for art_tuple in art_tuples:
+        input = art_tuple[0]["uri"]
+        output = art_tuple[1]["uri"]
+        
+        # Src
+        df_dict["name"].        append(input.name)
+        df_dict["source_fc"].   append(input.location[0].name)
+        df_dict["source_well"]. append(input.location[1])
+        df_dict["conc_units"].  append(input.samples[0].artifact.udf['Conc. Units'])
+        df_dict["conc"].        append(input.samples[0].artifact.udf['Concentration'])
+        df_dict["vol"].         append(input.samples[0].artifact.udf['Volume (ul)'])
+        df_dict["amt"].         append(input.samples[0].artifact.udf['Amount (ng)'])
+        
+        # Dst
+        df_dict["dest_fc"].     append(output.location[0].id)
+        df_dict["dest_well"].   append(output.location[1])
+        df_dict["dest_fc_name"].append(output.location[0].name)
+        df_dict["target_vol"].  append(output.udf['Total Volume (uL)'])
+        df_dict["target_amt"].  append(output.udf['Amount taken (ng)'])  
 
 
 def default_bravo(lims, currentStep, with_total_vol=True):
