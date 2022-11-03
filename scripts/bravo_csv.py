@@ -872,8 +872,6 @@ def zika_setup_QIAseq(currentStep):
     
     df = zika_fetch_sample_data(currentStep, to_fetch)
     assert all(df.conc_units == "ng/ul"),       "All sample concentrations are expected in 'ng/ul'"
-    assert len(df.source_fc.unique()) == 1,     "Only one input plate allowed"
-    assert len(df.dest_fc.unique()) == 1,       "Only one output plate allowed"
 
     # Constraints
     min_zika_vol = 0.1
@@ -886,7 +884,7 @@ def zika_setup_QIAseq(currentStep):
     df["max_transfer_amt"] = df.target_vol * df.conc
 
     # Cases
-    d = {"sample_vol" : [], "buffer_vol" : [], "tot_vol" : []}
+    d = {"sample" : [], "buffer" : [], "tot_vol" : []}
     log = []
     for i, r in df.iterrows():
 
@@ -926,25 +924,136 @@ def zika_setup_QIAseq(currentStep):
 
             # TODO change udf accordingly
 
-        d["sample_vol"].append(sample_vol)
-        d["buffer_vol"].append(buffer_vol)
+        d["sample"].append(sample_vol)
+        d["buffer"].append(buffer_vol)
         d["tot_vol"].append(tot_vol)
     
     df = df.join(pd.DataFrame(d))
 
-    df_subset = df["source_fc", "source_well", "dest_fc", "dest_well" "sample_vol", "buffer_vol"]
+    df = zika_format_worklist(df, buffer_strategy = "column")
 
-    return df_subset
+    zika_write_worklist(df, strategy = "multi-aspirate")
     
 
-def zika_make_worklist(df, multi_aspirate = False, buffer_strategy = "column"):
+def zika_format_worklist(df, buffer_strategy = None):
 
-    # TODO
-    # Assign plate positions
-    # Split buffer transfers from sample transfers
+    assert len(df.source_fc.unique()) == 1,     "Only one input plate allowed"
+    assert len(df.dest_fc.unique()) == 1,       "Only one output plate allowed"
+
+    buffer_plate = "buffer_plate"
+
+    # Assign plates to positions on the deck
+    fc2pos = {
+        buffer_plate : 2,
+        df.source_fc.unique()[0] : 3,
+        df.dest_fc.unique()[0] : 4
+    }
+
+    # Pivot transfers to elucidate buffer transfers and remove zero-volume transfers
+    df = zika_pivot_buffer_transfers(df, buffer_plate, buffer_strategy)
+    
+    # Create new worklist-specific columns
+    df = zika_format_columns(df, fc2pos)
+
+    return df
+
+
+def zika_write_worklist(df, strategy = "default"):
+    
+    file_meta = "placeholder" # TODO
+    wl_filename = "_".join(["zika_worklist", file_meta["pid"], file_meta["timestamp"].strftime("%y%m%d_%H%M%S")]) + ".csv"
+
+    # Default transfer type is simple copy
+    df["transfer_type"] = "COPY"
+    
+    # Tip changing strategy
+    tip_strats = {
+        "always" : ("[VAR1]", "TipChangeStrategy,always"),
+        "never" : ("[VAR2]", "TipChangeStrategy,never")
+    }
+    
+    # Write worklist
+    with open(wl_filename, "w") as wl:
+        # Write header
+        wl.write("worklist,\n")
+        for k in tip_strats:
+            wl.write("".join(tip_strats[k]) + "\n")
+
+        # Write transfers
+        for i, r in df.iterrows():
+            if r.transfer_type == "COPY":
+                wl.write(",".join([
+                    r.transfer_type, 
+                    r.src_pos, 
+                    r.src_col, 
+                    r.src_col, 
+                    r.rcc_row, 
+                    r.dst_pos, 
+                    r.dst_col, 
+                    r.dst_row,
+                    r.transfer_vol, 
+                    r.tip_strat["always"][0]
+                    ]) + "\n")
+            elif r.transfer_type == "MULTI_ASPIRATE":
+                wl.write(",".join([
+                    r.transfer_type, 
+                    r.src_pos, 
+                    r.src_col,  
+                    r.rcc_row, 
+                    "1",
+                    r.transfer_vol, 
+                    ]) + "\n")
+
+ csvContext.write(",".join(["MULTI_ASPIRATE", buff_pos, buffer_col, str(row.buff_row), "1", str(int(round(row.buffer_vol*1000)))]) + "\n")
+
+
+
+def zika_format_columns(df, fc2pos):
+    
+    # Add columns for plate positions
+    df["src_pos"] = df["source_fc"].apply(lambda x : fc2pos[x])
+    df["dst_pos"] = df["dest_fc"].apply(lambda x : fc2pos[x])
+    
     # Convert volumes to whole nl
-    # Convert well names to r/c coordinates
+    df["transfer_vol"] = round(df.transfer_vol * 1000, 0)
+    df["transfer_vol"] = df["transfer_vol"].astype(int)
     
+    # Convert well names to r/c coordinates
+    df["src_r"], df["src_c"] = well2rowcol(df.source_well)
+    df["dst_r"], df["dst_c"] = well2rowcol(df.dest_well)
+
+    return df
+
+def zika_pivot_buffer_transfers(df, buffer_plate, buffer_strategy):
+
+    # Pivot buffer transfers
+    to_pivot = ["sample", "buffer"]
+    to_keep = ["source_fc", "source_well", "dest_fc", "dest_well"]
+    df = df.melt(value_vars = to_pivot,
+            var_name = "src_type", 
+            value_name = "transfer_vol", 
+            id_vars = to_keep).\
+                sort_values(by=["dest_well","src_type"])
+
+    # Remove zero-vol transfers
+    df = df[df.transfer_vol > 0]
+
+    # Re-set index
+    df = df.reset_index(drop = True)
+    
+
+    # Assign buffer transfers to buffer plate
+    df.loc[ df["src_type"] == "buffer", "source_fc"] = buffer_plate
+
+    # Assign buffer source wells
+    if buffer_strategy == "column":
+        # Keep rows, but only use column 1
+        df.loc[df["src_type"] == "buffer", "source_well"] = \
+            df.loc[df["src_type"] == "buffer", "source_well"].apply(lambda x : x[0:-1]+"1")
+    else:
+        raise Exception("No buffer strategy defined")
+
+    return df
 
 
 def default_bravo(lims, currentStep, with_total_vol=True):
