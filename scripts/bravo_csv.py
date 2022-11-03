@@ -890,7 +890,7 @@ def zika_setup_QIAseq(currentStep):
     log = []
     for i, r in df.iterrows():
 
-        # Sample too dilute -> 
+        # Sample too dilute
         if r.max_transfer_amt < r.target_amt:
             
             sample_vol = min(r.target_vol, r.vol)
@@ -929,6 +929,22 @@ def zika_setup_QIAseq(currentStep):
         d["sample_vol"].append(sample_vol)
         d["buffer_vol"].append(buffer_vol)
         d["tot_vol"].append(tot_vol)
+    
+    df = df.join(pd.DataFrame(d))
+
+    df_subset = df["source_fc", "source_well", "dest_fc", "dest_well" "sample_vol", "buffer_vol"]
+
+    return df_subset
+    
+
+def zika_make_worklist(df, multi_aspirate = False, buffer_strategy = "column"):
+
+    # TODO
+    # Assign plate positions
+    # Split buffer transfers from sample transfers
+    # Convert volumes to whole nl
+    # Convert well names to r/c coordinates
+    
 
 
 def default_bravo(lims, currentStep, with_total_vol=True):
