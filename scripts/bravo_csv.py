@@ -6,12 +6,12 @@ import os
 import sys
 import re
 import pandas as pd
+import numpy as np
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
-from numpy import minimum, maximum, where
 from datetime import datetime as dt
 
 
@@ -515,7 +515,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
     highest_min_amount = max(df.min_amount)
     lowest_max_amount = min(df.max_amount)
 
-    df["minimized_vol"] = minimum(highest_min_amount / df.conc, df.live_vol)
+    df["minimized_vol"] = np.minimum(highest_min_amount / df.conc, df.live_vol)
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
         log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers".format(pool.name))
@@ -580,7 +580,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
 
     # Append transfer volumes and corresponding fraction of target conc. for each sample
     sample_transfer_amount = pool_conc * pool_vol / n_src
-    df["transfer_vol"] = minimum(sample_transfer_amount / df.conc, df.live_vol)
+    df["transfer_vol"] = np.minimum(sample_transfer_amount / df.conc, df.live_vol)
     df["final_target_fraction"] = round((df.transfer_vol * df.conc / pool_vol) / (pool_conc / n_src), 2)
 
     # Calculate and store pool buffer volume
@@ -687,7 +687,7 @@ def zika_norm(lims, currentStep):
     log.append("Lowest allowed pipetting volume is {} uL.".format(zika_min_vol))
     log.append("\nNormalizing {} samples from plate {}...\n".format(len(df), df.dest_fc[0]))
 
-    df["live_vol"] = maximum(0, df.full_vol - zika_dead_vol)
+    df["live_vol"] = np.maximum(0, df.full_vol - zika_dead_vol)
 
     try:
         assert max(df.target_vol) <= zika_max_vol
@@ -716,7 +716,7 @@ def zika_norm(lims, currentStep):
     df["max_amt"] = df.conc * df.live_vol
 
     # Transfer volume must be higher than zika_min_vol and leq to sample target_vol
-    df["transfer_vol"] = maximum(minimum(df.target_amt / df.conc, df.target_vol), zika_min_vol)
+    df["transfer_vol"] = np.maximum(np.minimum(df.target_amt / df.conc, df.target_vol), zika_min_vol)
     df["transfer_amt"] = df.transfer_vol * df.conc
     df["buffer_vol"] = df.target_vol - df.transfer_vol
     df["tot_vol"] = df.buffer_vol + df.transfer_vol
@@ -929,13 +929,26 @@ def well2rowcol(well_iter):
 
 
 
-def zika_write_worklist(df, strategy = "default"):
-    
-    file_meta = "placeholder" # TODO
-    wl_filename = "_".join(["zika_worklist", file_meta["pid"], file_meta["timestamp"].strftime("%y%m%d_%H%M%S")]) + ".csv"
+def zika_get_wl_filename(method_name, pid):
+
+    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+
+    wl_filename = "_".join(["zika_worklist", method_name, pid, timestamp]) + ".csv"
+
+    return wl_filename
+
+
+def zika_write_worklist(df, wl_filename, strategy = "default"):
 
     # Default transfer type is simple copy
     df["transfer_type"] = "COPY"
+
+    if strategy == "multi-aspirate":
+        filter = np_all([
+            df.source_fc == "buffer_plate", 
+            df.dest_well == df.shift(-1).dest_well
+            ], axis=0)
+        
     
     # Tip changing strategy
     tip_strats = {
@@ -970,7 +983,7 @@ def zika_write_worklist(df, strategy = "default"):
                     r.transfer_type, 
                     r.src_pos, 
                     r.src_col,  
-                    r.rcc_row, 
+                    r.src_row, 
                     "1",
                     r.transfer_vol, 
                     ]) + "\n")
@@ -1058,7 +1071,8 @@ def zika_setup_QIAseq(currentStep):
 
     df = zika_format_worklist(df, buffer_strategy = "column")
 
-    zika_write_worklist(df, strategy = "multi-aspirate")
+    wl_filename = zika_get_wl_filename("setup_QIAseq", currentStep.id)
+    zika_write_worklist(df, wl_filename, strategy = "multi-aspirate")
 
 
 
