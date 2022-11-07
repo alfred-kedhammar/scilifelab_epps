@@ -906,8 +906,8 @@ def zika_format_columns(df, fc2pos):
     df["transfer_vol"] = df["transfer_vol"].astype(int)
     
     # Convert well names to r/c coordinates
-    df["src_r"], df["src_c"] = well2rowcol(df.source_well)
-    df["dst_r"], df["dst_c"] = well2rowcol(df.dest_well)
+    df["src_row"], df["src_col"] = well2rowcol(df.source_well)
+    df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
 
     return df
 
@@ -944,24 +944,34 @@ def zika_write_worklist(df, wl_filename, strategy = "default"):
     df["transfer_type"] = "COPY"
 
     if strategy == "multi-aspirate":
-        filter = np_all([
-            df.source_fc == "buffer_plate", 
-            df.dest_well == df.shift(-1).dest_well
+        filter = np.all([
+            df.dst_pos == df.shift(-1).dst_pos,                                           # End position of next transfer is the same
+            df.dest_well == df.shift(-1).dest_well,                                       # End well of the next transfer is the same
+            df.source_fc == "buffer_plate",                                               # This transfer is buffer
+            df.shift(-1).source_fc != "buffer_plate",                                     # Next transfer is not buffer
+            df.transfer_vol + df.shift(-1).transfer_vol <= 5000  # Sum of this and next transfer is >= 5 ul
             ], axis=0)
+        df.loc[filter, "transfer_type"] = "MULTI_ASPIRATE"
         
-    
-    # Tip changing strategy
+        
+    # Keep everything in a single dict to avoid mix-ups
     tip_strats = {
         "always" : ("[VAR1]", "TipChangeStrategy,always"),
         "never" : ("[VAR2]", "TipChangeStrategy,never")
     }
-    
+
+    # Convert all data to strings
+    for c in df:
+        df.loc[:,c] = df[c].apply(str)
+
     # Write worklist
     with open(wl_filename, "w") as wl:
         # Write header
         wl.write("worklist,\n")
         for k in tip_strats:
             wl.write("".join(tip_strats[k]) + "\n")
+        wl.write(f"COMMENT, This is the worklist {wl_filename}\n")
+        wl.write(f"COMMENT, This is the worklist {wl_filename}\n")
 
         # Write transfers
         for i, r in df.iterrows():
@@ -971,12 +981,12 @@ def zika_write_worklist(df, wl_filename, strategy = "default"):
                     r.src_pos, 
                     r.src_col, 
                     r.src_col, 
-                    r.rcc_row, 
+                    r.src_row, 
                     r.dst_pos, 
                     r.dst_col, 
                     r.dst_row,
                     r.transfer_vol, 
-                    r.tip_strat["always"][0]
+                    tip_strats["always"][0]
                     ]) + "\n")
             elif r.transfer_type == "MULTI_ASPIRATE":
                 wl.write(",".join([
@@ -987,10 +997,8 @@ def zika_write_worklist(df, wl_filename, strategy = "default"):
                     "1",
                     r.transfer_vol, 
                     ]) + "\n")
-
- # csvContext.write(",".join(["MULTI_ASPIRATE", buff_pos, buffer_col, str(row.buff_row), "1", str(int(round(row.buffer_vol*1000)))]) + "\n")
-
-
+            else:
+                raise AssertionError("No transfer type defined")
 
 def zika_setup_QIAseq(currentStep):
         
