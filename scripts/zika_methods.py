@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 
-import mosquito
-
+import zika
 import pandas as pd
-import numpy as np
-from datetime import datetime as dt
-
-
 
 def zika_setup_QIAseq(currentStep):
         
@@ -25,7 +20,7 @@ def zika_setup_QIAseq(currentStep):
         "target_amt"
     ]
     
-    df = mosquito.fetch_sample_data(currentStep, to_fetch)
+    df = zika.fetch_sample_data(currentStep, to_fetch)
     assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
 
     # Constraints
@@ -36,6 +31,17 @@ def zika_setup_QIAseq(currentStep):
     df["target_conc"] = df.target_amt / df.target_vol
     df["min_transfer_amt"] = min_zika_vol * df.conc
     df["max_transfer_amt"] = df.target_vol * df.conc
+
+    # Define deck
+    assert len(df.source_fc.unique()) == 1,     "Only one input plate allowed"
+    assert len(df.dest_fc.unique()) == 1,       "Only one output plate allowed"
+    deck = {
+        "buffer_plate" : 2,
+        df.source_fc.unique()[0] : 3,
+        df.dest_fc.unique()[0] : 4,
+        }
+
+        
 
     # Cases
     d = {"sample" : [], "buffer" : [], "tot_vol" : []}
@@ -82,15 +88,26 @@ def zika_setup_QIAseq(currentStep):
         d["buffer"].append(buffer_vol)
         d["tot_vol"].append(tot_vol)
     
+
     df = df.join(pd.DataFrame(d))
 
-    df = mosquito.format_worklist(df, buffer_strategy = "column")
+    df = zika.format_worklist(df, deck = deck, buffer_strategy = "column")
 
     method_name = "setup_QIAseq"
-    mosquito.write_worklist(
-        data = df,
+    
+    # Comments to attach to the worklist header
+    n_samples = len(df[df.src_type == "sample"])
+    
+    comments = [
+        f"This worklist will enact normalization of {n_samples} samples"
+    ]
+
+    zika.write_worklist(
+        df= df,
+        deck = deck,
         method_name = method_name,
         pid = currentStep.id,
+        comments = comments,
         strategy = "multi-aspirate"
         )
 

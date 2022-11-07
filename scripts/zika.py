@@ -71,31 +71,28 @@ def fetch_sample_data(currentStep, to_fetch):
 
 
 
-def format_worklist(df, buffer_strategy = None):
-
-    assert len(df.source_fc.unique()) == 1,     "Only one input plate allowed"
-    assert len(df.dest_fc.unique()) == 1,       "Only one output plate allowed"
-
-    buffer_plate = "buffer_plate"
-
-    # Assign plates to positions on the deck
-    fc2pos = {
-        buffer_plate : 2,
-        df.source_fc.unique()[0] : 3,
-        df.dest_fc.unique()[0] : 4
-    }
+def format_worklist(df, deck, buffer_strategy):
 
     # Pivot transfers to elucidate buffer transfers and remove zero-volume transfers
-    df = pivot_buffer_transfers(df, buffer_plate, buffer_strategy)
+    df = pivot_buffer_transfers(df, buffer_strategy)
     
-    # Create new worklist-specific columns
-    df = format_columns(df, fc2pos)
+    # Add columns for plate positions
+    df["src_pos"] = df["source_fc"].apply(lambda x : deck[x])
+    df["dst_pos"] = df["dest_fc"].apply(lambda x : deck[x])
+    
+    # Convert volumes to whole nl
+    df["transfer_vol"] = round(df.transfer_vol * 1000, 0)
+    df["transfer_vol"] = df["transfer_vol"].astype(int)
+    
+    # Convert well names to r/c coordinates
+    df["src_row"], df["src_col"] = well2rowcol(df.source_well)
+    df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
 
     return df
 
 
 
-def pivot_buffer_transfers(df, buffer_plate, buffer_strategy):
+def pivot_buffer_transfers(df, buffer_strategy):
 
     # Pivot buffer transfers
     to_pivot = ["sample", "buffer"]
@@ -113,7 +110,7 @@ def pivot_buffer_transfers(df, buffer_plate, buffer_strategy):
     df = df.reset_index(drop = True)
     
     # Assign buffer transfers to buffer plate
-    df.loc[ df["src_type"] == "buffer", "source_fc"] = buffer_plate
+    df.loc[ df["src_type"] == "buffer", "source_fc" ] = "buffer_plate"
 
     # Assign buffer source wells
     if buffer_strategy == "column":
@@ -122,24 +119,6 @@ def pivot_buffer_transfers(df, buffer_plate, buffer_strategy):
             df.loc[df["src_type"] == "buffer", "source_well"].apply(lambda x : x[0:-1]+"1")
     else:
         raise Exception("No buffer strategy defined")
-
-    return df
-
-
-
-def format_columns(df, fc2pos):
-    
-    # Add columns for plate positions
-    df["src_pos"] = df["source_fc"].apply(lambda x : fc2pos[x])
-    df["dst_pos"] = df["dest_fc"].apply(lambda x : fc2pos[x])
-    
-    # Convert volumes to whole nl
-    df["transfer_vol"] = round(df.transfer_vol * 1000, 0)
-    df["transfer_vol"] = df["transfer_vol"].astype(int)
-    
-    # Convert well names to r/c coordinates
-    df["src_row"], df["src_col"] = well2rowcol(df.source_well)
-    df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
 
     return df
 
@@ -172,9 +151,12 @@ def get_wl_filename(method_name, pid):
 
 
 
-def write_worklist(df = None, method_name = None, pid = None, strategy = "default"):
+def write_worklist(df, deck, method_name, pid, comments, strategy = "default"):
 
     wl_filename = get_wl_filename(method_name, pid)
+
+    # Format comments for printing into worklist
+    comments = ["COMMENT, " + e for e in comments]
 
     # Default transfer type is simple copy
     df["transfer_type"] = "COPY"
@@ -188,7 +170,6 @@ def write_worklist(df = None, method_name = None, pid = None, strategy = "defaul
             df.transfer_vol + df.shift(-1).transfer_vol <= 5000  # Sum of this and next transfer is >= 5 ul
             ], axis=0)
         df.loc[filter, "transfer_type"] = "MULTI_ASPIRATE"
-        
         
     # PRECAUTION Keep tip change strategy in a single dict to avoid mix-ups
     tip_strats = {
@@ -207,7 +188,9 @@ def write_worklist(df = None, method_name = None, pid = None, strategy = "defaul
         for k in tip_strats:
             wl.write("".join(tip_strats[k]) + "\n")
         wl.write(f"COMMENT, This is the worklist {wl_filename}\n")
-        wl.write(f"COMMENT, This is the worklist {wl_filename}\n")
+        for line in comments:
+            wl.write(line + "\n")
+        wl.write(get_deck_comment(deck))
 
         # Write transfers
         for i, r in df.iterrows():
@@ -235,3 +218,17 @@ def write_worklist(df = None, method_name = None, pid = None, strategy = "defaul
                     ]) + "\n")
             else:
                 raise AssertionError("No transfer type defined")
+
+
+
+def get_deck_comment(deck):
+
+    pos2plate = dict([(pos, plate) for plate, pos in deck.items()])
+
+    l = [pos2plate[i] if i in pos2plate else "[Empty]" for i in range(1,6)]
+
+    deck_comment = "COMMENT, Set up layout:    " + "     ".join(l) + "\n"
+
+    return deck_comment
+
+    
