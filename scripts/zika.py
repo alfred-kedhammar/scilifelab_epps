@@ -112,7 +112,6 @@ def pivot_buffer_transfers(df, buffer_plate, buffer_strategy):
     # Re-set index
     df = df.reset_index(drop = True)
     
-
     # Assign buffer transfers to buffer plate
     df.loc[ df["src_type"] == "buffer", "source_fc"] = buffer_plate
 
@@ -148,6 +147,7 @@ def format_columns(df, fc2pos):
 
 def well2rowcol(well_iter):
     """Translates iterable of well names to list of row/column integer tuples to specify well location in Mosquito worklists."""
+   
     # In an advanced worklist: startcol, endcol, row
     rows = []
     cols = []
@@ -166,7 +166,7 @@ def get_wl_filename(method_name, pid):
 
     timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
-    wl_filename = "_".join(["mosquito_worklist", method_name, pid, timestamp]) + ".csv"
+    wl_filename = "_".join(["zika_worklist", method_name, pid, timestamp]) + ".csv"
 
     return wl_filename
 
