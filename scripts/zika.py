@@ -141,19 +141,18 @@ def well2rowcol(well_iter):
 
 
 
-def get_wl_filename(method_name, pid):
+def get_filenames(method_name, pid):
 
     timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
     wl_filename = "_".join(["zika_worklist", method_name, pid, timestamp]) + ".csv"
+    log_filename = "_".join(["zika_log", method_name, pid, timestamp]) + ".csv"
 
-    return wl_filename
+    return wl_filename, log_filename
 
 
 
-def write_worklist(df, deck, method_name, pid, comments, strategy = "default"):
-
-    wl_filename = get_wl_filename(method_name, pid)
+def write_worklist(df, deck, wl_filename, comments, strategy = "default"):
 
     # Format comments for printing into worklist
     comments = ["COMMENT, " + e for e in comments]
@@ -220,7 +219,6 @@ def write_worklist(df, deck, method_name, pid, comments, strategy = "default"):
                 raise AssertionError("No transfer type defined")
 
 
-
 def get_deck_comment(deck):
 
     pos2plate = dict([(pos, plate) for plate, pos in deck.items()])
@@ -231,4 +229,21 @@ def get_deck_comment(deck):
 
     return deck_comment
 
+
+def upload_log(currentStep, lims, log, log_filename):
+    with open(log_filename, "w") as logContext:
+        logContext.write("\n".join(log))
     
+    for out in currentStep.all_outputs():
+        if out.name == "Mosquito Log":
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, log_filename)
+
+
+def upload_csv(currentStep, lims, wl_filename):
+    for out in currentStep.all_outputs():
+        if out.name == "Mosquito CSV File":
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, wl_filename)
