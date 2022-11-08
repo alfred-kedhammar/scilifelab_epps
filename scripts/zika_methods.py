@@ -16,6 +16,16 @@ import sys
 
 
 def setup_QIAseq(currentStep, lims):
+    """
+    Normalize to target amount and volume.
+
+    Cases:
+    1) Not enough sample       --> Decrease amount, flag
+    2) Enough sample           --> OK
+    3) Sample too concentrated --> Maintain target concentration, increase
+                                   volume as needed up to max 15 ul, otherwise
+                                   throw error and dilute manually.
+    """
 
     # Create dataframe
     to_fetch = [
@@ -44,7 +54,7 @@ def setup_QIAseq(currentStep, lims):
     # Make calculations
     df["target_conc"] = df.target_amt / df.target_vol
     df["min_transfer_amt"] = min_zika_vol * df.conc
-    df["max_transfer_amt"] = df.target_vol * df.conc
+    df["max_transfer_amt"] = min(df.vol, df.target_vol) * df.conc
 
     # Define deck
     assert len(df.source_fc.unique()) == 1, "Only one input plate allowed"
@@ -60,7 +70,7 @@ def setup_QIAseq(currentStep, lims):
     log = []
     for i, r in df.iterrows():
 
-        # 1) Sample too dilute
+        # 1) Not enough sample
         if r.max_transfer_amt < r.target_amt:
 
             sample_vol = min(r.target_vol, r.vol)
