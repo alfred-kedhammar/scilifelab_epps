@@ -77,11 +77,13 @@ def setup_QIAseq(currentStep, lims):
             tot_vol = r.target_vol
             buffer_vol = tot_vol - sample_vol
 
-            target_pc = round((sample_vol * r.conc / tot_vol) / r.target_conc * 100, 2)
+            final_amt = sample_vol * r.conc
+            final_conc = final_amt / tot_vol
+            
             log.append(
                 f"WARNING: Insufficient amount of sample {r.sample_name} (conc {r.conc} ng/ul, vol {r.vol} ul)"
             )
-            log.append(f"\t--> Reaching {target_pc}% of target concentration")
+            log.append(f"\t--> Adjusted to {final_amt} in {tot_vol} ul ({final_conc} ng/ul)")
 
             # TODO change udf accordingly
 
@@ -104,10 +106,13 @@ def setup_QIAseq(currentStep, lims):
             sample_vol = min_zika_vol
             buffer_vol = tot_vol - sample_vol
 
+            final_amt = sample_vol * r.conc
+            final_conc = final_amt / tot_vol
+
             log.append(
-                f"WARNING: High concentration of sample {r.sample_name} (conc {r.conc} ng/ul, vol {r.vol} ul)"
+                f"WARNING: High concentration of sample {r.sample_name} ({r.conc} ng/ul)"
             )
-            log.append(f"\t--> Adjusting total volume to {tot_vol} ul")
+            log.append(f"\t--> Adjusted to {final_amt} in {tot_vol} ul ({final_conc} ng/ul)")
 
             # TODO change udf accordingly
 
