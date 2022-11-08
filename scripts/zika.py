@@ -174,7 +174,15 @@ def get_filenames(method_name, pid):
     return wl_filename, log_filename
 
 
-def write_worklist(df, deck, wl_filename, comments=None, strategy="default"):
+def write_worklist(df, deck, wl_filename, comments=None, strategy=None):
+    """
+    Write a Mosquito-interpretable advanced worklist.
+
+    Strategies (optional):
+    multi-aspirate -- If a buffer transfer is followed by a sample transfer
+                      to the same well, and the sum of their volumes
+                      is <= 5000 nl, use multi-aspiration.
+    """
 
     # Format comments for printing into worklist
     if comments:
@@ -186,14 +194,16 @@ def write_worklist(df, deck, wl_filename, comments=None, strategy="default"):
     if strategy == "multi-aspirate":
         filter = np.all(
             [
-                df.dst_pos
-                == df.shift(-1).dst_pos,  # End position of next transfer is the same
-                df.dest_well
-                == df.shift(-1).dest_well,  # End well of the next transfer is the same
-                df.source_fc == "buffer_plate",  # This transfer is buffer
-                df.shift(-1).source_fc != "buffer_plate",  # Next transfer is not buffer
-                df.transfer_vol + df.shift(-1).transfer_vol
-                <= 5000,  # Sum of this and next transfer is >= 5 ul
+                # End position of next transfer is the same
+                df.dst_pos == df.shift(-1).dst_pos,
+                # End well of the next transfer is the same
+                df.dest_well == df.shift(-1).dest_well,
+                # This transfer is buffer
+                df.source_fc == "buffer_plate",
+                # Next transfer is not buffer
+                df.shift(-1).source_fc != "buffer_plate",
+                # Sum of this and next transfer is >= 5 ul
+                df.transfer_vol + df.shift(-1).transfer_vol <= 5000,
             ],
             axis=0,
         )
@@ -211,13 +221,17 @@ def write_worklist(df, deck, wl_filename, comments=None, strategy="default"):
 
     # Write worklist
     with open(wl_filename, "w") as wl:
-        # Write header
+
+        # Define worklist and variables
         wl.write("worklist,\n")
         for k in tip_strats:
             wl.write("".join(tip_strats[k]) + "\n")
+
+        # Write header
         wl.write(f"COMMENT, This is the worklist {wl_filename}\n")
-        for line in comments:
-            wl.write(line + "\n")
+        if comments:
+            for line in comments:
+                wl.write(line + "\n")
         wl.write(get_deck_comment(deck))
 
         # Write transfers
@@ -259,6 +273,7 @@ def write_worklist(df, deck, wl_filename, comments=None, strategy="default"):
 
 
 def get_deck_comment(deck):
+    """Convert the plate:position 'decktionary' into a worklist comment."""
 
     pos2plate = dict([(pos, plate) for plate, pos in deck.items()])
 
