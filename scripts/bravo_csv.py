@@ -6,12 +6,12 @@ import os
 import sys
 import re
 import pandas as pd
-import numpy as np
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
+from numpy import minimum, maximum, where
 from datetime import datetime as dt
 
 
@@ -515,7 +515,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
     highest_min_amount = max(df.min_amount)
     lowest_max_amount = min(df.max_amount)
 
-    df["minimized_vol"] = np.minimum(highest_min_amount / df.conc, df.live_vol)
+    df["minimized_vol"] = minimum(highest_min_amount / df.conc, df.live_vol)
     pool_min_vol = sum(df.minimized_vol)
     if pool_min_vol > pool_max_vol:
         log.append("ERROR: Overflow in {}. Decrease number of samples or dilute highly concentrated outliers".format(pool.name))
@@ -580,7 +580,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
 
     # Append transfer volumes and corresponding fraction of target conc. for each sample
     sample_transfer_amount = pool_conc * pool_vol / n_src
-    df["transfer_vol"] = np.minimum(sample_transfer_amount / df.conc, df.live_vol)
+    df["transfer_vol"] = minimum(sample_transfer_amount / df.conc, df.live_vol)
     df["final_target_fraction"] = round((df.transfer_vol * df.conc / pool_vol) / (pool_conc / n_src), 2)
 
     # Calculate and store pool buffer volume
@@ -608,6 +608,20 @@ def conc2vol(conc, pool_boundaries):
     min_vol = min(pool_max_vol, pool_min_vol * pool_max_conc / conc)
     max_vol = min(pool_max_vol, pool_min_vol2 * pool_max_conc / conc)
     return (min_vol, max_vol)
+
+def well2rowcol(well_iter):
+    """Translates iterable of well names to list of row/column integer tuples to specify well location in Mosquito worklists."""
+    # In an advanced worklist: startcol, endcol, row
+    rows = []
+    cols = []
+    for well in well_iter:
+        [row_letter, col_number] = str.split(well, sep=":")
+        rowdict = {}
+        for l,n in zip("ABCDEFGH","12345678"):
+            rowdict[l] = n
+        rows.append(rowdict[row_letter])
+        cols.append(col_number)
+    return rows, cols
 
 def setup_qpcr(currentStep, lims):
     log = []
@@ -637,6 +651,7 @@ def setup_qpcr(currentStep, lims):
         sys.exit(2)
     else:
         logging.info("Work done")
+
 
 def zika_norm(lims, currentStep):
     """ Perform multi-aspirate low-volume normalization based on user concentrations and volumes """
@@ -687,7 +702,7 @@ def zika_norm(lims, currentStep):
     log.append("Lowest allowed pipetting volume is {} uL.".format(zika_min_vol))
     log.append("\nNormalizing {} samples from plate {}...\n".format(len(df), df.dest_fc[0]))
 
-    df["live_vol"] = np.maximum(0, df.full_vol - zika_dead_vol)
+    df["live_vol"] = maximum(0, df.full_vol - zika_dead_vol)
 
     try:
         assert max(df.target_vol) <= zika_max_vol
@@ -716,7 +731,7 @@ def zika_norm(lims, currentStep):
     df["max_amt"] = df.conc * df.live_vol
 
     # Transfer volume must be higher than zika_min_vol and leq to sample target_vol
-    df["transfer_vol"] = np.maximum(np.minimum(df.target_amt / df.conc, df.target_vol), zika_min_vol)
+    df["transfer_vol"] = maximum(minimum(df.target_amt / df.conc, df.target_vol), zika_min_vol)
     df["transfer_amt"] = df.transfer_vol * df.conc
     df["buffer_vol"] = df.target_vol - df.transfer_vol
     df["tot_vol"] = df.buffer_vol + df.transfer_vol
@@ -777,32 +792,14 @@ def zika_norm(lims, currentStep):
     else:
         logging.info("Work done")
 
-
-
-def well2rowcol(well_iter):
-    """Translates iterable of well names to list of row/column integer tuples to specify well location in Mosquito worklists."""
-    # In an advanced worklist: startcol, endcol, row
-    rows = []
-    cols = []
-    for well in well_iter:
-        [row_letter, col_number] = str.split(well, sep=":")
-        rowdict = {}
-        for l,n in zip("ABCDEFGH","12345678"):
-            rowdict[l] = n
-        rows.append(rowdict[row_letter])
-        cols.append(col_number)
-    return rows, cols
-
-
 def default_bravo(lims, currentStep, with_total_vol=True):
 
     # Zika for amplicon normalization re-route
-    if verify_step(lims, currentStep, 
-     target_instrument = "Zika", 
-     target_workflow = 'Amplicon without RC for MiSeq', 
-     target_step = "Setup Workset/Plate"):
+    target_workflow = 'Amplicon without RC for MiSeq'
+    workflow_is_correct = all([art.workflow_stages[0].workflow.name == target_workflow for art in currentStep.all_inputs()])
+    if currentStep.instrument.name == "Zika" and workflow_is_correct:
         zika_norm(lims, currentStep)
-        
+
     else:
         checkTheLog = [False]
         dest_plate = []
