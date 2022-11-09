@@ -13,7 +13,7 @@ import sys
 import numpy as np
 
 
-def setup_QIAseq(currentStep, lims):
+def setup_QIAseq(currentStep, lims, csv = None):
     """
     Normalize to target amount and volume.
 
@@ -25,7 +25,7 @@ def setup_QIAseq(currentStep, lims):
                                    throw error and dilute manually.
     """
 
-    # Create dataframe
+    # Create dataframe from lims or local csv file
     to_fetch = [
         "sample_name",
         "source_fc",
@@ -41,7 +41,11 @@ def setup_QIAseq(currentStep, lims):
         "target_amt",
     ]
     
-    df = zika.fetch_sample_data(currentStep, to_fetch)
+    if csv:
+        df = zika.load_fake_samples(csv, to_fetch)
+    else:
+        df = zika.fetch_sample_data(currentStep, to_fetch)
+
     assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
     assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be set greater than zero"
     assert all(df.vol > 0), "Sample volume needs to be greater than zero" 
@@ -140,7 +144,8 @@ def setup_QIAseq(currentStep, lims):
 
     # Write files and upload
     method_name = "setup_QIAseq"
-    wl_filename, log_filename = zika.get_filenames(method_name, currentStep.id)
+    pid = "local" if csv else currentStep.id
+    wl_filename, log_filename = zika.get_filenames(method_name, pid)
 
     zika.write_worklist(
         df=df,
