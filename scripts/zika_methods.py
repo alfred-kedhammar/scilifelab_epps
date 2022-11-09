@@ -43,7 +43,8 @@ def setup_QIAseq(currentStep, lims):
     
     df = zika.fetch_sample_data(currentStep, to_fetch)
     assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
-    assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be greater than zero"
+    assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be set greater than zero"
+    assert all(df.vol > 0), "Sample volume needs to be greater than zero" 
 
     # Define constraints
     min_zika_vol = 0.1
