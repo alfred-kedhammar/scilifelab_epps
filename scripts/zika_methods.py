@@ -171,3 +171,5 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
             "CSV-file generated with warnings, please check the Log file\n"
         )
         sys.exit(2)
+
+    return wl_filename, log_filename
