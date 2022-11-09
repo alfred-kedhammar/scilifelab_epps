@@ -303,11 +303,11 @@ def get_deck_comment(deck):
 
     return deck_comment
 
-
-def upload_log(currentStep, lims, log, log_filename):
+def write_log(log, log_filename):
     with open(log_filename, "w") as logContext:
         logContext.write("\n".join(log))
 
+def upload_log(currentStep, lims, log_filename):
     for out in currentStep.all_outputs():
         if out.name == "Mosquito Log":
             for f in out.files:

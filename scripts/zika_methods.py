@@ -13,7 +13,7 @@ import sys
 import numpy as np
 
 
-def setup_QIAseq(currentStep, lims, csv = None):
+def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     """
     Normalize to target amount and volume.
 
@@ -41,8 +41,8 @@ def setup_QIAseq(currentStep, lims, csv = None):
         "target_amt",
     ]
     
-    if csv:
-        df = zika.load_fake_samples(csv, to_fetch)
+    if local_data:
+        df = zika.load_fake_samples(local_data, to_fetch)
     else:
         df = zika.fetch_sample_data(currentStep, to_fetch)
 
@@ -68,8 +68,9 @@ def setup_QIAseq(currentStep, lims, csv = None):
         df.dest_fc.unique()[0]: 4,
     }
 
-    # Load outputs for changing UDF:s
-    outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
+    if not local_data:
+        # Load outputs for changing UDF:s
+        outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
 
     # Cases 1) - 3)
     d = {"sample": [], "buffer": [], "tot_vol": []}
@@ -91,9 +92,10 @@ def setup_QIAseq(currentStep, lims, csv = None):
             )
             log.append(f"\t--> Adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
 
-            op = outputs[r.sample_name]
-            op.udf['Amount taken (ng)'] = final_amt
-            op.put()
+            if not local_data:
+                op = outputs[r.sample_name]
+                op.udf['Amount taken (ng)'] = final_amt
+                op.put()
 
         # 2) Ideal case
         elif r.min_transfer_amt <= r.target_amt <= r.max_transfer_amt:
@@ -122,9 +124,10 @@ def setup_QIAseq(currentStep, lims, csv = None):
             )
             log.append(f"\t--> Adjusted to {final_amt} in {tot_vol} ul ({final_conc} ng/ul)")
             
-            op = outputs[r.sample_name]
-            op.udf['Total Volume (uL)'] = tot_vol
-            op.put()
+            if not local_data:
+                op = outputs[r.sample_name]
+                op.udf['Total Volume (uL)'] = tot_vol
+                op.put()
 
         d["sample"].append(sample_vol)
         d["buffer"].append(buffer_vol)
@@ -144,7 +147,7 @@ def setup_QIAseq(currentStep, lims, csv = None):
 
     # Write files and upload
     method_name = "setup_QIAseq"
-    pid = "local" if csv else currentStep.id
+    pid = "local" if local_data else currentStep.id
     wl_filename, log_filename = zika.get_filenames(method_name, pid)
 
     zika.write_worklist(
@@ -155,8 +158,11 @@ def setup_QIAseq(currentStep, lims, csv = None):
         strategy="multi-aspirate",
     )
 
-    zika.upload_log(currentStep, lims, log, log_filename)
-    zika.upload_csv(currentStep, lims, wl_filename)
+    zika.write_log(log, log_filename)
+
+    if not local_data:
+        zika.upload_csv(currentStep, lims, wl_filename)
+        zika.upload_log(currentStep, lims, log, log_filename)
 
     # Issue warnings, if any
     if any("WARNING:" in entry for entry in log):
