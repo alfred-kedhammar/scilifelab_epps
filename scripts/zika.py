@@ -85,13 +85,10 @@ def fetch_sample_data(currentStep, to_fetch):
     return df
 
 
-def format_worklist(df, deck, buffer_strategy):
+def format_worklist(df, deck):
     """
-    Pivot buffer transfers and add columns in Mosquito-intepretable format.
+    Add columns in Mosquito-intepretable format.
     """
-
-    # Pivot transfers to elucidate buffer transfers and remove zero-volume transfers
-    df = pivot_buffer_transfers(df, buffer_strategy)
 
     # Add columns for plate positions
     df["src_pos"] = df["source_fc"].apply(lambda x: deck[x])
@@ -108,7 +105,7 @@ def format_worklist(df, deck, buffer_strategy):
     return df
 
 
-def pivot_buffer_transfers(df, buffer_strategy):
+def resolve_buffer_transfers(df, buffer_strategy):
     """
     Melt buffer and sample information onto separate rows to
     produce a "one row <-> one transfer" dataframe.

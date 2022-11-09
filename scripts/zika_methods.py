@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 
 DESC = """
-This module contains functions used to generate worklists for the Mosquito X1
-instrument Zika using sample data fetched from Illumina Clarity LIMS.
-
-Each function corresponds to a single method / application and is tied to a
+Each function in this module corresponds to a single method / application and is tied to a
 specific workflow step.
 
 Written by Alfred Kedhammar
@@ -13,6 +10,7 @@ Written by Alfred Kedhammar
 import zika
 import pandas as pd
 import sys
+import numpy as np
 
 
 def setup_QIAseq(currentStep, lims):
@@ -42,10 +40,10 @@ def setup_QIAseq(currentStep, lims):
         "target_vol",
         "target_amt",
     ]
+    
     df = zika.fetch_sample_data(currentStep, to_fetch)
-    assert all(
-        df.conc_units == "ng/ul"
-    ), "All sample concentrations are expected in 'ng/ul'"
+    assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
+    assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be greater than zero"
 
     # Define constraints
     min_zika_vol = 0.1
@@ -53,8 +51,8 @@ def setup_QIAseq(currentStep, lims):
 
     # Make calculations
     df["target_conc"] = df.target_amt / df.target_vol
-    df["min_transfer_amt"] = min_zika_vol * df.conc
-    df["max_transfer_amt"] = min(df.vol, df.target_vol) * df.conc
+    df["min_transfer_amt"] = np.minimum(df.vol, min_zika_vol) * df.conc
+    df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
 
     # Define deck
     assert len(df.source_fc.unique()) == 1, "Only one input plate allowed"
@@ -64,6 +62,9 @@ def setup_QIAseq(currentStep, lims):
         df.source_fc.unique()[0]: 3,
         df.dest_fc.unique()[0]: 4,
     }
+
+    # Load outputs for changing UDF:s
+    outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
 
     # Cases 1) - 3)
     d = {"sample": [], "buffer": [], "tot_vol": []}
@@ -83,9 +84,11 @@ def setup_QIAseq(currentStep, lims):
             log.append(
                 f"WARNING: Insufficient amount of sample {r.sample_name} (conc {r.conc} ng/ul, vol {r.vol} ul)"
             )
-            log.append(f"\t--> Adjusted to {final_amt} in {tot_vol} ul ({final_conc} ng/ul)")
+            log.append(f"\t--> Adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
 
-            # TODO change udf accordingly
+            op = outputs[r.sample_name]
+            op.udf['Amount taken (ng)'] = final_amt
+            op.put()
 
         # 2) Ideal case
         elif r.min_transfer_amt <= r.target_amt <= r.max_transfer_amt:
@@ -113,8 +116,10 @@ def setup_QIAseq(currentStep, lims):
                 f"WARNING: High concentration of sample {r.sample_name} ({r.conc} ng/ul)"
             )
             log.append(f"\t--> Adjusted to {final_amt} in {tot_vol} ul ({final_conc} ng/ul)")
-
-            # TODO change udf accordingly
+            
+            op = outputs[r.sample_name]
+            op.udf['Total Volume (uL)'] = tot_vol
+            op.put()
 
         d["sample"].append(sample_vol)
         d["buffer"].append(buffer_vol)
@@ -122,8 +127,11 @@ def setup_QIAseq(currentStep, lims):
 
     df = df.join(pd.DataFrame(d))
 
+    # Resolve buffer transfers
+    df = zika.resolve_buffer_transfers(df, buffer_strategy="column")
+
     # Generate Mosquito-readable columns
-    df = zika.format_worklist(df, deck=deck, buffer_strategy="column")
+    df = zika.format_worklist(df, deck=deck)
 
     # Comments to attach to the worklist header
     n_samples = len(df[df.src_type == "sample"])
