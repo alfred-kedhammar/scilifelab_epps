@@ -15,7 +15,3 @@ def test_setup_QIAseq():
     wl_filename, log_filename = setup_QIAseq(local_data = "test_QIAseq_input.csv")
     ref = "zika_worklist_setup_QIAseq_local_221109_170723.csv"
 
-    op = pd.read_csv("zika_worklist_setup_QIAseq_local_221109_170723.csv", header = 10)
-
-    with open(ref, "r") as ref_file:
-        ref_lines = ref_file.readlines()
