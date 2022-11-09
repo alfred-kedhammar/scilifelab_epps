@@ -192,6 +192,8 @@ def write_worklist(df, deck, wl_filename, comments=None, strategy=None):
     if strategy == "multi-aspirate":
         filter = np.all(
             [
+                # Use multi-aspirate IF...
+
                 # End position of next transfer is the same
                 df.dst_pos == df.shift(-1).dst_pos,
                 # End well of the next transfer is the same
@@ -200,7 +202,7 @@ def write_worklist(df, deck, wl_filename, comments=None, strategy=None):
                 df.source_fc == "buffer_plate",
                 # Next transfer is not buffer
                 df.shift(-1).source_fc != "buffer_plate",
-                # Sum of this and next transfer is >= 5 ul
+                # Sum of this and next transfer is <= 5 ul
                 df.transfer_vol + df.shift(-1).transfer_vol <= 5000,
             ],
             axis=0,
@@ -220,10 +222,10 @@ def write_worklist(df, deck, wl_filename, comments=None, strategy=None):
     # Write worklist
     with open(wl_filename, "w") as wl:
 
-        # Define worklist and variables
         wl.write("worklist,\n")
-        for k in tip_strats:
-            wl.write("".join(tip_strats[k]) + "\n")
+
+        # Conditionals for worklist variables can be added here as needed
+        wl.write("".join(tip_strats["always"]) + "\n")
 
         # Write header
         wl.write(f"COMMENT, This is the worklist {wl_filename}\n")
