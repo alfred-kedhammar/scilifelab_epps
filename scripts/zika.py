@@ -18,24 +18,25 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 
 
-def verify_step(lims, currentStep, target_instrument, target_workflow, target_step):
+def verify_step(lims, currentStep, target_instrument, target_workflow_prefix, target_step):
     """Verify the instrument, workflow and step for a given process is correct"""
 
     workflows = [
-        art.workflow_stages[0].workflow.name for art in currentStep.all_inputs()
+        # Take the last stage --> Last queued workflow --> Applicable for re-queued sample on stage
+        art.workflow_stages[-1].workflow.name for art in currentStep.all_inputs()
     ]
 
     verify_bools = [
         currentStep.instrument.name == target_instrument,
         currentStep.type.name == target_step,
-        all([wf == target_workflow for wf in workflows]),
+        all([target_workflow_prefix in wf for wf in workflows]),
     ]
 
     if all(verify_bools):
         return True
     else:
         return False
-
+        
 
 def fetch_sample_data(currentStep, to_fetch):
     """
