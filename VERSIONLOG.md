@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20221011.1
+Fix bug that manual in UDF instrument is recorded in logbook
+
 ## 20220914.1
 Multiple EPP changes to support the OmniC protocol v2.0
 
