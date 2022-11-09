@@ -109,8 +109,8 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
 
             increased_vol = r.min_transfer_amt / r.target_conc
             assert (
-                increased_vol < max_final_vol
-            ), f"Sample {r.name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
+                increased_vol <= max_final_vol
+            ), f"Sample {r.sample_name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
 
             tot_vol = increased_vol
             sample_vol = min_zika_vol
@@ -122,7 +122,7 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
             log.append(
                 f"WARNING: High concentration of sample {r.sample_name} ({r.conc} ng/ul)"
             )
-            log.append(f"\t--> Adjusted to {final_amt} in {tot_vol} ul ({final_conc} ng/ul)")
+            log.append(f"\t--> Adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
             
             if not local_data:
                 op = outputs[r.sample_name]
@@ -145,7 +145,7 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     n_samples = len(df[df.src_type == "sample"])
     comments = [f"This worklist will enact normalization of {n_samples} samples"]
 
-    # Write files and upload
+    # Write files
     method_name = "setup_QIAseq"
     pid = "local" if local_data else currentStep.id
     wl_filename, log_filename = zika.get_filenames(method_name, pid)
@@ -160,6 +160,7 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
 
     zika.write_log(log, log_filename)
 
+    # Upload files
     if not local_data:
         zika.upload_csv(currentStep, lims, wl_filename)
         zika.upload_log(currentStep, lims, log, log_filename)
