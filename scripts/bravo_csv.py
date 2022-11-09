@@ -6,6 +6,8 @@ import os
 import sys
 import re
 import pandas as pd
+import zika_methods
+import zika
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
@@ -799,6 +801,13 @@ def default_bravo(lims, currentStep, with_total_vol=True):
     workflow_is_correct = all([art.workflow_stages[0].workflow.name == target_workflow for art in currentStep.all_inputs()])
     if currentStep.instrument.name == "Zika" and workflow_is_correct:
         zika_norm(lims, currentStep)
+
+    # Zika for QIAseq setup
+    if zika.verify_step(lims, currentStep, 
+     target_instrument = "Zika", 
+     target_workflow_prefix = 'QIAseq miRNA', 
+     target_step = "Setup Workset/Plate"):
+        zika_methods.setup_QIAseq(currentStep, lims)
 
     else:
         checkTheLog = [False]
