@@ -27,16 +27,19 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
 
     # Create dataframe from lims or local csv file
     to_fetch = [
+        # Sample info
         "sample_name",
-        "source_fc",
-        "source_well",
-        "conc_units",
         "conc",
         "vol",
         "amt",
+        # Plates and positions
+        "source_fc",
+        "source_well",
+        "conc_units",
         "dest_fc",
         "dest_well",
         "dest_fc_name",
+        # Target info
         "target_vol",
         "target_amt",
     ]
@@ -51,12 +54,13 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     assert all(df.vol > 0), "Sample volume needs to be greater than zero" 
 
     # Define constraints
-    min_zika_vol = 0.1
-    max_final_vol = 15
+    zika_min_vol = 0.1
+    well_max_vol = 15
 
     # Make calculations
+    # TODO dead volume
     df["target_conc"] = df.target_amt / df.target_vol
-    df["min_transfer_amt"] = np.minimum(df.vol, min_zika_vol) * df.conc
+    df["min_transfer_amt"] = np.minimum(df.vol, zika_min_vol) * df.conc
     df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
 
     # Define deck
@@ -72,9 +76,12 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
         # Load outputs for changing UDF:s
         outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
 
-    # Cases 1) - 3)
-    d = {"sample": [], "buffer": [], "tot_vol": []}
+    # Write log header
     log = []
+    # TODO
+
+    # Cases 1) - 3)
+    d = {"sample_vol": [], "buffer_vol": [], "tot_vol": []}
     for i, r in df.iterrows():
 
         # 1) Not enough sample
@@ -109,11 +116,11 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
 
             increased_vol = r.min_transfer_amt / r.target_conc
             assert (
-                increased_vol <= max_final_vol
-            ), f"Sample {r.sample_name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
+                increased_vol < well_max_vol
+            ), f"Sample {r.name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
 
             tot_vol = increased_vol
-            sample_vol = min_zika_vol
+            sample_vol = zika_min_vol
             buffer_vol = tot_vol - sample_vol
 
             final_amt = sample_vol * r.conc
@@ -129,10 +136,11 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
                 op.udf['Total Volume (uL)'] = tot_vol
                 op.put()
 
-        d["sample"].append(sample_vol)
-        d["buffer"].append(buffer_vol)
+        d["sample_vol"].append(sample_vol)
+        d["buffer_vol"].append(buffer_vol)
         d["tot_vol"].append(tot_vol)
 
+    log.append("\nDone.\n")
     df = df.join(pd.DataFrame(d))
 
     # Resolve buffer transfers
@@ -173,3 +181,99 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
             sys.exit(2)
 
     return wl_filename, log_filename
+
+
+def amp_norm(currentStep, lims):
+    
+    # Create dataframe
+    to_fetch = [
+        # Sample info
+        "sample_name",
+        "user_conc",
+        "user_vol",
+        # Plates and wells
+        "source_fc",
+        "source_well",
+        "dest_fc",
+        "dest_well",
+        "dest_fc_name",
+        # Target info
+        "target_vol",
+        "target_amt",
+    ]
+    
+    df = zika.fetch_sample_data(currentStep, to_fetch)
+    # Treat user-measured conc/volume as true
+    df.rename(columns = {"user_conc" : "conc", "user_vol" : "vol"}, inplace = True)
+
+    assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be set greater than zero"
+    assert all(df.vol > 0), "Sample volume needs to be greater than zero"
+
+    # Define constraints
+    zika_min_vol = 0.1  # Lowest possible transfer volume
+    zika_max_vol = 5
+    zika_dead_vol = 5   # Estimated dead volume of TwinTec96 wells
+    well_max_vol = 180  # Estimated max volume of TwinTec96 wells
+
+    # Make calculations
+    # TODO dead volume
+    df["target_conc"] = df.target_amt / df.target_vol
+    df["min_transfer_amt"] = np.minimum(df.vol, zika_min_vol) * df.conc
+    df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
+
+    df["sample_vol"] = np.maximum(np.minimum(df.target_amt / df.conc, df.target_vol), zika_min_vol)
+    df["final_amt"] = df.sample_vol * df.conc
+    df["buffer_vol"] = df.target_vol - df.sample_vol
+    df["tot_vol"] = df.buffer_vol + df.sample_vol
+
+    # Define deck
+    assert len(df.source_fc.unique()) == 1, "Only one input plate allowed"
+    assert len(df.dest_fc.unique()) == 1, "Only one output plate allowed"
+    deck = {
+        "buffer_plate": 2,
+        df.source_fc.unique()[0]: 3,
+        df.dest_fc.unique()[0]: 4,
+    }
+
+    # Write log header
+    log = []
+    # TODO
+
+    # Cases
+    for idx, row in df.iterrows():
+        
+        # TODO review
+        if min([row.final_amt, row.target_amt]) / max([row.final_amt, row.target_amt]) < 0.995:
+            
+            log.append("WARNING: Sample {} normalized to {} ng in {} ul, {}% of target".format(
+                row.name, round(row.final_amt,2), round(row.tot_vol,2), round(row.final_amt / row.target_amt * 100,2))
+            )
+    
+
+    log.append("\nDone.\n")
+
+    # Resolve buffer transfers
+    df = zika.resolve_buffer_transfers(df, buffer_strategy="column")
+
+    # Format worklist
+    df = zika.format_worklist(df, deck=deck, split_transfers=True)
+
+    # Comments to attach to the worklist header
+    n_samples = len(df[df.src_type == "sample"])
+    comments = [f"This worklist will enact normalization of {n_samples} samples"]
+
+    # Write files and upload
+    method_name = "amplicon_normalization"
+    wl_filename, log_filename = zika.get_filenames(method_name, currentStep.id)
+
+    zika.write_worklist(
+        df=df,
+        deck=deck,
+        wl_filename=wl_filename,
+        comments=comments,
+        strategy="multi-aspirate",
+    )
+
+    zika.upload_log(currentStep, lims, log, log_filename)
+    zika.upload_csv(currentStep, lims, wl_filename)
+

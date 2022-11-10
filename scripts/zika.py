@@ -57,6 +57,8 @@ def fetch_sample_data(currentStep, to_fetch):
         "dest_fc_name": "art_tuple[1]['uri'].location[0].name",
         "target_vol": "art_tuple[1]['uri'].udf['Total Volume (uL)']",
         "target_amt": "art_tuple[1]['uri'].udf['Amount taken (ng)']",
+        "user_conc": "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
+        "user_vol": "art_tuple[0]['uri'].samples[0].udf['Customer Volume']"
     }
 
     assert all(
@@ -97,9 +99,11 @@ def load_fake_samples(file, to_fetch):
     return df
 
 
-def format_worklist(df, deck):
+def format_worklist(df, deck, split_transfers = False):
     """
-    Add columns in Mosquito-intepretable format.
+    - Add columns in Mosquito-intepretable format
+    - Resolve multi-transfers
+    - Sort by dest col, dest row, buffer, sample
     """
 
     # Add columns for plate positions
@@ -114,7 +118,31 @@ def format_worklist(df, deck):
     df["src_row"], df["src_col"] = well2rowcol(df.source_well)
     df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
 
-    return df
+    if split_transfers:
+        # Split >5000 nl transfers
+        assert all(df.transfer_vol < 180000), "Some transfer volumes exceed 180 ul"
+        max_vol = 5000
+        df_split = pd.DataFrame(columns = df.columns)
+
+        for idx, row in df.iterrows():
+
+            if row.transfer_vol > max_vol:
+                row_cp = row.copy()
+                row_cp.loc["transfer_vol"] = max_vol
+
+                while row.transfer_vol > max_vol:
+                    df_split = df_split.append(row_cp)
+                    row.loc["transfer_vol"] = row.transfer_vol - max_vol
+                
+            df_split = df_split.append(row)
+
+        df_split.sort_values(by = ["dst_col", "dst_row", "src_type"], inplace = True)
+        df_split.reset_index(inplace = True, drop = True)
+
+        return df_split
+    
+    else:
+        return df
 
 
 def resolve_buffer_transfers(df, buffer_strategy):
@@ -124,6 +152,7 @@ def resolve_buffer_transfers(df, buffer_strategy):
     """
 
     # Pivot buffer transfers
+    df.rename(columns = {"sample_vol": "sample", "buffer_vol": "buffer"}, inplace = True)
     to_pivot = ["sample", "buffer"]
     to_keep = ["source_fc", "source_well", "dest_fc", "dest_well"]
     df = df.melt(
@@ -281,6 +310,8 @@ def write_worklist(df, deck, wl_filename, comments=None, strategy=None):
                 )
             else:
                 raise AssertionError("No transfer type defined")
+        
+        wl.write(f"COMMENT, Done")
 
 
 def get_deck_comment(deck):
