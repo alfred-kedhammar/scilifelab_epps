@@ -165,11 +165,11 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
         zika.upload_csv(currentStep, lims, wl_filename)
         zika.upload_log(currentStep, lims, log, log_filename)
 
-    # Issue warnings, if any
-    if any("WARNING:" in entry for entry in log):
-        sys.stderr.write(
-            "CSV-file generated with warnings, please check the Log file\n"
-        )
-        sys.exit(2)
+        # Issue warnings, if any
+        if any("WARNING:" in entry for entry in log):
+            sys.stderr.write(
+                "CSV-file generated with warnings, please check the Log file\n"
+            )
+            sys.exit(2)
 
     return wl_filename, log_filename
