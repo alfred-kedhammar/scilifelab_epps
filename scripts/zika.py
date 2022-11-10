@@ -61,6 +61,8 @@ def fetch_sample_data(currentStep, to_fetch):
         "dest_fc_name": "art_tuple[1]['uri'].location[0].name",
         "target_vol": "art_tuple[1]['uri'].udf['Total Volume (uL)']",
         "target_amt": "art_tuple[1]['uri'].udf['Amount taken (ng)']",
+        "user_conc": "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
+        "user_vol": "art_tuple[0]['uri'].samples[0].udf['Customer Volume']"
     }
 
     assert all(

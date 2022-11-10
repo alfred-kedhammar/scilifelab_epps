@@ -27,16 +27,19 @@ def setup_QIAseq(currentStep, lims):
 
     # Create dataframe
     to_fetch = [
+        # Sample info
         "sample_name",
-        "source_fc",
-        "source_well",
-        "conc_units",
         "conc",
         "vol",
         "amt",
+        # Plates and positions
+        "source_fc",
+        "source_well",
+        "conc_units",
         "dest_fc",
         "dest_well",
         "dest_fc_name",
+        # Target info
         "target_vol",
         "target_amt",
     ]
@@ -47,12 +50,12 @@ def setup_QIAseq(currentStep, lims):
     assert all(df.vol > 0), "Sample volume needs to be greater than zero" 
 
     # Define constraints
-    min_zika_vol = 0.1
-    max_final_vol = 15
+    zika_min_vol = 0.1
+    well_max_vol = 15
 
     # Make calculations
     df["target_conc"] = df.target_amt / df.target_vol
-    df["min_transfer_amt"] = np.minimum(df.vol, min_zika_vol) * df.conc
+    df["min_transfer_amt"] = np.minimum(df.vol, zika_min_vol) * df.conc
     df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
 
     # Define deck
@@ -103,11 +106,11 @@ def setup_QIAseq(currentStep, lims):
 
             increased_vol = r.min_transfer_amt / r.target_conc
             assert (
-                increased_vol < max_final_vol
+                increased_vol < well_max_vol
             ), f"Sample {r.name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
 
             tot_vol = increased_vol
-            sample_vol = min_zika_vol
+            sample_vol = zika_min_vol
             buffer_vol = tot_vol - sample_vol
 
             final_amt = sample_vol * r.conc
@@ -159,3 +162,38 @@ def setup_QIAseq(currentStep, lims):
             "CSV-file generated with warnings, please check the Log file\n"
         )
         sys.exit(2)
+
+    
+
+def amp_norm(currentStep, lims):
+    
+    # Create dataframe
+    
+    to_fetch = [
+        # Sample info
+        "sample_name",
+        "user_conc",
+        "user_vol",
+        # Plates and wells
+        "source_fc",
+        "source_well",
+        "dest_fc",
+        "dest_well",
+        "dest_fc_name",
+        # Target info
+        "target_vol",
+        "target_amt",
+    ]
+    
+    df = zika.fetch_sample_data(currentStep, to_fetch)
+    # Treat user-measured conc/volume as 
+    df.rename({"user_conc" : "conc", "user_vol" : "vol"})
+
+    assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be set greater than zero"
+    assert all(df.vol > 0), "Sample volume needs to be greater than zero" 
+
+    # Define constraints
+    zika_min_vol = 0.1  # Lowest possible transfer volume
+    zika_max_vol = 5
+    zika_dead_vol = 5   # Estimated dead volume of TwinTec96 wells
+    well_max_vol = 180  # Estimated max volume of TwinTec96 wells
