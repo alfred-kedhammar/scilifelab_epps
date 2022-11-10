@@ -76,8 +76,7 @@ def setup_QIAseq(currentStep, lims):
     # TODO
 
     # Cases 1) - 3)
-    d = {"sample": [], "buffer": [], "tot_vol": []}
-    # TODO Use sample_vol and buffer_vol 
+    d = {"sample_vol": [], "buffer_vol": [], "tot_vol": []}
     for i, r in df.iterrows():
 
         # 1) Not enough sample
@@ -130,8 +129,8 @@ def setup_QIAseq(currentStep, lims):
             op.udf['Total Volume (uL)'] = tot_vol
             op.put()
 
-        d["sample"].append(sample_vol)
-        d["buffer"].append(buffer_vol)
+        d["sample_vol"].append(sample_vol)
+        d["buffer_vol"].append(buffer_vol)
         d["tot_vol"].append(tot_vol)
 
     log.append("\nDone.\n")
@@ -169,7 +168,6 @@ def setup_QIAseq(currentStep, lims):
         )
         sys.exit(2)
 
-    
 
 def amp_norm(currentStep, lims):
     
