@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 DESC = """
-This module contains tests in which a method from zika_methods.py is run and the "transfer portion" of the resulting worklist is asserted against a pre-generated one.
+Run this script with pytest 
 
 Written by Alfred Kedhammar
 """
