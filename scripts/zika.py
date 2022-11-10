@@ -299,6 +299,8 @@ def write_worklist(df, deck, wl_filename, comments=None, strategy=None):
                 )
             else:
                 raise AssertionError("No transfer type defined")
+        
+        wl.write(f"COMMENT, Done")
 
 
 def get_deck_comment(deck):
