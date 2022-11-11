@@ -15,7 +15,7 @@ sys.path.append(
 import zika_methods
 
 
-def compare(ref_path, wl_filename):
+def compare(ref_path, wl_filename, log_filename):
       
     # Load reference
     with open(ref_path, "r") as f:
@@ -48,7 +48,8 @@ def test_setup_QIAseq():
     
     test_result = compare(
         ref_path = "setup_QIAseq_ref.csv",
-        wl_filename = wl_filename
+        wl_filename = wl_filename,
+        log_filename = log_filename
     )
 
     return test_result
@@ -63,7 +64,8 @@ def test_amp_norm():
     
     test_result = compare(
         ref_path = "amp_norm_ref.csv",
-        wl_filename = wl_filename
+        wl_filename = wl_filename,
+        log_filename = log_filename
     )
 
     return test_result
