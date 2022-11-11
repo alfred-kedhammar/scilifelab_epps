@@ -32,9 +32,10 @@ def compare(ref_path, wl_filename, log_filename):
     # Carry out test
     test_result = ref == op
 
-    # Clean up files
-    os.remove(wl_filename)
-    os.remove(log_filename)
+    if test_result:
+        # Clean up files
+        os.remove(wl_filename)
+        os.remove(log_filename)
 
     return test_result
 
