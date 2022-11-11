@@ -125,6 +125,9 @@ def format_worklist(df, deck, split_transfers = False):
     df["src_row"], df["src_col"] = well2rowcol(df.source_well)
     df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
 
+    # Sort df
+    df.sort_values(by = ["dst_col", "dst_row", "src_type"], inplace = True)
+
     if split_transfers:
         # Split >5000 nl transfers
         assert all(df.transfer_vol < 180000), "Some transfer volumes exceed 180 ul"
@@ -143,7 +146,6 @@ def format_worklist(df, deck, split_transfers = False):
                 
             df_split = df_split.append(row)
 
-        df_split.sort_values(by = ["dst_col", "dst_row", "src_type"], inplace = True)
         df_split.reset_index(inplace = True, drop = True)
 
         return df_split
@@ -167,7 +169,14 @@ def resolve_buffer_transfers(df, buffer_strategy):
         var_name="src_type",
         value_name="transfer_vol",
         id_vars=to_keep,
-    ).sort_values(by=["dest_well", "src_type"])
+    )
+    
+    # Sort df
+    split_dest_well = df.dest_well.str.split(":", expand = True)
+    df["dest_well_row"] = split_dest_well[0]
+    df["dest_well_col"] = split_dest_well[1]
+
+    df.sort_values(by = ["dest_well_col", "dest_well_row", "src_type"], inplace = True)
 
     # Remove zero-vol transfers
     df = df[df.transfer_vol > 0]
