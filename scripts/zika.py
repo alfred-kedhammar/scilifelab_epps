@@ -20,19 +20,26 @@ from genologics.entities import Process
 
 def verify_step(lims, currentStep, target_instrument, target_workflow_prefix, target_step):
     """Verify the instrument, workflow and step for a given process is correct"""
+    
+    checks = []
+    for art in currentStep.all_inputs():
+        art_check = False
+        for wf_tuple in art.workflow_stages_and_statuses:
+            
+            wf_name = wf_tuple[0].workflow.name
+            status = wf_tuple[1]
+            step_name = wf_tuple[2]
 
-    workflows = [
-        # Take the last stage --> Last queued workflow --> Applicable for re-queued sample on stage
-        art.workflow_stages[-1].workflow.name for art in currentStep.all_inputs()
-    ]
+            if                 status == "IN_PROGRESS" and \
+               target_workflow_prefix in wf_name and \
+                          target_step == step_name:
+                    
+                    art_check = True
+                    break
 
-    verify_bools = [
-        currentStep.instrument.name == target_instrument,
-        currentStep.type.name == target_step,
-        all([target_workflow_prefix in wf for wf in workflows]),
-    ]
+        checks.append(art_check)
 
-    if all(verify_bools):
+    if all(checks):
         return True
     else:
         return False
