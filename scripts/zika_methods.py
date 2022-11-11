@@ -72,15 +72,21 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
         df.dest_fc.unique()[0]: 4,
     }
 
-    if not local_data:
-        # Load outputs for changing UDF:s
-        outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
-
     # Write log header
     log = []
     # TODO
 
-    # Cases 1) - 3)
+    # Comments to attach to the worklist header
+    comments = []
+    n_samples = len(df[df.src_type == "sample"])
+    comments = [f"This worklist will enact normalization of {n_samples} samples"]
+
+
+    # Load outputs for changing UDF:s
+    if not local_data:
+        outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
+
+    # Cases
     d = {"sample_vol": [], "buffer_vol": [], "tot_vol": []}
     for i, r in df.iterrows():
 
@@ -146,12 +152,8 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     # Resolve buffer transfers
     df = zika.resolve_buffer_transfers(df, buffer_strategy="column")
 
-    # Generate Mosquito-readable columns
-    df = zika.format_worklist(df, deck=deck)
-
-    # Comments to attach to the worklist header
-    n_samples = len(df[df.src_type == "sample"])
-    comments = [f"This worklist will enact normalization of {n_samples} samples"]
+    # Format worklist
+    df = zika.format_worklist(df, deck=deck, split_transfers=True)
 
     # Write files
     method_name = "setup_QIAseq"
@@ -171,7 +173,7 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     # Upload files
     if not local_data:
         zika.upload_csv(currentStep, lims, wl_filename)
-        zika.upload_log(currentStep, lims, log, log_filename)
+        zika.upload_log(currentStep, lims, log_filename)
 
         # Issue warnings, if any
         if any("WARNING:" in entry for entry in log):
@@ -183,9 +185,11 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     return wl_filename, log_filename
 
 
-def amp_norm(currentStep, lims):
+
+
+def amp_norm(currentStep = None, lims = None, local_data = None):
     
-    # Create dataframe
+    # Create dataframe from lims or local csv file
     to_fetch = [
         # Sample info
         "sample_name",
@@ -201,8 +205,12 @@ def amp_norm(currentStep, lims):
         "target_vol",
         "target_amt",
     ]
-    
-    df = zika.fetch_sample_data(currentStep, to_fetch)
+
+    if local_data:
+        df = zika.load_fake_samples(local_data, to_fetch)
+    else:
+        df = zika.fetch_sample_data(currentStep, to_fetch)
+
     # Treat user-measured conc/volume as true
     df.rename(columns = {"user_conc" : "conc", "user_vol" : "vol"}, inplace = True)
 
@@ -239,6 +247,14 @@ def amp_norm(currentStep, lims):
     log = []
     # TODO
 
+    # Comments to attach to the worklist header
+    comments = []
+    n_samples = len(df)
+    comments.append(f"This worklist will enact normalization of {n_samples} samples")
+
+    # Load outputs for changing UDF:s
+    # TODO
+
     # Cases
     for idx, row in df.iterrows():
         
@@ -258,13 +274,10 @@ def amp_norm(currentStep, lims):
     # Format worklist
     df = zika.format_worklist(df, deck=deck, split_transfers=True)
 
-    # Comments to attach to the worklist header
-    n_samples = len(df[df.src_type == "sample"])
-    comments = [f"This worklist will enact normalization of {n_samples} samples"]
-
-    # Write files and upload
+    # Write files
     method_name = "amplicon_normalization"
-    wl_filename, log_filename = zika.get_filenames(method_name, currentStep.id)
+    pid = "local" if local_data else currentStep.id
+    wl_filename, log_filename = zika.get_filenames(method_name, pid)
 
     zika.write_worklist(
         df=df,
@@ -274,6 +287,19 @@ def amp_norm(currentStep, lims):
         strategy="multi-aspirate",
     )
 
-    zika.upload_log(currentStep, lims, log, log_filename)
-    zika.upload_csv(currentStep, lims, wl_filename)
+    zika.write_log(log, log_filename)
+
+    # Upload files
+    if not local_data:
+        zika.upload_csv(currentStep, lims, wl_filename)
+        zika.upload_log(currentStep, lims, log_filename)
+
+        # Issue warnings, if any
+        if any("WARNING:" in entry for entry in log):
+            sys.stderr.write(
+                "CSV-file generated with warnings, please check the Log file\n"
+            )
+            sys.exit(2)
+
+    return wl_filename, log_filename
 
