@@ -78,7 +78,7 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
 
     # Comments to attach to the worklist header
     comments = []
-    n_samples = len(df[df.src_type == "sample"])
+    n_samples = len(df)
     comments = [f"This worklist will enact normalization of {n_samples} samples"]
 
 
@@ -122,7 +122,7 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
 
             increased_vol = r.min_transfer_amt / r.target_conc
             assert (
-                increased_vol < well_max_vol
+                increased_vol <= well_max_vol
             ), f"Sample {r.name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
 
             tot_vol = increased_vol
