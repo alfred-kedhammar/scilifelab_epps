@@ -795,12 +795,13 @@ def zika_norm(lims, currentStep):
         logging.info("Work done")
 
 def default_bravo(lims, currentStep, with_total_vol=True):
-
-    # Zika for amplicon normalization re-route
-    target_workflow = 'Amplicon without RC for MiSeq'
-    workflow_is_correct = all([art.workflow_stages[0].workflow.name == target_workflow for art in currentStep.all_inputs()])
-    if currentStep.instrument.name == "Zika" and workflow_is_correct:
-        zika_norm(lims, currentStep)
+   
+    # Zika for amplicon normalization
+    if zika.verify_step(lims, currentStep, 
+     target_instrument = "Zika", 
+     target_workflow_prefix = 'Amplicon without RC', 
+     target_step = "Setup Workset/Plate"):
+        zika_methods.amp_norm(currentStep, lims)
 
     # Zika for QIAseq setup
     if zika.verify_step(lims, currentStep, 
