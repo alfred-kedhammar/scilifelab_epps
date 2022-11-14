@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20221109.1
+Implement Zika for QIAseq setup and start refactoring Zika code into separate files zika.py and zika_methods.py
+
 ## 20221011.1
 Fix bug that manual in UDF instrument is recorded in logbook
 
