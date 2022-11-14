@@ -26,12 +26,13 @@ def compare(ref_path, wl_filename, log_filename):
         op = f.readlines()
 
     # Remove all comment lines except deck layout
-    to_remove = []
-    for l in op:
-        if "COMMENT, " in l and "layout" not in l:
-            to_remove.append(l)
-    for l in to_remove:
-        op.remove(l)
+    for wl in [ref, op]:
+        to_remove = []
+        for l in wl:
+            if "COMMENT, " in l and "layout" not in l:
+                to_remove.append(l)
+        for l in to_remove:
+            wl.remove(l)
 
     # Carry out test
     test_result = ref == op
@@ -75,4 +76,13 @@ def test_amp_norm():
 
     return test_result
 
+def reset_reference(method, input_name, new_ref_name):
+
+    # Generate data from local input
+    wl_filename, log_filename = method(
+        local_data = input_name
+        )
+
+    os.rename(wl_filename, new_ref_name)
+    os.remove(log_filename)
 
