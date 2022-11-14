@@ -804,7 +804,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         zika_methods.amp_norm(currentStep, lims)
 
     # Zika for QIAseq setup
-    if zika.verify_step(lims, currentStep, 
+    elif zika.verify_step(lims, currentStep, 
      target_instrument = "Zika", 
      target_workflow_prefix = 'QIAseq miRNA', 
      target_step = "Setup Workset/Plate"):
