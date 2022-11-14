@@ -26,9 +26,12 @@ def compare(ref_path, wl_filename, log_filename):
         op = f.readlines()
 
     # Remove all comment lines except deck layout
+    to_remove = []
     for l in op:
         if "COMMENT, " in l and "layout" not in l:
-            op.remove(l)
+            to_remove.append(l)
+    for l in to_remove:
+        op.remove(l)
 
     # Carry out test
     test_result = ref == op
@@ -45,7 +48,7 @@ def test_setup_QIAseq():
 
     # Generate data from local input
     wl_filename, log_filename = zika_methods.setup_QIAseq(
-        local_data = "setup_QIAseq_input.csv"
+        local_data = "setup_QIAseq_input.tsv"
         )
     
     test_result = compare(
