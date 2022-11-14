@@ -25,9 +25,10 @@ def compare(ref_path, wl_filename, log_filename):
     with open(wl_filename, "r") as f:
         op = f.readlines()
 
-    # Remove line containing timestamp
-    ref.pop(2)
-    op.pop(2)
+    # Remove all comment lines except deck layout
+    for l in op:
+        if "COMMENT, " in l and "layout" not in l:
+            op.remove(l)
 
     # Carry out test
     test_result = ref == op
