@@ -76,6 +76,7 @@ def test_amp_norm():
 
     return test_result
 
+
 def reset_reference(method, input_name, new_ref_name):
 
     # Generate data from local input
