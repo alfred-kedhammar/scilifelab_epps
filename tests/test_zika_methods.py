@@ -64,7 +64,7 @@ def test_amp_norm():
 
     # Generate data from local input
     wl_filename, log_filename = zika_methods.amp_norm(
-        local_data = "amp_norm_input.csv"
+        local_data = "amp_norm_input.tsv"
         )
     
     test_result = compare(
