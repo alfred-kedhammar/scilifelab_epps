@@ -45,7 +45,7 @@ def verify_step(lims, currentStep, target_instrument, target_workflow_prefix, ta
         return False
         
 
-def fetch_sample_data(currentStep, to_fetch):
+def fetch_sample_data(currentStep, to_fetch, dead_volume = True):
     """
     Within this function is the dictionary key2expr, its keys being the given name of a particular piece of information linked to a transfer input/output sample and it's values being the string that when evaluated will yield the desired info from whatever the variable "art_tuple" is currently pointing at. 
     Given the positional arguments of a LIMS transfer process and a list of keys, it will return a dataframe containing the information fetched from each transfer based on the keys.
@@ -68,30 +68,36 @@ def fetch_sample_data(currentStep, to_fetch):
         "user_vol": "art_tuple[0]['uri'].samples[0].udf['Customer Volume']"
     }
 
+    # Verify all target metrics can be found
     assert all(
         [k in key2expr.keys() for k in to_fetch]
     ), "fetch_sample_data() did not recognize key"
 
-    l = []
+    # Fetch all input/output sample tuples
     art_tuples = [
-        art_tuple
-        for art_tuple in currentStep.input_output_maps
+        art_tuple for art_tuple in currentStep.input_output_maps
         if art_tuple[0]["uri"].type == art_tuple[1]["uri"].type == "Analyte"
     ]
 
+    # Fetch all target data
+    l = []
     for art_tuple in art_tuples:
         key2val = {}
         for k in to_fetch:
             key2val[k] = eval(key2expr[k])
-
         l.append(key2val)
 
+    # Compile to dataframe
     df = pd.DataFrame(l)
+
+    if dead_volume:
+        # Decrease volume to take into account TwinTec96 plate dead volume
+        df.loc["vol"] = df.vol - 5
 
     return df
 
 
-def load_fake_samples(file, to_fetch):
+def load_fake_samples(file, to_fetch, dead_volume = True):
     """This function is intended to output the same dataframe as fetch_sample_data(), but the input data is taken from a .csv-exported spreadsheet and is thus easier to change than data taken from upstream LIMS."""
 
     file_data = pd.read_csv(file, delimiter = "\t")
@@ -102,6 +108,10 @@ def load_fake_samples(file, to_fetch):
 
     # Only retain specified columns
     df = file_data[to_fetch]
+
+    if dead_volume:
+        # Decrease volume to take into account TwinTec96 plate dead volume
+        df.loc["vol"] = df.vol - 5
 
     return df
 
