@@ -45,9 +45,9 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     ]
     
     if local_data:
-        df = zika.load_fake_samples(local_data, to_fetch)
+        df = zika.load_fake_samples(local_data, to_fetch, dead_volume=5)
     else:
-        df = zika.fetch_sample_data(currentStep, to_fetch)
+        df = zika.fetch_sample_data(currentStep, to_fetch, dead_volume=5)
 
     assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
     assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be set greater than zero"
@@ -58,7 +58,6 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     well_max_vol = 15
 
     # Make calculations
-    # TODO dead volume
     df["target_conc"] = df.target_amt / df.target_vol
     df["min_transfer_amt"] = np.minimum(df.vol, zika_min_vol) * df.conc
     df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
@@ -74,13 +73,12 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
 
     # Write log header
     log = []
-    # TODO
+    log.append("Log start\n")
 
     # Comments to attach to the worklist header
     comments = []
     n_samples = len(df)
     comments = [f"This worklist will enact normalization of {n_samples} samples"]
-
 
     # Load outputs for changing UDF:s
     if not local_data:
@@ -207,9 +205,9 @@ def amp_norm(currentStep = None, lims = None, local_data = None):
     ]
 
     if local_data:
-        df = zika.load_fake_samples(local_data, to_fetch)
+        df = zika.load_fake_samples(local_data, to_fetch, dead_volume=5)
     else:
-        df = zika.fetch_sample_data(currentStep, to_fetch)
+        df = zika.fetch_sample_data(currentStep, to_fetch, dead_volume=5)
 
     # Treat user-measured conc/volume as true
     df.rename(columns = {"user_conc" : "conc", "user_vol" : "vol"}, inplace = True)
@@ -220,11 +218,9 @@ def amp_norm(currentStep = None, lims = None, local_data = None):
     # Define constraints
     zika_min_vol = 0.1  # Lowest possible transfer volume
     zika_max_vol = 5
-    zika_dead_vol = 5   # Estimated dead volume of TwinTec96 wells
     well_max_vol = 180  # Estimated max volume of TwinTec96 wells
 
     # Make calculations
-    # TODO dead volume
     df["target_conc"] = df.target_amt / df.target_vol
     df["min_transfer_amt"] = np.minimum(df.vol, zika_min_vol) * df.conc
     df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
@@ -245,7 +241,7 @@ def amp_norm(currentStep = None, lims = None, local_data = None):
 
     # Write log header
     log = []
-    # TODO
+    log.append("Log start\n")
 
     # Comments to attach to the worklist header
     comments = []
