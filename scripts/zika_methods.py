@@ -214,9 +214,9 @@ def amp_norm(currentStep = None, lims = None, local_data = None):
     ]
 
     if local_data:
-        df = zika.load_fake_samples(local_data, to_fetch, dead_volume=5)
+        df = zika.load_fake_samples(local_data, to_fetch)
     else:
-        df = zika.fetch_sample_data(currentStep, to_fetch, dead_volume=5)
+        df = zika.fetch_sample_data(currentStep, to_fetch)
 
     # Treat user-measured conc/volume as true
     df.rename(columns = {"user_conc" : "conc", "user_vol" : "vol"}, inplace = True)
