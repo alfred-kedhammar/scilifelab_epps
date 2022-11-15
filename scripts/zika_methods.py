@@ -25,17 +25,23 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
                                    throw error and dilute manually.
     """
 
+    # Define constraints
+    zika_min_vol = 0.1
+    well_dead_vol = 5
+    well_max_vol = 15
+
     # Create dataframe from lims or local csv file
+    
     to_fetch = [
         # Sample info
         "sample_name",
         "conc",
+        "conc_units",
         "vol",
         "amt",
         # Plates and positions
         "source_fc",
         "source_well",
-        "conc_units",
         "dest_fc",
         "dest_well",
         "dest_fc_name",
@@ -45,17 +51,16 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     ]
     
     if local_data:
-        df = zika.load_fake_samples(local_data, to_fetch, dead_volume=5)
+        df = zika.load_fake_samples(local_data, to_fetch)
     else:
-        df = zika.fetch_sample_data(currentStep, to_fetch, dead_volume=5)
+        df = zika.fetch_sample_data(currentStep, to_fetch)
+
+    # Take dead volume into account
+    df.loc[:,"vol"] = df.vol - well_dead_vol
 
     assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
     assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be set greater than zero"
-    assert all(df.vol > 0), "Sample volume needs to be greater than zero" 
-
-    # Define constraints
-    zika_min_vol = 0.1
-    well_max_vol = 15
+    assert all(df.vol > 0), f"Sample volume too low" 
 
     # Make calculations
     df["target_conc"] = df.target_amt / df.target_vol
@@ -186,6 +191,10 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
 
 
 def amp_norm(currentStep = None, lims = None, local_data = None):
+
+    # Define constraints
+    zika_min_vol = 0.1  # Lowest possible transfer volume
+    well_dead_vol = 5
     
     # Create dataframe from lims or local csv file
     to_fetch = [
@@ -211,24 +220,30 @@ def amp_norm(currentStep = None, lims = None, local_data = None):
 
     # Treat user-measured conc/volume as true
     df.rename(columns = {"user_conc" : "conc", "user_vol" : "vol"}, inplace = True)
+    # Take dead volume into account
+    df.loc[:,"vol"] = df.vol - well_dead_vol
 
     assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be set greater than zero"
-    assert all(df.vol > 0), "Sample volume needs to be greater than zero"
-
-    # Define constraints
-    zika_min_vol = 0.1  # Lowest possible transfer volume
-    zika_max_vol = 5
-    well_max_vol = 180  # Estimated max volume of TwinTec96 wells
+    assert all(df.vol > 0), "Sample volume too low"
 
     # Make calculations
     df["target_conc"] = df.target_amt / df.target_vol
     df["min_transfer_amt"] = np.minimum(df.vol, zika_min_vol) * df.conc
     df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
 
-    df["sample_vol"] = np.maximum(np.minimum(df.target_amt / df.conc, df.target_vol), zika_min_vol)
+    df["sample_vol"] = np.maximum(
+                                  np.minimum(
+                                             df.target_amt / df.conc,
+                                             df.target_vol
+                                             ),
+                                  zika_min_vol)
     df["final_amt"] = df.sample_vol * df.conc
     df["buffer_vol"] = df.target_vol - df.sample_vol
     df["tot_vol"] = df.buffer_vol + df.sample_vol
+
+    # Sample too dilute --> Decrease amount, flag
+    # Sample too conc   --> Take min vol
+    # 
 
     # Define deck
     assert len(df.source_fc.unique()) == 1, "Only one input plate allowed"
@@ -249,10 +264,11 @@ def amp_norm(currentStep = None, lims = None, local_data = None):
     comments.append(f"This worklist will enact normalization of {n_samples} samples")
 
     # Load outputs for changing UDF:s
-    # TODO
+    if not local_data:
+        outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
 
     # Cases
-    for idx, row in df.iterrows():
+    for i, row in df.iterrows():
         
         # TODO review
         if min([row.final_amt, row.target_amt]) / max([row.final_amt, row.target_amt]) < 0.995:
