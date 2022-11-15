@@ -1,5 +1,7 @@
 worklist,
 [VAR1]TipChangeStrategy,always
+COMMENT, This is the worklist zika_worklist_setup_QIAseq_local_221115_133816.csv
+COMMENT, This worklist will enact normalization of 6 samples
 COMMENT, Set up layout:    [Empty]     buffer_plate     P27464P2     27-598706     [Empty]
 COPY,3,1,1,1,4,1,1,5000,[VAR1]
 COPY,3,1,1,2,4,1,2,5000,[VAR1]
@@ -13,3 +15,4 @@ COPY,2,1,1,7,4,1,6,5000,[VAR1]
 COPY,2,1,1,7,4,1,6,5000,[VAR1]
 MULTI_ASPIRATE,2,1,7,1,4900
 COPY,3,1,1,7,4,1,6,100,[VAR1]
+COMMENT, Done
