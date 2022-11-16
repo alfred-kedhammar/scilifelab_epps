@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20221116.1
+Update amount taken and total volume for bravo_csv
+
 ## 20221109.1
 Implement Zika for QIAseq setup and start refactoring Zika code into separate files zika.py and zika_methods.py
 

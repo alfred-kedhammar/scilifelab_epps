@@ -278,7 +278,7 @@ def prepooling(currentStep, lims):
             df, pool_info = zika_calc(currentStep, lims, log, zika_min_vol, zika_max_vol, src_dead_vol, pool_max_vol)
             # Create worklist file
             wl_filename = zika_wl(df, zika_max_vol, file_meta, pool_info)
-        
+
         except PoolOverflow:
             zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
             sys.stderr.write("ERROR: Overflow in pool(s). Check log for more info.")
@@ -422,7 +422,7 @@ def zika_wl(df, zika_max_vol, file_meta, pool_info):
             if i != 1:
                 csvContext.write("PAUSE, 0\n")
             csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc) + "\n")
-            
+
             # Write sample transfers
             wl_current = wl_sample[wl_sample.layout == i]
             for idx, row in wl_current.iterrows():
@@ -460,7 +460,7 @@ def zika_calc(currentStep, lims, log, zika_min_vol, zika_max_vol, src_dead_vol, 
 
             returndata = returndata.append(df, ignore_index = True)
             pool_info.loc[len(pool_info)] = [pool.location[1], pool.name, round(pool_buffer_vol,1)]
-        
+
         # Record critical error has occured, then continue
         except PoolOverflow:
             pool_overflow_state = True
@@ -592,7 +592,7 @@ def zika_vols(samples, target_pool_vol, target_pool_conc, pool, log,
         log.append("Pool buffer volume: {} uL".format(round(buffer_vol,1)))
     else:
         buffer_vol = 0
-    
+
     # Report low-conc samples
     low_samples = df[df.final_target_fraction < 0.995][["name", "final_target_fraction"]].sort_values("name")
     if not low_samples.empty:
@@ -692,7 +692,7 @@ def zika_norm(lims, currentStep):
         df_dict["full_vol"].append(art_tuple[0]["uri"].samples[0].udf['Customer Volume'])
         # Fetch target amt and vol
         df_dict["target_vol"].append(art_tuple[1]["uri"].udf['Total Volume (uL)'])
-        df_dict["target_amt"].append(art_tuple[1]["uri"].udf['Amount taken (ng)'])         
+        df_dict["target_amt"].append(art_tuple[1]["uri"].udf['Amount taken (ng)'])
 
     df = pd.DataFrame(df_dict)
     df.sort_values(by = "name", inplace = True)
@@ -775,7 +775,7 @@ def zika_norm(lims, currentStep):
         for idx, row in df.iterrows():
             if row.buffer_vol >= zika_min_vol / 2:
                 csvContext.write(",".join(["MULTI_ASPIRATE", buff_pos, buffer_col, str(row.buff_row), "1", str(int(round(row.buffer_vol*1000)))]) + "\n")
-            csvContext.write(",".join(["COPY", src_pos, str(row.src_col), str(row.src_col), str(row.src_row), 
+            csvContext.write(",".join(["COPY", src_pos, str(row.src_col), str(row.src_col), str(row.src_row),
                                                dst_pos, str(row.dst_col),                   str(row.dst_row),
                                                str(int(round(row.transfer_vol*1000))), "[VAR1]"]) + "\n")
 
@@ -784,7 +784,7 @@ def zika_norm(lims, currentStep):
         if float(art_tuple[1]["uri"].udf['Amount taken (ng)']) != round(amt,2):
             art_tuple[1]["uri"].udf['Amount taken (ng)'] = amt
             art_tuple[1]["uri"].put()
-            
+
     # Write and upload log and worklist
     zika_upload_log(currentStep, lims, zika_write_log(log, file_meta))
     zika_upload_csv(currentStep, lims, wl_filename)
@@ -803,9 +803,9 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         zika_norm(lims, currentStep)
 
     # Zika for QIAseq setup
-    if zika.verify_step(lims, currentStep, 
-     target_instrument = "Zika", 
-     target_workflow_prefix = 'QIAseq miRNA', 
+    if zika.verify_step(lims, currentStep,
+     target_instrument = "Zika",
+     target_workflow_prefix = 'QIAseq miRNA',
      target_step = "Setup Workset/Plate"):
         zika_methods.setup_QIAseq(currentStep, lims)
 
@@ -826,13 +826,17 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                         dest_plate.append(dest_fc_name)
                         if with_total_vol:
                             if art_tuple[1]['uri'].udf.get("Total Volume (uL)"):
-                                volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
+                                volume, final_volume, amount_taken = calc_vol(art_tuple, logContext, checkTheLog)
+                                # Update Amount taken (ng) and Total Volume (uL) in LIMS
+                                art_tuple[1]['uri'].udf['Amount taken (ng)'] = amount_taken
+                                art_tuple[1]['uri'].udf['Total Volume (uL)'] = final_volume
+                                art_tuple[1]["uri"].put()
                                 csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
                             else:
                                 logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
                                 checkTheLog[0] = True
                         else:
-                            volume, final_volume = calc_vol(art_tuple, logContext, checkTheLog)
+                            volume, final_volume, amount_taken = calc_vol(art_tuple, logContext, checkTheLog)
                             csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
 
         df = pd.read_csv("bravo.csv", header=None)
@@ -1266,7 +1270,8 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             checkTheLog[0] = False
         else:
             logContext.write("INFO : Sample {0} looks okay.\n".format(art_tuple[1]['uri'].samples[0].name))
-        return ("{0:.2f}".format(volume), "{0:.2f}".format(final_volume))
+        amount_taken = volume * conc
+        return ("{0:.2f}".format(volume), "{0:.2f}".format(final_volume), "{0:.2f}".format(amount_taken))
     except KeyError as e:
         logContext.write("ERROR : The input artifact is lacking a field : {0}\n".format(e))
         checkTheLog[0] = True
@@ -1277,7 +1282,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         logContext.write("ERROR: Sample {0} has a concentration of 0\n".format(art_tuple[1]['uri'].samples[0].name))
         checkTheLog[0] = True
     # this allows to still write the file. Won't be readable though
-    return ("#ERROR#", "#ERROR#")
+    return ("#ERROR#", "#ERROR#", "#ERROR#")
 
 def check_barcode_collision(step):
     for output in step.all_outputs():
