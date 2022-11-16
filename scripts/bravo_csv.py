@@ -828,9 +828,10 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                             if art_tuple[1]['uri'].udf.get("Total Volume (uL)"):
                                 volume, final_volume, amount_taken = calc_vol(art_tuple, logContext, checkTheLog)
                                 # Update Amount taken (ng) and Total Volume (uL) in LIMS
-                                art_tuple[1]['uri'].udf['Amount taken (ng)'] = amount_taken
-                                art_tuple[1]['uri'].udf['Total Volume (uL)'] = final_volume
-                                art_tuple[1]["uri"].put()
+                                if not any(x == '#ERROR#' for x in [volume, final_volume, amount_taken]):
+                                   art_tuple[1]['uri'].udf['Amount taken (ng)'] = float(amount_taken)
+                                   art_tuple[1]['uri'].udf['Total Volume (uL)'] = float(final_volume)
+                                   art_tuple[1]["uri"].put()
                                 csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
                             else:
                                 logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
