@@ -828,7 +828,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                             if art_tuple[1]['uri'].udf.get("Total Volume (uL)") or art_tuple[1]['uri'].udf.get("Target Total Volume (uL)"):
                                 art_workflows, volume, final_volume, amount_taken, total_volume, target_amount = calc_vol(art_tuple, logContext, checkTheLog)
                                 # Update Amount taken (ng) and Total Volume (uL) in LIMS
-                                if 'SMARTer Pico RNA' not in art_workflows:
+                                if not any('SMARTer Pico RNA' in x for x in art_workflows):
                                     if not any(x == '#ERROR#' for x in [volume, final_volume, amount_taken]):
                                         art_tuple[1]['uri'].udf['Amount taken (ng)'] = float(amount_taken)
                                         art_tuple[1]['uri'].udf['Total Volume (uL)'] = float(final_volume)
@@ -1214,12 +1214,12 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         # not handling different units yet. Might be needed at some point.
         assert art_tuple[0]['uri'].udf['Conc. Units'] in ["ng/ul", "ng/uL"]
 
-        if 'SMARTer Pico RNA' not in art_workflows:
-            amount_ng = target_amount = art_tuple[1]['uri'].udf['Amount taken (ng)']
-            final_volume = total_volume = art_tuple[1]['uri'].udf["Total Volume (uL)"]
+        if not any('SMARTer Pico RNA' in x for x in art_workflows):
+            amount_ng = target_amount = art_tuple[1]['uri'].udf.get('Amount taken (ng)', 0)
+            final_volume = total_volume = art_tuple[1]['uri'].udf.get('Total Volume (uL)', 0)
         else:
-            amount_ng = target_amount = art_tuple[1]['uri'].udf['Target Amount (ng)']
-            final_volume = total_volume = art_tuple[1]['uri'].udf["Target Total Volume (uL)"]
+            amount_ng = target_amount = art_tuple[1]['uri'].udf.get('Target Amount (ng)', 0)
+            final_volume = total_volume = art_tuple[1]['uri'].udf.get('Target Total Volume (uL)', 0)
 
         max_volume_warning = ''
         if final_volume > MAX_WARNING_VOLUME:
@@ -1306,11 +1306,13 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             volume = new_volume
             checkTheLog[0] = False
         elif max_volume_warning:
+            amount_taken = target_amount = volume * conc
             logContext.write("WARN : Sample {0} located {1} {2}: {3}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                art_tuple[0]['uri'].location[0].name,
                                                                                art_tuple[0]['uri'].location[1],
                                                                                max_volume_warning))
         else:
+            amount_taken = target_amount = volume * conc
             logContext.write("INFO : Sample {0} located {1} {2} looks okay.\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                       art_tuple[0]['uri'].location[0].name,
                                                                                       art_tuple[0]['uri'].location[1]))
