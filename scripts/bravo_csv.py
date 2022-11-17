@@ -1241,7 +1241,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         if org_vol < MIN_WARNING_VOLUME:
             volume = min(org_vol, volume)
             amount_taken = target_amount = volume * conc
-            logContext.write("WARN : Sample {0} located {1} {2}  has a LOW original volume : {3}. Take {4}uL sample which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
+            logContext.write("WARN : Sample {0} located {1} {2} has a LOW original volume : {3}. Take {4}uL sample which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                                                                                                  art_tuple[0]['uri'].location[0].name,
                                                                                                                                                                                  art_tuple[0]['uri'].location[1],
                                                                                                                                                                                  "{0:.2f}".format(org_vol),
@@ -1261,7 +1261,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
                 if final_volume > MAX_WARNING_VOLUME:
                     max_volume_warning = 'NOTE! Total dilution volume higher than {}!'.format(MAX_WARNING_VOLUME)
 
-                logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. CSV adjusted by taking {4}uL sample which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
+                logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. CSV adjusted by taking {4}uL sample which is {5}ng and diluting in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                                                                                                                         art_tuple[0]['uri'].location[0].name,
                                                                                                                                                                                                         art_tuple[0]['uri'].location[1],
                                                                                                                                                                                                         "{0:.2f}".format(volume),
@@ -1273,7 +1273,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
                 target_amount = amount_taken/final_volume*total_volume
             else:
                 amount_taken = target_amount = volume * conc
-                logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. Take {4}uL sample which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
+                logContext.write("WARN : Sample {0} located {1} {2} has a LOW pippetting volume: {3}. Take {4}uL sample which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                                                                                                       art_tuple[0]['uri'].location[0].name,
                                                                                                                                                                                       art_tuple[0]['uri'].location[1],
                                                                                                                                                                                       "{0:.2f}".format(volume),
@@ -1287,7 +1287,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             new_volume = min(org_vol, final_volume)
             amount_taken = target_amount = new_volume * conc
             if org_vol <= final_volume:
-                logContext.write("WARN : Sample {0} located {1} {2}  has a HIGHER volume than the original: {3}uL over {4}uL. Take original volume: {4}uL which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
+                logContext.write("WARN : Sample {0} located {1} {2} has a HIGHER volume than the original: {3}uL over {4}uL. Take original volume: {4}uL which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                                                                                                                                              art_tuple[0]['uri'].location[0].name,
                                                                                                                                                                                                                              art_tuple[0]['uri'].location[1],
                                                                                                                                                                                                                              "{0:.2f}".format(volume),
@@ -1296,7 +1296,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
                                                                                                                                                                                                                              "{0:.2f}".format(final_volume),
                                                                                                                                                                                                                              max_volume_warning))
             else:
-                logContext.write("WARN : Sample {0} located {1} {2}  has a HIGHER volume than the total: {3}uL over {4}uL. Take total volume: {4}uL which is {5}ng. {6}\n".format(art_tuple[1]['uri'].samples[0].name,
+                logContext.write("WARN : Sample {0} located {1} {2} has a HIGHER volume than the total: {3}uL over {4}uL. Take total volume: {4}uL which is {5}ng. {6}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                                                                                                   art_tuple[0]['uri'].location[0].name,
                                                                                                                                                                                   art_tuple[0]['uri'].location[1],
                                                                                                                                                                                   "{0:.2f}".format(volume),
