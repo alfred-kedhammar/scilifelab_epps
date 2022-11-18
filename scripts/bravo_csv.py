@@ -795,20 +795,18 @@ def zika_norm(lims, currentStep):
         logging.info("Work done")
 
 def default_bravo(lims, currentStep, with_total_vol=True):
-   
-    # Zika for amplicon normalization
+
+    # Zika for Pico RNA Library prep
     if zika.verify_step(lims, currentStep, 
      target_instrument = "Zika", 
-     target_workflow_prefix = 'Amplicon without RC', 
+     target_workflow_prefix = 'SMARTer Pico RNA Library Prep', 
      target_step = "Setup Workset/Plate"):
-        zika_methods.amp_norm(currentStep, lims)
-
-    # Zika for QIAseq setup
-    elif zika.verify_step(lims, currentStep, 
-     target_instrument = "Zika", 
-     target_workflow_prefix = 'QIAseq miRNA', 
-     target_step = "Setup Workset/Plate"):
-        zika_methods.setup_QIAseq(currentStep, lims)
+        zika_methods.norm(
+            currentStep=currentStep, 
+            lims=lims,
+            volume_expansion=True,
+            multi_aspirate=True 
+            )
 
     else:
         checkTheLog = [False]
