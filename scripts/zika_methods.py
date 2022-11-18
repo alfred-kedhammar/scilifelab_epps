@@ -150,8 +150,8 @@ def norm(
                 tot_vol = r.target_vol
                 buffer_vol = tot_vol - sample_vol
 
-            final_amt = sample_vol * r.conc
-            final_conc = final_amt / tot_vol
+        final_amt = sample_vol * r.conc
+        final_conc = final_amt / tot_vol
 
         # Flag sample in log if deviating by >= 1% from target
         amt_frac = final_amt / r.target_amt
