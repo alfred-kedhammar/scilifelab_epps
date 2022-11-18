@@ -18,8 +18,8 @@ def norm(
     lims=None, 
     local_data=None,        # Fetch sample data from local .tsv instead of LIMS
     user_stats=False,       # Fetch sample conc and vol from the user instead of RC
-    volume_expansion=False, # For samples that are too concentrated, increase target volume to obtain correct conc
-    multi_aspirate=False    # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
+    volume_expansion=True,  # For samples that are too concentrated, increase target volume to obtain correct conc
+    multi_aspirate=True     # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
     ):
     """
     Normalize to target amount and volume.
@@ -58,7 +58,7 @@ def norm(
     if user_stats:
         to_fetch = to_fetch + ["user_conc", "user_vol"]
     else:
-        to_fetch =+ to_fetch + ["conc", "conc_units", "vol"]
+        to_fetch = to_fetch + ["conc", "conc_units", "vol"]
     
     if local_data:
         df = zika.load_fake_samples(local_data, to_fetch)
@@ -151,14 +151,14 @@ def norm(
             final_conc = final_amt / tot_vol
 
         # Flag sample in log if deviating by >= 1% from target
-        target_frac = (final_amt / tot_vol) / (r.target_amt / r.target_vol)
-        if abs(target_frac - 1) >= 0.005:
+        amt_frac = final_amt / r.target_amt
+        if abs(amt_frac - 1) >= 0.005:
             log.append(
                 f"WARNING: Sample {r.sample_name} ({r.conc} ng/ul in {r.vol} ul accessible volume)"
             )
-            log.append(f"\t--> Adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
+            log.append(f"\t--> Transferring {sample_vol} ul, resulting in {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
         else:
-            log.append(f"Sample {r.sample_name} adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
+            log.append(f"Sample {r.sample_name} normalized to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
 
         d["sample_vol"].append(sample_vol)
         d["buffer_vol"].append(buffer_vol)
