@@ -157,11 +157,11 @@ def norm(
         amt_frac = final_amt / r.target_amt
         if abs(amt_frac - 1) >= 0.005:
             log.append(
-                f"WARNING: Sample {r.sample_name} ({r.conc} ng/ul in {r.vol} ul accessible volume)"
+                f"WARNING: Sample {r.sample_name} ({r.conc:.2f} ng/ul in {r.vol:.2f} ul accessible volume)"
             )
-            log.append(f"\t--> Transferring {sample_vol} ul, resulting in {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
+            log.append(f"\t--> Transferring {sample_vol:.2f} ul, resulting in {final_amt:.2f} ng in {tot_vol:.2f} ul ({final_conc:.2f} ng/ul)")
         else:
-            log.append(f"Sample {r.sample_name} normalized to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
+            log.append(f"Sample {r.sample_name} normalized to {final_amt:.2f} ng in {tot_vol:.2f} ul ({final_conc:.2f} ng/ul)")
 
         d["sample_vol"].append(sample_vol)
         d["buffer_vol"].append(buffer_vol)
