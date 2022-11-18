@@ -52,20 +52,23 @@ def fetch_sample_data(currentStep, to_fetch):
     """
 
     key2expr = {
+        # Sample info
         "sample_name": "art_tuple[0]['uri'].name",
-        "source_fc": "art_tuple[0]['uri'].location[0].name",
-        "source_well": "art_tuple[0]['uri'].location[1]",
         "conc_units": "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
         "conc": "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
         "vol": "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
         "amt": "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']",
+        "user_conc": "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
+        "user_vol": "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
+        # Plates and wells
+        "source_fc": "art_tuple[0]['uri'].location[0].name",
+        "source_well": "art_tuple[0]['uri'].location[1]",
+        "dest_fc_name": "art_tuple[1]['uri'].location[0].name",
         "dest_fc": "art_tuple[1]['uri'].location[0].id",
         "dest_well": "art_tuple[1]['uri'].location[1]",
-        "dest_fc_name": "art_tuple[1]['uri'].location[0].name",
+        # Target parameters
         "target_vol": "art_tuple[1]['uri'].udf['Total Volume (uL)']",
-        "target_amt": "art_tuple[1]['uri'].udf['Amount taken (ng)']",
-        "user_conc": "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
-        "user_vol": "art_tuple[0]['uri'].samples[0].udf['Customer Volume']"
+        "target_amt": "art_tuple[1]['uri'].udf['Amount taken (ng)']"
     }
 
     # Verify all target metrics can be found
