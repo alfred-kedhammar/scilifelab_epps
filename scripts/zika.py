@@ -21,6 +21,9 @@ from genologics.entities import Process
 def verify_step(lims, currentStep, target_instrument, target_workflow_prefix, target_step):
     """Verify the instrument, workflow and step for a given process is correct"""
     
+    if currentStep.instrument.name != target_instrument:
+        return False
+        
     checks = []
     for art in currentStep.all_inputs():
         art_check = False
@@ -68,9 +71,13 @@ def fetch_sample_data(currentStep, to_fetch):
         "dest_fc_name": "art_tuple[1]['uri'].location[0].name",
         "dest_fc": "art_tuple[1]['uri'].location[0].id",
         "dest_well": "art_tuple[1]['uri'].location[1]",
-        # Target parameters
-        "target_vol": "art_tuple[1]['uri'].udf['Total Volume (uL)']",
-        "target_amt": "art_tuple[1]['uri'].udf['Amount taken (ng)']"
+        # Target info
+        "target_amt": "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) of RNA that is used as input for library prep
+        "target_vol": "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",    # The actual total dilution volume that is used as input for library prep
+        # Changes to src
+        "amt_taken": "art_tuple[1]['uri'].udf['Amount taken (ng)']",            # The amount (ng) of RNA that is taken from the original sample plate (or the intermediate dilution plate)
+        "vol_taken": "art_tuple[1]['uri'].udf['Total Volume (uL)']",              # The total volume of dilution
+
     }
 
     # Verify all target metrics are keys in key2expr dict

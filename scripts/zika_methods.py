@@ -51,8 +51,11 @@ def norm(
         "dest_well",
         "dest_fc_name",
         # Target info
-        "target_vol",
         "target_amt",
+        "target_vol",
+        # Changes to src
+        "amt_taken",
+        "vol_taken"
     ]
 
     if user_stats:
@@ -168,6 +171,9 @@ def norm(
         if not local_data:
             op = outputs[r.sample_name]
             op.udf['Amount taken (ng)'] = final_amt
+            op.udf['Total Volume (uL)'] = tot_vol
+            if final_amt < r.target_amt:
+                op.udf['Target Amount (ng)'] = final_amt
             op.put()
 
     log.append("\nDone.\n")
