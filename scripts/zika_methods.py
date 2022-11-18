@@ -18,7 +18,8 @@ def norm(
     lims=None, 
     local_data=None,
     user_stats=False,
-    volume_expansion=False):
+    volume_expansion=False
+    ):
     """
     Normalize to target amount and volume.
 
@@ -116,11 +117,6 @@ def norm(
 
             final_amt = sample_vol * r.conc
             final_conc = final_amt / tot_vol
-            
-            log.append(
-                f"WARNING: Insufficient amount of sample {r.sample_name} (conc {r.conc} ng/ul, vol {r.vol} ul)"
-            )
-            log.append(f"\t--> Adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
 
         # 2) Ideal case
         elif r.min_transfer_amt <= r.target_amt <= r.max_transfer_amt:
@@ -150,8 +146,11 @@ def norm(
             final_amt = sample_vol * r.conc
             final_conc = final_amt / tot_vol
 
+        # Flag sample in log if deviating by >= 1% from target
+        target_frac = (final_amt / tot_vol) / (r.target_amt / r.target_vol)
+        if abs(target_frac - 1) >= 0.005:
             log.append(
-                f"WARNING: High concentration of sample {r.sample_name} ({r.conc} ng/ul)"
+                f"WARNING: Sample {r.sample_name} ({r.conc} ng/ul in {r.vol} ul accessible volume)"
             )
             log.append(f"\t--> Adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
 
