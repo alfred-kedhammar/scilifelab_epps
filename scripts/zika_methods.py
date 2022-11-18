@@ -170,10 +170,10 @@ def norm(
         # Change UDFs
         if not local_data:
             op = outputs[r.sample_name]
-            op.udf['Amount taken (ng)'] = f"{final_amt:.2f}"
-            op.udf['Total Volume (uL)'] = f"{tot_vol:.2f}"
+            op.udf['Amount taken (ng)'] = round(final_amt, 2)
+            op.udf['Total Volume (uL)'] = round(tot_vol, 2)
             if final_amt < r.target_amt:
-                op.udf['Target Amount (ng)'] = f"{final_amt:.2f}"
+                op.udf['Target Amount (ng)'] = round(final_amt, 2)
             op.put()
 
     log.append("\nDone.\n")
