@@ -33,10 +33,10 @@ def norm(
                                     Maintain target volume and allow sample to be above target concentration
     """
 
-    # Define constraints
-    zika_min_vol = 0.1
-    well_dead_vol = 5
-    well_max_vol = 15
+    # Define constraints    BRAVO (Assumed)
+    zika_min_vol = 2        # 2
+    well_dead_vol = 0       # 0
+    well_max_vol = 180      # 180
 
 
     # Create dataframe from LIMS or local csv file
