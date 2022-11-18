@@ -54,9 +54,9 @@ def norm(
     ]
 
     if user_stats:
-        to_fetch =+ ["user_conc", "user_vol"]
+        to_fetch = to_fetch + ["user_conc", "user_vol"]
     else:
-        to_fetch =+ ["conc", "conc_units", "vol"]
+        to_fetch =+ to_fetch + ["conc", "conc_units", "vol"]
     
     if local_data:
         df = zika.load_fake_samples(local_data, to_fetch)
@@ -70,10 +70,12 @@ def norm(
         df.rename(columns = {"user_conc" : "conc", "user_vol" : "vol"}, inplace = True)
 
     # Take dead volume into account
+    df["full_vol"] = df.vol.copy()
     df.loc[:,"vol"] = df.vol - well_dead_vol
 
-    assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
-    assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be set greater than zero"
+    if "conc_units" in df.columns:
+        assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
+    assert all(df.target_amt > 0), "Target amount needs to be greater than zero"
     assert all(df.vol > 0), f"Sample volume too low" 
 
 
@@ -153,6 +155,8 @@ def norm(
                 f"WARNING: Sample {r.sample_name} ({r.conc} ng/ul in {r.vol} ul accessible volume)"
             )
             log.append(f"\t--> Adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
+        else:
+            log.append(f"Sample {r.sample_name} adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
 
         d["sample_vol"].append(sample_vol)
         d["buffer_vol"].append(buffer_vol)
