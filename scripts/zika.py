@@ -54,12 +54,14 @@ def fetch_sample_data(currentStep, to_fetch):
     key2expr = {
         # Sample info
         "sample_name": "art_tuple[0]['uri'].name",
+        # User sample info
+        "user_conc": "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
+        "user_vol": "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
+        # RC sample info
         "conc_units": "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
         "conc": "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
         "vol": "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
         "amt": "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']",
-        "user_conc": "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
-        "user_vol": "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
         # Plates and wells
         "source_fc": "art_tuple[0]['uri'].location[0].name",
         "source_well": "art_tuple[0]['uri'].location[1]",
@@ -71,7 +73,7 @@ def fetch_sample_data(currentStep, to_fetch):
         "target_amt": "art_tuple[1]['uri'].udf['Amount taken (ng)']"
     }
 
-    # Verify all target metrics can be found
+    # Verify all target metrics are keys in key2expr dict
     assert all(
         [k in key2expr.keys() for k in to_fetch]
     ), "fetch_sample_data() did not recognize key"
