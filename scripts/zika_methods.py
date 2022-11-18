@@ -13,7 +13,12 @@ import sys
 import numpy as np
 
 
-def setup_QIAseq(currentStep = None, lims = None, local_data = None):
+def norm(
+    currentStep=None, 
+    lims=None, 
+    local_data=None,
+    user_stats=False,
+    volume_expansion=False):
     """
     Normalize to target amount and volume.
 
@@ -30,15 +35,12 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     well_dead_vol = 5
     well_max_vol = 15
 
-    # Create dataframe from lims or local csv file
-    
+
+    # Create dataframe from LIMS or local csv file
+
     to_fetch = [
         # Sample info
         "sample_name",
-        "conc",
-        "conc_units",
-        "vol",
-        "amt",
         # Plates and positions
         "source_fc",
         "source_well",
@@ -49,11 +51,22 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
         "target_vol",
         "target_amt",
     ]
+
+    if user_stats:
+        to_fetch =+ ["user_conc", "user_vol"]
+    else:
+        to_fetch =+ ["conc", "conc_units", "vol"]
     
     if local_data:
         df = zika.load_fake_samples(local_data, to_fetch)
     else:
         df = zika.fetch_sample_data(currentStep, to_fetch)
+
+
+    # Modify and assert fetched data
+    
+    if user_stats:
+        df.rename(columns = {"user_conc" : "conc", "user_vol" : "vol"}, inplace = True)
 
     # Take dead volume into account
     df.loc[:,"vol"] = df.vol - well_dead_vol
@@ -61,6 +74,7 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
     assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
     assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be set greater than zero"
     assert all(df.vol > 0), f"Sample volume too low" 
+
 
     # Make calculations
     df["target_conc"] = df.target_amt / df.target_vol
@@ -108,11 +122,6 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
             )
             log.append(f"\t--> Adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
 
-            if not local_data:
-                op = outputs[r.sample_name]
-                op.udf['Amount taken (ng)'] = final_amt
-                op.put()
-
         # 2) Ideal case
         elif r.min_transfer_amt <= r.target_amt <= r.max_transfer_amt:
 
@@ -123,14 +132,20 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
         # 3) Sample too concentrated -> Increase final volume if possible
         elif r.min_transfer_amt > r.target_amt:
 
-            increased_vol = r.min_transfer_amt / r.target_conc
-            assert (
-                increased_vol <= well_max_vol
-            ), f"Sample {r.name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
+            if volume_expansion:
+                increased_vol = r.min_transfer_amt / r.target_conc
+                assert (
+                    increased_vol <= well_max_vol
+                ), f"Sample {r.name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
 
-            tot_vol = increased_vol
-            sample_vol = zika_min_vol
-            buffer_vol = tot_vol - sample_vol
+                tot_vol = increased_vol
+                sample_vol = zika_min_vol
+                buffer_vol = tot_vol - sample_vol
+
+            else:
+                sample_vol = zika_min_vol
+                tot_vol = r.target_vol
+                buffer_vol = tot_vol - sample_vol
 
             final_amt = sample_vol * r.conc
             final_conc = final_amt / tot_vol
@@ -139,15 +154,16 @@ def setup_QIAseq(currentStep = None, lims = None, local_data = None):
                 f"WARNING: High concentration of sample {r.sample_name} ({r.conc} ng/ul)"
             )
             log.append(f"\t--> Adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
-            
-            if not local_data:
-                op = outputs[r.sample_name]
-                op.udf['Total Volume (uL)'] = tot_vol
-                op.put()
 
         d["sample_vol"].append(sample_vol)
         d["buffer_vol"].append(buffer_vol)
         d["tot_vol"].append(tot_vol)
+
+        # Change UDFs
+        if not local_data:
+            op = outputs[r.sample_name]
+            op.udf['Amount taken (ng)'] = final_amt
+            op.put()
 
     log.append("\nDone.\n")
     df = df.join(pd.DataFrame(d))
