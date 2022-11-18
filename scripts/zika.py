@@ -235,12 +235,11 @@ def get_filenames(method_name, pid):
     return wl_filename, log_filename
 
 
-def write_worklist(df, deck, wl_filename, comments=None, strategy=None):
+def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
     """
     Write a Mosquito-interpretable advanced worklist.
 
-    Strategies (optional):
-    multi-aspirate -- If a buffer transfer is followed by a sample transfer
+    multi_aspirate -- If a buffer transfer is followed by a sample transfer
                       to the same well, and the sum of their volumes
                       is <= 5000 nl, use multi-aspiration.
     """
@@ -252,7 +251,7 @@ def write_worklist(df, deck, wl_filename, comments=None, strategy=None):
     # Default transfer type is simple copy
     df["transfer_type"] = "COPY"
 
-    if strategy == "multi-aspirate":
+    if multi_aspirate:
         filter = np.all(
             [
                 # Use multi-aspirate IF...

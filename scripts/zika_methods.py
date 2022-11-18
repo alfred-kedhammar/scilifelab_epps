@@ -16,9 +16,10 @@ import numpy as np
 def norm(
     currentStep=None, 
     lims=None, 
-    local_data=None,
-    user_stats=False,
-    volume_expansion=False
+    local_data=None,        # Fetch sample data from local .tsv instead of LIMS
+    user_stats=False,       # Fetch sample conc and vol from the user instead of RC
+    volume_expansion=False, # For samples that are too concentrated, increase target volume to obtain correct conc
+    multi_aspirate=False    # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
     ):
     """
     Normalize to target amount and volume.
@@ -26,9 +27,10 @@ def norm(
     Cases:
     1) Not enough sample       --> Decrease amount, flag
     2) Enough sample           --> OK
-    3) Sample too concentrated --> Maintain target concentration, increase
-                                   volume as needed up to max 15 ul, otherwise
-                                   throw error and dilute manually.
+    3) Sample too concentrated --> if volume_expansion:
+                                    Increase volume to obtain target concentration
+                                   else:
+                                    Maintain target volume and allow sample to be above target concentration
     """
 
     # Define constraints
@@ -187,7 +189,7 @@ def norm(
         deck=deck,
         wl_filename=wl_filename,
         comments=comments,
-        strategy="multi-aspirate",
+        multi_aspirate=multi_aspirate,
     )
 
     zika.write_log(log, log_filename)
