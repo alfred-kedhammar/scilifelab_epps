@@ -663,7 +663,8 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         targets = [
             ('SMARTer Pico RNA', "Setup Workset/Plate"),
             ("TruSeq RNA", "Setup Workset/Plate"),
-            ("QIAseq miRNA", "Setup Workset/Plate")
+            ("QIAseq miRNA", "Setup Workset/Plate"),
+            ("Amplicon", "Setup Workset/Plate")
         ]
         ):
         zika_methods.norm(
