@@ -13,9 +13,6 @@ Written by Alfred Kedhammar
 import pandas as pd
 import numpy as np
 from datetime import datetime as dt
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process
 
 
 def verify_step(currentStep, targets):
@@ -65,19 +62,25 @@ def fetch_sample_data(currentStep, to_fetch):
         "dest_fc_name": "art_tuple[1]['uri'].location[0].name",
         "dest_fc": "art_tuple[1]['uri'].location[0].id",
         "dest_well": "art_tuple[1]['uri'].location[1]",
-        # Target info
+        # Target info: 
+        "amt_taken": "art_tuple[1]['uri'].udf['Amount taken (ng)']",            # The amount (ng) of RNA that is taken from the original sample plate
+        "vol_taken": "art_tuple[1]['uri'].udf['Total Volume (uL)']",            # The total volume of dilution
         "target_amt": "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) of RNA that is used as input for library prep
         "target_vol": "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",    # The actual total dilution volume that is used as input for library prep
-        # Changes to src
-        "amt_taken": "art_tuple[1]['uri'].udf['Amount taken (ng)']",            # The amount (ng) of RNA that is taken from the original sample plate (or the intermediate dilution plate)
-        "vol_taken": "art_tuple[1]['uri'].udf['Total Volume (uL)']",              # The total volume of dilution
+    }
 
+    replacement_stats = {
+        # If target amt / vol is not stated, use synonymously with amt / vol taken
+        "target_amt": "amt_taken",
+        "target_vol": "vol_taken",
+        # If conc / vol is missing, use the user-supplied values
+        "conc": "user_conc",
+        "vol": "user_vol"
     }
 
     # Verify all target metrics are keys in key2expr dict
-    assert all(
-        [k in key2expr.keys() for k in to_fetch]
-    ), "fetch_sample_data() did not recognize key"
+    for k in to_fetch:
+        assert k in key2expr.keys(), f"fetch_sample_data() is missing a definition for key {k}"
 
     # Fetch all input/output sample tuples
     art_tuples = [
@@ -90,7 +93,20 @@ def fetch_sample_data(currentStep, to_fetch):
     for art_tuple in art_tuples:
         key2val = {}
         for k in to_fetch:
-            key2val[k] = eval(key2expr[k])
+            
+            try:
+                key2val[k] = eval(key2expr[k])
+            # If a value is missing
+            except KeyError:
+                # try replacing it
+                if k in replacement_stats:
+                    key2val[k] = eval(key2expr[replacement_stats[k]])
+                # or assume conc units are ng/ul
+                elif k == "conc_units":
+                    pass
+                else:
+                    raise
+
         l.append(key2val)
 
     # Compile to dataframe

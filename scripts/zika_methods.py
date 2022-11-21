@@ -12,7 +12,6 @@ import pandas as pd
 import sys
 import numpy as np
 
-
 def norm(
     currentStep=None, 
     lims=None, 
@@ -33,46 +32,40 @@ def norm(
                                     Maintain target volume and allow sample to be above target concentration
     """
 
-    # Define constraints    BRAVO (Assumed)
-    zika_min_vol = 2        # 2
-    well_dead_vol = 0       # 0
-    well_max_vol = 180      # 180
-
+    # Define constraints    # Zika  BRAVO (Assumed)
+    zika_min_vol = 2        # 0.1   2
+    well_dead_vol = 0       # 0.5   0
+    well_max_vol = 180      # 15    180
 
     # Create dataframe from LIMS or local csv file
 
     to_fetch = [
         # Sample info
         "sample_name",
+        "conc",
+        "conc_units",
+        "vol",
+        # User sample info
+        "user_conc",
+        "user_vol",
         # Plates and positions
         "source_fc",
         "source_well",
         "dest_fc",
         "dest_well",
         "dest_fc_name",
-        # Target info
-        "target_amt",
-        "target_vol",
         # Changes to src
         "amt_taken",
-        "vol_taken"
+        "vol_taken",
+        # Target info
+        "target_amt",
+        "target_vol"
     ]
-
-    if user_stats:
-        to_fetch = to_fetch + ["user_conc", "user_vol"]
-    else:
-        to_fetch = to_fetch + ["conc", "conc_units", "vol"]
     
     if local_data:
         df = zika.load_fake_samples(local_data, to_fetch)
     else:
         df = zika.fetch_sample_data(currentStep, to_fetch)
-
-
-    # Modify and assert fetched data
-    
-    if user_stats:
-        df.rename(columns = {"user_conc" : "conc", "user_vol" : "vol"}, inplace = True)
 
     # Take dead volume into account
     df["full_vol"] = df.vol.copy()
