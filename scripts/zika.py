@@ -18,10 +18,10 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 
 
-def verify_step(currentStep, target_instrument, wfs_steps):
+def verify_step(currentStep, wfs_steps):
     """Verify the instrument, workflow and step for a given process is correct"""
     
-    if currentStep.instrument.name != target_instrument:
+    if currentStep.instrument.name != "Zika":
         return False
 
     # For each of the workflow:step combinations, return True if all samples belong
