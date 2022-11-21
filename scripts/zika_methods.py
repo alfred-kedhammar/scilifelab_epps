@@ -45,7 +45,7 @@ def norm(
         "Applied dead volume (ul)" : well_dead_vol,
         "Maximum allowed dst well volume (ul)" : well_max_vol
     }.items():
-        log.append(": ".join([k,str(v)]))
+        log.append(": ".join([k,str(v)]) + "\n")
 
     # Create dataframe from LIMS or local csv file
 

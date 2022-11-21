@@ -106,7 +106,7 @@ def fetch_sample_data(currentStep, to_fetch, log):
 
                     missing_udf = key2expr[k].split("\'")[-2]
                     replacement_udf = key2expr[replacement_stats[k]].split("\'")[-2]
-                    msg = f"'UDF {missing_udf}' not found, using '{replacement_udf} instead'"
+                    msg = f"'UDF {missing_udf}' not found, using '{replacement_udf}' instead"
                     if msg not in replacements:
                         replacements.append(msg)
                         log.append(msg)
@@ -123,6 +123,7 @@ def fetch_sample_data(currentStep, to_fetch, log):
     # Compile to dataframe
     df = pd.DataFrame(l)
 
+    log.append("\n")
     return df
 
 
@@ -223,7 +224,7 @@ def resolve_buffer_transfers(df, buffer_strategy):
     df.loc[df["src_type"] == "buffer", "source_fc"] = "buffer_plate"
 
     # Assign buffer source wells
-    if buffer_strategy == "column":
+    if buffer_strategy == "first_column":
         # Keep rows, but only use column 1
         df.loc[df["src_type"] == "buffer", "source_well"] = df.loc[
             df["src_type"] == "buffer", "source_well"
