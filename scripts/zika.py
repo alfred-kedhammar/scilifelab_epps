@@ -39,7 +39,7 @@ def verify_step(currentStep, targets):
         return False
         
 
-def fetch_sample_data(currentStep, to_fetch):
+def fetch_sample_data(currentStep, to_fetch, log):
     """
     Within this function is the dictionary key2expr, its keys being the given name of a particular piece of information linked to a transfer input/output sample and it's values being the string that when evaluated will yield the desired info from whatever the variable "art_tuple" is currently pointing at. 
     Given the positional arguments of a LIMS transfer process and a list of keys, it will return a dataframe containing the information fetched from each transfer based on the keys.
@@ -90,6 +90,7 @@ def fetch_sample_data(currentStep, to_fetch):
 
     # Fetch all target data
     l = []
+    replacements = []
     for art_tuple in art_tuples:
         key2val = {}
         for k in to_fetch:
@@ -98,12 +99,22 @@ def fetch_sample_data(currentStep, to_fetch):
                 key2val[k] = eval(key2expr[k])
             # If a value is missing
             except KeyError:
+                
                 # try replacing it
                 if k in replacement_stats:
                     key2val[k] = eval(key2expr[replacement_stats[k]])
+
+                    missing_udf = key2expr[k].split("\'")[-2]
+                    replacement_udf = key2expr[replacement_stats[k]].split("\'")[-2]
+                    msg = f"'{missing_udf}' not found, replacing with '{replacement_udf}'"
+                    if msg not in replacements:
+                        replacements.append(msg)
+                        log.append(msg)
+
                 # or assume conc units are ng/ul
                 elif k == "conc_units":
                     pass
+                
                 else:
                     raise
 

@@ -31,6 +31,10 @@ def norm(
                                     Maintain target volume and allow sample to be above target concentration
     """
 
+    # Write log header
+    log = []
+    log.append("Log start\n")
+
     # Define constraints    # Zika  BRAVO   Comment
     zika_min_vol = 0.1      # 0.1   2       0.5 lowest validated, 0.1 lowest possible
     well_dead_vol = 5       # 5     0       5 ul generous estimate of dead volume in TwinTec96
@@ -64,7 +68,7 @@ def norm(
     if local_data:
         df = zika.load_fake_samples(local_data, to_fetch)
     else:
-        df = zika.fetch_sample_data(currentStep, to_fetch)
+        df = zika.fetch_sample_data(currentStep, to_fetch, log)
 
     # Take dead volume into account
     df["full_vol"] = df.vol.copy()
@@ -89,10 +93,6 @@ def norm(
         df.source_fc.unique()[0]: 3,
         df.dest_fc.unique()[0]: 4,
     }
-
-    # Write log header
-    log = []
-    log.append("Log start\n")
 
     # Comments to attach to the worklist header
     comments = []
