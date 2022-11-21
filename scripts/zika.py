@@ -27,7 +27,7 @@ def verify_step(currentStep, targets):
     sample_bools = []
     for art in currentStep.all_inputs():
 
-        # For each sample, check whether there is any active process whose workflow-step touple matches any in the target list
+        # For each sample, check whether there is any active process that matches any in the target list
         sample_bools.append(any([
             status == "IN_PROGRESS" and any(
                 target_wf_prefix in wf.workflow.name and step == target_step 
