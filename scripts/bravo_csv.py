@@ -669,9 +669,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         ):
         zika_methods.norm(
             currentStep=currentStep, 
-            lims=lims,
-            volume_expansion=True,
-            multi_aspirate=True 
+            lims=lims
             )
 
     else:
