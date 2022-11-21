@@ -18,34 +18,40 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 
 
-def verify_step(lims, currentStep, target_instrument, target_workflow_prefix, target_step):
+def verify_step(currentStep, target_instrument, wfs_steps):
     """Verify the instrument, workflow and step for a given process is correct"""
     
     if currentStep.instrument.name != target_instrument:
         return False
-        
-    checks = []
-    for art in currentStep.all_inputs():
-        art_check = False
-        for wf_tuple in art.workflow_stages_and_statuses:
+
+    # For each of the workflow:step combinations, return True if all samples belong
+    for wf_prefix, step in wfs_steps:
+
+        sample_bools = []
+        for art in currentStep.all_inputs():
             
-            wf_name = wf_tuple[0].workflow.name
-            status = wf_tuple[1]
-            step_name = wf_tuple[2]
+            sample_bool = False
+            for wf_tuple in art.workflow_stages_and_statuses:
+                
+                wf_name = wf_tuple[0].workflow.name
+                status = wf_tuple[1]
+                step_name = wf_tuple[2]
 
-            if                 status == "IN_PROGRESS" and \
-               target_workflow_prefix in wf_name and \
-                          target_step == step_name:
-                    
-                    art_check = True
-                    break
+                if status == "IN_PROGRESS" and \
+                    wf_prefix in wf_name and \
+                    step == step_name:
+                        
+                        sample_bool = True
+                        break
 
-        checks.append(art_check)
+            sample_bools.append(sample_bool)
 
-    if all(checks):
-        return True
-    else:
-        return False
+        if all(sample_bools):
+            return True
+        else:
+            continue
+    
+    return False
         
 
 def fetch_sample_data(currentStep, to_fetch):
