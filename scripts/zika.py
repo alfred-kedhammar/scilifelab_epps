@@ -247,7 +247,7 @@ def get_filenames(method_name, pid):
     timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
     wl_filename = "_".join(["zika_worklist", method_name, pid, timestamp]) + ".csv"
-    log_filename = "_".join(["zika_log", method_name, pid, timestamp]) + ".csv"
+    log_filename = "_".join(["zika_log", method_name, pid, timestamp]) + ".log"
 
     return wl_filename, log_filename
 
