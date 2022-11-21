@@ -15,9 +15,13 @@ import numpy as np
 def norm(
     currentStep=None, 
     lims=None, 
-    local_data=None,        # Fetch sample data from local .tsv instead of LIMS
-    volume_expansion=True,  # For samples that are too concentrated, increase target volume to obtain correct conc
-    multi_aspirate=True     # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
+    local_data=None,                # Fetch sample data from local .tsv instead of LIMS
+    buffer_strategy="first_column", # Use first column of buffer plate as reservoir
+    volume_expansion=True,          # For samples that are too concentrated, increase target volume to obtain correct conc
+    multi_aspirate=True,            # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
+    zika_min_vol=0.1,               # 0.5 lowest validated, 0.1 lowest possible
+    well_dead_vol=5,                # 5 ul generous estimate of dead volume in TwinTec96
+    well_max_vol=15                 # 15 ul max well vol enables single-column buffer reservoir
     ):
     """
     Normalize to target amount and volume.
@@ -34,11 +38,14 @@ def norm(
     # Write log header
     log = []
     log.append("Log start\n")
-
-    # Define constraints    # Zika  BRAVO   Comment
-    zika_min_vol = 0.1      # 0.1   2       0.5 lowest validated, 0.1 lowest possible
-    well_dead_vol = 5       # 5     0       5 ul generous estimate of dead volume in TwinTec96
-    well_max_vol = 15       # 15    180     15 ul max well vol enables single-column buffer reservoir
+    for k,v in {
+        "Expand volume to obtain target conc" : volume_expansion,
+        "Multi-aspirate buffer-sample" : multi_aspirate, 
+        "Minimum pipetting volume (ul)" : zika_min_vol,
+        "Applied dead volume (ul)" : well_dead_vol,
+        "Maximum allowed dst well volume (ul)" : well_max_vol
+    }.items():
+        log.append(": ".join([k,str(v)]))
 
     # Create dataframe from LIMS or local csv file
 
@@ -97,7 +104,8 @@ def norm(
     # Comments to attach to the worklist header
     comments = []
     n_samples = len(df)
-    comments = [f"This worklist will enact normalization of {n_samples} samples"]
+    comments.append(f"This worklist will enact normalization of {n_samples} samples")
+    comments.append("For detailed parameters see the worklist log")
 
     # Load outputs for changing UDF:s
     if not local_data:
@@ -172,7 +180,7 @@ def norm(
     df = df.join(pd.DataFrame(d))
 
     # Resolve buffer transfers
-    df = zika.resolve_buffer_transfers(df, buffer_strategy="column")
+    df = zika.resolve_buffer_transfers(df, buffer_strategy=buffer_strategy)
 
     # Format worklist
     df = zika.format_worklist(df, deck=deck, split_transfers=True)
