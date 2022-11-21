@@ -796,7 +796,7 @@ def zika_norm(lims, currentStep):
 
 def default_bravo(lims, currentStep, with_total_vol=True):
 
-    # Zika for Pico RNA Library prep
+    # Re-route to Zika
     if zika.verify_step(
         currentStep, 
         targets = [
