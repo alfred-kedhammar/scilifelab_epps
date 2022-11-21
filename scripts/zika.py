@@ -18,40 +18,30 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 
 
-def verify_step(currentStep, wfs_steps):
+def verify_step(currentStep, targets):
     """Verify the instrument, workflow and step for a given process is correct"""
     
     if currentStep.instrument.name != "Zika":
         return False
 
-    # For each of the workflow:step combinations, return True if all samples belong
-    for wf_prefix, step in wfs_steps:
+    sample_bools = []
+    # For every sample of the current step
+    for art in currentStep.all_inputs():
 
-        sample_bools = []
-        for art in currentStep.all_inputs():
-            
-            sample_bool = False
-            for wf_tuple in art.workflow_stages_and_statuses:
-                
-                wf_name = wf_tuple[0].workflow.name
-                status = wf_tuple[1]
-                step_name = wf_tuple[2]
-
-                if status == "IN_PROGRESS" and \
-                    wf_prefix in wf_name and \
-                    step == step_name:
-                        
-                        sample_bool = True
-                        break
-
-            sample_bools.append(sample_bool)
-
-        if all(sample_bools):
-            return True
-        else:
-            continue
-    
-    return False
+        sample_bools.append(any(
+            [
+                status == "IN_PROGRESS" and any(
+                    target_wf_prefix in wf.workflow.name and step == target_step 
+                    for target_wf_prefix, target_step in targets
+                    ) 
+                    for wf, status, step in art.workflow_stages_and_statuses
+                ]
+            ))
+        
+    if all(sample_bools):
+        return True
+    else:
+        return False
         
 
 def fetch_sample_data(currentStep, to_fetch):
