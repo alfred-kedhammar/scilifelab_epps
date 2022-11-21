@@ -106,7 +106,7 @@ def fetch_sample_data(currentStep, to_fetch, log):
 
                     missing_udf = key2expr[k].split("\'")[-2]
                     replacement_udf = key2expr[replacement_stats[k]].split("\'")[-2]
-                    msg = f"'{missing_udf}' not found, replacing with '{replacement_udf}'"
+                    msg = f"'UDF {missing_udf}' not found, using '{replacement_udf} instead'"
                     if msg not in replacements:
                         replacements.append(msg)
                         log.append(msg)
