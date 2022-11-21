@@ -798,8 +798,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
 
     # Zika for Pico RNA Library prep
     if zika.verify_step(lims, currentStep, 
-     target_instrument = "Zika", 
-     wf2step = [
+     wfs_steps = [
         ('SMARTer Pico RNA', "Setup Workset/Plate"),
         ("TreSeq RNA", "Setup Workset/Plate"),
         ("QIAseq miRNA", "Setup Workset/Plate")
