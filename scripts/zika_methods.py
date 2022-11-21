@@ -16,7 +16,6 @@ def norm(
     currentStep=None, 
     lims=None, 
     local_data=None,        # Fetch sample data from local .tsv instead of LIMS
-    user_stats=False,       # Fetch sample conc and vol from the user instead of RC
     volume_expansion=True,  # For samples that are too concentrated, increase target volume to obtain correct conc
     multi_aspirate=True     # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
     ):
@@ -34,7 +33,7 @@ def norm(
 
     # Define constraints    # Zika  BRAVO (Assumed)
     zika_min_vol = 2        # 0.1   2
-    well_dead_vol = 0       # 0.5   0
+    well_dead_vol = 0       # 5     0
     well_max_vol = 180      # 15    180
 
     # Create dataframe from LIMS or local csv file
@@ -83,6 +82,7 @@ def norm(
     df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
 
     # Define deck
+    df.loc[:,"source_fc"] = df.source_fc[0]
     assert len(df.source_fc.unique()) == 1, "Only one input plate allowed"
     assert len(df.dest_fc.unique()) == 1, "Only one output plate allowed"
     deck = {
@@ -179,7 +179,7 @@ def norm(
     df = zika.format_worklist(df, deck=deck, split_transfers=True)
 
     # Write files
-    method_name = "setup_QIAseq"
+    method_name = "norm"
     pid = "local" if local_data else currentStep.id
     wl_filename, log_filename = zika.get_filenames(method_name, pid)
 
