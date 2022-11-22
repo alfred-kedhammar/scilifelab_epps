@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20221122.1
+Also support two new UDFs for the QIAseq miRNA and Amplicon workflows for Bravo
+
 ## 20221121.1
 Large update in functionality of Zika code. Accomodate two new UDFs and enable usage in the non-validated methods SMARTer PicoRNA, QIAseq miRNA and amplicon normalization.
 
