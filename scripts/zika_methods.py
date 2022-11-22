@@ -12,47 +12,84 @@ import pandas as pd
 import sys
 import numpy as np
 
-
-def setup_QIAseq(currentStep, lims):
+def norm(
+    currentStep=None, 
+    lims=None, 
+    local_data=None,                # Fetch sample data from local .tsv instead of LIMS
+    buffer_strategy="first_column", # Use first column of buffer plate as reservoir
+    volume_expansion=True,          # For samples that are too concentrated, increase target volume to obtain correct conc
+    multi_aspirate=True,            # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
+    zika_min_vol=0.1,               # 0.5 lowest validated, 0.1 lowest possible
+    well_dead_vol=5,                # 5 ul generous estimate of dead volume in TwinTec96
+    well_max_vol=15                 # 15 ul max well vol enables single-column buffer reservoir
+    ):
     """
     Normalize to target amount and volume.
 
     Cases:
     1) Not enough sample       --> Decrease amount, flag
     2) Enough sample           --> OK
-    3) Sample too concentrated --> Maintain target concentration, increase
-                                   volume as needed up to max 15 ul, otherwise
-                                   throw error and dilute manually.
+    3) Sample too concentrated --> if volume_expansion:
+                                    Increase volume to obtain target concentration
+                                   else:
+                                    Maintain target volume and allow sample to be above target concentration
     """
 
-    # Create dataframe
+    # Write log header
+    log = []
+    log.append("Log start\n")
+    for k,v in {
+        "Expand volume to obtain target conc" : volume_expansion,
+        "Multi-aspirate buffer-sample" : multi_aspirate, 
+        "Minimum pipetting volume (ul)" : zika_min_vol,
+        "Applied dead volume (ul)" : well_dead_vol,
+        "Maximum allowed dst well volume (ul)" : well_max_vol
+    }.items():
+        log.append(": ".join([k,str(v)]) + "\n")
+
+    # Create dataframe from LIMS or local csv file
+
     to_fetch = [
+        # Sample info
         "sample_name",
+        "conc",
+        "conc_units",
+        "vol",
+        # User sample info
+        "user_conc",
+        "user_vol",
+        # Plates and positions
         "source_fc",
         "source_well",
-        "conc_units",
-        "conc",
-        "vol",
-        "amt",
         "dest_fc",
         "dest_well",
         "dest_fc_name",
-        "target_vol",
+        # Changes to src
+        "amt_taken",
+        "vol_taken",
+        # Target info
         "target_amt",
+        "target_vol"
     ]
     
-    df = zika.fetch_sample_data(currentStep, to_fetch)
-    assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
-    assert all(df.target_amt > 0), "'Amount taken (ng)' needs to be set greater than zero"
-    assert all(df.vol > 0), "Sample volume needs to be greater than zero" 
+    if local_data:
+        df = zika.load_fake_samples(local_data, to_fetch)
+    else:
+        df = zika.fetch_sample_data(currentStep, to_fetch, log)
 
-    # Define constraints
-    min_zika_vol = 0.1
-    max_final_vol = 15
+    # Take dead volume into account
+    df["full_vol"] = df.vol.copy()
+    df.loc[:,"vol"] = df.vol - well_dead_vol
+
+    if "conc_units" in df.columns:
+        assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
+    assert all(df.target_amt > 0), "Target amount needs to be greater than zero"
+    assert all(df.vol > 0), f"Sample volume too low" 
+
 
     # Make calculations
     df["target_conc"] = df.target_amt / df.target_vol
-    df["min_transfer_amt"] = np.minimum(df.vol, min_zika_vol) * df.conc
+    df["min_transfer_amt"] = np.minimum(df.vol, zika_min_vol) * df.conc
     df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
 
     # Define deck
@@ -64,12 +101,18 @@ def setup_QIAseq(currentStep, lims):
         df.dest_fc.unique()[0]: 4,
     }
 
-    # Load outputs for changing UDF:s
-    outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
+    # Comments to attach to the worklist header
+    comments = []
+    n_samples = len(df)
+    comments.append(f"This worklist will enact normalization of {n_samples} samples")
+    comments.append("For detailed parameters see the worklist log")
 
-    # Cases 1) - 3)
-    d = {"sample": [], "buffer": [], "tot_vol": []}
-    log = []
+    # Load outputs for changing UDF:s
+    if not local_data:
+        outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
+
+    # Cases
+    d = {"sample_vol": [], "buffer_vol": [], "tot_vol": []}
     for i, r in df.iterrows():
 
         # 1) Not enough sample
@@ -81,15 +124,6 @@ def setup_QIAseq(currentStep, lims):
 
             final_amt = sample_vol * r.conc
             final_conc = final_amt / tot_vol
-            
-            log.append(
-                f"WARNING: Insufficient amount of sample {r.sample_name} (conc {r.conc} ng/ul, vol {r.vol} ul)"
-            )
-            log.append(f"\t--> Adjusted to {final_amt} ng in {tot_vol} ul ({final_conc} ng/ul)")
-
-            op = outputs[r.sample_name]
-            op.udf['Amount taken (ng)'] = final_amt
-            op.put()
 
         # 2) Ideal case
         elif r.min_transfer_amt <= r.target_amt <= r.max_transfer_amt:
@@ -101,61 +135,82 @@ def setup_QIAseq(currentStep, lims):
         # 3) Sample too concentrated -> Increase final volume if possible
         elif r.min_transfer_amt > r.target_amt:
 
-            increased_vol = r.min_transfer_amt / r.target_conc
-            assert (
-                increased_vol < max_final_vol
-            ), f"Sample {r.name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
+            if volume_expansion:
+                increased_vol = r.min_transfer_amt / r.target_conc
+                assert (
+                    increased_vol <= well_max_vol
+                ), f"Sample {r.name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
 
-            tot_vol = increased_vol
-            sample_vol = min_zika_vol
-            buffer_vol = tot_vol - sample_vol
+                tot_vol = increased_vol
+                sample_vol = zika_min_vol
+                buffer_vol = tot_vol - sample_vol
 
-            final_amt = sample_vol * r.conc
-            final_conc = final_amt / tot_vol
+            else:
+                sample_vol = zika_min_vol
+                tot_vol = r.target_vol
+                buffer_vol = tot_vol - sample_vol
 
+        final_amt = sample_vol * r.conc
+        final_conc = final_amt / tot_vol
+
+        # Flag sample in log if deviating by >= 1% from target
+        amt_frac = final_amt / r.target_amt
+        if abs(amt_frac - 1) >= 0.005:
             log.append(
-                f"WARNING: High concentration of sample {r.sample_name} ({r.conc} ng/ul)"
+                f"WARNING: Sample {r.sample_name} ({r.conc:.2f} ng/ul in {r.vol:.2f} ul accessible volume)"
             )
-            log.append(f"\t--> Adjusted to {final_amt} in {tot_vol} ul ({final_conc} ng/ul)")
-            
-            op = outputs[r.sample_name]
-            op.udf['Total Volume (uL)'] = tot_vol
-            op.put()
+            log.append(f"\t--> Transferring {sample_vol:.2f} ul, resulting in {final_amt:.2f} ng in {tot_vol:.2f} ul ({final_conc:.2f} ng/ul)")
+        else:
+            log.append(f"Sample {r.sample_name} normalized to {final_amt:.2f} ng in {tot_vol:.2f} ul ({final_conc:.2f} ng/ul)")
 
-        d["sample"].append(sample_vol)
-        d["buffer"].append(buffer_vol)
+        d["sample_vol"].append(sample_vol)
+        d["buffer_vol"].append(buffer_vol)
         d["tot_vol"].append(tot_vol)
 
+        # Change UDFs
+        if not local_data:
+            op = outputs[r.sample_name]
+            op.udf['Amount taken (ng)'] = round(final_amt, 2)
+            op.udf['Total Volume (uL)'] = round(tot_vol, 2)
+            if final_amt < r.target_amt:
+                op.udf['Target Amount (ng)'] = round(final_amt, 2)
+            op.put()
+
+    log.append("\nDone.\n")
     df = df.join(pd.DataFrame(d))
 
     # Resolve buffer transfers
-    df = zika.resolve_buffer_transfers(df, buffer_strategy="column")
+    df = zika.resolve_buffer_transfers(df, buffer_strategy=buffer_strategy)
 
-    # Generate Mosquito-readable columns
-    df = zika.format_worklist(df, deck=deck)
+    # Format worklist
+    df = zika.format_worklist(df, deck=deck, split_transfers=True)
 
-    # Comments to attach to the worklist header
-    n_samples = len(df[df.src_type == "sample"])
-    comments = [f"This worklist will enact normalization of {n_samples} samples"]
-
-    # Write files and upload
-    method_name = "setup_QIAseq"
-    wl_filename, log_filename = zika.get_filenames(method_name, currentStep.id)
+    # Write files
+    method_name = "norm"
+    pid = "local" if local_data else currentStep.id
+    wl_filename, log_filename = zika.get_filenames(method_name, pid)
 
     zika.write_worklist(
         df=df,
         deck=deck,
         wl_filename=wl_filename,
         comments=comments,
-        strategy="multi-aspirate",
+        multi_aspirate=multi_aspirate,
     )
 
-    zika.upload_log(currentStep, lims, log, log_filename)
-    zika.upload_csv(currentStep, lims, wl_filename)
+    zika.write_log(log, log_filename)
 
-    # Issue warnings, if any
-    if any("WARNING:" in entry for entry in log):
-        sys.stderr.write(
-            "CSV-file generated with warnings, please check the Log file\n"
-        )
-        sys.exit(2)
+    # Upload files
+    if not local_data:
+        zika.upload_csv(currentStep, lims, wl_filename)
+        zika.upload_log(currentStep, lims, log_filename)
+
+        # Issue warnings, if any
+        if any("WARNING:" in entry for entry in log):
+            sys.stderr.write(
+                "CSV-file generated with warnings, please check the Log file\n"
+            )
+            sys.exit(2)
+
+    return wl_filename, log_filename
+

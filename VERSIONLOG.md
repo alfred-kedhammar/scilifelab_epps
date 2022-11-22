@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20221121.1
+Large update in functionality of Zika code. Accomodate two new UDFs and enable usage in the non-validated methods SMARTer PicoRNA, QIAseq miRNA and amplicon normalization.
+
 ## 20221116.2
 Refactor of the default_bravo and calc_vol functions for bravo_csv to include two new UDFs
 
