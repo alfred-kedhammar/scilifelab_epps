@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20221123.1
+New EPP for calculating cell or nuclei conc for the new 10X Chromium workflow
+
 ## 20221122.1
 Also support two new UDFs for the QIAseq miRNA and Amplicon workflows for Bravo
 
