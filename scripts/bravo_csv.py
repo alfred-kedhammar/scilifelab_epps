@@ -421,7 +421,7 @@ def zika_wl(df, zika_max_vol, file_meta, pool_info):
 
             if i != 1:
                 csvContext.write("PAUSE, 0\n")
-            csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc) + "\n")
+            csvContext.write("COMMENT, Set up layout {}:    ".format(i) + "     ".join(deck.src_fc.str.replace(",","")) + "\n")
 
             # Write sample transfers
             wl_current = wl_sample[wl_sample.layout == i]
