@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20221215.1
+When writing the Zika deck layout in a worklist comment, omit all commas, to prevent the line from being cut-off.
+
 ## 20221123.1
 New EPP for calculating cell or nuclei conc for the new 10X Chromium workflow
 

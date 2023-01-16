@@ -366,11 +366,12 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
 
 
 def get_deck_comment(deck):
-    """Convert the plate:position 'decktionary' into a worklist comment."""
+    """ Convert the plate:position 'decktionary' into a worklist comment
+    """
 
     pos2plate = dict([(pos, plate) for plate, pos in deck.items()])
 
-    l = [pos2plate[i] if i in pos2plate else "[Empty]" for i in range(1, 6)]
+    l = [pos2plate[i].replace(",", "") if i in pos2plate else "[Empty]" for i in range(1, 6)]
 
     deck_comment = "COMMENT, Set up layout:    " + "     ".join(l) + "\n"
 
