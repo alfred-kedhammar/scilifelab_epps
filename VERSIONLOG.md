@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230116.1
+Refactor EPP scripts for qc_amount_calculation
+
 ## 20221215.1
 When writing the Zika deck layout in a worklist comment, omit all commas, to prevent the line from being cut-off.
 
