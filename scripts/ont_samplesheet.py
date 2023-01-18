@@ -15,7 +15,7 @@ def main(lims, args):
 
     currentStep = Process(lims, id=args.pid)
 
-    timestamp = dt.now()
+    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
     arts = [art_tuple[0]['uri'] for art_tuple in currentStep.input_output_maps \
         if art_tuple[0]['uri'].type == "Analyte"]
@@ -45,7 +45,7 @@ def main(lims, args):
                 rows.append(row.copy())
 
     df = pd.DataFrame(rows)
-    csv_name = f"ONT_sample_sheet_{timestamp}"
+    csv_name = f"ONT_sample_sheet_{timestamp}.csv"
     df.to_csv(csv_name, index=False)
 
     upload_csv(currentStep, lims, csv_name)
@@ -53,7 +53,7 @@ def main(lims, args):
 
 def upload_csv(currentStep, lims, csv_name):
     for out in currentStep.all_outputs():
-        if out.name == "ONT sample sheet generation":
+        if out.name == "ONT sample sheet":
             for f in out.files:
                 lims.request_session.delete(f.uri)
             lims.upload_new_file(out, csv_name)
