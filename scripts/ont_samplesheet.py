@@ -10,6 +10,7 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
 from datetime import datetime as dt
+import pandas as pd
 
 DESC = """EPP used to generate a MinKNOW sample sheet for ONT samples"""
 
@@ -46,6 +47,10 @@ def main(lims, args):
                 row["alias"] = sample.name
                 row["barcode"] = "barcode" + label[0:2]
                 rows.append(row.copy())
+
+    df = pd.DataFrame(rows)
+    csv_name = f"ONT_sample_sheet_{timestamp}"
+    df.to_csv(csv_name, index=False)
 
 
 def get_fc_product_code(sample):
