@@ -15,17 +15,16 @@ def main(lims, args):
 
     currentStep = Process(lims, id=args.pid)
 
-    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
-
-    arts = [art_tuple[0]['uri'] for art_tuple in currentStep.input_output_maps \
-        if art_tuple[0]['uri'].type == "Analyte"]
+    arts = [art for art in currentStep.all_inputs() \
+        if art.type == "Analyte"]
 
     rows = []
     for art in arts:
 
         row = {
+            "instrument": art.udf.get("ONT flow cell type"), # Used to separate samplesheets
             "flow_cell_id": art.udf.get("ONT flow cell ID"),
-            "sample_id": art.name, # Either pool or sample
+            "sample_id": art.name,
             "experiment_id": art.samples[0].project.id,
             "flow_cell_product_code": get_fc_product_code(art),
             "kit": get_kit_string(art)
@@ -45,18 +44,28 @@ def main(lims, args):
                 rows.append(row.copy())
 
     df = pd.DataFrame(rows)
-    csv_name = f"ONT_sample_sheet_{timestamp}.csv"
-    df.to_csv(csv_name, index=False)
-
-    upload_csv(currentStep, lims, csv_name)
+    upload_csvs(df, currentStep)
 
 
-def upload_csv(currentStep, lims, csv_name):
-    for out in currentStep.all_outputs():
-        if out.name == "ONT sample sheet":
-            for f in out.files:
-                lims.request_session.delete(f.uri)
-            lims.upload_new_file(out, csv_name)
+def upload_csvs(df, currentStep, lims):
+
+    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+
+    dfs = {
+        "PromethION": df[df.instrument == "PromethION"],
+        "MinION": df[df.instrument == "MinION"]
+    }
+
+    for instrument in dfs:
+        if not dfs[instrument].empty:
+            csv_name = f"ONT_{instrument}_sample_sheet_{timestamp}.csv"
+            dfs[instrument].loc[:, "flow_cell_id" : "barcode"].to_csv(csv_name, index=False)
+            
+            for out in currentStep.all_outputs():
+                if out.name == f"ONT {instrument} sample sheet":
+                    for f in out.files:
+                        lims.request_session.delete(f.uri)
+                    lims.upload_new_file(out, csv_name)
 
 
 def get_fc_product_code(sample):
