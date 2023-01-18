@@ -1,13 +1,9 @@
 #!/usr/bin/env python
 
 from __future__ import division
-import logging
-import os
-import sys
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
-from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
 from datetime import datetime as dt
 import pandas as pd
