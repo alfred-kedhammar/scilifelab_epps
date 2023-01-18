@@ -52,6 +52,16 @@ def main(lims, args):
     csv_name = f"ONT_sample_sheet_{timestamp}"
     df.to_csv(csv_name, index=False)
 
+    upload_csv(currentStep, lims, csv_name)
+
+
+def upload_csv(currentStep, lims, csv_name):
+    for out in currentStep.all_outputs():
+        if out.name == "ONT sample sheet generation":
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, csv_name)
+
 
 def get_fc_product_code(sample):
 
