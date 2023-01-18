@@ -24,7 +24,16 @@ def main(lims, args):
         if art_tuple[0]['uri'].type == "Analyte"]
 
     for sample in samples:
-        pass
+        
+        row = {
+        "flow_cell_id": sample.udf.get("ONT flow cell ID"),
+        "sample_id": sample.name,
+        "experiment_id": "", #TODO
+        "flow_cell_product_code": "", #TODO
+        "kit": "", #TODO
+        "alias": "", #TODO
+        "barcode": "" #TODO
+        }
 
 
 
