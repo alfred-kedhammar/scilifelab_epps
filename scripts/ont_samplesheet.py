@@ -20,21 +20,57 @@ def main(lims, args):
     file_meta = {"pid":currentStep.id, "timestamp":dt.now()}
     log = []
 
-    samples = [art_tuple[0]['uri'] for art_tuple in currentStep.input_output_maps \
+    rows = []
+    arts = [art_tuple[0]['uri'] for art_tuple in currentStep.input_output_maps \
         if art_tuple[0]['uri'].type == "Analyte"]
 
-    for sample in samples:
-        
-        row = {
-        "flow_cell_id": sample.udf.get("ONT flow cell ID"),
-        "sample_id": sample.name,
-        "experiment_id": "", #TODO
-        "flow_cell_product_code": "", #TODO
-        "kit": "", #TODO
-        "alias": "", #TODO
-        "barcode": "" #TODO
-        }
+    for art in arts:
 
+        row = {
+            "flow_cell_id": art.udf.get("ONT flow cell ID"),
+            "sample_id": art.name, # Either pool or sample
+            "experiment_id": art.samples[0].project.id,
+            "flow_cell_product_code": get_fc_product_code(art),
+            "kit": get_kit_string(art)
+        }
+        
+        # Singleton sample
+        if len(art.sampes) == 1:
+            row["alias"] = ""
+            row["barcode"] = ""
+
+            rows.append(row)
+
+        # Pool
+        else:
+            for sample in art.samples:
+                row["alias"] = sample.name
+                row["barcode"] = "" # TODO
+
+
+def get_fc_product_code(sample):
+
+    type_version = f"{sample.udf.get('ONT flow cell type')}_{sample.udf.get('ONT flow cell version')}"
+    type_version_to_product_code = {
+        "PromethION_R9.4.1"  : "FLO-PRO002",
+        "MinION_R9.4.1"      : "FLO-MIN106D",
+        "Flongle_R9.4.1"     : "FLO-FLG001",
+        "PromethION_R10.4.1" : "FLO-PRO114M",
+        "MinION_R10.4.1"     : "FLO-MIN114",
+        "Flongle_R10.4.1"    : "FLO-FLG114",
+    }
+
+    return type_version_to_product_code[type_version]
+
+
+def get_kit_string(sample):
+
+    kit_string = sample.udf.get('ONT prep kit')
+
+    if sample.udf.get('ONT expansion kit') != "None":
+        kit_string += f" {sample.udf.get('ONT expansion kit')}"
+
+    return kit_string
 
 
 if __name__ == "__main__":
