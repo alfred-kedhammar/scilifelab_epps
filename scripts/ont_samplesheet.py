@@ -13,17 +13,17 @@ from datetime import datetime as dt
 
 DESC = """EPP used to generate a MinKNOW sample sheet for ONT samples"""
 
+
 def main(lims, args):
 
     currentStep = Process(lims, id=args.pid)
 
-    file_meta = {"pid":currentStep.id, "timestamp":dt.now()}
-    log = []
+    timestamp = dt.now()
 
-    rows = []
     arts = [art_tuple[0]['uri'] for art_tuple in currentStep.input_output_maps \
         if art_tuple[0]['uri'].type == "Analyte"]
 
+    rows = []
     for art in arts:
 
         row = {
@@ -35,29 +35,29 @@ def main(lims, args):
         }
         
         # Singleton sample
-        if len(art.sampes) == 1:
+        if len(art.samples) == 1:
             row["alias"] = ""
             row["barcode"] = ""
-
             rows.append(row)
 
         # Pool
         else:
-            for sample in art.samples:
+            for sample, label in zip(art.samples, art.reagent_labels):
                 row["alias"] = sample.name
-                row["barcode"] = "" # TODO
+                row["barcode"] = "barcode" + label[0:2]
+                rows.append(row.copy())
 
 
 def get_fc_product_code(sample):
 
-    type_version = f"{sample.udf.get('ONT flow cell type')}_{sample.udf.get('ONT flow cell version')}"
+    type_version = f"{sample.udf.get('ONT flow cell type')} {sample.udf.get('ONT flow cell version')}"
     type_version_to_product_code = {
-        "PromethION_R9.4.1"  : "FLO-PRO002",
-        "MinION_R9.4.1"      : "FLO-MIN106D",
-        "Flongle_R9.4.1"     : "FLO-FLG001",
-        "PromethION_R10.4.1" : "FLO-PRO114M",
-        "MinION_R10.4.1"     : "FLO-MIN114",
-        "Flongle_R10.4.1"    : "FLO-FLG114",
+        "PromethION R9.4.1"  : "FLO-PRO002",
+        "MinION R9.4.1"      : "FLO-MIN106D",
+        "Flongle R9.4.1"     : "FLO-FLG001",
+        "PromethION R10.4.1" : "FLO-PRO114M",
+        "MinION R10.4.1"     : "FLO-MIN114",
+        "Flongle R10.4.1"    : "FLO-FLG114",
     }
 
     return type_version_to_product_code[type_version]
