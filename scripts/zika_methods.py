@@ -12,6 +12,58 @@ import pandas as pd
 import sys
 import numpy as np
 
+def pool(
+    currentStep=None, 
+    lims=None, 
+    local_data=None,                # Fetch sample data from local .tsv instead of LIMS
+    zika_min_vol=0.5,               # 0.5 lowest validated, 0.1 lowest possible
+    well_dead_vol=5,                # 5 ul generous estimate of dead volume in TwinTec96
+    well_max_vol=180
+    ):
+    """
+    Pool samples.
+    """
+
+    # Write log header
+    log = []
+    log.append("Log start\n")
+    for k,v in {
+        "Minimum pipetting volume (ul)" : zika_min_vol,
+        "Applied dead volume (ul)" : well_dead_vol,
+        "Maximum allowed dst well volume (ul)" : well_max_vol
+    }.items():
+        log.append(": ".join([k,str(v)]) + "\n")
+
+    # Create dataframe from LIMS or local csv file
+    to_fetch = [
+        # Sample info
+        "sample_name",
+        "conc",
+        "conc_units",
+        "vol",
+        # Plates and positions
+        "source_fc",
+        "source_well",
+        "dest_fc",
+        "dest_well",
+        "dest_fc_name",
+        # Changes to src
+        "amt_taken",
+        "pool_vol_final",
+    ]
+    
+    if local_data:
+        df = zika.load_fake_samples(local_data, to_fetch)
+    else:
+        df = zika.fetch_sample_data(currentStep, to_fetch, log)
+
+    # Take dead volume into account
+    df["full_vol"] = df.vol.copy()
+    df.loc[:,"vol"] = df.vol - well_dead_vol
+
+    
+    
+
 def norm(
     currentStep=None, 
     lims=None, 
@@ -48,7 +100,6 @@ def norm(
         log.append(": ".join([k,str(v)]) + "\n")
 
     # Create dataframe from LIMS or local csv file
-
     to_fetch = [
         # Sample info
         "sample_name",
