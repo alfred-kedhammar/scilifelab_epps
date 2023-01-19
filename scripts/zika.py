@@ -47,26 +47,27 @@ def fetch_sample_data(currentStep, to_fetch, log):
 
     key2expr = {
         # Sample info
-        "sample_name": "art_tuple[0]['uri'].name",
+        "sample_name":      "art_tuple[0]['uri'].name",
         # User sample info
-        "user_conc": "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
-        "user_vol": "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
+        "user_conc":        "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
+        "user_vol":         "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
         # RC sample info
-        "conc_units": "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
-        "conc": "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
-        "vol": "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
-        "amt": "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']",
+        "conc_units":       "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
+        "conc":             "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
+        "vol":              "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
+        "amt":              "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']",
         # Plates and wells
-        "source_fc": "art_tuple[0]['uri'].location[0].name",
-        "source_well": "art_tuple[0]['uri'].location[1]",
-        "dest_fc_name": "art_tuple[1]['uri'].location[0].name",
-        "dest_fc": "art_tuple[1]['uri'].location[0].id",
-        "dest_well": "art_tuple[1]['uri'].location[1]",
+        "source_fc":        "art_tuple[0]['uri'].location[0].name",
+        "source_well":      "art_tuple[0]['uri'].location[1]",
+        "dest_fc_name":     "art_tuple[1]['uri'].location[0].name",
+        "dest_fc":          "art_tuple[1]['uri'].location[0].id",
+        "dest_well":        "art_tuple[1]['uri'].location[1]",
         # Target info: 
-        "amt_taken": "art_tuple[1]['uri'].udf['Amount taken (ng)']",            # The amount (ng) of RNA that is taken from the original sample plate
-        "vol_taken": "art_tuple[1]['uri'].udf['Total Volume (uL)']",            # The total volume of dilution
-        "target_amt": "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) of RNA that is used as input for library prep
-        "target_vol": "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",    # The actual total dilution volume that is used as input for library prep
+        "amt_taken":        "art_tuple[1]['uri'].udf['Amount taken (ng)']",           # The amount (ng) of RNA that is taken from the original sample plate
+        "vol_taken":        "art_tuple[1]['uri'].udf['Total Volume (uL)']",           # The total volume of dilution
+        "pool_vol_final":   "art_tuple[1]['uri'].udf['Final Volume (uL)']",           # The final volume of the pool
+        "target_amt":       "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) of RNA that is used as input for library prep
+        "target_vol":       "art_tuple[1]['uri'].udf['Target Total Volume (uL)']"     # The actual total dilution volume that is used as input for library prep
     }
 
     replacement_stats = {
