@@ -63,11 +63,11 @@ def fetch_sample_data(currentStep, to_fetch, log):
         "dest_fc":          "art_tuple[1]['uri'].location[0].id",
         "dest_well":        "art_tuple[1]['uri'].location[1]",
         # Target info: 
-        "amt_taken":        "art_tuple[1]['uri'].udf['Amount taken (ng)']",           # The amount (ng) of RNA that is taken from the original sample plate
+        "amt_taken":        "art_tuple[1]['uri'].udf['Amount taken (ng)']",           # The amount (ng) that is taken from the original sample plate
         "vol_taken":        "art_tuple[1]['uri'].udf['Total Volume (uL)']",           # The total volume of dilution
-        "pool_vol_final":   "art_tuple[1]['uri'].udf['Final Volume (uL)']",           # Target sample or pool volume
+        "pool_vol_final":   "art_tuple[1]['uri'].udf['Final Volume (uL)']",           # Target pool volume
         "target_name":      "art_tuple[1]['uri'].name",                               # Target sample or pool name
-        "target_amt":       "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) of RNA that is used as input for library prep
+        "target_amt":       "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) that is used as input for library prep
         "target_vol":       "art_tuple[1]['uri'].udf['Target Total Volume (uL)']"     # The actual total dilution volume that is used as input for library prep
     }
 
@@ -164,7 +164,10 @@ def format_worklist(df, deck, split_transfers = False):
     df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
 
     # Sort df
-    df.sort_values(by = ["dst_col", "dst_row", "src_type"], inplace = True)
+    try:
+        df.sort_values(by = ["dst_col", "dst_row", "src_type"], inplace = True)
+    except KeyError:
+        df.sort_values(by = ["dst_col", "dst_row"], inplace = True)
 
     if split_transfers:
         # Split >5000 nl transfers
@@ -254,6 +257,18 @@ def well2rowcol(well_iter):
         rows.append(rowdict[row_letter])
         cols.append(col_number)
     return rows, cols
+
+
+def conc2vol(conc, pool_boundaries):
+    """
+    Nudge target vol based on conc. and pool boundaries.
+    """
+    [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc] = pool_boundaries
+    assert pool_min_conc <= conc <= pool_max_conc
+
+    min_vol = min(pool_max_vol, pool_min_vol * pool_max_conc / conc)
+    max_vol = min(pool_max_vol, pool_min_vol2 * pool_max_conc / conc)
+    return (min_vol, max_vol)
 
 
 def get_filenames(method_name, pid):
