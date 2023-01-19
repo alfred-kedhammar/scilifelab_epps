@@ -82,20 +82,24 @@ def pool(
         df_pool = df_all[df_all.target_name == pool.name].copy()
 
         # Find target parameters
-        target_pool_vol = float(pool.udf["Final Volume (uL)"])
+        target_pool_vol = df_pool.pool_vol_final.unique()[0]
         try:
+            raise KeyError
             target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
             amt_unit = "fmol"
             conc_unit = "nM"
         except KeyError:
-            amt_taken = float(pool.udf["Amount taken (ng)"])
+            amt_taken = df_pool.amt_taken.unique()[0]
             target_pool_conc = amt_taken * len(df_pool) / target_pool_vol
             amt_unit = "ng"
             conc_unit = "ng/ul"
 
         # Append objective to log
-        log.append(f"Pooling {len(df_pool)} samples into {pool.name}...")
-        log.append(f"Target conc: {round(target_pool_conc, 2)} {conc_unit}, Target vol: {target_pool_vol} ul")
+        log.append(f"\nPooling {len(df_pool)} samples into {pool.name}...")
+        if amt_unit == "fmol":
+            log.append(f"Target conc: {round(target_pool_conc, 2)} {conc_unit}, Target vol: {target_pool_vol} ul")
+        elif amt_unit == "ng":
+            log.append(f"Target conc: {round(target_pool_conc, 2)} {conc_unit} ({amt_taken} {amt_unit} per sample), Target vol: {target_pool_vol} ul")
 
         # Set any negative concentrations to 0.01 and flag in log
         if not df_pool.loc[df_pool.conc < 0.01, "conc"].empty:
@@ -136,7 +140,7 @@ def pool(
             well_min_vol2 = min(well_min_vol*lowest_max_amount/highest_min_amount, well_max_vol)
             pool_min_conc2 = pool_max_conc * well_min_vol2 / well_max_vol
 
-            log.append(f"Pool can be created for conc {round(pool_min_conc,2)}-{round(pool_max_conc,2)} nM and vol {round(well_min_vol,2)}-{round(well_max_vol,2)} ul")
+            log.append(f"Pool can be created for conc {round(pool_min_conc,2)}-{round(pool_max_conc,2)} {conc_unit} and vol {round(well_min_vol,2)}-{round(well_max_vol,2)} ul")
             
         # Pack all metrics into a list, to decrease number of input arguments later
         pool_boundaries = [well_min_vol, well_min_vol2, well_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc]
@@ -167,24 +171,46 @@ def pool(
 
         if highest_min_amount < lowest_max_amount and target_pool_vol == pool_vol and target_pool_conc == pool_conc:
             log.append("Pooling OK")
+        else:
+            amt_taken = pool_conc * pool_vol / len(df_pool)
+            log.append(f"INFO: Amount taken per sample is adjusted to {round(amt_taken,2)} {amt_unit}")
+       
+        pool.udf["Final Volume (uL)"] = round(pool_vol,2)
+        if amt_unit == "fmol":
+            pool.udf["Pool Conc. (nM)"] = round(pool_conc,2)
+        elif amt_unit == "ng":
+            pool.udf["Amount taken (ng)"] = round(pool_conc*pool_vol/len(df_all),2)
+        pool.put()
 
         # Append transfer volumes and corresponding fraction of target conc. for each sample
         sample_transfer_amount = pool_conc * pool_vol / len(df_pool)
         df_pool["transfer_vol"] = np.minimum(sample_transfer_amount / df_pool.conc, df_pool.vol)
-        df_pool["final_target_fraction"] = round((df_pool.transfer_vol * df_pool.conc / pool_vol) / (pool_conc / len(df_pool)), 2)
+        df_pool["transfer_amt"] = df_pool.transfer_vol * df_pool.conc
+        df_pool["final_conc_fraction"] = round((df_pool.transfer_vol * df_pool.conc / pool_vol) / (pool_conc / len(df_pool)), 2)
+        df_pool["final_amt_fraction"] = round(df_pool.transfer_amt / df_pool.amt_taken, 2)
 
         # Calculate and store pool buffer volume
         total_sample_vol = sum(df_pool["transfer_vol"])
         if pool_vol - total_sample_vol > 0.5:
             buffer_vols[pool.name] = pool_vol - total_sample_vol
 
-        # Report low-conc samples
-        low_samples = df_pool[df_pool.final_target_fraction < 0.995][["sample_name", "final_target_fraction"]].sort_values("sample_name")
-        if not low_samples.empty:
-            log.append("The following samples are pooled below target:")
+        # Report deviating conc samples
+        outlier_conc_samples = df_pool[np.logical_or(df_pool.final_conc_fraction < 0.995, df_pool.final_conc_fraction > 1.005)]\
+            [["sample_name", "final_conc_fraction"]].sort_values("sample_name")
+        if not outlier_conc_samples.empty:
+            log.append("\nThe following samples deviate from the target concentration:")
             log.append("Sample\tFraction")
-            for name, frac in low_samples.values:
+            for name, frac in outlier_conc_samples.values:
                 log.append(f"{name}\t{round(frac,2)}")
+        # Report deviating amt samples
+        outlier_amt_samples = df_pool[np.logical_or(df_pool.final_amt_fraction < 0.995, df_pool.final_amt_fraction > 1.005)]\
+            [["sample_name", "final_amt_fraction"]].sort_values("sample_name")
+        if not outlier_amt_samples.empty:
+            log.append("\nThe following samples deviate from the target amount:")
+            log.append("Sample\tFraction")
+            for name, frac in outlier_amt_samples.values:
+                log.append(f"{name}\t{round(frac,2)}")
+        log.append("\n")
 
         df_wl = pd.concat([df_wl, df_pool], axis=0)
 
@@ -223,8 +249,6 @@ def pool(
             "CSV-file generated with warnings, please check the Log file\n"
         )
         sys.exit(2)
-
-    return wl_filename, log_filename
 
 # ===========================================================================================================
 
@@ -424,6 +448,4 @@ def norm(
                 "CSV-file generated with warnings, please check the Log file\n"
             )
             sys.exit(2)
-
-    return wl_filename, log_filename
 
