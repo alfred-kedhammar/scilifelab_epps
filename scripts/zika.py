@@ -65,7 +65,8 @@ def fetch_sample_data(currentStep, to_fetch, log):
         # Target info: 
         "amt_taken":        "art_tuple[1]['uri'].udf['Amount taken (ng)']",           # The amount (ng) of RNA that is taken from the original sample plate
         "vol_taken":        "art_tuple[1]['uri'].udf['Total Volume (uL)']",           # The total volume of dilution
-        "pool_vol_final":   "art_tuple[1]['uri'].udf['Final Volume (uL)']",           # The final volume of the pool
+        "pool_vol_final":   "art_tuple[1]['uri'].udf['Final Volume (uL)']",           # Target sample or pool volume
+        "target_name":      "art_tuple[1]['uri'].name",                               # Target sample or pool name
         "target_amt":       "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) of RNA that is used as input for library prep
         "target_vol":       "art_tuple[1]['uri'].udf['Target Total Volume (uL)']"     # The actual total dilution volume that is used as input for library prep
     }

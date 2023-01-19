@@ -50,6 +50,7 @@ def pool(
         # Changes to src
         "amt_taken",
         "pool_vol_final",
+        "target_name"
     ]
     
     if local_data:
@@ -61,8 +62,18 @@ def pool(
     df["full_vol"] = df.vol.copy()
     df.loc[:,"vol"] = df.vol - well_dead_vol
 
+    # Separate the pools
+    for pool, df in df.groupby(by="target_name"):
+
+        
+        log.append("\nPooling {} samples into {}...".format(len(df), pool))
+
+        
+
+
+
     
-    
+
 
 def norm(
     currentStep=None, 
