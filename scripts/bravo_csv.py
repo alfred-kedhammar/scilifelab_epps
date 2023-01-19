@@ -266,7 +266,7 @@ def zika_write_log(log, file_meta):
 def prepooling(currentStep, lims):
     log = []
 
-    # Re-route to re-factored prepooling code
+    # New prepooling code
     if zika.verify_step(
         currentStep, 
         targets = [
@@ -282,7 +282,7 @@ def prepooling(currentStep, lims):
             well_max_vol=180
             )
 
-    # Old pre-pooling code
+    # Old prepooling code
     if currentStep.instrument.name == "Zika":
         # Constraints
         zika_min_vol = 0.5  # Possible to run on 0.1
