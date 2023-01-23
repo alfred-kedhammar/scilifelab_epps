@@ -229,7 +229,9 @@ def pool(
         "For detailed parameters see the worklist log"
     ]
     for pool in pools:
-        comments.append(f"Add {round(buffer_vols[pool.name],1)} ul buffer to pool {pool.name} (well {pool.location[1]})")
+        if pool.name in buffer_vols.keys():
+            comments.append(f"Add {round(buffer_vols[pool.name],1)} ul buffer to pool {pool.name} (well {pool.location[1]})")
+    
     zika.write_worklist(
         df=df_formatted,
         deck=deck,
