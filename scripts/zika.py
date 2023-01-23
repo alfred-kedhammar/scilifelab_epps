@@ -259,18 +259,6 @@ def well2rowcol(well_iter):
     return rows, cols
 
 
-def conc2vol(conc, pool_boundaries):
-    """
-    Nudge target vol based on conc. and pool boundaries.
-    """
-    [pool_min_vol, pool_min_vol2, pool_max_vol, pool_min_conc, pool_min_conc2, pool_max_conc] = pool_boundaries
-    assert pool_min_conc <= conc <= pool_max_conc
-
-    min_vol = min(pool_max_vol, pool_min_vol * pool_max_conc / conc)
-    max_vol = min(pool_max_vol, pool_min_vol2 * pool_max_conc / conc)
-    return (min_vol, max_vol)
-
-
 def get_filenames(method_name, pid):
 
     timestamp = dt.now().strftime("%y%m%d_%H%M%S")

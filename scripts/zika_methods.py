@@ -160,7 +160,6 @@ def pool(
             
             log.append(f"Pool can be created for conc {round(pool_min_conc,2)}-{round(pool_max_conc,2)} {conc_unit} and vol {round(well_min_vol,2)}-{round(well_max_vol,2)} ul")
             
-
             # Nudge conc, if necessary
             if target_pool_conc > pool_max_conc:
                 # Pool conc. has to be decreased from target to the maximum possible, given samples
@@ -171,8 +170,44 @@ def pool(
             else:
                 # Pool conc. can be set to target
                 pool_conc = target_pool_conc
+
+            #  Nudge vol, if necessary
+            pool_min_amt_given_conc = 
+            pool_max_amt_given_conc = 
+            pool_min_sample_vol_given_conc = df.conc
+            if target_pool_vol < pool_min_sample_vol:
+                # Pool vol has to be increased from target to minimum possible, given samples
+                pool_vol = minimum_volume_given_conc
+            elif target_pool_vol > maximum_volume_given_conc:
+                # Pool vol has to be decreased from target to maximum possible, given samples
+                if highest_min_amount > lowest_max_amount:
+                    # To minimum possible volume, given concentration, because any expansion will cause low-conc samples to be further under-represented
+                    pool_vol = well_min_vol * pool_max_conc / pool_conc
+                else:
+                    # To maximum possible
+                    pool_vol =  well_max_vol
+            else:
+                # Pool vol can be set to target
+                pool_vol = target_pool_vol
+
             if target_pool_conc != pool_conc:
                 log.append(f"WARNING: Target pool conc is adjusted to {round(pool_conc,2)} {conc_unit}")
+            if target_pool_vol != pool_vol:
+                log.append(f"WARNING: Target pool vol is adjusted to {round(pool_vol,2)} ul")
+            if target_pool_conc == pool_conc and target_pool_vol == pool_vol:
+                log.append("Pooling OK")
+
+
+
+
+
+
+
+
+
+
+
+
         
         else:
             # Use the minimum transfer amount of the highest conc. sample as the common transfer amount
@@ -206,28 +241,9 @@ def pool(
   
 
 
-        #  Nudge vol, if necessary
-        minimum_volume_given_conc = well_min_vol * pool_max_conc / pool_conc
-        maximum_volume_given_conc = well_max_vol * pool_min_conc / pool_conc
-        if target_pool_vol < minimum_volume_given_conc:
-            # Pool vol has to be increased from target to minimum possible, given samples
-            pool_vol = minimum_volume_given_conc
-        elif target_pool_vol > maximum_volume_given_conc:
-            # Pool vol has to be decreased from target to maximum possible, given samples
-            if highest_min_amount > lowest_max_amount:
-                # To minimum possible volume, given concentration, because any expansion will cause low-conc samples to be further under-represented
-                pool_vol = well_min_vol * pool_max_conc / pool_conc
-            else:
-                # To maximum possible
-                pool_vol =  well_max_vol
-        else:
-            # Pool vol can be set to target
-            pool_vol = target_pool_vol
-        if target_pool_vol != pool_vol:
-            log.append(f"WARNING: Target pool vol is adjusted to {round(pool_vol,2)} ul")
 
-        if highest_min_amount < lowest_max_amount and target_pool_vol == pool_vol and target_pool_conc == pool_conc:
-            log.append("Pooling OK")
+
+
         else:
             target_amt = pool_conc * pool_vol / len(df_pool)
             log.append(f"INFO: Amount taken per sample is adjusted to {round(target_amt,2)} {amt_unit}")
