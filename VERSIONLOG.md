@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230123.1
+Fix bug that manual in UDF instrument is recorded in logbook
+
 ## 20230116.1
 Refactor EPP scripts for qc_amount_calculation
 
