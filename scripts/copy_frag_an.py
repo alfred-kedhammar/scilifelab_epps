@@ -163,12 +163,15 @@ def get_frag_an_csv_data(process):
                     value = None
                     try:
                         if data[file_sample][k].upper() != 'NAN':
-                            value = float(data[file_sample][k])
+                            if k == 'range':
+                                value = str(data[file_sample][k])
+                            else:
+                                value = float(data[file_sample][k])
                             target_file.udf[v] = value
                             if k == 'concentration':
                                 target_file.udf['Conc. Units'] = 'ng/ul'
                         else:
-                            log.append('NaN {} value format for Sample {}.'.format(k, file_sample))
+                            log.append('NaN {} value for Sample {}.'.format(k, file_sample))
                     except ValueError:
                         log.append('Bad {} value format for Sample {}.'.format(k, file_sample))
             #actually set the data
