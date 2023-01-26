@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230126.1
+Fix issue with NaN values for fragment analyzer results
+
 ## 20230123.1
 Fix bug that manual in UDF instrument is recorded in logbook
 

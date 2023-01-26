@@ -151,45 +151,29 @@ def get_frag_an_csv_data(process):
     data = get_data(file_content, log)
 
     for target_file in process.result_files():
-        conc=None
-        rin=None
-        ratio=None
-        range=None
-        dv200=None
+        key_dict = {'concentration' : 'Concentration',
+                    'rin'           : 'RIN',
+                    'ratio'         : '28s/18s ratio',
+                    'range'         : 'Range',
+                    'dv200'         : 'DV200'}
         file_sample=target_file.samples[0].name
         if file_sample in data:
-            if data[file_sample].get('concentration'):
-                try:
-                    conc=float(data[file_sample]['concentration'])
-                    target_file.udf['Concentration'] = conc
-                    target_file.udf['Conc. Units'] = 'ng/ul'
-                except ValueError:
-                    log.append('Bad concentration value format for Sample {}.'.format(file_sample))
-            if data[file_sample].get('rin'):
-                try:
-                    rin=float(data[file_sample]['rin'])
-                    target_file.udf['RIN'] = rin
-                except ValueError:
-                    log.append('Bad RIN value format for Sample {}.'.format(file_sample))
-            if data[file_sample].get('ratio'):
-                try:
-                    ratio=float(data[file_sample]['ratio'])
-                    target_file.udf['28s/18s ratio'] = ratio
-                except ValueError:
-                    log.append('Bad ratio value format for Sample {}.'.format(file_sample))
-            if data[file_sample].get('range'):
-                try:
-                    range=str(data[file_sample]['range'])
-                    target_file.udf['Range'] = range
-                except ValueError:
-                    log.append('Bad range value format for Sample {}.'.format(file_sample))
-            if data[file_sample].get('dv200'):
-                try:
-                    dv200=float(data[file_sample]['dv200'])
-                    target_file.udf['DV200'] = dv200
-                except ValueError:
-                    log.append('Bad dv200 value format for Sample {}.'.format(file_sample))
-
+            for k, v in key_dict.items():
+                if data[file_sample].get(k):
+                    value = None
+                    try:
+                        if data[file_sample][k].upper() != 'NAN':
+                            if k == 'range':
+                                value = str(data[file_sample][k])
+                            else:
+                                value = float(data[file_sample][k])
+                            target_file.udf[v] = value
+                            if k == 'concentration':
+                                target_file.udf['Conc. Units'] = 'ng/ul'
+                        else:
+                            log.append('NaN {} value for Sample {}.'.format(k, file_sample))
+                    except ValueError:
+                        log.append('Bad {} value format for Sample {}.'.format(k, file_sample))
             #actually set the data
             target_file.put()
             set_field(target_file)
