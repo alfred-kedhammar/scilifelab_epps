@@ -151,11 +151,6 @@ def get_frag_an_csv_data(process):
     data = get_data(file_content, log)
 
     for target_file in process.result_files():
-        conc=None
-        rin=None
-        ratio=None
-        range=None
-        dv200=None
         key_dict = {'concentration' : 'Concentration',
                     'rin'           : 'RIN',
                     'ratio'         : '28s/18s ratio',
