@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230128.1
+Update index_checker EPP to support SMARTSEQ3 indexes
+
 ## 20230126.1
 Fix issue with NaN values for fragment analyzer results
 
