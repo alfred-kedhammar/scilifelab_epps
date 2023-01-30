@@ -113,8 +113,8 @@ def fetch_sample_data(currentStep, to_fetch, log):
                         replacements.append(msg)
                         log.append(msg)
 
-                # or assume conc units are ng/ul
-                elif k == "conc_units":
+                # ignore these
+                elif k in ["conc_units", "amt_taken"]:
                     pass
                 
                 else:
@@ -130,7 +130,10 @@ def fetch_sample_data(currentStep, to_fetch, log):
 
 
 def load_fake_samples(file, to_fetch):
-    """This function is intended to output the same dataframe as fetch_sample_data(), but the input data is taken from a .csv-exported spreadsheet and is thus easier to change than data taken from upstream LIMS."""
+    """ This function is intended to output the same dataframe as fetch_sample_data(),
+    but the input data is taken from a .csv-exported spreadsheet and is thus easier
+    to change than data taken from upstream LIMS.
+    """
 
     file_data = pd.read_csv(file, delimiter = "\t")
 
