@@ -24,20 +24,21 @@ def pool(
     
     Input UDFs:
     - The target amount taken per sample (ng) OR target pool concentration (nM)
-        and
-    - Final pool volume (ul)
+    - The target final pool volume (ul)
 
     Calculations:
     1) The inputs are translated to the desired pool concentration and volume.
     2) The desired pool concentration and volume is translated to the target transfer amount for each sample.
-    2) The minimum and maximum transferrable amounts are calculated for each sample based on the Zika minimum transfer volume and the accessible sample volume, respectively
+    3) The minimum and maximum transferrable amounts are calculated for each sample based on the Zika minimum transfer volume and the accessible sample volume, respectively
     
     Cases:
-    - If the minimum transfer amount of the most highly concentrated sample is above target, expand the amount taken of all samples and the total volume to maintain the initially specified pool concentration
+    - If the minimum transfer amount of the most highly concentrated sample is above target
+        --> Expand the amount taken of all samples and the total volume to maintain the initially specified pool concentration
         --> If this causes volume overflow, the worklist will not be generated
 
     - If a sample has very low or negligible concentration
-        --> Use everything.
+        --> Set concentration to 0.01
+        --> #TODO use everything
 
     - If a sample does not have enough accessible volume to reach the target representation in the pool
         --> Let it be under-represented
@@ -75,6 +76,8 @@ def pool(
 
     # All samples should have accessible volume
     assert all(df_all.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul"
+
+    # Adjust for dead volume
     df_all["full_vol"] = df_all.vol.copy()
     df_all.loc[:,"vol"] = df_all.vol - well_dead_vol
 
@@ -103,11 +106,9 @@ def pool(
         # Subset data to current pool
         df_pool = df_all[df_all.target_name == pool.name].copy()
 
-        # Find target parameters, amount and conentration will be either in ng, ng/ul or fmol, nM
+        # Find target parameters, amount and conentration will be either in ng and ng/ul or fmol and nM
         target_pool_vol = df_pool.pool_vol_final.unique()[0]
         try:
-            # TODO remove the KeyError to enable nM pooling
-            raise KeyError
             target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
             target_amt = target_pool_conc * target_pool_vol / len(df_pool)
             amt_unit = "fmol"
@@ -146,107 +147,70 @@ def pool(
         lowest_max_amount = min(df_pool.max_amount)     # The maximum transfer amount of the lowest amount sample
         even_pool_is_possible = highest_min_amount < lowest_max_amount
 
+        # Calculate what ranges are possible
+        pool_min_amt = highest_min_amount  * len(df_pool)
+        pool_min_sample_vol = sum(highest_min_amount / df_pool.conc)
+        pool_min_conc = pool_min_amt / well_max_vol
+        pool_max_conc = pool_min_amt / pool_min_sample_vol # also equals pool_max_amt / pool_max_sample_vol because amt / vol proportions are the same between samples
+        
+        log.append(f"Pool can be created for conc {round(pool_min_conc,2)}-{round(pool_max_conc,2)} {conc_unit} and vol {round(pool_min_sample_vol,2)}-{round(well_max_vol,2)} ul")
+
+        # Nudge conc, if necessary
+        if target_pool_conc > pool_max_conc:
+            # Pool conc. has to be decreased from target to the maximum possible, given samples
+            pool_conc = pool_max_conc
+        elif target_pool_conc < pool_min_conc:
+            # Pool conc. has to be increased from target to the minimum possible, given samples
+            pool_conc = pool_min_conc
+        else:
+            # Pool conc. can be set to target
+            pool_conc = target_pool_conc
+
+        # Nudge vol, if necessary
+        pool_min_vol_given_conc = min(pool_min_amt / pool_conc, well_max_vol)
+
         if even_pool_is_possible:
-            # Calculate what ranges are possible for an even output pool
-
-            pool_min_amt = highest_min_amount  * len(df_pool)
             pool_max_amt = lowest_max_amount * len(df_pool)
-            
-            pool_min_sample_vol = sum(highest_min_amount / df_pool.conc)
-            pool_max_sample_vol = sum(lowest_max_amount / df_pool.conc)
+            pool_max_vol_given_conc = min(pool_max_amt / pool_conc, well_max_vol)
 
-            pool_min_conc = pool_min_amt / well_max_vol
-            pool_max_conc = pool_max_amt / pool_max_sample_vol # also equals pool_min_amt / pool_min_sample_vol because amt / vol proportions are the same
-            
-            log.append(f"Pool can be created for conc {round(pool_min_conc,2)}-{round(pool_max_conc,2)} {conc_unit} and vol {round(well_min_vol,2)}-{round(well_max_vol,2)} ul")
-            
-            # Nudge conc, if necessary
-            if target_pool_conc > pool_max_conc:
-                # Pool conc. has to be decreased from target to the maximum possible, given samples
-                pool_conc = pool_max_conc
-            elif target_pool_conc < pool_min_conc:
-                # Pool conc. has to be increased from target to the minimum possible, given samples
-                pool_conc = pool_min_conc
-            else:
-                # Pool conc. can be set to target
-                pool_conc = target_pool_conc
-
-            #  Nudge vol, if necessary
-            pool_min_amt_given_conc = 
-            pool_max_amt_given_conc = 
-            pool_min_sample_vol_given_conc = df.conc
-            if target_pool_vol < pool_min_sample_vol:
+            if target_pool_vol < pool_min_vol_given_conc:
                 # Pool vol has to be increased from target to minimum possible, given samples
-                pool_vol = minimum_volume_given_conc
-            elif target_pool_vol > maximum_volume_given_conc:
+                pool_vol = pool_min_vol_given_conc
+            elif target_pool_vol > pool_max_vol_given_conc:
                 # Pool vol has to be decreased from target to maximum possible, given samples
-                if highest_min_amount > lowest_max_amount:
-                    # To minimum possible volume, given concentration, because any expansion will cause low-conc samples to be further under-represented
-                    pool_vol = well_min_vol * pool_max_conc / pool_conc
-                else:
-                    # To maximum possible
-                    pool_vol =  well_max_vol
+                pool_vol =  well_max_vol
             else:
                 # Pool vol can be set to target
                 pool_vol = target_pool_vol
-
-            if target_pool_conc != pool_conc:
-                log.append(f"WARNING: Target pool conc is adjusted to {round(pool_conc,2)} {conc_unit}")
-            if target_pool_vol != pool_vol:
-                log.append(f"WARNING: Target pool vol is adjusted to {round(pool_vol,2)} ul")
-            if target_pool_conc == pool_conc and target_pool_vol == pool_vol:
-                log.append("Pooling OK")
-
-
-
-
-
-
-
-
-
-
-
-
-        
         else:
             # Use the minimum transfer amount of the highest conc. sample as the common transfer amount
-            
-            log.append("WARNING: Some samples will be depleted and under-represented in the final pool.\
-            \nThe miminum transfer amount of the highest concentrated sample will dictate the common transfer amount.") #TODO provide info
-            
-            # TODO
-            df_pool["minimized_vol"] = np.minimum(highest_min_amount / df_pool.conc, df_pool.vol)
-            well_min_vol = sum(df_pool.minimized_vol)
-            pool_max_conc = highest_min_amount * len(df_pool) / well_min_vol
-            pool_min_conc = highest_min_amount * len(df_pool) / well_max_vol
+            s = df_pool.sort_values(by = "conc", ascending = False).iloc[0]
+            log.append(f"WARNING: Some samples will be depleted and under-represented in the final pool.\
+            \nThe miminum transfer amount of the highest concentrated sample {s.sample_name} ({s.conc} {s.conc_units}) \
+            will dictate the common transfer amount.")
 
+            pool_vol = pool_min_vol_given_conc
 
+        if target_pool_conc != pool_conc:
+            log.append(f"WARNING: Target pool conc is adjusted to {round(pool_conc,2)} {conc_unit}")
+        if target_pool_vol != pool_vol:
+            log.append(f"WARNING: Target pool vol is adjusted to {round(pool_vol,2)} ul")
+        if target_pool_conc == pool_conc and target_pool_vol == pool_vol:
+            log.append("Pooling OK")
 
-
-
-        # Check that pool will not overflow
-        if well_min_vol > well_max_vol:
+        """
+        # Check that pool will not overflow TODO
+        if pool_vol > well_max_vol:
             log.append(f"ERROR: Overflow in {pool.name}. Decrease number of samples or dilute highly concentrated outliers")
             highest_conc_sample_name, highest_conc_sample_conc = df_pool.loc[df_pool.conc.idxmax,["name","conc"]]
             log.append(f"Highest concentrated sample: {highest_conc_sample_name} at {round(highest_conc_sample_conc,2)} {conc_unit}")
-            log.append(f"Pooling cannot be normalized to less than {round(well_min_vol,2)} ul")
+            log.append(f"Pooling cannot be normalized to less than {round(pool_min_vol,2)} ul")
             raise AssertionError # TODO log should still be written and uploaded
-
-        # === CALCULATE POSSIBLE OUTPUTS ===
-
-
-
-        # === MAKE ADJUSTMENTS, IF NEEDED ===
-  
-
-
-
-
 
         else:
             target_amt = pool_conc * pool_vol / len(df_pool)
             log.append(f"INFO: Amount taken per sample is adjusted to {round(target_amt,2)} {amt_unit}")
+        """
        
         pool.udf["Final Volume (uL)"] = round(pool_vol,2)
         if amt_unit == "fmol":
