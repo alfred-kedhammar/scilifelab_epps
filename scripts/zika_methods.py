@@ -141,7 +141,10 @@ def pool(
         df_pool["min_amount"] = zika_min_vol * df_pool.conc
         df_pool["max_amount"] = df_pool.vol * df_pool.conc
 
-        # === CALCULATE POSSIBLE OUTCOMES ===
+        # === CALCULATE POSSIBLE OUTCOMES AND MAKE ADJUSTMENTS ===
+
+        # Isolate highest concentrated sample
+        highest_conc_sample = df_pool.sort_values(by = "conc", ascending = False).iloc[0]
 
         # Given the input samples, can an even pool be produced? I.e. is there an overlap in the transfer amount ranges of all samples?
         even_pool_is_possible = max(df_pool.min_amount) < min(df_pool.max_amount)
@@ -158,9 +161,6 @@ def pool(
             pool_min_conc = pool_min_amt / well_max_vol
             pool_max_conc = pool_min_amt / pool_min_sample_vol # also equals pool_max_amt / pool_max_sample_vol because amt / vol proportions are the same between samples
             
-            # Isolate highest concentrated sample
-            highest_conc_sample = df_pool.sort_values(by = "conc", ascending = False).iloc[0]
-
             # Ensure that pool will not overflow
             if pool_min_sample_vol > well_max_vol:
                 
@@ -197,7 +197,7 @@ def pool(
                 pool_vol = target_pool_vol
 
         else:
-            # The sample volumes can NOT be expanded without changing the even-ness of the pool
+            # There is no common transfer amount, and sample volumes can NOT be expanded without changing the even-ness of the pool
             log.append(f"WARNING: Some samples will be depleted and under-represented in the final pool.\
             \nThe miminum transfer amount of the highest concentrated sample {highest_conc_sample.sample_name} ({highest_conc_sample.conc} {highest_conc_sample.conc_units}) will dictate the common transfer amount.")
 
@@ -205,21 +205,42 @@ def pool(
             target_common_amount = max(df_pool.min_amount)
 
             # Calculate pool limits...
-            #   Assuming all samples can meet the target common amount
-            pool_ideal_min_amt = target_common_amount * len(df_pool)
-            pool_ideal_min_sample_vol = sum(target_common_amount / df_pool.conc)
-            pool_ideal_max_conc = pool_ideal_min_amt / pool_ideal_min_sample_vol
-            pool_ideal_min_conc = pool_ideal_min_amt / well_max_vol
+            # --> Assuming all samples can meet the target common amount
+            pool_flawed_min_amt = target_common_amount * len(df_pool)
+            pool_flawed_min_sample_vol = sum(target_common_amount / df_pool.conc)
+            pool_flawed_max_conc = pool_flawed_min_amt / pool_flawed_min_sample_vol
+            pool_flawed_min_conc = pool_flawed_min_amt / well_max_vol
 
-            #   Taking into account sample depletion
+            # --> Taking into account sample depletion
             pool_real_min_amt = sum(np.minimum(target_common_amount, df_pool.max_amount))
             pool_real_min_sample_vol = sum(np.minimum(target_common_amount / df_pool.conc, df_pool.vol))
-            pool_real_max_conc = pool_real_min_amt / pool_real_min_sample_vol
+            pool_real_max_conc = pool_real_min_amt / pool_flawed_min_sample_vol
             pool_real_min_conc = pool_real_min_amt / well_max_vol
+
+            # Ensure that pool will not overflow
+            if pool_flawed_min_sample_vol > well_max_vol:
+                
+                log.append(f"ERROR: Overflow in {pool.name}. Decrease number of samples or dilute highly concentrated outliers")
+                log.append(f"Highest concentrated sample: {highest_conc_sample.sample_name} at {round(highest_conc_sample.conc,2)} {conc_unit}")
+                log.append(f"Pooling cannot be normalized to less than {round(pool_min_sample_vol,2)} ul")
+
+                raise AssertionError # TODO
     
-            log.append(f"Un-even pool can be created for TARGET conc {round(pool_ideal_min_conc,2)}-{round(pool_ideal_max_conc,2)} {conc_unit} and vol {round(pool_ideal_min_sample_vol,2)}-{round(well_max_vol,2)} ul")
-            log.append(f"WARNING: Due to sample depletion, the created pool will actually have conc {round(pool_real_min_conc,2)}-{round(pool_real_max_conc,2)} {conc_unit} and vol {round(pool_real_min_sample_vol,2)}-{round(well_max_vol,2)} ul")
+            log.append(f"Can aim to create a pool as even as possible for target conc {round(pool_flawed_min_conc,2)}-{round(pool_flawed_max_conc,2)} {conc_unit} and vol {round(pool_flawed_min_sample_vol,2)}-{round(well_max_vol,2)} ul")
+            log.append(f"WARNING: Due to sample depletion, the 'real' concentration of the pool will likely be {round(pool_real_min_conc,2)}-{round(pool_real_max_conc,2)} {conc_unit}")
             
+            # Nudge conc, if necessary
+            # Use the flawed target parameters for comparison and ignore sample depletion
+            if target_pool_conc > pool_flawed_max_conc:
+                pool_conc = pool_max_conc
+            elif target_pool_conc < pool_flawed_min_conc:
+                pool_conc = pool_min_conc
+            else:
+                pool_conc = target_pool_conc
+
+            # No volume expansion is allowed, so pool volume is set to the minimum, given the conc
+            pool_min_vol_given_conc = min(pool_flawed_min_amt / pool_conc, well_max_vol)
+            pool_vol = pool_min_vol_given_conc
 
         # Report adjustments in log
         if target_pool_conc != pool_conc:
@@ -240,6 +261,8 @@ def pool(
             pool.udf["Amount taken (ng)"] = round(pool_conc*pool_vol/len(df_all),2)
         pool.put()
 
+        # === STORE FINAL CALCULATION RESULTS ===
+
         # Append transfer volumes and corresponding fraction of target conc. for each sample
         sample_transfer_amount = pool_conc * pool_vol / len(df_pool)
         df_pool["transfer_vol"] = np.minimum(sample_transfer_amount / df_pool.conc, df_pool.vol)
@@ -254,6 +277,8 @@ def pool(
         total_sample_vol = sum(df_pool["transfer_vol"])
         if pool_vol - total_sample_vol > 0.5:
             buffer_vols[pool.name] = pool_vol - total_sample_vol
+
+        # === REPORT DEVIATING SAMPLES ===
 
         # Report deviating conc samples
         outlier_conc_samples = df_pool[np.logical_or(df_pool.final_conc_fraction < 0.995, df_pool.final_conc_fraction > 1.005)]\
