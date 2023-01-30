@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230130.1
+Add re-factored pooling code for Zika. Re-route to the new code ONLY for RAD-seq pooling (non-accredited). Accredited operations will run on the old code, for now.
+
 ## 20221215.1
 When writing the Zika deck layout in a worklist comment, omit all commas, to prevent the line from being cut-off.
 
