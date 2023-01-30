@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230130.1
+Convert 10X dual index 2 to RC for MiSeq
+
 ## 20230128.1
 Update index_checker EPP to support SMARTSEQ3 indexes
 
