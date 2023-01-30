@@ -44,6 +44,9 @@ def pool(
         --> Let it be under-represented
     """
 
+    method_name = "pool"
+    pid = currentStep.id
+
     # Write log header
     log = []
     for e in [
@@ -96,6 +99,7 @@ def pool(
 
     df_wl = pd.DataFrame()
     buffer_vols = {}
+    errors = False
     for pool in pools:
         
         # === PREPARE CALCULATION INPUTS ===
@@ -168,7 +172,7 @@ def pool(
                 log.append(f"Highest concentrated sample: {highest_conc_sample.sample_name} at {round(highest_conc_sample.conc,2)} {conc_unit}")
                 log.append(f"Pooling cannot be normalized to less than {round(pool_min_sample_vol,2)} ul")
 
-                raise AssertionError # TODO
+                errors = True
 
             log.append(f"Pool can be created for conc {round(pool_min_conc,2)}-{round(pool_max_conc,2)} {conc_unit} and vol {round(pool_min_sample_vol,2)}-{round(well_max_vol,2)} ul")
 
@@ -224,7 +228,7 @@ def pool(
                 log.append(f"Highest concentrated sample: {highest_conc_sample.sample_name} at {round(highest_conc_sample.conc,2)} {conc_unit}")
                 log.append(f"Pooling cannot be normalized to less than {round(pool_min_sample_vol,2)} ul")
 
-                raise AssertionError # TODO
+                errors = True
     
             log.append(f"Can aim to create a pool as even as possible for target conc {round(pool_flawed_min_conc,2)}-{round(pool_flawed_max_conc,2)} {conc_unit} and vol {round(pool_flawed_min_sample_vol,2)}-{round(well_max_vol,2)} ul")
             log.append(f"WARNING: Due to sample depletion, the 'real' concentration of the pool will likely be {round(pool_real_min_conc,2)}-{round(pool_real_max_conc,2)} {conc_unit}")
@@ -254,11 +258,11 @@ def pool(
             log.append(f"INFO: Amount taken per sample is adjusted from {pool.udf['Amount taken (ng)']} {conc_unit} to {round(amt_taken,2)} {amt_unit}")
        
         # Update UDFs
-        pool.udf["Final Volume (uL)"] = round(pool_vol,2)
+        pool.udf["Final Volume (uL)"] = float(round(pool_vol,2))
         if amt_unit == "fmol":
-            pool.udf["Pool Conc. (nM)"] = round(pool_conc,2)
+            pool.udf["Pool Conc. (nM)"] = float(round(pool_conc,2))
         elif amt_unit == "ng":
-            pool.udf["Amount taken (ng)"] = round(pool_conc*pool_vol/len(df_all),2)
+            pool.udf["Amount taken (ng)"] = float(round(pool_conc*pool_vol/len(df_all),2))
         pool.put()
 
         # === STORE FINAL CALCULATION RESULTS ===
@@ -303,14 +307,14 @@ def pool(
 
         df_wl = pd.concat([df_wl, df_pool], axis=0)
 
+    if errors:
+        raise zika.CheckLog(log, method_name, pid, lims, currentStep)
+
     # Format worklist 
     df_formatted = zika.format_worklist(df_wl, deck)
     
     # Write files
-    wl_filename, log_filename = zika.get_filenames(
-        method_name="pool",
-        pid=currentStep.id
-    )
+    wl_filename, log_filename = zika.get_filenames(method_name, pid)
 
     # Comments to attach to the worklist header
     comments = [
@@ -493,10 +497,10 @@ def norm(
         # Change UDFs
         if not local_data:
             op = outputs[r.sample_name]
-            op.udf['Amount taken (ng)'] = round(final_amt, 2)
-            op.udf['Total Volume (uL)'] = round(tot_vol, 2)
+            op.udf['Amount taken (ng)'] = float(round(final_amt, 2))
+            op.udf['Total Volume (uL)'] = float(round(tot_vol, 2))
             if final_amt < r.target_amt:
-                op.udf['Target Amount (ng)'] = round(final_amt, 2)
+                op.udf['Target Amount (ng)'] = float(round(final_amt, 2))
             op.put()
 
     log.append("\nDone.\n")

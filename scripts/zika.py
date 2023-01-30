@@ -13,6 +13,7 @@ Written by Alfred Kedhammar
 import pandas as pd
 import numpy as np
 from datetime import datetime as dt
+import sys
 
 
 def verify_step(currentStep, targets):
@@ -37,6 +38,19 @@ def verify_step(currentStep, targets):
         return True
     else:
         return False
+
+
+class CheckLog(Exception):
+
+    def __init__(self, log, method_name, pid, lims, currentStep):
+
+        wl_filename, log_filename = get_filenames(method_name, pid)
+
+        write_log(log, log_filename)
+        upload_log(currentStep, lims, log_filename)
+        
+        sys.stderr.write("ERROR: Check log for more info.")
+        sys.exit(2)
         
 
 def fetch_sample_data(currentStep, to_fetch, log):
