@@ -249,15 +249,16 @@ def pool(
         # Report adjustments in log
         if target_pool_conc != pool_conc:
             log.append(f"WARNING: Target pool conc is adjusted to {round(pool_conc,2)} {conc_unit}")
+            # TODO add per-sample information
         if target_pool_vol != pool_vol:
             log.append(f"WARNING: Target pool vol is adjusted to {round(pool_vol,2)} ul")
         if target_pool_conc == pool_conc and target_pool_vol == pool_vol:
             log.append("Pooling OK")
         if amt_unit == "ng":
             amt_taken = pool_conc * pool_vol / len(df_pool)
-            log.append(f"INFO: Amount taken per sample is adjusted from {pool.udf['Amount taken (ng)']} {conc_unit} to {round(amt_taken,2)} {amt_unit}")
+            log.append(f"INFO: Amount taken per sample is adjusted from {pool.udf['Amount taken (ng)']} {amt_unit} to {round(amt_taken,2)} {amt_unit}")
        
-        # Update UDFs
+        # Update UDFs TODO double check calcs and differentiate even vs uneven pools
         pool.udf["Final Volume (uL)"] = float(round(pool_vol,2))
         if amt_unit == "fmol":
             pool.udf["Pool Conc. (nM)"] = float(round(pool_conc,2))
@@ -277,7 +278,7 @@ def pool(
         except:
             pass
 
-        # Calculate and store pool buffer volume
+        # Calculate and store pool buffer volume TODO add to log
         total_sample_vol = sum(df_pool["transfer_vol"])
         if pool_vol - total_sample_vol > 0.5:
             buffer_vols[pool.name] = pool_vol - total_sample_vol
