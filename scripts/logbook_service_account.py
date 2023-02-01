@@ -126,7 +126,7 @@ def main(lims, pid, epp_logger):
                 continue
             log.append(pro.instrument.name)
         elif instrument.startswith("udf_"):
-            if pro.udf.get(instrument[4:]):
+            if pro.udf.get(instrument[4:]) and pro.udf.get(instrument[4:]) not in ['Manually', 'Manual']:
                 log.append(pro.udf.get(instrument[4:]))
             else:
                 continue
