@@ -265,6 +265,24 @@ def zika_write_log(log, file_meta):
 
 def prepooling(currentStep, lims):
     log = []
+
+    # New prepooling code
+    if zika.verify_step(
+        currentStep, 
+        targets = [
+            ('RAD-seq for MiSeq', 'Library Pooling (RAD-seq) v1.0'),
+            ('RAD-seq for NovaSeq', 'Library Pooling (RAD-seq) v1.0')
+        ]
+        ):
+        zika_methods.pool(
+            currentStep=currentStep, 
+            lims=lims,
+            zika_min_vol=0.5,
+            well_dead_vol=5,
+            well_max_vol=180
+            )
+
+    # Old prepooling code
     if currentStep.instrument.name == "Zika":
         # Constraints
         zika_min_vol = 0.5  # Possible to run on 0.1
@@ -1045,6 +1063,7 @@ def sample_dilution_before_QC(currentStep):
 
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
+
     if currentStep.type.name in ['Library Pooling (HiSeq X) 1.0']:
         check_barcode_collision(currentStep)
         prepooling(currentStep, lims)

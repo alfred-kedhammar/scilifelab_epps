@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20230130.2
+zika_refactoring
+Add re-factored pooling code for Zika. Re-route to the new code ONLY for RAD-seq pooling (non-accredited). Accredited operations will run on the old code, for now.
+
 ## 20230130.1
 Convert 10X dual index 2 to RC for MiSeq
 

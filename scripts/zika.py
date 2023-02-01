@@ -13,6 +13,7 @@ Written by Alfred Kedhammar
 import pandas as pd
 import numpy as np
 from datetime import datetime as dt
+import sys
 
 
 def verify_step(currentStep, targets):
@@ -37,6 +38,19 @@ def verify_step(currentStep, targets):
         return True
     else:
         return False
+
+
+class CheckLog(Exception):
+
+    def __init__(self, log, method_name, pid, lims, currentStep):
+
+        wl_filename, log_filename = get_filenames(method_name, pid)
+
+        write_log(log, log_filename)
+        upload_log(currentStep, lims, log_filename)
+        
+        sys.stderr.write("ERROR: Check log for more info.")
+        sys.exit(2)
         
 
 def fetch_sample_data(currentStep, to_fetch, log):
@@ -47,26 +61,28 @@ def fetch_sample_data(currentStep, to_fetch, log):
 
     key2expr = {
         # Sample info
-        "sample_name": "art_tuple[0]['uri'].name",
+        "sample_name":      "art_tuple[0]['uri'].name",
         # User sample info
-        "user_conc": "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
-        "user_vol": "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
+        "user_conc":        "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
+        "user_vol":         "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
         # RC sample info
-        "conc_units": "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
-        "conc": "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
-        "vol": "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
-        "amt": "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']",
+        "conc_units":       "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
+        "conc":             "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
+        "vol":              "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
+        "amt":              "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']",
         # Plates and wells
-        "source_fc": "art_tuple[0]['uri'].location[0].name",
-        "source_well": "art_tuple[0]['uri'].location[1]",
-        "dest_fc_name": "art_tuple[1]['uri'].location[0].name",
-        "dest_fc": "art_tuple[1]['uri'].location[0].id",
-        "dest_well": "art_tuple[1]['uri'].location[1]",
+        "source_fc":        "art_tuple[0]['uri'].location[0].name",
+        "source_well":      "art_tuple[0]['uri'].location[1]",
+        "dest_fc_name":     "art_tuple[1]['uri'].location[0].name",
+        "dest_fc":          "art_tuple[1]['uri'].location[0].id",
+        "dest_well":        "art_tuple[1]['uri'].location[1]",
         # Target info: 
-        "amt_taken": "art_tuple[1]['uri'].udf['Amount taken (ng)']",            # The amount (ng) of RNA that is taken from the original sample plate
-        "vol_taken": "art_tuple[1]['uri'].udf['Total Volume (uL)']",            # The total volume of dilution
-        "target_amt": "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) of RNA that is used as input for library prep
-        "target_vol": "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",    # The actual total dilution volume that is used as input for library prep
+        "amt_taken":        "art_tuple[1]['uri'].udf['Amount taken (ng)']",           # The amount (ng) that is taken from the original sample plate
+        "vol_taken":        "art_tuple[1]['uri'].udf['Total Volume (uL)']",           # The total volume of dilution
+        "pool_vol_final":   "art_tuple[1]['uri'].udf['Final Volume (uL)']",           # Target pool volume
+        "target_name":      "art_tuple[1]['uri'].name",                               # Target sample or pool name
+        "target_amt":       "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) that is used as input for library prep
+        "target_vol":       "art_tuple[1]['uri'].udf['Target Total Volume (uL)']"     # The actual total dilution volume that is used as input for library prep
     }
 
     replacement_stats = {
@@ -111,8 +127,8 @@ def fetch_sample_data(currentStep, to_fetch, log):
                         replacements.append(msg)
                         log.append(msg)
 
-                # or assume conc units are ng/ul
-                elif k == "conc_units":
+                # ignore these
+                elif k in ["conc_units", "amt_taken"]:
                     pass
                 
                 else:
@@ -128,7 +144,10 @@ def fetch_sample_data(currentStep, to_fetch, log):
 
 
 def load_fake_samples(file, to_fetch):
-    """This function is intended to output the same dataframe as fetch_sample_data(), but the input data is taken from a .csv-exported spreadsheet and is thus easier to change than data taken from upstream LIMS."""
+    """ This function is intended to output the same dataframe as fetch_sample_data(),
+    but the input data is taken from a .csv-exported spreadsheet and is thus easier
+    to change than data taken from upstream LIMS.
+    """
 
     file_data = pd.read_csv(file, delimiter = "\t")
 
@@ -162,7 +181,10 @@ def format_worklist(df, deck, split_transfers = False):
     df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
 
     # Sort df
-    df.sort_values(by = ["dst_col", "dst_row", "src_type"], inplace = True)
+    try:
+        df.sort_values(by = ["dst_col", "dst_row", "src_type"], inplace = True)
+    except KeyError:
+        df.sort_values(by = ["dst_col", "dst_row"], inplace = True)
 
     if split_transfers:
         # Split >5000 nl transfers
