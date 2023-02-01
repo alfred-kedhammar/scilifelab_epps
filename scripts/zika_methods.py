@@ -15,6 +15,7 @@ import sys
 def pool(
     currentStep=None, 
     lims=None, 
+    make_datastructure=None,
     zika_min_vol=0.5,  # 0.5 lowest validated, 0.1 lowest possible
     well_dead_vol=5,   # 5 ul generous estimate of dead volume in TwinTec96
     well_max_vol=180,  # TwinTec96
@@ -60,14 +61,8 @@ def pool(
     to_fetch = [
         # Sample info
         "sample_name",
-        "conc",
         "conc_units",
-        "vol",
         # Plates and positions
-        "source_fc",
-        "source_well",
-        "dest_fc",
-        "dest_well",
         "dest_fc_name",
         # Changes to src
         "amt_taken",
@@ -75,7 +70,10 @@ def pool(
         "target_name"
     ]
 
-    df_all = zika.fetch_sample_data(currentStep, to_fetch, log)
+    df_fixed = zika.fetch_sample_data(currentStep, to_fetch, log)
+    df_recursive = pd.DataFrame(make_datastructure(currentStep, lims, log))
+
+    df_all = df_fixed.merge(df_recursive, left_on="sample_name", right_on="name")
 
     # All samples should have accessible volume
     assert all(df_all.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul"
@@ -85,12 +83,12 @@ def pool(
     df_all.loc[:,"vol"] = df_all.vol - well_dead_vol
 
     # Define deck, a dictionary mapping plate names to deck positions
-    assert len(df_all.source_fc.unique()) <= 4, "Only one to four input plates allowed"
-    assert len(df_all.dest_fc.unique()) == 1, "Only one output plate allowed"
+    assert len(df_all.src_fc_id.unique()) <= 4, "Only one to four input plates allowed"
+    assert len(df_all.dst_fc.unique()) == 1, "Only one output plate allowed"
     deck = {}
-    deck[df_all.dest_fc.unique()[0]] = 3
-    available = [2, 4, 1, 5][0:len(df_all.source_fc.unique())]
-    for plate, pos in zip(df_all.source_fc.unique(), available):
+    deck[df_all.dst_fc.unique()[0]] = 3
+    available = [2, 4, 1, 5][0:len(df_all.src_fc.unique())]
+    for plate, pos in zip(df_all.src_fc.unique(), available):
         deck[plate] = pos
 
     # Work through the pools one at a time

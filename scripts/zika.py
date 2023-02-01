@@ -165,20 +165,20 @@ def format_worklist(df, deck, split_transfers = False):
     """
     - Add columns in Mosquito-intepretable format
     - Resolve multi-transfers
-    - Sort by dest col, dest row, buffer, sample
+    - Sort by dst col, dst row, buffer, sample
     """
 
     # Add columns for plate positions
-    df["src_pos"] = df["source_fc"].apply(lambda x: deck[x])
-    df["dst_pos"] = df["dest_fc"].apply(lambda x: deck[x])
+    df["src_pos"] = df["src_fc"].apply(lambda x: deck[x])
+    df["dst_pos"] = df["dst_fc"].apply(lambda x: deck[x])
 
     # Convert volumes to whole nl
     df["transfer_vol"] = round(df.transfer_vol * 1000, 0)
     df["transfer_vol"] = df["transfer_vol"].astype(int)
 
     # Convert well names to r/c coordinates
-    df["src_row"], df["src_col"] = well2rowcol(df.source_well)
-    df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
+    df["src_row"], df["src_col"] = well2rowcol(df.src_well)
+    df["dst_row"], df["dst_col"] = well2rowcol(df.dst_well)
 
     # Sort df
     try:
