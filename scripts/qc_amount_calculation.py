@@ -19,28 +19,24 @@ from scilifelab_epps.epp import EppLogger
 import logging
 import sys
 
-def apply_calculations(lims,artifacts,udf1,op,udf2,result_udf,epp_logger,process):
+def apply_calculations(lims, artifacts, udf1, op, udf2, unit_amount_map, epp_logger, process):
     """For each result file of the process: if its corresponding inart has the udf
-    'Dilution Fold', the result_udf: 'Amount (ng)' is calculated as
+    'Dilution Fold', the result_udf: 'Amount (xx)' is calculated as
 
-    'Amount (ng)' =  'Concentration'*'Volume (ul)'*'Dilution Fold'
+    'Amount (xx)' =  'Concentration'*'Volume (ul)'*'Dilution Fold'
 
     otherwise its calculated as
 
-    'Amount (ng)' =  'Concentration'*'Volume (ul)'"""
-
-    if process.udf.get('Total Lysate Calculation', ''):
-        logging.info(("result_udf: {0}, udf1: {1}, "
-                      "operator: {2}, factor: {3}").format(result_udf,udf1,op,250))
-    else:
-        logging.info(("result_udf: {0}, udf1: {1}, "
-                      "operator: {2}, udf2: {3}").format(result_udf,udf1,op,udf2))
+    'Amount (xx)' =  'Concentration'*'Volume (ul)'"""
 
     for artifact in artifacts:
+
+        result_udf = unit_amount_map[artifact.udf['Conc. Units']]
+
         try:
             artifact.udf[result_udf]
         except KeyError:
-            artifact.udf[result_udf]=0
+            artifact.udf[result_udf] = 0
 
         try:
             inart = process.input_per_sample(artifact.samples[0].name)[0]
@@ -58,7 +54,8 @@ def apply_calculations(lims,artifacts,udf1,op,udf2,result_udf,epp_logger,process
                      "result_udf: {1}, udf1: {2}, "
                      "operator: {3}, udf2: {4}").format(artifact.id,
                                                         artifact.udf.get(result_udf,0),
-                                                        artifact.udf[udf1],op,
+                                                        artifact.udf[udf1],
+                                                        op,
                                                         udf2_value))
         prod = eval('{0}{1}{2}'.format(artifact.udf[udf1],op,udf2_value))
         if dil_fold:
@@ -89,7 +86,7 @@ def check_udf_has_value(artifacts, udf, value):
     filtered_artifacts = []
     incorrect_artifacts = []
     for artifact in artifacts:
-        if udf in artifact.udf and (artifact.udf[udf] in value):
+        if udf in artifact.udf and (artifact.udf[udf] in value.keys()):
             filtered_artifacts.append(artifact)
         elif udf in artifact.udf:
             incorrect_artifacts.append(artifact)
@@ -104,18 +101,15 @@ def check_udf_has_value(artifacts, udf, value):
 
 def main(lims,args,epp_logger):
     p = Process(lims,id = args.pid)
-    if p.type.name == 'Aggregate QC (Library Validation) 4.0':
-        udf_check = 'Conc. Units'
-        value_check = ['nM', 'pM']
-        udf_factor1 = 'Concentration'
-        udf_factor2 = 'Volume (ul)'
-        result_udf = 'Amount (fmol)'
-    else:
-        udf_check = 'Conc. Units'
-        value_check = ['ng/ul', 'ng/uL']
-        udf_factor1 = 'Concentration'
-        udf_factor2 = 'Volume (ul)'
-        result_udf = 'Amount (ng)'
+
+    udf_factor1 = 'Concentration'
+    udf_factor2 = 'Volume (ul)'
+    udf_check = 'Conc. Units'
+    unit_amount_map = {'ng/ul' : 'Amount (ng)',
+                       'ng/uL' : 'Amount (ng)',
+                       'nM'    : 'Amount (fmol)',
+                       'pM'    : 'Amount (fmol)'}
+
 
     if args.aggregate:
         artifacts = p.all_inputs(unique=True)
@@ -126,11 +120,11 @@ def main(lims,args,epp_logger):
     correct_artifacts, wrong_factor1 = check_udf_is_defined(artifacts, udf_factor1)
     correct_artifacts, wrong_factor2 = check_udf_is_defined(correct_artifacts, udf_factor2)
 
-    correct_artifacts, wrong_value = check_udf_has_value(correct_artifacts, udf_check, value_check)
+    correct_artifacts, wrong_value = check_udf_has_value(correct_artifacts, udf_check, unit_amount_map)
 
     if correct_artifacts:
         apply_calculations(lims, correct_artifacts, udf_factor1, '*',
-                           udf_factor2, result_udf, epp_logger, p)
+                           udf_factor2, unit_amount_map, epp_logger, p)
 
     d = {'ca': len(correct_artifacts),
          'ia': len(wrong_factor1)+ len(wrong_factor2) + len(wrong_value)}
