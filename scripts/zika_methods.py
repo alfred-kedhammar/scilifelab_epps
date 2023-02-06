@@ -169,6 +169,11 @@ def pool(
             # Calculate pool limits given samples
             pool_min_amt = lowest_common_amount  * len(df_pool)
             pool_min_sample_vol = sum(lowest_common_amount / df_pool.conc)
+            pool_max_sample_vol = sum(highest_common_amount / df_pool.conc)
+            if pool_max_sample_vol < well_max_vol:
+                pool_max_sample_amt = highest_common_amount
+            else:
+                pool_max_sample_amt = highest_common_amount * len(df_pool) * well_max_vol / pool_max_sample_vol
             pool_min_conc = pool_min_amt / well_max_vol
             pool_max_conc = pool_min_amt / pool_min_sample_vol # also equals pool_max_amt / pool_max_sample_vol because amt / vol proportions are the same between samples
             
@@ -182,7 +187,7 @@ def pool(
                 errors = True
 
             log.append("\nAn even pool can be created within the following parameter ranges:")
-            log.append(f" - Amount per sample {round(lowest_common_amount,2)} - {round(highest_common_amount,2)} {amt_unit}")
+            log.append(f" - Amount per sample {round(lowest_common_amount,2)} - {round(pool_max_sample_amt / len(df_pool),2)} {amt_unit}")
             log.append(f" - Pool volume {round(pool_min_sample_vol,1)} - {round(well_max_vol,1)} ul")
             log.append(f" - Pool concentration {round(pool_min_conc,2)} - {round(pool_max_conc,2)} {conc_unit}")
 
