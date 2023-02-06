@@ -14,14 +14,6 @@ import pandas as pd
 import numpy as np
 from datetime import datetime as dt
 import sys
-from math import isclose
-
-
-def approx(a, b):
-    if isclose(a, b, abs_tol = 0.005):
-        return True
-    else:
-        return False
 
 
 def verify_step(currentStep, targets):
