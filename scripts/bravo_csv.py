@@ -6,8 +6,8 @@ import os
 import sys
 import re
 import pandas as pd
-from scripts import zika_methods
-from scripts import zika
+import zika_methods
+import zika
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
