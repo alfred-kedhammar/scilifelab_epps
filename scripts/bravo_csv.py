@@ -6,14 +6,14 @@ import os
 import sys
 import re
 import pandas as pd
-import zika_methods
-import zika
+from scripts import zika_methods
+from scripts import zika
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
-from numpy import minimum, maximum, where
+from numpy import minimum
 from datetime import datetime as dt
 
 
@@ -275,6 +275,7 @@ def prepooling(currentStep, lims):
         ]
         ):
         zika_methods.pool(
+            data=make_datastructure(currentStep, lims, log),
             currentStep=currentStep, 
             lims=lims,
             zika_min_vol=0.5,

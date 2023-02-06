@@ -14,10 +14,20 @@ import pandas as pd
 import numpy as np
 from datetime import datetime as dt
 import sys
+from math import isclose
+
+
+def approx(a, b):
+    if isclose(a, b, abs_tol = 0.005):
+        return True
+    else:
+        return False
 
 
 def verify_step(currentStep, targets):
     """Verify the instrument, workflow and step for a given process is correct"""
+
+    # TODO if workflow or step is left blank, pass all
     
     if currentStep.instrument.name != "Zika":
         return False
@@ -55,8 +65,13 @@ class CheckLog(Exception):
 
 def fetch_sample_data(currentStep, to_fetch, log):
     """
-    Within this function is the dictionary key2expr, its keys being the given name of a particular piece of information linked to a transfer input/output sample and it's values being the string that when evaluated will yield the desired info from whatever the variable "art_tuple" is currently pointing at. 
-    Given the positional arguments of a LIMS transfer process and a list of keys, it will return a dataframe containing the information fetched from each transfer based on the keys.
+    Within this function is the dictionary key2expr, its keys being the given name of a particular
+    piece of information linked to a transfer input/output sample and it's values being the string
+    that when evaluated will yield the desired info from whatever the variable "art_tuple" is
+    currently pointing at. 
+
+    Given the positional arguments of a LIMS transfer process and a list of keys, it will return a 
+    dataframe containing the information fetched from each transfer based on the keys.
     """
 
     key2expr = {
@@ -70,28 +85,20 @@ def fetch_sample_data(currentStep, to_fetch, log):
         "conc":             "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
         "vol":              "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
         "amt":              "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']",
-        # Plates and wells
-        "source_fc":        "art_tuple[0]['uri'].location[0].name",
-        "source_well":      "art_tuple[0]['uri'].location[1]",
-        "dest_fc_name":     "art_tuple[1]['uri'].location[0].name",
-        "dest_fc":          "art_tuple[1]['uri'].location[0].id",
-        "dest_well":        "art_tuple[1]['uri'].location[1]",
+        # Src plate
+        "src_fc":           "art_tuple[0]['uri'].location[0].name",
+        "src_well":         "art_tuple[0]['uri'].location[1]",
+        # Dst plate
+        "dst_fc_name":      "art_tuple[1]['uri'].location[0].name",
+        "dst_fc_id":        "art_tuple[1]['uri'].location[0].id",
+        "dst_well":         "art_tuple[1]['uri'].location[1]",
         # Target info: 
         "amt_taken":        "art_tuple[1]['uri'].udf['Amount taken (ng)']",           # The amount (ng) that is taken from the original sample plate
-        "vol_taken":        "art_tuple[1]['uri'].udf['Total Volume (uL)']",           # The total volume of dilution
-        "pool_vol_final":   "art_tuple[1]['uri'].udf['Final Volume (uL)']",           # Target pool volume
+        "vol_total":        "art_tuple[1]['uri'].udf['Total Volume (uL)']",           # The total volume of dilution
+        "vol_final":        "art_tuple[1]['uri'].udf['Final Volume (uL)']",           # Final pool / sample volume
         "target_name":      "art_tuple[1]['uri'].name",                               # Target sample or pool name
         "target_amt":       "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) that is used as input for library prep
         "target_vol":       "art_tuple[1]['uri'].udf['Target Total Volume (uL)']"     # The actual total dilution volume that is used as input for library prep
-    }
-
-    replacement_stats = {
-        # If target amt / vol is not stated, use synonymously with amt / vol taken
-        "target_amt": "amt_taken",
-        "target_vol": "vol_taken",
-        # If conc / vol is missing, use the user-supplied values
-        "conc": "user_conc",
-        "vol": "user_vol"
     }
 
     # Verify all target metrics are keys in key2expr dict
@@ -106,33 +113,10 @@ def fetch_sample_data(currentStep, to_fetch, log):
 
     # Fetch all target data
     l = []
-    replacements = []
     for art_tuple in art_tuples:
         key2val = {}
         for k in to_fetch:
-            
-            try:
-                key2val[k] = eval(key2expr[k])
-            # If a value is missing
-            except KeyError:
-                
-                # try replacing it
-                if k in replacement_stats:
-                    key2val[k] = eval(key2expr[replacement_stats[k]])
-
-                    missing_udf = key2expr[k].split("\'")[-2]
-                    replacement_udf = key2expr[replacement_stats[k]].split("\'")[-2]
-                    msg = f"'UDF {missing_udf}' not found, using '{replacement_udf}' instead"
-                    if msg not in replacements:
-                        replacements.append(msg)
-                        log.append(msg)
-
-                # ignore these
-                elif k in ["conc_units", "amt_taken"]:
-                    pass
-                
-                else:
-                    raise
+            key2val[k] = eval(key2expr[k])
 
         l.append(key2val)
 
@@ -399,9 +383,11 @@ def get_deck_comment(deck):
 
     return deck_comment
 
+
 def write_log(log, log_filename):
     with open(log_filename, "w") as logContext:
         logContext.write("\n".join(log))
+
 
 def upload_log(currentStep, lims, log_filename):
     for out in currentStep.all_outputs():

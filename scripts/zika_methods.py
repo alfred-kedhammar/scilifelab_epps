@@ -6,19 +6,20 @@ This module contains methods for normalization and pooling on the Mosquito Zika 
 Written by Alfred Kedhammar
 """
 
-import zika
+from scripts import zika
 import pandas as pd
 import sys
 import numpy as np
 import sys
 
+
 def pool(
+    data=None,                  # Output of bravo_csv.make_datastructure()
     currentStep=None, 
     lims=None, 
-    make_datastructure=None,
-    zika_min_vol=0.5,  # 0.5 lowest validated, 0.1 lowest possible
-    well_dead_vol=5,   # 5 ul generous estimate of dead volume in TwinTec96
-    well_max_vol=180,  # TwinTec96
+    zika_min_vol=0.5,           # 0.5 lowest validated, 0.1 lowest possible
+    well_dead_vol=5,            # 5 ul generous estimate of dead volume in TwinTec96
+    well_max_vol=180,           # TwinTec96
     ):
     """
     Pool samples. 
@@ -39,7 +40,7 @@ def pool(
 
     - If a sample has very low or negligible concentration
         --> Set concentration to 0.01
-        --> #TODO use everything
+        --> # TODO use everything
 
     - If a sample does not have enough accessible volume to reach the target representation in the pool
         --> Let it be under-represented
@@ -57,23 +58,24 @@ def pool(
     ]:
         log.append(e)
 
-    # See zika.fetch_sample_data for which stats correspond to which attributes
+    pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
+    pools.sort(key=lambda pool: pool.name)
+    output_udfs = [kv_pair[0] for kv_pair in pools[0].udf.items()]
+
+    # Supplement df with additional info
     to_fetch = [
         # Sample info
         "sample_name",
         "conc_units",
         # Plates and positions
-        "dest_fc_name",
-        # Changes to src
-        "amt_taken",
-        "pool_vol_final",
+        "dst_fc_name",
+        # Target info
         "target_name"
     ]
+    
+    df_fetched = zika.fetch_sample_data(currentStep, to_fetch, log)
 
-    df_fixed = zika.fetch_sample_data(currentStep, to_fetch, log)
-    df_recursive = pd.DataFrame(make_datastructure(currentStep, lims, log))
-
-    df_all = df_fixed.merge(df_recursive, left_on="sample_name", right_on="name")
+    df_all = pd.DataFrame(data).merge(df_fetched, left_on="name", right_on="sample_name")
 
     # All samples should have accessible volume
     assert all(df_all.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul"
@@ -92,9 +94,6 @@ def pool(
         deck[plate] = pos
 
     # Work through the pools one at a time
-    pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
-    pools.sort(key=lambda pool: pool.name)
-
     df_wl = pd.DataFrame()
     buffer_vols = {}
     errors = False
@@ -109,26 +108,26 @@ def pool(
         df_pool = df_all[df_all.target_name == pool.name].copy()
 
         # Find target parameters, amount and conentration will be either in ng and ng/ul or fmol and nM
-        target_pool_vol = df_pool.pool_vol_final.unique()[0]
-        try:
+        target_pool_vol = pool.udf["Final Volume (uL)"]
+        if "Pool Conc. (nM)" in output_udfs:
             target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
-            target_amt = target_pool_conc * target_pool_vol / len(df_pool)
+            target_amt_taken = target_pool_conc * target_pool_vol / len(df_pool)
             amt_unit = "fmol"
             conc_unit = "nM"
-        except KeyError:
-            target_amt = df_pool.amt_taken.unique()[0]
-            target_pool_conc = target_amt * len(df_pool) / target_pool_vol
+        elif 'Amount taken (ng)' in output_udfs:
+            target_amt_taken = pool.udf['Amount taken (ng)']
+            target_pool_conc = target_amt_taken * len(df_pool) / target_pool_vol
             amt_unit = "ng"
             conc_unit = "ng/ul"
         assert all(df_all.conc_units == conc_unit), "Samples and pools have different conc units"
 
         # All pools should have UDFs within the allowed range
         assert 0 < target_pool_vol <= well_max_vol, f"The target pool volume must be >0 - {well_max_vol} ul"
-        assert target_amt > 0, f"The target concentratinon of the pool must be >0"
+        assert target_amt_taken > 0, f"The target concentratinon of the pool must be >0"
 
         # Append objective to log
         log.append(f"\nPooling {len(df_pool)} samples into {pool.name}...")
-        log.append(f"Target conc: {round(target_pool_conc, 2)} {conc_unit} ({target_amt} {amt_unit} per sample), Target vol: {target_pool_vol} ul")
+        log.append(f"Target conc: {round(target_pool_conc, 2)} {conc_unit} ({target_amt_taken} {amt_unit} per sample), Target vol: {target_pool_vol} ul")
 
         # Set any negative or negligible concentrations to 0.01 and flag in log
         if not df_pool.loc[df_pool.conc < 0.01, "conc"].empty:
@@ -204,18 +203,18 @@ def pool(
             \nThe miminum transfer amount of the highest concentrated sample {highest_conc_sample.sample_name} ({highest_conc_sample.conc} {highest_conc_sample.conc_units}) will dictate the common transfer amount.")
 
             # Use the minimum transfer amount of the most concentrated sample as the common transfer amount
-            target_common_amount = max(df_pool.min_amount)
+            target_transfer_amount = max(df_pool.min_amount)
 
             # Calculate pool limits...
             # --> Assuming all samples can meet the target common amount
-            pool_flawed_min_amt = target_common_amount * len(df_pool)
-            pool_flawed_min_sample_vol = sum(target_common_amount / df_pool.conc)
+            pool_flawed_min_amt = target_transfer_amount * len(df_pool)
+            pool_flawed_min_sample_vol = sum(target_transfer_amount / df_pool.conc)
             pool_flawed_max_conc = pool_flawed_min_amt / pool_flawed_min_sample_vol
             pool_flawed_min_conc = pool_flawed_min_amt / well_max_vol
 
             # --> Taking into account sample depletion
-            pool_real_min_amt = sum(np.minimum(target_common_amount, df_pool.max_amount))
-            pool_real_min_sample_vol = sum(np.minimum(target_common_amount / df_pool.conc, df_pool.vol))
+            pool_real_min_amt = sum(np.minimum(target_transfer_amount, df_pool.max_amount))
+            pool_real_min_sample_vol = sum(np.minimum(target_transfer_amount / df_pool.conc, df_pool.vol))
             pool_real_max_conc = pool_real_min_amt / pool_flawed_min_sample_vol
             pool_real_min_conc = pool_real_min_amt / well_max_vol
 
@@ -244,26 +243,6 @@ def pool(
             pool_min_vol_given_conc = min(pool_flawed_min_amt / pool_conc, well_max_vol)
             pool_vol = pool_min_vol_given_conc
 
-        # Report adjustments in log
-        if target_pool_conc != pool_conc:
-            log.append(f"WARNING: Target pool conc is adjusted to {round(pool_conc,2)} {conc_unit}")
-            # TODO add per-sample information
-        if target_pool_vol != pool_vol:
-            log.append(f"WARNING: Target pool vol is adjusted to {round(pool_vol,2)} ul")
-        if target_pool_conc == pool_conc and target_pool_vol == pool_vol:
-            log.append("Pooling OK")
-        if amt_unit == "ng":
-            amt_taken = pool_conc * pool_vol / len(df_pool)
-            log.append(f"INFO: Amount taken per sample is adjusted from {pool.udf['Amount taken (ng)']} {amt_unit} to {round(amt_taken,2)} {amt_unit}")
-       
-        # Update UDFs TODO double check calcs and differentiate even vs uneven pools
-        pool.udf["Final Volume (uL)"] = float(round(pool_vol,2))
-        if amt_unit == "fmol":
-            pool.udf["Pool Conc. (nM)"] = float(round(pool_conc,2))
-        elif amt_unit == "ng":
-            pool.udf["Amount taken (ng)"] = float(round(pool_conc*pool_vol/len(df_all),2))
-        pool.put()
-
         # === STORE FINAL CALCULATION RESULTS ===
 
         # Append transfer volumes and corresponding fraction of target conc. for each sample
@@ -276,10 +255,35 @@ def pool(
         except:
             pass
 
-        # Calculate and store pool buffer volume TODO add to log
+        # Report adjustments in log
+        if not zika.approx(target_pool_conc, pool_conc):
+            log.append(f"WARNING: Target pool conc is adjusted to {round(pool_conc,2)} {conc_unit}")
+            # TODO add per-sample information
+        if not zika.approx(target_pool_vol, pool_vol):
+            log.append(f"WARNING: Target pool vol is adjusted to {round(pool_vol,2)} ul")
+        if zika.approx(target_pool_conc, pool_conc) and zika.approx(target_pool_vol, pool_vol):
+            log.append("Pooling OK")
+        if amt_unit == "ng":           
+            amt_taken = df_pool["transfer_amt"].unique()[0] if even_pool_is_possible else target_transfer_amount
+            if not zika.approx(amt_taken, target_amt_taken):
+                log.append(f"INFO: Amount taken per sample is adjusted from {target_amt_taken} {amt_unit} to {round(amt_taken,2)} {amt_unit}")
+
+        # Update UDFs TODO double check calcs and differentiate even vs uneven pools
+        pool.udf["Final Volume (uL)"] = float(round(pool_vol,2))
+        if amt_unit == "fmol":
+            pool.udf["Pool Conc. (nM)"] = float(round(pool_conc,2))
+        elif amt_unit == "ng":
+            if even_pool_is_possible:
+                pool.udf["Amount taken (ng)"] = float(round(df_pool["transfer_amt"].unique()[0], 2))
+            else:
+                pool.udf["Amount taken (ng)"] = float(round(target_transfer_amount, 2))
+        pool.put()
+
+        # Calculate and store pool buffer volume
         total_sample_vol = sum(df_pool["transfer_vol"])
-        if pool_vol - total_sample_vol > 0.5:
-            buffer_vols[pool.name] = pool_vol - total_sample_vol
+        buffer_vol = pool_vol - total_sample_vol if pool_vol - total_sample_vol > 0.5 else 0
+        buffer_vols[pool.name] = buffer_vol
+        log.append(f"The final pool volume is {round(pool_vol,2)} ul ({round(total_sample_vol,2)} ul sample + {round(buffer_vol,2)} ul buffer)")         
 
         # === REPORT DEVIATING SAMPLES ===
 
