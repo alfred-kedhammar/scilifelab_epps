@@ -1,7 +1,7 @@
 # Scilifelab_epps Version Log
 
-## 20230130.3
-Update 20230130.2, fetch sample concs and vols recursively, using the bravo_csv func make_datastructure().
+## 20230207.1
+Update 20230130.2, correct the volume and conc information that is fetched and support both nM and ng/ul pooling. General updates to make the code simpler and more maintainable.
 
 ## 20230130.2
 zika_refactoring
