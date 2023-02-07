@@ -187,6 +187,8 @@ def format_worklist(df, deck, split_transfers = False):
     else:
         return df
 
+class VolumeOverflow(Exception):
+    pass
 
 def resolve_buffer_transfers(df, buffer_strategy):
     """
