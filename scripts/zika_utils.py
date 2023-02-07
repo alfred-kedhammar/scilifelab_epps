@@ -75,10 +75,10 @@ def fetch_sample_data(currentStep, to_fetch):
         "art_tuple[1]['uri'].udf['Amount taken (ng)']",             # The amount (ng) that is taken from the original sample plate
         "art_tuple[1]['uri'].udf['Total Volume (uL)']",             # The total volume of dilution
         "art_tuple[1]['uri'].udf['Final Volume (uL)']",             # Final pool / sample volume
-        "art_tuple[1]['uri'].name",                                 # Target sample or pool name
+        "art_tuple[1]['uri'].name", 
         "art_tuple[1]['uri'].id",
-        "art_tuple[1]['uri'].udf['Target Amount (ng)']",            # The actual amount (ng) that is used as input for library prep
-        "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",      # The actual total dilution volume that is used as input for library prep
+        "art_tuple[1]['uri'].udf['Target Amount (ng)']",            # Written by EPP only, the actual amount (ng) that is used as input for library prep
+        "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",      # Written by EPP only, the actual total dilution volume that is used as input for library prep
         "art_tuple[1]['uri'].location[0].name",                     # Plate name
         "art_tuple[1]['uri'].location[0].id",                       # Plate ID
         "art_tuple[1]['uri'].location[1]",                          # Well
