@@ -11,7 +11,6 @@ import pandas as pd
 import sys
 import numpy as np
 import sys
-from math import isclose
 
 
 def pool(
@@ -272,19 +271,14 @@ def pool(
 
         # Report adjustments in log
         log.append("\nAdjustments:")
-        round2dec = 0.005
-        round1dec = 0.05
-        if not isclose(target_pool_conc, pool_conc, abs_tol=round2dec):
-            warning = True
+        if round(target_pool_conc,2) != round(pool_conc,2):
             log.append(f" - WARNING Target pool concentration is adjusted from {round(target_pool_conc,2)} --> {round(pool_conc,2)} {conc_unit}")
-            # TODO add per-sample information
-        if not isclose(target_pool_vol, pool_vol, abs_tol=round1dec):
+        if round(target_pool_vol,1) != round(pool_vol,1):
             log.append(f" - WARNING Target pool volume is adjusted from {round(target_pool_vol,1)} --> {round(pool_vol,1)} ul")
-        if isclose(target_pool_conc, pool_conc, abs_tol=round2dec) and isclose(target_pool_vol, pool_vol, abs_tol=round1dec):
-            log.append("Pooling OK")
-        if amt_unit == "ng":           
-            if not isclose(target_transfer_amt, target_amt_taken, abs_tol=round2dec):
-                log.append(f" - INFO: Amount taken per sample is adjusted from {target_amt_taken} --> {round(target_transfer_amt,2)} {amt_unit}")
+        if round(target_pool_conc,2) == round(pool_conc,2) and round(target_pool_vol,1) == round(pool_vol,1):
+            log.append("Pooling OK")        
+        if round(target_transfer_amt,2) != round(target_amt_taken,2):
+            log.append(f" - INFO: Amount taken per sample is adjusted from {target_amt_taken} --> {round(target_transfer_amt,2)} {amt_unit}")
 
         # Calculate and store pool buffer volume
         total_sample_vol = sum(df_pool["transfer_vol"])
