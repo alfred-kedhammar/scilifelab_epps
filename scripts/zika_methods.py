@@ -6,7 +6,7 @@ This module contains methods for normalization and pooling on the Mosquito Zika 
 Written by Alfred Kedhammar
 """
 
-import zika
+import zika_utils
 import pandas as pd
 import sys
 import numpy as np
@@ -81,7 +81,7 @@ def pool(
         "dst_well"          :       "art_tuple[1]['uri'].location[1]"
     }
     
-    df_all = zika.fetch_sample_data(currentStep, to_fetch)
+    df_all = zika_utils.fetch_sample_data(currentStep, to_fetch)
 
     # All samples should have accessible volume
     assert all(df_all.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul"
@@ -124,10 +124,6 @@ def pool(
                 amt_unit = "ng"
                 conc_unit = "ng/ul"
             assert all(df_all.conc_units == conc_unit), "Samples and pools have different conc units"
-
-            # All pools should have UDFs within the allowed range
-            assert 0 < target_pool_vol <= well_max_vol, f"The target pool volume must be >0 - {well_max_vol} ul"
-            assert target_amt_taken > 0, f"The target concentratinon of the pool must be >0"
 
             # Append target parameters to log
             log.append(f"\n\nPooling {len(df_pool)} samples into {pool.name}...")
@@ -182,7 +178,7 @@ def pool(
                     log.append(f"Pooling cannot be normalized to less than {round(pool_min_sample_vol,1)} ul")
 
                     errors = True
-                    raise zika.VolumeOverflow
+                    raise zika_utils.VolumeOverflow
 
                 log.append("\nAn even pool can be created within the following parameter ranges:")
                 log.append(f" - Amount per sample {round(lowest_common_amount,2)} - {round(pool_max_sample_amt / len(df_pool),2)} {amt_unit}")
@@ -260,7 +256,7 @@ def pool(
                 # No volume expansion is allowed, so pool volume is set to the minimum, given the conc
                 pool_vol = pool_flawed_min_sample_vol
         
-        except zika.VolumeOverflow:
+        except zika_utils.VolumeOverflow:
             continue
 
         # === STORE FINAL CALCULATION RESULTS ===
@@ -328,12 +324,12 @@ def pool(
         pool.put()
 
     # Get filenames and upload log if errors
-    wl_filename, log_filename = zika.get_filenames(method_name="pool", pid=currentStep.id)
+    wl_filename, log_filename = zika_utils.get_filenames(method_name="pool", pid=currentStep.id)
     if errors:
-        raise zika.CheckLog(log, log_filename, lims, currentStep)
+        raise zika_utils.CheckLog(log, log_filename, lims, currentStep)
 
     # Format worklist 
-    df_formatted = zika.format_worklist(df_wl, deck)
+    df_formatted = zika_utils.format_worklist(df_wl, deck)
 
     # Comments to attach to the worklist header
     comments = [f"This worklist will enact pooling of {len(df_all)} samples",
@@ -343,16 +339,16 @@ def pool(
             comments.append(f"Add {round(buffer_vols[pool.name],1)} ul buffer to pool {pool.name} (well {pool.location[1]})")
     
     # Write the output files
-    zika.write_worklist(
+    zika_utils.write_worklist(
         df=df_formatted,
         deck=deck,
         wl_filename=wl_filename,
         comments=comments)
-    zika.write_log(log, log_filename)
+    zika_utils.write_log(log, log_filename)
 
     # Upload files
-    zika.upload_csv(currentStep, lims, wl_filename)
-    zika.upload_log(currentStep, lims, log_filename)
+    zika_utils.upload_csv(currentStep, lims, wl_filename)
+    zika_utils.upload_log(currentStep, lims, log_filename)
 
     # Issue warnings, if any
     if any("WARNING" in entry for entry in log):
@@ -398,7 +394,7 @@ def norm(
         log.append(e)
 
 
-    # See zika.fetch_sample_data for which stats correspond to which attributes
+    # See zika_utils.fetch_sample_data for which stats correspond to which attributes
     to_fetch = [
         # Sample info
         "sample_name",
@@ -423,9 +419,9 @@ def norm(
     ]
     
     if local_data:
-        df = zika.load_fake_samples(local_data, to_fetch)
+        df = zika_utils.load_fake_samples(local_data, to_fetch)
     else:
-        df = zika.fetch_sample_data(currentStep, to_fetch, log)
+        df = zika_utils.fetch_sample_data(currentStep, to_fetch, log)
 
     # Assertions
     assert all(df.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul"
@@ -523,22 +519,22 @@ def norm(
     df = df.join(pd.DataFrame(d))
 
     # Resolve buffer transfers
-    df = zika.resolve_buffer_transfers(df, buffer_strategy=buffer_strategy)
+    df = zika_utils.resolve_buffer_transfers(df, buffer_strategy=buffer_strategy)
 
     # Format worklist
-    df = zika.format_worklist(df, deck=deck, split_transfers=True)
+    df = zika_utils.format_worklist(df, deck=deck, split_transfers=True)
 
     # Write files
     method_name = "norm"
     pid = "local" if local_data else currentStep.id
-    wl_filename, log_filename = zika.get_filenames(method_name, pid)
+    wl_filename, log_filename = zika_utils.get_filenames(method_name, pid)
 
     # Comments to attach to the worklist header
     comments = [
         f"This worklist will enact normalization of {len(df)} samples",
         "For detailed parameters see the worklist log"
     ]
-    zika.write_worklist(
+    zika_utils.write_worklist(
         df=df,
         deck=deck,
         wl_filename=wl_filename,
@@ -546,12 +542,12 @@ def norm(
         multi_aspirate=multi_aspirate,
     )
 
-    zika.write_log(log, log_filename)
+    zika_utils.write_log(log, log_filename)
 
     # Upload files
     if not local_data:
-        zika.upload_csv(currentStep, lims, wl_filename)
-        zika.upload_log(currentStep, lims, log_filename)
+        zika_utils.upload_csv(currentStep, lims, wl_filename)
+        zika_utils.upload_log(currentStep, lims, log_filename)
 
         # Issue warnings, if any
         if any("WARNING" in entry for entry in log):
