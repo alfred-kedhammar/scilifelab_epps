@@ -13,7 +13,7 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
-from numpy import minimum, maximum, where
+from numpy import minimum
 from datetime import datetime as dt
 
 
@@ -266,7 +266,7 @@ def zika_write_log(log, file_meta):
 def prepooling(currentStep, lims):
     log = []
 
-    # New prepooling code
+    # New, non-accredited, prepooling code
     if zika.verify_step(
         currentStep, 
         targets = [
@@ -282,7 +282,7 @@ def prepooling(currentStep, lims):
             well_max_vol=180
             )
 
-    # Old prepooling code
+    # Old, accredited, prepooling code
     if currentStep.instrument.name == "Zika":
         # Constraints
         zika_min_vol = 0.5  # Possible to run on 0.1

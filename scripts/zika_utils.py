@@ -18,6 +18,8 @@ import sys
 
 def verify_step(currentStep, targets):
     """Verify the instrument, workflow and step for a given process is correct"""
+
+    # TODO if workflow or step is left blank, pass all
     
     if currentStep.instrument.name != "Zika":
         return False
@@ -42,9 +44,7 @@ def verify_step(currentStep, targets):
 
 class CheckLog(Exception):
 
-    def __init__(self, log, method_name, pid, lims, currentStep):
-
-        wl_filename, log_filename = get_filenames(method_name, pid)
+    def __init__(self, log, log_filename, lims, currentStep):
 
         write_log(log, log_filename)
         upload_log(currentStep, lims, log_filename)
@@ -53,50 +53,51 @@ class CheckLog(Exception):
         sys.exit(2)
         
 
-def fetch_sample_data(currentStep, to_fetch, log):
+def fetch_sample_data(currentStep, to_fetch):
+    """ Given a dictionary "to_fetch" whose keys are the desired sample properties and whose values are the
+    corresponding object paths, fetch the sample properties for all elements of currentStep.input_output_maps
+    and return them in a dataframe.
     """
-    Within this function is the dictionary key2expr, its keys being the given name of a particular piece of information linked to a transfer input/output sample and it's values being the string that when evaluated will yield the desired info from whatever the variable "art_tuple" is currently pointing at. 
-    Given the positional arguments of a LIMS transfer process and a list of keys, it will return a dataframe containing the information fetched from each transfer based on the keys.
-    """
 
-    key2expr = {
-        # Sample info
-        "sample_name":      "art_tuple[0]['uri'].name",
-        # User sample info
-        "user_conc":        "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",
-        "user_vol":         "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
-        # RC sample info
-        "conc_units":       "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
-        "conc":             "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
-        "vol":              "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
-        "amt":              "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']",
-        # Plates and wells
-        "source_fc":        "art_tuple[0]['uri'].location[0].name",
-        "source_well":      "art_tuple[0]['uri'].location[1]",
-        "dest_fc_name":     "art_tuple[1]['uri'].location[0].name",
-        "dest_fc":          "art_tuple[1]['uri'].location[0].id",
-        "dest_well":        "art_tuple[1]['uri'].location[1]",
-        # Target info: 
-        "amt_taken":        "art_tuple[1]['uri'].udf['Amount taken (ng)']",           # The amount (ng) that is taken from the original sample plate
-        "vol_taken":        "art_tuple[1]['uri'].udf['Total Volume (uL)']",           # The total volume of dilution
-        "pool_vol_final":   "art_tuple[1]['uri'].udf['Final Volume (uL)']",           # Target pool volume
-        "target_name":      "art_tuple[1]['uri'].name",                               # Target sample or pool name
-        "target_amt":       "art_tuple[1]['uri'].udf['Target Amount (ng)']",          # The actual amount (ng) that is used as input for library prep
-        "target_vol":       "art_tuple[1]['uri'].udf['Target Total Volume (uL)']"     # The actual total dilution volume that is used as input for library prep
-    }
+    object_paths = [
+        # Current step input artifact
+        "art_tuple[0]['uri'].name",                                 # Sample name
+        "art_tuple[0]['uri'].id",                                   # Sample ID
+        "art_tuple[0]['uri'].location[0].name",                     # Plate name
+        "art_tuple[0]['uri'].location[0].id",                       # Plate ID
+        "art_tuple[0]['uri'].location[1]",                          # Well
+        "art_tuple[0]['uri'].udf['Conc. Units']",
+        "art_tuple[0]['uri'].udf['Concentration']",
+        "art_tuple[0]['uri'].udf['Volume (ul)']",
+        "art_tuple[0]['uri'].udf['Amount (ng)']",
 
-    replacement_stats = {
-        # If target amt / vol is not stated, use synonymously with amt / vol taken
-        "target_amt": "amt_taken",
-        "target_vol": "vol_taken",
-        # If conc / vol is missing, use the user-supplied values
-        "conc": "user_conc",
-        "vol": "user_vol"
-    }
+        # Current step output artifact
+        "art_tuple[1]['uri'].udf['Amount taken (ng)']",             # The amount (ng) that is taken from the original sample plate
+        "art_tuple[1]['uri'].udf['Total Volume (uL)']",             # The total volume of dilution
+        "art_tuple[1]['uri'].udf['Final Volume (uL)']",             # Final pool / sample volume
+        "art_tuple[1]['uri'].name",                                 # Target sample or pool name
+        "art_tuple[1]['uri'].id",
+        "art_tuple[1]['uri'].udf['Target Amount (ng)']",            # The actual amount (ng) that is used as input for library prep
+        "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",      # The actual total dilution volume that is used as input for library prep
+        "art_tuple[1]['uri'].location[0].name",                     # Plate name
+        "art_tuple[1]['uri'].location[0].id",                       # Plate ID
+        "art_tuple[1]['uri'].location[1]",                          # Well
+       
+        # Input sample info
+        "art_tuple[0]['uri'].samples[0].name",
+        "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",      # ng/ul
+        "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
+        
+        # Input sample RC measurements (?)
+        "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
+        "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
+        "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
+        "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']"
+    ]
 
-    # Verify all target metrics are keys in key2expr dict
-    for k in to_fetch:
-        assert k in key2expr.keys(), f"fetch_sample_data() is missing a definition for key {k}"
+    # Verify all target metrics are found in object_paths, if not - add them
+    for header, object_path in to_fetch.items():
+        assert object_path in object_paths, f"fetch_sample_data() is missing the requested object path {object_path}"
 
     # Fetch all input/output sample tuples
     art_tuples = [
@@ -105,41 +106,16 @@ def fetch_sample_data(currentStep, to_fetch, log):
     ]
 
     # Fetch all target data
-    l = []
-    replacements = []
+    list_of_dicts = []
     for art_tuple in art_tuples:
-        key2val = {}
-        for k in to_fetch:
-            
-            try:
-                key2val[k] = eval(key2expr[k])
-            # If a value is missing
-            except KeyError:
-                
-                # try replacing it
-                if k in replacement_stats:
-                    key2val[k] = eval(key2expr[replacement_stats[k]])
-
-                    missing_udf = key2expr[k].split("\'")[-2]
-                    replacement_udf = key2expr[replacement_stats[k]].split("\'")[-2]
-                    msg = f"'UDF {missing_udf}' not found, using '{replacement_udf}' instead"
-                    if msg not in replacements:
-                        replacements.append(msg)
-                        log.append(msg)
-
-                # ignore these
-                elif k in ["conc_units", "amt_taken"]:
-                    pass
-                
-                else:
-                    raise
-
-        l.append(key2val)
+        dict = {}
+        for header, object_path in to_fetch.items():
+            dict[header] = eval(object_path)
+        list_of_dicts.append(dict)
 
     # Compile to dataframe
-    df = pd.DataFrame(l)
+    df = pd.DataFrame(list_of_dicts)
 
-    log.append("\n")
     return df
 
 
@@ -165,20 +141,20 @@ def format_worklist(df, deck, split_transfers = False):
     """
     - Add columns in Mosquito-intepretable format
     - Resolve multi-transfers
-    - Sort by dest col, dest row, buffer, sample
+    - Sort by dst col, dst row, buffer, sample
     """
 
     # Add columns for plate positions
-    df["src_pos"] = df["source_fc"].apply(lambda x: deck[x])
-    df["dst_pos"] = df["dest_fc"].apply(lambda x: deck[x])
+    df["src_pos"] = df["src_name"].apply(lambda x: deck[x])
+    df["dst_pos"] = df["dst_name"].apply(lambda x: deck[x])
 
     # Convert volumes to whole nl
     df["transfer_vol"] = round(df.transfer_vol * 1000, 0)
     df["transfer_vol"] = df["transfer_vol"].astype(int)
 
     # Convert well names to r/c coordinates
-    df["src_row"], df["src_col"] = well2rowcol(df.source_well)
-    df["dst_row"], df["dst_col"] = well2rowcol(df.dest_well)
+    df["src_row"], df["src_col"] = well2rowcol(df.src_well)
+    df["dst_row"], df["dst_col"] = well2rowcol(df.dst_well)
 
     # Sort df
     try:
@@ -211,6 +187,8 @@ def format_worklist(df, deck, split_transfers = False):
     else:
         return df
 
+class VolumeOverflow(Exception):
+    pass
 
 def resolve_buffer_transfers(df, buffer_strategy):
     """
@@ -221,7 +199,7 @@ def resolve_buffer_transfers(df, buffer_strategy):
     # Pivot buffer transfers
     df.rename(columns = {"sample_vol": "sample", "buffer_vol": "buffer"}, inplace = True)
     to_pivot = ["sample", "buffer"]
-    to_keep = ["source_fc", "source_well", "dest_fc", "dest_well"]
+    to_keep = ["src_fc", "src_well", "dst_fc", "dst_well"]
     df = df.melt(
         value_vars=to_pivot,
         var_name="src_type",
@@ -230,11 +208,11 @@ def resolve_buffer_transfers(df, buffer_strategy):
     )
     
     # Sort df
-    split_dest_well = df.dest_well.str.split(":", expand = True)
-    df["dest_well_row"] = split_dest_well[0]
-    df["dest_well_col"] = split_dest_well[1]
+    split_dst_well = df.dst_well.str.split(":", expand = True)
+    df["dst_well_row"] = split_dst_well[0]
+    df["dst_well_col"] = split_dst_well[1]
 
-    df.sort_values(by = ["dest_well_col", "dest_well_row", "src_type"], inplace = True)
+    df.sort_values(by = ["dst_well_col", "dst_well_row", "src_type"], inplace = True)
 
     # Remove zero-vol transfers
     df = df[df.transfer_vol > 0]
@@ -243,13 +221,13 @@ def resolve_buffer_transfers(df, buffer_strategy):
     df = df.reset_index(drop=True)
 
     # Assign buffer transfers to buffer plate
-    df.loc[df["src_type"] == "buffer", "source_fc"] = "buffer_plate"
+    df.loc[df["src_type"] == "buffer", "src_fc"] = "buffer_plate"
 
-    # Assign buffer source wells
+    # Assign buffer src wells
     if buffer_strategy == "first_column":
         # Keep rows, but only use column 1
-        df.loc[df["src_type"] == "buffer", "source_well"] = df.loc[
-            df["src_type"] == "buffer", "source_well"
+        df.loc[df["src_type"] == "buffer", "src_well"] = df.loc[
+            df["src_type"] == "buffer", "src_well"
         ].apply(lambda x: x[0:-1] + "1")
     else:
         raise Exception("No buffer strategy defined")
@@ -295,6 +273,11 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
                       is <= 5000 nl, use multi-aspiration.
     """
 
+    # Replace all commas with semi-colons, so they can be printed without truncating the worklist
+    for c, is_string in zip(df.columns, df.applymap(type).eq(str).all()):
+        if is_string:
+            df[c] = df[c].apply(lambda x: x.replace(",",";"))
+
     # Format comments for printing into worklist
     if comments:
         comments = ["COMMENT, " + e for e in comments]
@@ -310,11 +293,11 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
                 # End position of next transfer is the same
                 df.dst_pos == df.shift(-1).dst_pos,
                 # End well of the next transfer is the same
-                df.dest_well == df.shift(-1).dest_well,
+                df.dst_well == df.shift(-1).dst_well,
                 # This transfer is buffer
-                df.source_fc == "buffer_plate",
+                df.src_fc == "buffer_plate",
                 # Next transfer is not buffer
-                df.shift(-1).source_fc != "buffer_plate",
+                df.shift(-1).src_fc != "buffer_plate",
                 # Sum of this and next transfer is <= 5 ul
                 df.transfer_vol + df.shift(-1).transfer_vol <= 5000,
             ],
@@ -399,9 +382,11 @@ def get_deck_comment(deck):
 
     return deck_comment
 
+
 def write_log(log, log_filename):
     with open(log_filename, "w") as logContext:
         logContext.write("\n".join(log))
+
 
 def upload_log(currentStep, lims, log_filename):
     for out in currentStep.all_outputs():
