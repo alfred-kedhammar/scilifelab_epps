@@ -368,10 +368,13 @@ def norm(
     multi_aspirate=True,            # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
     zika_min_vol=0.1,               # 0.5 lowest validated, 0.1 lowest possible
     well_dead_vol=5,                # 5 ul generous estimate of dead volume in TwinTec96
-    well_max_vol=15                 # 15 ul max well vol enables single-column buffer reservoir
+    well_max_vol=15,                # 15 ul max well vol enables single-column buffer reservoir
+    use_customer_metrics=False
     ):
     """
     Normalize to target amount and volume.
+
+    TODO currently only written for setup of plates using customer vol / conc
 
     Cases:
     1) Not enough sample       --> Decrease amount, flag
@@ -385,60 +388,59 @@ def norm(
     # Write log header
     log = []
     for e in [
-        f"Expand volume to obtain target conc: {volume_expansion}"
-        f"Multi-aspirate buffer-sample: {multi_aspirate}"
-        f"Minimum pipetting volume: {zika_min_vol} ul"
-        f"Applied dead volume: {well_dead_vol} ul"
+        f"Expand volume to obtain target conc: {volume_expansion}",
+        f"Multi-aspirate buffer-sample: {multi_aspirate}",
+        f"Minimum pipetting volume: {zika_min_vol} ul",
+        f"Applied dead volume: {well_dead_vol} ul",
         f"Maximum allowed dst well volume: {well_max_vol} ul"
     ]:
         log.append(e)
 
+    to_fetch = {
+        # Input sample
+        "sample_name"           :       "art_tuple[0]['uri'].name",
+        "src_name"              :       "art_tuple[0]['uri'].location[0].name",
+        "src_id"                :       "art_tuple[0]['uri'].location[0].id",
+        "src_well"              :       "art_tuple[0]['uri'].location[1]",
+        # Output sample
+        "amt_taken"             :       "art_tuple[1]['uri'].udf['Amount taken (ng)']",
+        "vol_taken"             :       "art_tuple[1]['uri'].udf['Total Volume (uL)']",
+        "dst_name"              :       "art_tuple[1]['uri'].location[0].name",
+        "dst_id"                :       "art_tuple[1]['uri'].location[0].id",
+        "dst_well"              :       "art_tuple[1]['uri'].location[1]"
+    }
+    if use_customer_metrics:
+        to_fetch["conc"] = "art_tuple[0]['uri'].samples[0].udf['Customer Conc']"
+        to_fetch["vol"] = "art_tuple[0]['uri'].samples[0].udf['Customer Volume']"
+    else:
+        to_fetch["conc_units"] = "art_tuple[0]['uri'].udf['Conc. Units']"
+        to_fetch["conc"] = "art_tuple[0]['uri'].udf['Concentration']"
+        to_fetch["vol"] = "art_tuple[0]['uri'].udf['Volume (ul)']"
 
-    # See zika_utils.fetch_sample_data for which stats correspond to which attributes
-    to_fetch = [
-        # Sample info
-        "sample_name",
-        "conc",
-        "conc_units",
-        "vol",
-        # User sample info
-        "user_conc",
-        "user_vol",
-        # Plates and positions
-        "source_fc",
-        "source_well",
-        "dest_fc",
-        "dest_well",
-        "dest_fc_name",
-        # Changes to src
-        "amt_taken",
-        "vol_taken",
-        # Target info
-        "target_amt",
-        "target_vol"
-    ]
-    
+    # TODO sort these non-user-accessible UDFs
+    # "art_tuple[1]['uri'].udf['Target Amount (ng)']"     
+    # "art_tuple[1]['uri'].udf['Target Total Volume (uL)']"
+
     if local_data:
         df = zika_utils.load_fake_samples(local_data, to_fetch)
     else:
-        df = zika_utils.fetch_sample_data(currentStep, to_fetch, log)
+        df = zika_utils.fetch_sample_data(currentStep, to_fetch)
+
+    conc_unit = "ng/ul" if use_customer_metrics else df.conc_units[0]
+    amt_unit = "ng" if conc_unit == "ng/ul" else "fmol"
 
     # Assertions
-    assert all(df.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul"
+    assert all(df.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul" # TODO make sure this is displayed on web page
     df["full_vol"] = df.vol.copy()
     df.loc[:,"vol"] = df.vol - well_dead_vol
 
-    if "conc_units" in df.columns:
-        assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
-    assert all(df.target_amt > 0), "Target amount needs to be greater than zero"
-
     # Define deck
-    assert len(df.source_fc.unique()) == 1, "Only one input plate allowed"
-    assert len(df.dest_fc.unique()) == 1, "Only one output plate allowed"
+    assert len(df.src_id.unique()) == 1, "Only one input plate allowed"
+    assert len(df.dst_id.unique()) == 1, "Only one output plate allowed"
     deck = {
         "buffer_plate": 2,
-        df.source_fc.unique()[0]: 3,
-        df.dest_fc.unique()[0]: 4,
+        df.src_name.unique()[0]: 3,
+        df.dst_name.unique()[0]: 4,
     }
 
     # Make calculations
