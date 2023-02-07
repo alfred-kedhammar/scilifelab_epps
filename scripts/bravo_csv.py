@@ -275,7 +275,6 @@ def prepooling(currentStep, lims):
         ]
         ):
         zika_methods.pool(
-            data=make_datastructure(currentStep, lims, log),
             currentStep=currentStep, 
             lims=lims,
             zika_min_vol=0.5,
