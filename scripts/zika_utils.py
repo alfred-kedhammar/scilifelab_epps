@@ -271,6 +271,8 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
     multi_aspirate -- If a buffer transfer is followed by a sample transfer
                       to the same well, and the sum of their volumes
                       is <= 5000 nl, use multi-aspiration.
+    
+    TODO possible to avoid tip change between buffer transfers to clean dst well
     """
 
     # Replace all commas with semi-colons, so they can be printed without truncating the worklist
