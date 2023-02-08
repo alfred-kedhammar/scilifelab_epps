@@ -266,7 +266,7 @@ def pool(
         df_pool["transfer_amt"] = df_pool.transfer_vol * df_pool.conc
         df_pool["final_conc_fraction"] = round((df_pool.transfer_vol * df_pool.conc / pool_vol) / (pool_conc / len(df_pool)), 2)
         try:
-            df_pool["final_amt_fraction"] = round(df_pool.transfer_amt / df_pool.amt_taken, 2)
+            df_pool["final_amt_fraction"] = round(df_pool.transfer_amt / df_pool.target_amt, 2)
         except:
             pass
 
@@ -392,7 +392,8 @@ def norm(
         f"Multi-aspirate buffer-sample: {multi_aspirate}",
         f"Minimum pipetting volume: {zika_min_vol} ul",
         f"Applied dead volume: {well_dead_vol} ul",
-        f"Maximum allowed dst well volume: {well_max_vol} ul"
+        f"Maximum allowed dst well volume: {well_max_vol} ul",
+        "\n"
     ]:
         log.append(e)
 
@@ -403,8 +404,8 @@ def norm(
         "src_id"                :       "art_tuple[0]['uri'].location[0].id",
         "src_well"              :       "art_tuple[0]['uri'].location[1]",
         # Output sample
-        "amt_taken"             :       "art_tuple[1]['uri'].udf['Amount taken (ng)']",
-        "vol_taken"             :       "art_tuple[1]['uri'].udf['Total Volume (uL)']",
+        "target_amt"            :       "art_tuple[1]['uri'].udf['Target Amount (ng)']",
+        "target_vol"            :       "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",
         "dst_name"              :       "art_tuple[1]['uri'].location[0].name",
         "dst_id"                :       "art_tuple[1]['uri'].location[0].id",
         "dst_well"              :       "art_tuple[1]['uri'].location[1]"
@@ -417,9 +418,9 @@ def norm(
         to_fetch["conc"] = "art_tuple[0]['uri'].udf['Concentration']"
         to_fetch["vol"] = "art_tuple[0]['uri'].udf['Volume (ul)']"
 
-    # TODO sort these non-user-accessible UDFs
-    # "art_tuple[1]['uri'].udf['Target Amount (ng)']"     
-    # "art_tuple[1]['uri'].udf['Target Total Volume (uL)']"
+    # TODO update UDFs
+    # "art_tuple[1]['uri'].udf['Amount taken (ng)']"
+    # "art_tuple[1]['uri'].udf['Total Volume (uL)']"
 
     if local_data:
         df = zika_utils.load_fake_samples(local_data, to_fetch)
@@ -453,10 +454,10 @@ def norm(
         outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
 
     # Cases
-    d = {"sample_vol": [], "buffer_vol": [], "tot_vol": []}
+    d = {"sample_vol": [], "buffer_vol": [], "tot_vol": [], "sample_amt": [], "final_conc": []}
     for i, r in df.iterrows():
 
-        # 1) Not enough sample
+        # 1) Not enough sample --> Conc below target
         if r.max_transfer_amt < r.target_amt:
 
             sample_vol = min(r.target_vol, r.vol)
@@ -504,16 +505,18 @@ def norm(
         else:
             log.append(f"Sample {r.sample_name} normalized to {final_amt:.2f} ng in {tot_vol:.2f} ul ({final_conc:.2f} ng/ul)")
 
+        d["sample_amt"].append(final_amt)
         d["sample_vol"].append(sample_vol)
         d["buffer_vol"].append(buffer_vol)
         d["tot_vol"].append(tot_vol)
+        d["final_conc"].append(final_conc)
 
         # Change UDFs
         if not local_data:
             op = outputs[r.sample_name]
             op.udf['Amount taken (ng)'] = float(round(final_amt, 2))
             op.udf['Total Volume (uL)'] = float(round(tot_vol, 1))
-            if final_amt < r.target_amt:
+            if round(final_amt,2) < round(r.target_amt,2):
                 op.udf['Target Amount (ng)'] = float(round(final_amt, 2))
             op.put()
 
@@ -521,10 +524,10 @@ def norm(
     df = df.join(pd.DataFrame(d))
 
     # Resolve buffer transfers
-    df = zika_utils.resolve_buffer_transfers(df, buffer_strategy=buffer_strategy)
+    df_buffer = zika_utils.resolve_buffer_transfers(df.copy(), buffer_strategy=buffer_strategy)
 
     # Format worklist
-    df = zika_utils.format_worklist(df, deck=deck, split_transfers=True)
+    df_formatted = zika_utils.format_worklist(df_buffer, deck=deck, split_transfers=True)
 
     # Write files
     method_name = "norm"
@@ -533,11 +536,11 @@ def norm(
 
     # Comments to attach to the worklist header
     comments = [
-        f"This worklist will enact normalization of {len(df)} samples",
+        f"This worklist will enact normalization of {len(df_formatted)} samples",
         "For detailed parameters see the worklist log"
     ]
     zika_utils.write_worklist(
-        df=df,
+        df=df_formatted,
         deck=deck,
         wl_filename=wl_filename,
         comments=comments,

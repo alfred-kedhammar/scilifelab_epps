@@ -77,8 +77,8 @@ def fetch_sample_data(currentStep, to_fetch):
         "art_tuple[1]['uri'].udf['Final Volume (uL)']",             # Final pool / sample volume
         "art_tuple[1]['uri'].name", 
         "art_tuple[1]['uri'].id",
-        "art_tuple[1]['uri'].udf['Target Amount (ng)']",            # Written by EPP only, the actual amount (ng) that is used as input for library prep
-        "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",      # Written by EPP only, the actual total dilution volume that is used as input for library prep
+        "art_tuple[1]['uri'].udf['Target Amount (ng)']",            # In methods where the prep input is possibly different from the sample dilution, this is the target concentration and minimum volume of the prep input
+        "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",      # In methods where the prep input is possibly different from the sample dilution, this is the target concentration and minimum volume of the prep input
         "art_tuple[1]['uri'].location[0].name",                     # Plate name
         "art_tuple[1]['uri'].location[0].id",                       # Plate ID
         "art_tuple[1]['uri'].location[1]",                          # Well
@@ -199,7 +199,7 @@ def resolve_buffer_transfers(df, buffer_strategy):
     # Pivot buffer transfers
     df.rename(columns = {"sample_vol": "sample", "buffer_vol": "buffer"}, inplace = True)
     to_pivot = ["sample", "buffer"]
-    to_keep = ["src_fc", "src_well", "dst_fc", "dst_well"]
+    to_keep = ["src_name", "src_well", "dst_name", "dst_well"]
     df = df.melt(
         value_vars=to_pivot,
         var_name="src_type",
@@ -221,7 +221,7 @@ def resolve_buffer_transfers(df, buffer_strategy):
     df = df.reset_index(drop=True)
 
     # Assign buffer transfers to buffer plate
-    df.loc[df["src_type"] == "buffer", "src_fc"] = "buffer_plate"
+    df.loc[df["src_type"] == "buffer", "src_name"] = "buffer_plate"
 
     # Assign buffer src wells
     if buffer_strategy == "first_column":
@@ -295,9 +295,9 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
                 # End well of the next transfer is the same
                 df.dst_well == df.shift(-1).dst_well,
                 # This transfer is buffer
-                df.src_fc == "buffer_plate",
+                df.src_name == "buffer_plate",
                 # Next transfer is not buffer
-                df.shift(-1).src_fc != "buffer_plate",
+                df.shift(-1).src_name != "buffer_plate",
                 # Sum of this and next transfer is <= 5 ul
                 df.transfer_vol + df.shift(-1).transfer_vol <= 5000,
             ],
