@@ -374,8 +374,6 @@ def norm(
     """
     Normalize to target amount and volume.
 
-    TODO currently only written for setup of plates using customer vol / conc
-
     Cases:
     1) Not enough sample       --> Decrease amount, flag
     2) Enough sample           --> OK
@@ -418,10 +416,6 @@ def norm(
         to_fetch["conc"] = "art_tuple[0]['uri'].udf['Concentration']"
         to_fetch["vol"] = "art_tuple[0]['uri'].udf['Volume (ul)']"
 
-    # TODO update UDFs
-    # "art_tuple[1]['uri'].udf['Amount taken (ng)']"
-    # "art_tuple[1]['uri'].udf['Total Volume (uL)']"
-
     if local_data:
         df = zika_utils.load_fake_samples(local_data, to_fetch)
     else:
@@ -457,15 +451,15 @@ def norm(
     d = {"sample_vol": [], "buffer_vol": [], "tot_vol": [], "sample_amt": [], "final_conc": []}
     for i, r in df.iterrows():
 
+        log.append(f"\n{r.sample_name} (conc {round(r.conc,2)} {conc_unit}, vol {round(r.vol,1)} ul)")
+
         # 1) Not enough sample --> Conc below target
         if r.max_transfer_amt < r.target_amt:
 
-            sample_vol = min(r.target_vol, r.vol)
+            sample_vol = min(r.vol, r.target_vol)
             tot_vol = r.target_vol
             buffer_vol = tot_vol - sample_vol
-
-            final_amt = sample_vol * r.conc
-            final_conc = final_amt / tot_vol
+            log.append(f"WARNING: Not enough sample to reach target")
 
         # 2) Ideal case
         elif r.min_transfer_amt <= r.target_amt <= r.max_transfer_amt:
@@ -487,23 +481,19 @@ def norm(
                 sample_vol = zika_min_vol
                 buffer_vol = tot_vol - sample_vol
 
+                log.append(f"INFO: Volume expansion required")
+
             else:
                 sample_vol = zika_min_vol
                 tot_vol = r.target_vol
                 buffer_vol = tot_vol - sample_vol
 
+                log.append(f"WARNING: {r.sample_name} (conc {round(r.conc,2)} {conc_unit}, vol {round(r.vol,1)} ul), Sample is too concentrated")
+
         final_amt = sample_vol * r.conc
         final_conc = final_amt / tot_vol
-
-        # Flag sample in log if deviating by >= 1% from target
-        amt_frac = final_amt / r.target_amt
-        if abs(amt_frac - 1) >= 0.005:
-            log.append(
-                f"WARNING: Sample {r.sample_name} ({r.conc:.2f} ng/ul in {r.vol:.2f} ul accessible volume)"
-            )
-            log.append(f"\t--> Transferring {sample_vol:.2f} ul, resulting in {final_amt:.2f} ng in {tot_vol:.2f} ul ({final_conc:.2f} ng/ul)")
-        else:
-            log.append(f"Sample {r.sample_name} normalized to {final_amt:.2f} ng in {tot_vol:.2f} ul ({final_conc:.2f} ng/ul)")
+        final_conc_frac = final_conc / r.target_conc
+        log.append(f"--> Diluting {round(sample_vol,1)} ul ({round(final_amt,2)} {amt_unit}) to {round(tot_vol,1)} ul ({round(final_conc,2)} {conc_unit}, {round(final_conc_frac*100,1)}% of target)")
 
         d["sample_amt"].append(final_amt)
         d["sample_vol"].append(sample_vol)
