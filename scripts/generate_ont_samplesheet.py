@@ -12,6 +12,9 @@ DESC = """EPP used to generate a MinKNOW sample sheet for ONT samples"""
 
 
 def main(lims, args):
+    """ Barcoding vs no-barcoding, devices and experiments cannot be mixed in a samplesheet and must be split across multiple ones.
+    Create many sample sheets and deliver them as a zipped file.
+    """
 
     currentStep = Process(lims, id=args.pid)
 
@@ -22,10 +25,11 @@ def main(lims, args):
     for art in arts:
 
         row = {
-            "instrument": art.udf.get("ONT flow cell type"), # Used to separate samplesheets
+            "sheet_name": art.udf.get('ONT sample sheet name'),
+            "instrument": art.udf.get("ONT flow cell type"),
             "flow_cell_id": art.udf.get("ONT flow cell ID"),
             "sample_id": art.name,
-            "experiment_id": art.samples[0].project.id,
+            "experiment_id": f"{art.samples[0].project.id}_{art.udf.get('ONT sample sheet name')}",
             "flow_cell_product_code": get_fc_product_code(art),
             "kit": get_kit_string(art)
         }
@@ -44,28 +48,45 @@ def main(lims, args):
                 rows.append(row.copy())
 
     df = pd.DataFrame(rows)
-    upload_csvs(df, currentStep)
+
+    # TODO Assertions
+    # Check that all samples in a single sample sheet belong to the same project
+
+    # Iterate across sheets
+    sheets = df.sheet_name.unique()
+    common_file_suffix = f"{currentStep.id}_{dt.now().strftime('%y%m%d_%H%M%S')}"
+    for sheet in sheets:
+        
+        df_sheet = df[df.sheet_name == sheet]
+
+        if 
+        df_csv = df_sheet.loc[:, "flow_cell_id" : "barcode"]
+        write_csv(df_sheet, common_file_suffix)
+
+    upload_csv(df, currentStep)
 
 
-def upload_csvs(df, currentStep, lims):
+def write_csv(df_sheet):
+    
+
+
+def zip_csvs(filenames):
+    pass
+
+
+def upload_csv(df, currentStep, lims):
 
     timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+    instrument = df.instrument[0]
 
-    dfs = {
-        "PromethION": df[df.instrument == "PromethION"],
-        "MinION": df[df.instrument == "MinION"]
-    }
-
-    for instrument in dfs:
-        if not dfs[instrument].empty:
-            csv_name = f"ONT_{instrument}_sample_sheet_{timestamp}.csv"
-            dfs[instrument].loc[:, "flow_cell_id" : "barcode"].to_csv(csv_name, index=False)
-            
-            for out in currentStep.all_outputs():
-                if out.name == f"ONT {instrument} sample sheet":
-                    for f in out.files:
-                        lims.request_session.delete(f.uri)
-                    lims.upload_new_file(out, csv_name)
+    csv_name = f"ONT_{instrument}_sample_sheet_{timestamp}.csv"
+    df.loc[:, "flow_cell_id" : "barcode"].to_csv(csv_name, index=False)
+    
+    for out in currentStep.all_outputs():
+        if out.name == f"ONT {instrument} sample sheet":
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, csv_name)
 
 
 def get_fc_product_code(sample):
