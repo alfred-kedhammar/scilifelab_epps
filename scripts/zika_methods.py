@@ -366,7 +366,7 @@ def norm(
     buffer_strategy="first_column", # Use first column of buffer plate as reservoir
     volume_expansion=True,          # For samples that are too concentrated, increase target volume to obtain correct conc
     multi_aspirate=True,            # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
-    zika_min_vol=0.1,               # 0.5 lowest validated, 0.1 lowest possible
+    zika_min_vol=0.5,               # 0.5 lowest validated, 0.1 lowest possible
     well_dead_vol=5,                # 5 ul generous estimate of dead volume in TwinTec96
     well_max_vol=15,                # 15 ul max well vol enables single-column buffer reservoir
     use_customer_metrics=False
