@@ -266,7 +266,7 @@ def pool(
         df_pool["transfer_amt"] = df_pool.transfer_vol * df_pool.conc
         df_pool["final_conc_fraction"] = round((df_pool.transfer_vol * df_pool.conc / pool_vol) / (pool_conc / len(df_pool)), 2)
         try:
-            df_pool["final_amt_fraction"] = round(df_pool.transfer_amt / df_pool.amt_taken, 2)
+            df_pool["final_amt_fraction"] = round(df_pool.transfer_amt / df_pool.target_amt, 2)
         except:
             pass
 
@@ -366,9 +366,10 @@ def norm(
     buffer_strategy="first_column", # Use first column of buffer plate as reservoir
     volume_expansion=True,          # For samples that are too concentrated, increase target volume to obtain correct conc
     multi_aspirate=True,            # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
-    zika_min_vol=0.1,               # 0.5 lowest validated, 0.1 lowest possible
+    zika_min_vol=0.5,               # 0.5 lowest validated, 0.1 lowest possible
     well_dead_vol=5,                # 5 ul generous estimate of dead volume in TwinTec96
-    well_max_vol=15                 # 15 ul max well vol enables single-column buffer reservoir
+    well_max_vol=15,                # 15 ul max well vol enables single-column buffer reservoir
+    use_customer_metrics=False
     ):
     """
     Normalize to target amount and volume.
@@ -385,60 +386,56 @@ def norm(
     # Write log header
     log = []
     for e in [
-        f"Expand volume to obtain target conc: {volume_expansion}"
-        f"Multi-aspirate buffer-sample: {multi_aspirate}"
-        f"Minimum pipetting volume: {zika_min_vol} ul"
-        f"Applied dead volume: {well_dead_vol} ul"
-        f"Maximum allowed dst well volume: {well_max_vol} ul"
+        f"Expand volume to obtain target conc: {volume_expansion}",
+        f"Multi-aspirate buffer-sample: {multi_aspirate}",
+        f"Minimum pipetting volume: {zika_min_vol} ul",
+        f"Applied dead volume: {well_dead_vol} ul",
+        f"Maximum allowed dst well volume: {well_max_vol} ul",
+        "\n"
     ]:
         log.append(e)
 
+    to_fetch = {
+        # Input sample
+        "sample_name"           :       "art_tuple[0]['uri'].name",
+        "src_name"              :       "art_tuple[0]['uri'].location[0].name",
+        "src_id"                :       "art_tuple[0]['uri'].location[0].id",
+        "src_well"              :       "art_tuple[0]['uri'].location[1]",
+        # Output sample
+        "target_amt"            :       "art_tuple[1]['uri'].udf['Target Amount (ng)']",
+        "target_vol"            :       "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",
+        "dst_name"              :       "art_tuple[1]['uri'].location[0].name",
+        "dst_id"                :       "art_tuple[1]['uri'].location[0].id",
+        "dst_well"              :       "art_tuple[1]['uri'].location[1]"
+    }
+    if use_customer_metrics:
+        to_fetch["conc"] = "art_tuple[0]['uri'].samples[0].udf['Customer Conc']"
+        to_fetch["vol"] = "art_tuple[0]['uri'].samples[0].udf['Customer Volume']"
+    else:
+        to_fetch["conc_units"] = "art_tuple[0]['uri'].udf['Conc. Units']"
+        to_fetch["conc"] = "art_tuple[0]['uri'].udf['Concentration']"
+        to_fetch["vol"] = "art_tuple[0]['uri'].udf['Volume (ul)']"
 
-    # See zika_utils.fetch_sample_data for which stats correspond to which attributes
-    to_fetch = [
-        # Sample info
-        "sample_name",
-        "conc",
-        "conc_units",
-        "vol",
-        # User sample info
-        "user_conc",
-        "user_vol",
-        # Plates and positions
-        "source_fc",
-        "source_well",
-        "dest_fc",
-        "dest_well",
-        "dest_fc_name",
-        # Changes to src
-        "amt_taken",
-        "vol_taken",
-        # Target info
-        "target_amt",
-        "target_vol"
-    ]
-    
     if local_data:
         df = zika_utils.load_fake_samples(local_data, to_fetch)
     else:
-        df = zika_utils.fetch_sample_data(currentStep, to_fetch, log)
+        df = zika_utils.fetch_sample_data(currentStep, to_fetch)
+
+    conc_unit = "ng/ul" if use_customer_metrics else df.conc_units[0]
+    amt_unit = "ng" if conc_unit == "ng/ul" else "fmol"
 
     # Assertions
-    assert all(df.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul"
+    assert all(df.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul" # TODO make sure this is displayed on web page
     df["full_vol"] = df.vol.copy()
     df.loc[:,"vol"] = df.vol - well_dead_vol
 
-    if "conc_units" in df.columns:
-        assert all(df.conc_units == "ng/ul"), "All sample concentrations are expected in 'ng/ul'"
-    assert all(df.target_amt > 0), "Target amount needs to be greater than zero"
-
     # Define deck
-    assert len(df.source_fc.unique()) == 1, "Only one input plate allowed"
-    assert len(df.dest_fc.unique()) == 1, "Only one output plate allowed"
+    assert len(df.src_id.unique()) == 1, "Only one input plate allowed"
+    assert len(df.dst_id.unique()) == 1, "Only one output plate allowed"
     deck = {
         "buffer_plate": 2,
-        df.source_fc.unique()[0]: 3,
-        df.dest_fc.unique()[0]: 4,
+        df.src_name.unique()[0]: 3,
+        df.dst_name.unique()[0]: 4,
     }
 
     # Make calculations
@@ -451,18 +448,18 @@ def norm(
         outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
 
     # Cases
-    d = {"sample_vol": [], "buffer_vol": [], "tot_vol": []}
+    d = {"sample_vol": [], "buffer_vol": [], "tot_vol": [], "sample_amt": [], "final_conc": []}
     for i, r in df.iterrows():
 
-        # 1) Not enough sample
+        log.append(f"\n{r.sample_name} (conc {round(r.conc,2)} {conc_unit}, vol {round(r.vol,1)} ul)")
+
+        # 1) Not enough sample --> Conc below target
         if r.max_transfer_amt < r.target_amt:
 
-            sample_vol = min(r.target_vol, r.vol)
+            sample_vol = min(r.vol, r.target_vol)
             tot_vol = r.target_vol
             buffer_vol = tot_vol - sample_vol
-
-            final_amt = sample_vol * r.conc
-            final_conc = final_amt / tot_vol
+            log.append(f"WARNING: Not enough sample to reach target")
 
         # 2) Ideal case
         elif r.min_transfer_amt <= r.target_amt <= r.max_transfer_amt:
@@ -484,34 +481,32 @@ def norm(
                 sample_vol = zika_min_vol
                 buffer_vol = tot_vol - sample_vol
 
+                log.append(f"INFO: Volume expansion required")
+
             else:
                 sample_vol = zika_min_vol
                 tot_vol = r.target_vol
                 buffer_vol = tot_vol - sample_vol
 
+                log.append(f"WARNING: {r.sample_name} (conc {round(r.conc,2)} {conc_unit}, vol {round(r.vol,1)} ul), Sample is too concentrated")
+
         final_amt = sample_vol * r.conc
         final_conc = final_amt / tot_vol
+        final_conc_frac = final_conc / r.target_conc
+        log.append(f"--> Diluting {round(sample_vol,1)} ul ({round(final_amt,2)} {amt_unit}) to {round(tot_vol,1)} ul ({round(final_conc,2)} {conc_unit}, {round(final_conc_frac*100,1)}% of target)")
 
-        # Flag sample in log if deviating by >= 1% from target
-        amt_frac = final_amt / r.target_amt
-        if abs(amt_frac - 1) >= 0.005:
-            log.append(
-                f"WARNING: Sample {r.sample_name} ({r.conc:.2f} ng/ul in {r.vol:.2f} ul accessible volume)"
-            )
-            log.append(f"\t--> Transferring {sample_vol:.2f} ul, resulting in {final_amt:.2f} ng in {tot_vol:.2f} ul ({final_conc:.2f} ng/ul)")
-        else:
-            log.append(f"Sample {r.sample_name} normalized to {final_amt:.2f} ng in {tot_vol:.2f} ul ({final_conc:.2f} ng/ul)")
-
+        d["sample_amt"].append(final_amt)
         d["sample_vol"].append(sample_vol)
         d["buffer_vol"].append(buffer_vol)
         d["tot_vol"].append(tot_vol)
+        d["final_conc"].append(final_conc)
 
         # Change UDFs
         if not local_data:
             op = outputs[r.sample_name]
             op.udf['Amount taken (ng)'] = float(round(final_amt, 2))
             op.udf['Total Volume (uL)'] = float(round(tot_vol, 1))
-            if final_amt < r.target_amt:
+            if round(final_amt,2) < round(r.target_amt,2):
                 op.udf['Target Amount (ng)'] = float(round(final_amt, 2))
             op.put()
 
@@ -519,10 +514,10 @@ def norm(
     df = df.join(pd.DataFrame(d))
 
     # Resolve buffer transfers
-    df = zika_utils.resolve_buffer_transfers(df, buffer_strategy=buffer_strategy)
+    df_buffer = zika_utils.resolve_buffer_transfers(df.copy(), buffer_strategy=buffer_strategy)
 
     # Format worklist
-    df = zika_utils.format_worklist(df, deck=deck, split_transfers=True)
+    df_formatted = zika_utils.format_worklist(df_buffer, deck=deck, split_transfers=True)
 
     # Write files
     method_name = "norm"
@@ -531,11 +526,11 @@ def norm(
 
     # Comments to attach to the worklist header
     comments = [
-        f"This worklist will enact normalization of {len(df)} samples",
+        f"This worklist will enact normalization of {len(df_formatted)} samples",
         "For detailed parameters see the worklist log"
     ]
     zika_utils.write_worklist(
-        df=df,
+        df=df_formatted,
         deck=deck,
         wl_filename=wl_filename,
         comments=comments,
