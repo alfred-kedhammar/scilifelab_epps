@@ -56,18 +56,18 @@ def main(lims, args):
             "flow_cell_product_code": get_fc_product_code(art),
             "kit": get_kit_string(art)
         }
+        assert "" not in row.values()
         
         # Singleton sample
-        if len(art.samples) == 1:
+        if art.udf.get('ONT expansion kit') == "None":
             row["alias"] = ""
             row["barcode"] = ""
             rows.append(row)
-
         # Pool
         else:
             for sample, label in zip(art.samples, art.reagent_labels):
                 row["alias"] = strip_characters(sample.name)
-                row["barcode"] = strip_characters("barcode" + label[0:2])
+                row["barcode"] = strip_characters("barcode" + label[0:2])   # TODO double check extraction of barcode number
                 rows.append(row.copy())
 
     df = pd.DataFrame(rows)
@@ -108,16 +108,19 @@ def main(lims, args):
 
         file_list = write_csv(df_sheet, dir_name, file_list)
 
-    shutil.make_archive(dir_name, "zip", dir_name)
-    upload_zip(f"{dir_name}.zip", currentStep, lims)
+    if len(sheets) > 1:
+        shutil.make_archive(dir_name, "zip", dir_name)
+        upload_file(f"{dir_name}.zip", currentStep, lims)
+    else:
+        upload_file(f"{os.path.join(dir_name, file_list[0])}", currentStep, lims)
 
 
-def upload_zip(zip_name, currentStep, lims):
+def upload_file(file_name, currentStep, lims):
     for out in currentStep.all_outputs():
         if out.name == f"ONT PromethION sample sheet": # TODO fix output file slot
             for f in out.files:
                 lims.request_session.delete(f.uri)
-            lims.upload_new_file(out, zip_name)
+            lims.upload_new_file(out, file_name)
 
 
 def write_csv(df_sheet, dir_name, file_list):
