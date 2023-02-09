@@ -13,7 +13,7 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
-from numpy import minimum, maximum, where
+from numpy import minimum
 from datetime import datetime as dt
 
 
@@ -265,6 +265,24 @@ def zika_write_log(log, file_meta):
 
 def prepooling(currentStep, lims):
     log = []
+
+    # New, non-accredited, prepooling code
+    if zika.verify_step(
+        currentStep, 
+        targets = [
+            ('RAD-seq for MiSeq', 'Library Pooling (RAD-seq) v1.0'),
+            ('RAD-seq for NovaSeq', 'Library Pooling (RAD-seq) v1.0')
+        ]
+        ):
+        zika_methods.pool(
+            currentStep=currentStep, 
+            lims=lims,
+            zika_min_vol=0.5,
+            well_dead_vol=5,
+            well_max_vol=180
+            )
+
+    # Old, accredited, prepooling code
     if currentStep.instrument.name == "Zika":
         # Constraints
         zika_min_vol = 0.5  # Possible to run on 0.1
@@ -662,13 +680,20 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         currentStep,
         targets = [
             ('SMARTer Pico RNA', "Setup Workset/Plate"),
-            ("QIAseq miRNA", "Setup Workset/Plate"),
-            ("Amplicon", "Setup Workset/Plate")
+            ("QIAseq miRNA",     "Setup Workset/Plate"),
+            ("Amplicon",         "Setup Workset/Plate")
         ]
         ):
         zika_methods.norm(
-            currentStep=currentStep,
-            lims=lims
+            currentStep=currentStep, 
+            lims=lims, 
+            buffer_strategy="first_column",
+            volume_expansion=True,
+            multi_aspirate=True,
+            zika_min_vol=0.1,
+            well_dead_vol=5,
+            well_max_vol=15,
+            use_customer_metrics=True
             )
 
     else:
@@ -1045,6 +1070,7 @@ def sample_dilution_before_QC(currentStep):
 
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
+
     if currentStep.type.name in ['Library Pooling (HiSeq X) 1.0']:
         check_barcode_collision(currentStep)
         prepooling(currentStep, lims)
