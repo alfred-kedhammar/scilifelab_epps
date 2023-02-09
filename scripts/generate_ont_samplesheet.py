@@ -54,11 +54,9 @@ def main(lims, args):
 
     df = pd.DataFrame(rows)
 
-    # TODO Assertions
-    # Check that all samples in a single sample sheet belong to the same project
-
     # Iterate across sheets
     sheets = df.sheet_name.unique()
+    file_list = []
     for sheet in sheets:
         
         # Subset dataframe to current sheet
@@ -86,8 +84,7 @@ def main(lims, args):
         # Assert sheet contains only one instrument
         assert len(df_sheet.instrument.unique()) == 1
 
-        file_list = []
-        write_csv(df_sheet, file_list)
+        file_list = write_csv(df_sheet, file_list)
 
     upload_csv(df, currentStep)
 
@@ -97,15 +94,23 @@ def write_csv(df_sheet, file_list):
     file_name = f"ONT_samplesheet_{df_sheet.experiment_id.unique()[0]}.csv"
     file_list.append(file_name)
 
-    df_csv = df_sheet.loc[:, [
+    columns = [
         "flow_cell_id",
         "sample_id",
         "experiment_id",
         "flow_cell_product_code",
         "kit"
-    ]]
+    ]
+
+    if "alias" in df_sheet.columns and "barcode" in df_sheet.columns:
+        columns.append("alias")
+        columns.append("barcode")
+    
+    df_csv = df_sheet.loc[:, columns]
 
     df_csv.to_csv(file_name, index = False)
+    return file_list
+
 
 def get_minknow_sample_id(art):
 
