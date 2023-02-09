@@ -8,15 +8,33 @@ from genologics.entities import Process
 from datetime import datetime as dt
 import pandas as pd
 import re
+import shutil
+import os
 
-DESC = """EPP used to generate a MinKNOW sample sheet for ONT samples"""
+DESC = """EPP used to generate MinKNOW samplesheets"""
 
 
 def main(lims, args):
-    """ Barcoding vs no-barcoding, devices and experiments cannot be mixed in a samplesheet and must be split across multiple ones.
+    """
+    Barcoding vs no-barcoding, devices and experiments cannot be mixed in a samplesheet and must be split across multiple ones.
     Create many sample sheets and deliver them as a zipped file.
 
-    experiment_id   The LIMS step generating the samplesheet(s), concatenated with the specified sample sheet name, e.g. "12-34567_P12345-many-flowcells"
+    LIMS UDFs
+    ONT samplesheet name        Freely decided by user. Shared between libraries that will start sequencing together.
+    ONT flow cell type          PromethION or MinION
+
+    Sample sheet columns      
+    flow_cell_id                -
+    sample_id                   For single samples: e.g. P12345_101, For pools: e.g. P12345_lims-pool-name
+    experiment_id               lims-step_yymmdd_hhmmss_samplesheet-name
+    flow_cell_product_code      -
+    kit                         Product codes separated by spaces
+    alias                       Only included for barcoded pools, sample name e.g. P12345_101
+    barcorde                    barcode01, barcode02, etc, excavated from LIMS
+
+    Outputs
+    .zip file                   ONT_samplesheets_lims-step_yymmdd_hhmmss.zip
+    Samplesheets                ONT_samplesheet_lims-step_yymmdd_hhmmss_samplesheet-name.csv
     """
 
     currentStep = Process(lims, id=args.pid)
@@ -54,9 +72,13 @@ def main(lims, args):
 
     df = pd.DataFrame(rows)
 
+    # Create output dir
+    file_list = []
+    dir_name = f"ONT_samplesheets_{currentStep.id}_{timestamp}"
+    os.mkdir(dir_name)
+
     # Iterate across sheets
     sheets = df.sheet_name.unique()
-    file_list = []
     for sheet in sheets:
         
         # Subset dataframe to current sheet
@@ -84,12 +106,21 @@ def main(lims, args):
         # Assert sheet contains only one instrument
         assert len(df_sheet.instrument.unique()) == 1
 
-        file_list = write_csv(df_sheet, file_list)
+        file_list = write_csv(df_sheet, dir_name, file_list)
 
-    upload_csv(df, currentStep)
+    shutil.make_archive(dir_name, "zip", dir_name)
+    upload_zip(f"{dir_name}.zip", currentStep, lims)
 
 
-def write_csv(df_sheet, file_list):
+def upload_zip(zip_name, currentStep, lims):
+    for out in currentStep.all_outputs():
+        if out.name == f"ONT PromethION sample sheet": # TODO fix output file slot
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, zip_name)
+
+
+def write_csv(df_sheet, dir_name, file_list):
 
     file_name = f"ONT_samplesheet_{df_sheet.experiment_id.unique()[0]}.csv"
     file_list.append(file_name)
@@ -108,7 +139,7 @@ def write_csv(df_sheet, file_list):
     
     df_csv = df_sheet.loc[:, columns]
 
-    df_csv.to_csv(file_name, index = False)
+    df_csv.to_csv(os.path.join(dir_name, file_name), index = False)
     return file_list
 
 
@@ -135,21 +166,6 @@ def strip_characters(input_string):
     shortened_string = string_to_shorten.sub("_", subbed_string)
 
     return shortened_string
-
-
-def upload_csv(df, currentStep, lims):
-
-    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
-    instrument = df.instrument[0]
-
-    csv_name = f"ONT_{instrument}_sample_sheet_{timestamp}.csv"
-    df.loc[:, "flow_cell_id" : "barcode"].to_csv(csv_name, index=False)
-    
-    for out in currentStep.all_outputs():
-        if out.name == f"ONT {instrument} sample sheet":
-            for f in out.files:
-                lims.request_session.delete(f.uri)
-            lims.upload_new_file(out, csv_name)
 
 
 def get_fc_product_code(sample):
