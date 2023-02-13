@@ -3,6 +3,7 @@
 import re
 import os
 import sys
+import json
 import pandas as pd
 
 try:
@@ -17,6 +18,11 @@ from genologics.entities import Process
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
 from data.Chromium_10X_indexes import Chromium_10X_indexes
+
+SMARTSEQ3_indexes_json = '/opt/gls/clarity/users/glsai/repos/scilifelab_epps/data/SMARTSEQ3_indexes.json'
+
+with open(SMARTSEQ3_indexes_json, 'r') as file:
+    SMARTSEQ3_indexes = json.loads(file.read())
 
 DESC = """EPP used to check index distance in library pool
 Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
@@ -126,9 +132,12 @@ def prepare_index_table(process):
                 submitted_pool_well = ''
                 if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
                     submitted_container_name = sample.artifact.container.name.split('-')[0]
-                    submitted_pool_well_row = re.findall("[a-zA-Z]+", sample.artifact.container.name.split('-')[2])[0]
-                    submitted_pool_well_col = re.findall("[0-9]+", sample.artifact.container.name.split('-')[2])[0]
-                    submitted_pool_well = submitted_pool_well_row + ':' + submitted_pool_well_col
+                    try:
+                        submitted_pool_well_row = re.findall("[a-zA-Z]+", sample.artifact.container.name.split('-')[2])[0]
+                        submitted_pool_well_col = re.findall("[0-9]+", sample.artifact.container.name.split('-')[2])[0]
+                        submitted_pool_well = submitted_pool_well_row + ':' + submitted_pool_well_col
+                    except IndexError:
+                        submitted_pool_well = sample.artifact.container.name.split('-')[2]
                 sample_idxs = set()
                 find_barcode(sample_idxs, sample, process)
                 if sample_idxs:
@@ -159,18 +168,14 @@ def prepare_index_table(process):
                                 sp_obj_sub['idx2'] = ''
                                 data.append(sp_obj_sub)
                         elif SMARTSEQ_PAT.findall(idxs[0]):
-                            sp_obj['pool'] = pool_name
-                            sp_obj['sn'] = sample.name.replace(',','')
-                            smartseqver = idxs[0].replace(',','').split('-')[0]
-                            if len(idxs[0].replace(',','').split('-')[1]) == 3:
-                                smartseqnr = idxs[0].replace(',','').split('-')[1]
-                            elif len(idxs[0].replace(',','').split('-')[1]) == 2:
-                                smartseqnr = '0'+idxs[0].replace(',','').split('-')[1]
-                            else:
-                                smartseqnr = ''
-                            sp_obj['idx1'] = smartseqver + '-' + smartseqnr
-                            sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
-                            data.append(sp_obj)
+                            for i7_idx in SMARTSEQ3_indexes[idxs[0]][0]:
+                                for i5_idx in SMARTSEQ3_indexes[idxs[0]][1]:
+                                    sp_obj_sub = {}
+                                    sp_obj_sub['pool'] = pool_name
+                                    sp_obj_sub['sn'] = sample.name.replace(',','')
+                                    sp_obj_sub['idx1'] = i7_idx
+                                    sp_obj_sub['idx2'] = i5_idx
+                                    data.append(sp_obj_sub)
                         else:
                             sp_obj['pool'] = pool_name
                             sp_obj['sn'] = sample.name.replace(',','')

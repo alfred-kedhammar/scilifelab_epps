@@ -1,7 +1,38 @@
 # Scilifelab_epps Version Log
 
+## 20230209.1
+Enable verify index and placement epp for checking wrong well format
+
+## 20230207.1
+Update 20230130.2, correct the volume and conc information that is fetched and support both nM and ng/ul pooling. General updates to make the code simpler and more maintainable.
+
+## 20230130.2
+zika_refactoring
+Add re-factored pooling code for Zika. Re-route to the new code ONLY for RAD-seq pooling (non-accredited). Accredited operations will run on the old code, for now.
+
+## 20230130.1
+Convert 10X dual index 2 to RC for MiSeq
+
+## 20230128.1
+Update index_checker EPP to support SMARTSEQ3 indexes
+
+## 20230126.1
+Fix issue with NaN values for fragment analyzer results
+
+## 20230123.1
+Fix bug that manual in UDF instrument is recorded in logbook
+
+## 20230116.1
+Refactor EPP scripts for qc_amount_calculation
+
 ## 20221215.1
 When writing the Zika deck layout in a worklist comment, omit all commas, to prevent the line from being cut-off.
+
+## 20221123.1
+New EPP for calculating cell or nuclei conc for the new 10X Chromium workflow
+
+## 20221122.1
+Also support two new UDFs for the QIAseq miRNA and Amplicon workflows for Bravo
 
 ## 20221121.1
 Large update in functionality of Zika code. Accomodate two new UDFs and enable usage in the non-validated methods SMARTer PicoRNA, QIAseq miRNA and amplicon normalization.

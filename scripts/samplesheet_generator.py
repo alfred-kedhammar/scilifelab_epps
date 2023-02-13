@@ -218,8 +218,9 @@ def gen_Miseq_data(pro):
                         dualindex=True
                         sp_obj['idx1'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][0].replace(',','')
                         sp_obj['idx1ref'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][0].replace(',','')
-                        sp_obj['idx2'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][1].replace(',','')
-                        sp_obj['idx2ref'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][1].replace(',','')
+                        compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
+                        sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][1].replace(',','').upper() ] ) )
+                        sp_obj['idx2ref'] = ''.join( reversed( [compl.get(b,b) for b in Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][1].replace(',','').upper() ] ) )
                         data.append(sp_obj)
                     elif TENX_SINGLE_PAT.findall(idxs[0]):
                         if 'index2' in header_ar and 'I5_Index_ID' in header_ar:

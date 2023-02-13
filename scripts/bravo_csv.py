@@ -13,7 +13,7 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from scilifelab_epps.epp import attach_file
 from genologics.entities import Process
-from numpy import minimum, maximum, where
+from numpy import minimum
 from datetime import datetime as dt
 
 
@@ -265,6 +265,24 @@ def zika_write_log(log, file_meta):
 
 def prepooling(currentStep, lims):
     log = []
+
+    # New, non-accredited, prepooling code
+    if zika.verify_step(
+        currentStep, 
+        targets = [
+            ('RAD-seq for MiSeq', 'Library Pooling (RAD-seq) v1.0'),
+            ('RAD-seq for NovaSeq', 'Library Pooling (RAD-seq) v1.0')
+        ]
+        ):
+        zika_methods.pool(
+            currentStep=currentStep, 
+            lims=lims,
+            zika_min_vol=0.5,
+            well_dead_vol=5,
+            well_max_vol=180
+            )
+
+    # Old, accredited, prepooling code
     if currentStep.instrument.name == "Zika":
         # Constraints
         zika_min_vol = 0.5  # Possible to run on 0.1
@@ -659,19 +677,27 @@ def default_bravo(lims, currentStep, with_total_vol=True):
 
     # Re-route to Zika
     if zika.verify_step(
-        currentStep, 
+        currentStep,
         targets = [
             ('SMARTer Pico RNA', "Setup Workset/Plate"),
-            ("QIAseq miRNA", "Setup Workset/Plate"),
-            ("Amplicon", "Setup Workset/Plate")
+            ("QIAseq miRNA",     "Setup Workset/Plate"),
+            ("Amplicon",         "Setup Workset/Plate")
         ]
         ):
         zika_methods.norm(
             currentStep=currentStep, 
-            lims=lims
+            lims=lims, 
+            buffer_strategy="first_column",
+            volume_expansion=True,
+            multi_aspirate=True,
+            zika_min_vol=0.1,
+            well_dead_vol=5,
+            well_max_vol=15,
+            use_customer_metrics=True
             )
 
     else:
+        wfs_with_vol_adj = ['SMARTer Pico RNA', 'QIAseq miRNA', 'Amplicon']
         checkTheLog = [False]
         dest_plate = []
         with open("bravo.csv", "w") as csvContext:
@@ -688,9 +714,9 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                         dest_plate.append(dest_fc_name)
                         if with_total_vol:
                             if art_tuple[1]['uri'].udf.get("Total Volume (uL)") or art_tuple[1]['uri'].udf.get("Target Total Volume (uL)"):
-                                art_workflows, volume, final_volume, amount_taken, total_volume, target_amount = calc_vol(art_tuple, logContext, checkTheLog)
+                                art_workflows, volume, final_volume, amount_taken, total_volume, target_amount = calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj)
                                 # Update Amount taken (ng) and Total Volume (uL) in LIMS
-                                if not any('SMARTer Pico RNA' in x for x in art_workflows):
+                                if not (set(wfs_with_vol_adj) & set(art_workflows)):
                                     if not any(x == '#ERROR#' for x in [volume, final_volume, amount_taken]):
                                         art_tuple[1]['uri'].udf['Amount taken (ng)'] = float(amount_taken)
                                         art_tuple[1]['uri'].udf['Total Volume (uL)'] = float(final_volume)
@@ -707,7 +733,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                                 logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
                                 checkTheLog[0] = True
                         else:
-                            art_workflows, volume, final_volume, amount_taken, total_volume, target_amount = calc_vol(art_tuple, logContext, checkTheLog)
+                            art_workflows, volume, final_volume, amount_taken, total_volume, target_amount = calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj)
                             csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
 
         df = pd.read_csv("bravo.csv", header=None)
@@ -1044,6 +1070,7 @@ def sample_dilution_before_QC(currentStep):
 
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
+
     if currentStep.type.name in ['Library Pooling (HiSeq X) 1.0']:
         check_barcode_collision(currentStep)
         prepooling(currentStep, lims)
@@ -1063,7 +1090,7 @@ def main(lims, args):
         default_bravo(lims, currentStep)
 
 
-def calc_vol(art_tuple, logContext, checkTheLog):
+def calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj):
     art_workflows = []
     for stage in art_tuple[0]['uri'].workflow_stages_and_statuses:
         if stage[1] == 'IN_PROGRESS':
@@ -1076,7 +1103,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         # not handling different units yet. Might be needed at some point.
         assert art_tuple[0]['uri'].udf['Conc. Units'] in ["ng/ul", "ng/uL"]
 
-        if not any('SMARTer Pico RNA' in x for x in art_workflows):
+        if not (set(wfs_with_vol_adj) & set(art_workflows)):
             amount_ng = target_amount = art_tuple[1]['uri'].udf.get('Amount taken (ng)', 0)
             final_volume = total_volume = art_tuple[1]['uri'].udf.get('Total Volume (uL)', 0)
         else:
@@ -1115,8 +1142,8 @@ def calc_vol(art_tuple, logContext, checkTheLog):
         # Case with very low pipetting volume due to high sample conc:
         elif volume < MIN_WARNING_VOLUME:
             # When the volume is lower than the MIN_WARNING_VOLUME, set volume to MIN_WARNING_VOLUME, and expand the final dilution volume
-            # for the TruSeq RNA, TruSeq DNA PCR-free, ThruPLEX and SMARTer Pico RNA protocols. But not apply to the no-depletion RNA protocol
-            if any(x in y for y in art_workflows for x in ['TruSeq RNA', 'TruSeq DNA PCR-free', 'ThruPlex', 'SMARTer Pico RNA']) and not no_depletion_flag:
+            # But not apply to the no-depletion RNA protocol
+            if not no_depletion_flag:
                 final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_ng)/float(final_volume))
                 amount_taken = MIN_WARNING_VOLUME*conc
 
