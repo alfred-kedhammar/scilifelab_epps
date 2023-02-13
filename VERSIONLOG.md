@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230213.1
+Differentiate Zika normalization parameters for Amplicon workflow plate set-up. Unlike QIAseq and SMARTer it should use customer metrics and a lower minimum volume.
+
 ## 20230207.1
 Update 20230130.2, correct the volume and conc information that is fetched and support both nM and ng/ul pooling. General updates to make the code simpler and more maintainable.
 
