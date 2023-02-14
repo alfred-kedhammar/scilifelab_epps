@@ -40,7 +40,7 @@ def main(lims, args):
     try:
         currentStep = Process(lims, id=args.pid)
 
-        arts = [art for art in currentStep.all_inputs() \
+        arts = [art for art in currentStep.all_outputs() \
             if art.type == "Analyte"]
         
         timestamp = dt.now().strftime("%y%m%d_%H%M%S")
