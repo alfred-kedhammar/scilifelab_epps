@@ -11,7 +11,8 @@ import re
 import shutil
 import os
 
-DESC = """EPP used to record how ONT flowcells are washed and reloaded during a sequencing run."""
+DESC = """EPP used to record the library input and washing of ONT flow cells.
+Information is parsed from LIMS and uploaded to the CouchDB database nanopore_runs"""
 
 
 def main(lims, args):
@@ -29,71 +30,16 @@ def main(lims, args):
     for art in arts:
 
         row = {
-            "sheet_name": strip_characters(art.udf.get('ONT sample sheet name')),
-            "instrument": art.udf.get("ONT flow cell type"),
-            "flow_cell_id": art.udf.get("ONT flow cell ID"),
-            "sample_id": strip_characters(get_minknow_sample_id(art)),
-            "experiment_id": f"{currentStep.id}_{timestamp}_{strip_characters(art.udf.get('ONT sample sheet name'))}",
-            "flow_cell_product_code": get_fc_product_code(art),
-            "kit": get_kit_string(art)
+            "fc_id": art.udf.get("ONT flow cell ID"),
+            "load_fmol": art.udf.get('ONT flow cell load amount (fmol)'),
+            "reload_times": art.udf.get("ONT reload run time (hh:mm)").replace(" ","").split(","),
+            "reload_fmols": art.udf.get("ONT reload amount (fmol)").replace(" ","").split(","),
+            "reload_lots":  art.udf.get("ONT reload wash kit").replace(" ","").split(",")
         }
-        assert "" not in row.values()
         
-        # Singleton sample
-        if art.udf.get('ONT expansion kit') == "None":
-            row["alias"] = ""
-            row["barcode"] = ""
-            rows.append(row)
-        # Pool
-        else:
-            for sample, label in zip(art.samples, art.reagent_labels):
-                row["alias"] = strip_characters(sample.name)
-                row["barcode"] = strip_characters("barcode" + label[0:2])   # TODO double check extraction of barcode number
-                rows.append(row.copy())
+        rows.append(row)
 
-    df = pd.DataFrame(rows)
-
-    # Create output dir
-    file_list = []
-    dir_name = f"ONT_samplesheets_{currentStep.id}_{timestamp}"
-    os.mkdir(dir_name)
-
-    # Iterate across sheets
-    sheets = df.sheet_name.unique()
-    for sheet in sheets:
-        
-        # Subset dataframe to current sheet
-        df_sheet = df[df.sheet_name == sheet]
-
-        # Barcodes
-        if df_sheet[df_sheet.alias == ""].empty and df_sheet[df_sheet.barcode == ""].empty:
-
-            # Assert aliases and barcodes are unique
-            assert len(df_sheet.alias.unique()) == len(df_sheet)
-            assert len(df_sheet.barcode.unique()) == len(df_sheet)
-
-        # No barcodes
-        elif df_sheet[df_sheet.alias != ""].empty and df_sheet[df_sheet.barcode != ""].empty:
-            
-            # Trim away unused columns
-            df_sheet = df_sheet.loc[:, "sheet_name" : "kit"]
-
-        else:
-            # Sheet dataframe rows must either all have barcodes or none have barcodes
-            raise AssertionError
-
-        # Assert sheet contains only one experiment
-        assert len(df_sheet.experiment_id.unique()) == 1
-        # Assert sheet contains only one instrument
-        assert len(df_sheet.instrument.unique()) == 1
-
-        file_list = write_csv(df_sheet, dir_name, file_list)
-
-    if len(sheets) > 1:
-        shutil.make_archive(dir_name, "zip", dir_name)
-        upload_file(f"{dir_name}.zip", currentStep, lims)
-    else:
-        upload_file(f"{os.path.join(dir_name, file_list[0])}", currentStep, lims)
+    #df = pd.DataFrame(rows)
 
 
 if __name__ == "__main__":
