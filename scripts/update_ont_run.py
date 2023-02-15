@@ -58,18 +58,16 @@ def main(lims, args):
         fcs.append(fc)
 
     samplesheet_process_id = currentStep.parent_processes()[-1].id
-    db = get_ONT_db(responsible="alfred.kedhammar@scilifelab.se", lims = lims)
+    db = get_ONT_db()
     view = db.view("info/all_stats")
 
     for fc in fcs:
-        """ For all samples/flowcells, use the flowcell ID and the process ID of the previous LIMS step 
-        to find the sequencing run entry in the nanopore_runs database.
+        """ For all samples/flowcells, use the flowcell ID to find the sequencing run entry in the nanopore_runs database.
 
         Then update the document "lims" json object nest with the loading and reloading information.
 
         In the rare event that multiple sequencing runs are found for the same flowcell, 
-        use the LIMS-ID of the previous process (the samplesheet generation step) and the
-        samplesheet nickname, to identify the correct run.
+        use the LIMS-ID of the previous process (the samplesheet generation step) to identify the correct run.
         """
         
         rows_matching_fc = [row for row in view.rows if fc["fc_id"] in row.value["TACA_run_path"]]
@@ -115,20 +113,15 @@ def main(lims, args):
             sys.exit(2)
 
 
-def get_ONT_db(responsible, lims):
+def get_ONT_db():
     """Mostly copied from write_notes_to_couchdb.py"""
     configf = '~/.statusdb_cred.yaml'
 
     with open(os.path.expanduser(configf)) as config_file:
         config = yaml.safe_load(config_file)
-    if not config['statusdb']:
-        email_responsible(f'Statusdb credentials not found in {lims}\n', responsible)
-        sys.exit(1)
 
     url_string = f"https://{config['statusdb'].get('username')}:{config['statusdb'].get('password')}@{config['statusdb'].get('url')}"
     couch = couchdb.Server(url=url_string)
-    if not couch:
-        email_responsible(f"Connection failed from {lims} to {config['statusdb'].get('url')}", responsible)
 
     return couch['nanopore_runs']
 
