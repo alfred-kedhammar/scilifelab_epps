@@ -21,12 +21,16 @@ Information is parsed from LIMS and uploaded to the CouchDB database nanopore_ru
 
 
 def main(lims, args):
+    """ For all samples/flowcells, use the flowcell ID to find the sequencing run entry in the nanopore_runs database.
+
+    Then update the document "lims_loading_and_washing" json object nest with the loading and reloading information.
+
+    In the rare event that multiple sequencing runs are found for the same flowcell, 
+    use the LIMS-ID of the previous process (the samplesheet generation step) to identify the correct run.
     """
-    """
+    currentStep = Process(lims, id=args.pid)
 
     timestamp = dt.now().strftime("%y%m%d_%H%M%S")
-
-    currentStep = Process(lims, id=args.pid)
 
     # Parse inputs and their UDFs
     art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[1]["uri"].type == "Analyte"]
@@ -62,13 +66,6 @@ def main(lims, args):
     view = db.view("info/all_stats")
 
     for fc in fcs:
-        """ For all samples/flowcells, use the flowcell ID to find the sequencing run entry in the nanopore_runs database.
-
-        Then update the document "lims" json object nest with the loading and reloading information.
-
-        In the rare event that multiple sequencing runs are found for the same flowcell, 
-        use the LIMS-ID of the previous process (the samplesheet generation step) to identify the correct run.
-        """
         
         rows_matching_fc = [row for row in view.rows if fc["fc_id"] in row.value["TACA_run_path"]]
 
@@ -91,20 +88,23 @@ def main(lims, args):
             doc_id = rows_matching_fc[0].id
             doc = db[doc_id]
 
-            lims_dict = {
-                "lims": {
-                    "last_updated": {
-                        "pid": currentStep.id, 
-                        "timestamp": timestamp
-                    },
-                    "load_fmol": fc["load_fmol"],
-                    "reload_times": fc["reload_times"],
-                    "reload_fmols": fc["reload_fmols"],
-                    "reload_lots": fc["reload_lots"]
-                }
+            dict_to_add = {
+                "pid": currentStep.id, 
+                "timestamp": timestamp,
+                "load_fmol": fc["load_fmol"],
+                "reload_times": fc["reload_times"],
+                "reload_fmols": fc["reload_fmols"],
+                "reload_lots": fc["reload_lots"]
             }
 
-            doc.update(lims_dict)
+            try:
+                lims_list = doc["lims_loading_and_washing"]
+            except KeyError:
+                lims_list = []
+
+            lims_list.append(dict_to_add)
+
+            doc.update({"lims_loading_and_washing" : lims_list})
             db[doc.id] = doc
 
         else:
