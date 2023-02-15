@@ -38,14 +38,18 @@ def main(lims, args):
     fcs = []
     for art_tuple in art_tuples:
 
-        fc = {
-            "fc_id": art_tuple[0]["uri"].udf.get("ONT flow cell ID"),
-            "minknow_sample_id": strip_characters(get_minknow_sample_id(art_tuple[1]["uri"])),
-            "load_fmol": art_tuple[1]["uri"].udf.get('ONT flow cell load amount (fmol)'),
-            "reload_times": art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)").replace(" ","").split(","),
-            "reload_fmols": art_tuple[1]["uri"].udf.get("ONT reload amount (fmol)").replace(" ","").split(","),
-            "reload_lots":  art_tuple[1]["uri"].udf.get("ONT reload wash kit").replace(" ","").split(",")
-        }
+        fc = {}
+        fc["fc_id"] = art_tuple[0]["uri"].udf.get("ONT flow cell ID")
+        fc["minknow_sample_id"] = strip_characters(get_minknow_sample_id(art_tuple[0]["uri"]))
+        fc["load_fmol"] = art_tuple[1]["uri"].udf.get('ONT flow cell load amount (fmol)')
+
+        fc["reload_times"] = art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)").replace(" ","").split(",") if \
+                             art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)") else None
+        fc["reload_fmols"] = art_tuple[1]["uri"].udf.get("ONT reload amount (fmol)").replace(" ","").split(",") if \
+                             art_tuple[1]["uri"].udf.get("ONT reload amount (fmol)") else None
+        fc["reload_lots"] =  art_tuple[1]["uri"].udf.get("ONT reload wash kit").replace(" ","").split(",") if \
+                             art_tuple[1]["uri"].udf.get("ONT reload wash kit") else None
+
 
         # Assert correct input
         assert re.match("^[0-9.]+$", str(fc["load_fmol"])), \
@@ -56,8 +60,9 @@ def main(lims, args):
             "Invalid flow cell reload amount(s)"
         assert check_csv_udf_list("^[0-9a-zA-Z.-_]+$", fc["reload_fmols"]), \
             "Invalid Reload wash kit"
-        assert len(fc["reload_times"]) == len(fc["reload_fmols"]) == len(fc["reload_lots"]), \
-            "Reload UDFs must have same number of comma-separated values"
+        if fc["reload_times"] and fc["reload_fmols"] and fc["reload_lots"]:
+            assert len(fc["reload_times"]) == len(fc["reload_fmols"]) == len(fc["reload_lots"]), \
+                "Reload UDFs must have same number of comma-separated values"
 
         fcs.append(fc)
 
@@ -127,7 +132,10 @@ def get_ONT_db():
 
 
 def check_csv_udf_list(pattern, csv_udf_list):
-    return all([re.match(pattern, element) for element in csv_udf_list])
+    if csv_udf_list:
+        return all([re.match(pattern, element) for element in csv_udf_list])
+    else:
+        return True
 
 
 if __name__ == "__main__":
