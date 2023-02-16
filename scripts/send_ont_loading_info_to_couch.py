@@ -6,12 +6,9 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 from datetime import datetime as dt
-import pandas as pd
 import re
-import shutil
 import os
 import couchdb
-from write_notes_to_couchdb import email_responsible
 import yaml
 import sys
 from generate_ont_samplesheet import get_minknow_sample_id, strip_characters
