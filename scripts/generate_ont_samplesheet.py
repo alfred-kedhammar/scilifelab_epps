@@ -38,6 +38,7 @@ def main(lims, args):
     Samplesheets                ONT_samplesheet_lims-step_yymmdd_hhmmss_samplesheet-name.csv
     """
     try:
+
         currentStep = Process(lims, id=args.pid)
 
         arts = [art for art in currentStep.all_outputs() \
@@ -66,6 +67,7 @@ def main(lims, args):
                 rows.append(row)
             # Pool
             else:
+                assert len(art.reagent_labels) > 0, f"No barcodes found within pool {art.name}"
                 for sample, label in zip(art.samples, art.reagent_labels):
                     row["alias"] = strip_characters(sample.name)
                     row["barcode"] = strip_characters("barcode" + label[0:2])   # TODO double check extraction of barcode number
@@ -95,7 +97,8 @@ def main(lims, args):
                 df_sheet = df_sheet.loc[:, "sheet_name" : "kit"]
 
             else:
-                raise AssertionError("Barcoded and non-barcoded libraries can not be mixed in the same sample sheet.")
+                sys.stderr.write("Barcoded and non-barcoded libraries can not be mixed in the same sample sheet.")
+                sys.exit(2)
 
             assert len(df_sheet.experiment_id.unique()) == 1, "Assert sheet contains only one experiment."
             assert len(df_sheet.instrument.unique()) == 1, "Assert sheet contains only one instrument."
@@ -109,15 +112,15 @@ def main(lims, args):
             upload_file(f"{dir_name}.zip", currentStep, lims)
         else:
             upload_file(f"{os.path.join(dir_name, file_list[0])}", currentStep, lims)
-        
-    except Exception as e:
-        sys.stderr.write(e)
+
+    except AssertionError as e:
+        sys.stderr.write(str(e))
         sys.exit(2)
 
 
 def upload_file(file_name, currentStep, lims):
     for out in currentStep.all_outputs():
-        if out.name == f"ONT PromethION sample sheet": # TODO fix output file slot
+        if out.name == "ONT sample sheet":
             for f in out.files:
                 lims.request_session.delete(f.uri)
             lims.upload_new_file(out, file_name)
