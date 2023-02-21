@@ -367,8 +367,7 @@ def pool(
 
 def norm(
     currentStep=None, 
-    lims=None, 
-    local_data=None,                # Fetch sample data from local .tsv instead of LIMS
+    lims=None,
     buffer_strategy="first_column", # Use first column of buffer plate as reservoir
     volume_expansion=True,          # For samples that are too concentrated, increase target volume to obtain correct conc
     multi_aspirate=True,            # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
@@ -424,10 +423,7 @@ def norm(
             to_fetch["conc"] = "art_tuple[0]['uri'].udf['Concentration']"
             to_fetch["vol"] = "art_tuple[0]['uri'].udf['Volume (ul)']"
 
-        if local_data:
-            df = zika_utils.load_fake_samples(local_data, to_fetch)
-        else:
-            df = zika_utils.fetch_sample_data(currentStep, to_fetch)
+        df = zika_utils.fetch_sample_data(currentStep, to_fetch)
 
         conc_unit = "ng/ul" if use_customer_metrics else df.conc_units[0]
         amt_unit = "ng" if conc_unit == "ng/ul" else "fmol"
@@ -451,9 +447,7 @@ def norm(
         df["min_transfer_amt"] = np.minimum(df.vol, zika_min_vol) * df.conc
         df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
 
-        # Load outputs for changing UDF:s
-        if not local_data:
-            outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
+        outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
 
         # Cases
         d = {"sample_vol": [], "buffer_vol": [], "tot_vol": [], "sample_amt": [], "final_conc": []}
@@ -510,13 +504,12 @@ def norm(
             d["final_conc"].append(final_conc)
 
             # Change UDFs
-            if not local_data:
-                op = outputs[r.sample_name]
-                op.udf['Amount taken (ng)'] = float(round(final_amt, 2))
-                op.udf['Total Volume (uL)'] = float(round(tot_vol, 1))
-                if round(final_amt,2) < round(r.target_amt,2):
-                    op.udf['Target Amount (ng)'] = float(round(final_amt, 2))
-                op.put()
+            op = outputs[r.sample_name]
+            op.udf['Amount taken (ng)'] = float(round(final_amt, 2))
+            op.udf['Total Volume (uL)'] = float(round(tot_vol, 1))
+            if round(final_amt,2) < round(r.target_amt,2):
+                op.udf['Target Amount (ng)'] = float(round(final_amt, 2))
+            op.put()
 
         log.append("\nDone.\n")
         df = df.join(pd.DataFrame(d))
@@ -529,8 +522,7 @@ def norm(
 
         # Write files
         method_name = "norm"
-        pid = "local" if local_data else currentStep.id
-        wl_filename, log_filename = zika_utils.get_filenames(method_name, pid)
+        wl_filename, log_filename = zika_utils.get_filenames(method_name, currentStep.id)
 
         # Comments to attach to the worklist header
         comments = [
@@ -548,16 +540,15 @@ def norm(
         zika_utils.write_log(log, log_filename)
 
         # Upload files
-        if not local_data:
-            zika_utils.upload_csv(currentStep, lims, wl_filename)
-            zika_utils.upload_log(currentStep, lims, log_filename)
+        zika_utils.upload_csv(currentStep, lims, wl_filename)
+        zika_utils.upload_log(currentStep, lims, log_filename)
 
-            # Issue warnings, if any
-            if any("WARNING" in entry for entry in log):
-                sys.stderr.write(
-                    "CSV-file generated with warnings, please check the Log file\n"
-                )
-                sys.exit(2)
+        # Issue warnings, if any
+        if any("WARNING" in entry for entry in log):
+            sys.stderr.write(
+                "CSV-file generated with warnings, please check the Log file\n"
+            )
+            sys.exit(2)
 
     except AssertionError as e:
         sys.stderr.write(str(e))
