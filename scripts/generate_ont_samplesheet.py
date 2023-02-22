@@ -17,25 +17,37 @@ DESC = """EPP used to generate MinKNOW samplesheets"""
 
 def main(lims, args):
     """
-    Barcoding vs no-barcoding, devices and experiments cannot be mixed in a samplesheet and must be split across multiple ones.
-    Possible to create many sample sheets and deliver them as a zipped file.
-
-    LIMS UDFs
-    ONT samplesheet name        Freely decided by user. Shared between libraries that will start sequencing together.
+    === LIMS UDFs ===
+    ONT experiment nickname     Freely decided by user. Shared between libraries that will start sequencing together.
     ONT flow cell type          PromethION or MinION
 
-    Sample sheet columns      
+    === Sample sheet columns ===
     flow_cell_id                -
-    sample_id                   For single samples: e.g. P12345_101, For pools: e.g. P12345_lims-pool-name
-    experiment_id               lims-step_yymmdd_hhmmss_samplesheet-name
+    position_id                 [1-3A-G] for PromethION, else None
+    sample_id                   For single samples: e.g. P12345_101, For pools: e.g. P12345_lims-pool-id
+    experiment_id               lims-step_yymmdd_hhmmss_nickname
     flow_cell_product_code      -
     kit                         Product codes separated by spaces
     alias                       Only included for barcoded pools, sample name e.g. P12345_101
-    barcorde                    barcode01, barcode02, etc, excavated from LIMS
+    barcode                     barcode01, barcode02, etc, excavated from LIMS
 
-    Outputs
-    .zip file                   ONT_samplesheets_lims-step_yymmdd_hhmmss.zip
-    Samplesheets                ONT_samplesheet_lims-step_yymmdd_hhmmss_samplesheet-name.csv
+    === Constraints ===
+    Must be the same across sheet:
+    - kit
+    - flow_cell_product_code
+    - experiment_id
+
+    Must be unique within sheet:
+    - flow_cell_id
+    - position_id
+    - sample_id TODO
+    
+    Must be unique within the same flowcell
+    - alias TODO
+    - barcode TODO
+
+    === Outputs ===
+    Samplesheet                 ONT_samplesheet_lims-step_yymmdd_hhmmss_nickname.csv
     """
     try:
 
@@ -50,7 +62,7 @@ def main(lims, args):
         for art in arts:
 
             row = {
-                "sheet_name": strip_characters(art.udf.get('ONT sample sheet name')),
+                "nickname": strip_characters(art.udf.get('ONT experiment nickname')),
                 "instrument": art.udf.get("ONT flow cell type"),
                 "flow_cell_id": art.udf.get("ONT flow cell ID"),
                 "sample_id": strip_characters(get_minknow_sample_id(art)),
@@ -87,23 +99,23 @@ def main(lims, args):
             # Subset dataframe to current sheet
             df_sheet = df[df.sheet_name == sheet]
 
-            # Barcodes
+            # Handle barcodes vs non-barcodes
             if df_sheet[df_sheet.alias == ""].empty and df_sheet[df_sheet.barcode == ""].empty:
+                # If only barcodes
                 pass
-
-            # No barcodes
             elif df_sheet[df_sheet.alias != ""].empty and df_sheet[df_sheet.barcode != ""].empty:
+                # If only non-barcodes
                 # Trim away unused columns
                 df_sheet = df_sheet.loc[:, "sheet_name" : "kit"]
-
             else:
                 sys.stderr.write("Barcoded and non-barcoded libraries can not be mixed in the same sample sheet.")
                 sys.exit(2)
 
-            assert len(df_sheet.experiment_id.unique()) == 1, "Assert sheet contains only one experiment."
-            assert len(df_sheet.instrument.unique()) == 1, "Assert sheet contains only one instrument."
+            assert len(df_sheet.experiment_id.unique()) == 1, "Sheet may only contain one experiment."
+            assert len(df_sheet.instrument.unique()) == 1, "A sheet may only contain only one flow cell type."
             if len(df_sheet) > 1:
                 assert df_sheet.instrument.unique()[0] == "PromethION", "Only PromethION flowcells can be grouped together in the same sample sheet."
+                assert len(df_sheet) <= 24, "Only up to 24 PromethION flowcells may be started at once."
 
             file_list = write_csv(df_sheet, dir_name, file_list)
 
@@ -150,18 +162,36 @@ def write_csv(df_sheet, dir_name, file_list):
 
 
 def get_minknow_sample_id(art):
+    """
+    Assigns a MinKNOW sample ID based on the nature of the input artifact.
+    Single samples, single-project pools and multi-project pools are treated differently.
+
+    Type                    Contains                ID          Returns MinKNOW sample ID
+
+    Sample sample           PAAAAA_101              12-345678   PAAAAA_101
+    Single project pool     PAAAAA_101, PAAAAA_102  23-456789   PAAAAA_23-456789
+    Multi project pool      PAAAAA_101, PBBBBB_101  34-567890   34-567890
+    """
 
     sample_id_pattern = re.compile("(P\d{5})_(\d+)")
 
-    if re.match(sample_id_pattern, art.name):
-        return re.match(sample_id_pattern, art.name).group()
-    
-    elif re.match(sample_id_pattern, art.samples[0].name):
-        return f"{re.match(sample_id_pattern, art.samples[0].name).groups()[0]}_{art.name}"
+    # Single sample
+    if len(art.samples) == 1:
+        if re.match(sample_id_pattern, art.samples[0].name):
+            return re.match(sample_id_pattern, art.name).group()
+        else:
+            return None
 
+    # Pool
     else:
-        return None
-
+        # Look at the name of the first sample in the pool
+        re_match = re.match(sample_id_pattern, art.samples[0].name)
+        # If all samples in the pool have the same project
+        if all([re.match(sample_id_pattern, sample.name).groups()[0] == re_match.groups()[0] for sample in art.samples]):
+            return f"{re_match.groups()[0]}_{art.id}"
+        else:
+            return art.id
+        
 
 def strip_characters(input_string):
 
