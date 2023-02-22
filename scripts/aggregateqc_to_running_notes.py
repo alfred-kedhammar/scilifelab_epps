@@ -75,7 +75,7 @@ def verify_sample_table(sample_table, library=False):
             else:
                 # Verify concentration unit
                 if measurement == 'Conc. Units':
-                    if (library and v['measurements'][measurement] != 'nM') or (not library and v['measurements'][measurement] not in ['ng/ul', 'ng/uL']):
+                    if (library and v['measurements'][measurement] != 'nM') or (not library and v['measurements'][measurement] not in ['ng/ul', 'ng/uL', 'nM']):
                         error_message.append('Sample {} has a wrong concentration unit!'.format(v['name']))
     return error_message
 
