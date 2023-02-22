@@ -17,11 +17,8 @@ DESC = """EPP used to generate MinKNOW samplesheets"""
 
 def main(lims, args):
     """
-    === LIMS UDFs ===
-    ONT experiment nickname     Freely decided by user. Shared between libraries that will start sequencing together.
-    ONT flow cell type          PromethION or MinION
-
     === Sample sheet columns ===
+
     flow_cell_id                -
     position_id                 [1-3A-G] for PromethION, else None
     sample_id                   For single samples: e.g. P12345_101, For pools: e.g. P12345_lims-pool-id
@@ -32,6 +29,7 @@ def main(lims, args):
     barcode                     barcode01, barcode02, etc, excavated from LIMS
 
     === Constraints ===
+
     Must be the same across sheet:
     - kit
     - flow_cell_product_code
@@ -46,8 +44,18 @@ def main(lims, args):
     - alias TODO
     - barcode TODO
 
+    === Flowcell product codes ===
+
+    FLO-PRO002 (PromethION R9.4.1)
+    FLO-MIN106D (MinION R9.4.1)
+    FLO-FLG001 (Flongle R9.4.1)
+    FLO-PRO114M (PromethION R10.4.1)
+    FLO-MIN114 (MinION R10.4.1)
+    FLO-FLG114 (Flongle R10.4.1)
+
     === Outputs ===
-    Samplesheet                 ONT_samplesheet_lims-step_yymmdd_hhmmss_nickname.csv
+
+    Samplesheet                 ONT_samplesheet_lims-step_yymmdd_hhmmss.csv
     """
     try:
 
@@ -55,30 +63,22 @@ def main(lims, args):
 
         arts = [art for art in currentStep.all_outputs() \
             if art.type == "Analyte"]
-        
-        timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
         rows = []
         for art in arts:
 
             row = {
-                "nickname": strip_characters(art.udf.get('ONT experiment nickname')),
-                "instrument": art.udf.get("ONT flow cell type"),
                 "flow_cell_id": art.udf.get("ONT flow cell ID"),
-                "sample_id": strip_characters(get_minknow_sample_id(art)),
-                "experiment_id": f"{currentStep.id}_{timestamp}_{strip_characters(art.udf.get('ONT sample sheet name'))}",
-                "flow_cell_product_code": get_fc_product_code(art),
+                "position_id": art.udf.get("ONT flow cell position"),
+                "sample_id": get_minknow_sample_id(art),
+                "experiment_id": f"{currentStep.id}_{dt.now().strftime('%y%m%d_%H%M%S')}",
+                "flow_cell_product_code": art.udf["ONT flow cell type"].split(" ")[0],
                 "kit": get_kit_string(art)
             }
             assert "" not in row.values(), "All fields must be populated."
             
-            # Singleton sample
-            if art.udf.get('ONT expansion kit') == "None":
-                row["alias"] = ""
-                row["barcode"] = ""
-                rows.append(row)
-            # Pool
-            else:
+            # Add extra columns for barcodes
+            if art.udf.get('ONT expansion kit') != "None":
                 assert len(art.reagent_labels) > 0, f"No barcodes found within pool {art.name}"
                 for sample, label in zip(art.samples, art.reagent_labels):
                     row["alias"] = strip_characters(sample.name)
@@ -87,43 +87,14 @@ def main(lims, args):
 
         df = pd.DataFrame(rows)
 
-        # Create output dir
-        file_list = []
-        dir_name = f"ONT_samplesheets_{currentStep.id}_{timestamp}"
-        os.mkdir(dir_name)
+        if len(df) > 1:
+            assert df.instrument.unique()[0] == "PromethION", "Only PromethION flowcells can be grouped together in the same sample sheet."
+            assert len(df) <= 24, "Only up to 24 PromethION flowcells may be started at once."      
+        assert len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1, "All rows must have the same flow cell type and kits"
+        assert len(df.position_id.unique()) == len(df) and len(df.flow_cell_id.unique()) == len(df), "All rows must have different flow cell positions and IDs"
 
-        # Iterate across sheets
-        sheets = df.sheet_name.unique()
-        for sheet in sheets:
-            
-            # Subset dataframe to current sheet
-            df_sheet = df[df.sheet_name == sheet]
-
-            # Handle barcodes vs non-barcodes
-            if df_sheet[df_sheet.alias == ""].empty and df_sheet[df_sheet.barcode == ""].empty:
-                # If only barcodes
-                pass
-            elif df_sheet[df_sheet.alias != ""].empty and df_sheet[df_sheet.barcode != ""].empty:
-                # If only non-barcodes
-                # Trim away unused columns
-                df_sheet = df_sheet.loc[:, "sheet_name" : "kit"]
-            else:
-                sys.stderr.write("Barcoded and non-barcoded libraries can not be mixed in the same sample sheet.")
-                sys.exit(2)
-
-            assert len(df_sheet.experiment_id.unique()) == 1, "Sheet may only contain one experiment."
-            assert len(df_sheet.instrument.unique()) == 1, "A sheet may only contain only one flow cell type."
-            if len(df_sheet) > 1:
-                assert df_sheet.instrument.unique()[0] == "PromethION", "Only PromethION flowcells can be grouped together in the same sample sheet."
-                assert len(df_sheet) <= 24, "Only up to 24 PromethION flowcells may be started at once."
-
-            file_list = write_csv(df_sheet, dir_name, file_list)
-
-        if len(sheets) > 1:
-            shutil.make_archive(dir_name, "zip", dir_name)
-            upload_file(f"{dir_name}.zip", currentStep, lims)
-        else:
-            upload_file(f"{os.path.join(dir_name, file_list[0])}", currentStep, lims)
+        file_name = write_csv(df)
+        upload_file(file_name, currentStep, lims)
 
     except AssertionError as e:
         sys.stderr.write(str(e))
@@ -138,27 +109,28 @@ def upload_file(file_name, currentStep, lims):
             lims.upload_new_file(out, file_name)
 
 
-def write_csv(df_sheet, dir_name, file_list):
+def write_csv(df):
 
-    file_name = f"ONT_samplesheet_{df_sheet.experiment_id.unique()[0]}.csv"
-    file_list.append(file_name)
+    file_name = f"ONT_samplesheet_{df.experiment_id.unique()[0]}.csv"
 
     columns = [
         "flow_cell_id",
+        "position_id",
         "sample_id",
         "experiment_id",
         "flow_cell_product_code",
         "kit"
     ]
 
-    if "alias" in df_sheet.columns and "barcode" in df_sheet.columns:
+    if "alias" in df.columns and "barcode" in df.columns:
         columns.append("alias")
         columns.append("barcode")
     
-    df_csv = df_sheet.loc[:, columns]
+    df_csv = df.loc[:, columns]
 
-    df_csv.to_csv(os.path.join(dir_name, file_name), index = False)
-    return file_list
+    df_csv.to_csv(file_name, index = False)
+
+    return file_name
 
 
 def get_minknow_sample_id(art):
@@ -177,8 +149,9 @@ def get_minknow_sample_id(art):
 
     # Single sample
     if len(art.samples) == 1:
-        if re.match(sample_id_pattern, art.samples[0].name):
-            return re.match(sample_id_pattern, art.name).group()
+        re_match = re.match(sample_id_pattern, art.samples[0].name)
+        if re_match:
+            return re_match.group()
         else:
             return None
 
@@ -202,21 +175,6 @@ def strip_characters(input_string):
     shortened_string = string_to_shorten.sub("_", subbed_string)
 
     return shortened_string
-
-
-def get_fc_product_code(sample):
-
-    type_version = f"{sample.udf.get('ONT flow cell type')} {sample.udf.get('ONT flow cell version')}"
-    type_version_to_product_code = {
-        "PromethION R9.4.1"  : "FLO-PRO002",
-        "MinION R9.4.1"      : "FLO-MIN106D",
-        "Flongle R9.4.1"     : "FLO-FLG001",
-        "PromethION R10.4.1" : "FLO-PRO114M",
-        "MinION R10.4.1"     : "FLO-MIN114",
-        "Flongle R10.4.1"    : "FLO-FLG114",
-    }
-
-    return type_version_to_product_code[type_version]
 
 
 def get_kit_string(sample):
