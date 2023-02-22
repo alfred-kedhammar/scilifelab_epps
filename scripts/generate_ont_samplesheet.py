@@ -73,9 +73,16 @@ def main(lims, args):
                 "sample_id": get_minknow_sample_id(art),
                 "experiment_id": f"{currentStep.id}_{dt.now().strftime('%y%m%d_%H%M%S')}",
                 "flow_cell_product_code": art.udf["ONT flow cell type"].split(" ")[0],
+                "flow_cell_type": art.udf["ONT flow cell type"].split(" ")[1],
                 "kit": get_kit_string(art)
             }
-            assert "" not in row.values(), "All fields must be populated."
+
+            if "PromethION" in row["flow_cell_type"]:
+                assert row["position_id"] != "None", "Positions must be specified for PromethION flow cells."
+
+            # Add extra column for positions
+            if art.udf.get("ONT flow cell position") != "None":
+                row["position_id"] = art.udf.get("ONT flow cell position")
             
             # Add extra columns for barcodes
             if art.udf.get('ONT expansion kit') != "None":
@@ -85,13 +92,15 @@ def main(lims, args):
                     row["barcode"] = strip_characters("barcode" + label[0:2])   # TODO double check extraction of barcode number
                     rows.append(row.copy())
 
+            assert "" not in row.values(), "All fields must be populated."
+
         df = pd.DataFrame(rows)
 
         if len(df) > 1:
-            assert df.instrument.unique()[0] == "PromethION", "Only PromethION flowcells can be grouped together in the same sample sheet."
+            assert "PromethION" in df.flow_cell_type.unique()[0], "Only PromethION flowcells can be grouped together in the same sample sheet."
             assert len(df) <= 24, "Only up to 24 PromethION flowcells may be started at once."      
         assert len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1, "All rows must have the same flow cell type and kits"
-        assert len(df.position_id.unique()) == len(df) and len(df.flow_cell_id.unique()) == len(df), "All rows must have different flow cell positions and IDs"
+        assert len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts), "All rows must have different flow cell positions and IDs"
 
         file_name = write_csv(df)
         upload_file(file_name, currentStep, lims)
