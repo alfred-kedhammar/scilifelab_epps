@@ -8,8 +8,6 @@ from genologics.entities import Process
 from datetime import datetime as dt
 import pandas as pd
 import re
-import shutil
-import os
 import sys
 
 DESC = """EPP used to generate MinKNOW samplesheets"""
