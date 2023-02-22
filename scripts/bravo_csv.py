@@ -681,18 +681,21 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         targets = [
             ('SMARTer Pico RNA', "Setup Workset/Plate"),
             ("QIAseq miRNA",     "Setup Workset/Plate"),
-            ("Amplicon",         "Setup Workset/Plate")
         ]
         ):
         zika_methods.norm(
             currentStep=currentStep, 
+            lims=lims
+            )
+    elif zika.verify_step(
+        currentStep,
+        targets = [("Amplicon", "Setup Workset/Plate")]
+        ):
+        zika_methods.norm(
+            currentStep=currentStep, 
             lims=lims, 
-            buffer_strategy="first_column",
-            volume_expansion=True,
-            multi_aspirate=True,
+            # Use lower minimum pipetting volume and customer metrics
             zika_min_vol=0.1,
-            well_dead_vol=5,
-            well_max_vol=15,
             use_customer_metrics=True
             )
 
