@@ -37,6 +37,7 @@ def main(lims, args):
                 output_udfs.append(udf_tuple[0])
 
     # Start building log dataframe
+    # TODO assert input format
     rows = []
     for output in outputs:
         row = {}
