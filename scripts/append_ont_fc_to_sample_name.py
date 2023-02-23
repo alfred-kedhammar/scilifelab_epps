@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
+from record_ont_reloading_info import get_minknow_sample_id
 
 DESC = """ Append flow cell information from previous step to sample names in the current step. """
 
@@ -15,14 +16,15 @@ def main(lims, args):
     art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[1]["uri"].type == "Analyte"]
 
     for art_tuple in art_tuples:
-
+        
+        minknow_sample_id = get_minknow_sample_id(art_tuple[0]["uri"])
         fc_id = art_tuple[0]["uri"].udf["ONT flow cell ID"]
         fc_pos = art_tuple[0]["uri"].udf["ONT flow cell position"]
 
         if fc_pos == "None":
-            new_name = f"{art_tuple[0]['uri'].name} ({fc_id})"
+            new_name = f"{art_tuple[0]['uri'].name} ({minknow_sample_id}, {fc_id})"
         else:
-            new_name = f"{art_tuple[0]['uri'].name} ({fc_id}, {fc_pos})"
+            new_name = f"{art_tuple[0]['uri'].name} ({minknow_sample_id}, {fc_id}, {fc_pos})"
 
         art_tuple[1]["uri"].name = new_name
         art_tuple[1]["uri"].put()
