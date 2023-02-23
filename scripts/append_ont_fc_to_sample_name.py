@@ -6,7 +6,8 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 
-DESC = """Simple script. For all input-output tuples, check which UDFs are present in both and copy from input to output."""
+DESC = """ Append flow cell information from previous step to sample names in the current step. """
+
 
 def main(lims, args):
 
@@ -15,17 +16,16 @@ def main(lims, args):
 
     for art_tuple in art_tuples:
 
-        input_udfs = [kv[0] for kv in art_tuple[0]["uri"].udf.items()]
-        output_udfs = [kv[0] for kv in art_tuple[1]["uri"].udf.items()]
+        fc_id = art_tuple[0]["uri"].udf["ONT flow cell ID"]
+        fc_pos = art_tuple[0]["uri"].udf["ONT flow cell position"]
 
-        for udf in output_udfs:
-            if udf in input_udfs:
-                art_tuple[1]["uri"].udf[udf] = art_tuple[0]["uri"].udf[udf]
-        
+        if fc_pos == "None":
+            new_name = f"{art_tuple[0]['uri'].name} ({fc_id})"
+        else:
+            new_name = f"{art_tuple[0]['uri'].name} ({fc_id}, {fc_pos})"
+
+        art_tuple[1]["uri"].name = new_name
         art_tuple[1]["uri"].put()
-
-
-
 
 
 if __name__ == "__main__":
