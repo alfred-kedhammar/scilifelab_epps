@@ -1,2 +1,3 @@
 genologics
 markdown
+tabulate
