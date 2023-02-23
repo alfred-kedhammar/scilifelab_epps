@@ -37,8 +37,7 @@ def main(lims, args):
 
         fc = {}
         fc["fc_id"] = art_tuple[0]["uri"].udf.get("ONT flow cell ID")
-        fc["minknow_sample_id"] = strip_characters(get_minknow_sample_id(art_tuple[0]["uri"]))
-        fc["load_fmol"] = art_tuple[1]["uri"].udf.get('ONT flow cell load amount (fmol)')
+        fc["minknow_sample_id"] = get_minknow_sample_id(art_tuple[0]["uri"])
 
         fc["reload_times"] = art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)").replace(" ","").split(",") if \
                              art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)") else None
@@ -47,16 +46,14 @@ def main(lims, args):
         fc["reload_lots"] =  art_tuple[1]["uri"].udf.get("ONT reload wash kit").replace(" ","").split(",") if \
                              art_tuple[1]["uri"].udf.get("ONT reload wash kit") else None
 
-
         # Assert correct input
-        assert re.match("^[0-9.]+$", str(fc["load_fmol"])), \
-            "Invalid flow cell load amount"
         assert check_csv_udf_list("^\d\d:\d\d$", fc["reload_times"]), \
             "Reload run times must be formatted as comma-separated hh:mm"
         assert check_csv_udf_list("^[0-9.]+$", fc["reload_fmols"]), \
             "Invalid flow cell reload amount(s)"
-        assert check_csv_udf_list("^[0-9a-zA-Z.-_]+$", fc["reload_fmols"]), \
+        assert check_csv_udf_list("^[0-9a-zA-Z.-_]+$", fc["reload_lots"]), \
             "Invalid Reload wash kit"
+        
         if fc["reload_times"] and fc["reload_fmols"] and fc["reload_lots"]:
             assert len(fc["reload_times"]) == len(fc["reload_fmols"]) == len(fc["reload_lots"]), \
                 "Reload UDFs must have same number of comma-separated values"
@@ -93,14 +90,13 @@ def main(lims, args):
             dict_to_add = {
                 "pid": currentStep.id, 
                 "timestamp": timestamp,
-                "load_fmol": fc["load_fmol"],
                 "reload_times": fc["reload_times"],
                 "reload_fmols": fc["reload_fmols"],
                 "reload_lots": fc["reload_lots"]
             }
 
             try:
-                lims_list = doc["lims_loading_and_washing"]
+                lims_list = doc["lims_fc_reloading"]
             except KeyError:
                 lims_list = []
 
