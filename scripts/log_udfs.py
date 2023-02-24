@@ -9,7 +9,8 @@ from datetime import datetime as dt
 import pandas as pd
 from tabulate import tabulate
 
-DESC = """ Use this script to create / update an append-only log where the step UDF info is stored """
+DESC = """ Script for the EPP "Log fields" and file slot "Field log".
+Use this script to create / update an append-only log where the step UDF info is stored """
 
 
 def main(lims, args):

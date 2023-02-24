@@ -14,17 +14,21 @@ import sys
 from generate_ont_samplesheet import get_minknow_sample_id
 import log_udfs
 
-DESC = """EPP used to record the library input and washing of ONT flow cells.
-Information is parsed from LIMS and uploaded to the CouchDB database nanopore_runs"""
+DESC = """ Script for EPP "Send ONT reloading info to StatusDB".
+Used to record the washing and reloading of ONT flow cells.
+Information is parsed from LIMS and uploaded to the CouchDB database nanopore_runs.
+"""
 
 
 def main(lims, args):
     """ For all samples/flowcells, use the flowcell ID to find the sequencing run entry in the nanopore_runs database.
 
-    Then update the document "lims_loading_and_washing" json object nest with the loading and reloading information.
+    Then update the document "lims_fc_reloading" json object nest with the loading and reloading information.
 
     In the rare event that multiple sequencing runs are found for the same flowcell, 
     use the LIMS-ID of the previous process (the samplesheet generation step) to identify the correct run.
+
+    Finish by also updating the step UDF log.
     """
 
     try:

@@ -7,10 +7,22 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 from record_ont_reloading_info import get_minknow_sample_id
 
-DESC = """ Append flow cell information from previous step to sample names in the current step. """
+DESC = """ Script for EPP "Append ONT flow cell to sample name".
+Append flow cell information from previous step to sample names in the current step.
+"""
 
 
 def main(lims, args):
+    """ 
+    Ex) 
+    A sample named myPooledSample consisting of pool with ID 24-1234123 with sample all originating from project P12345,
+    sequencing on the PromethION FC PAM12345 at position 1A.
+
+    Sample name in --> sample name out
+    ===================================================================
+    myPooledSample --> myPooledSample (P12345_24-1234123, PAM12345, 1A)
+    
+    """
 
     currentStep = Process(lims, id=args.pid)
     art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[1]["uri"].type == "Analyte"]

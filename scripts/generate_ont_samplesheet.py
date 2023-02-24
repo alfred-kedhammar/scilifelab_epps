@@ -10,7 +10,9 @@ import pandas as pd
 import re
 import sys
 
-DESC = """EPP used to generate MinKNOW samplesheets"""
+DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot "ONT sample sheet".
+Used to generate MinKNOW samplesheets.
+"""
 
 
 def main(lims, args):
@@ -36,11 +38,11 @@ def main(lims, args):
     Must be unique within sheet:
     - flow_cell_id
     - position_id
-    - sample_id TODO
+    - sample_id TODO check on instrument
     
     Must be unique within the same flowcell
-    - alias TODO
-    - barcode TODO
+    - alias TODO check on instrument
+    - barcode TODO check on instrument
 
     === Flowcell product codes ===
 
@@ -53,7 +55,7 @@ def main(lims, args):
 
     === Outputs ===
 
-    Samplesheet                 ONT_samplesheet_lims-step_yymmdd_hhmmss.csv
+    ONT_samplesheet_lims-step_yymmdd_hhmmss.csv
     """
     try:
 
@@ -145,9 +147,10 @@ def get_minknow_sample_id(art):
     Assigns a MinKNOW sample ID based on the nature of the input artifact.
     Single samples, single-project pools and multi-project pools are treated differently.
 
+    === Examples ===
     Type                    Contains                ID          Returns MinKNOW sample ID
 
-    Sample sample           PAAAAA_101              12-345678   PAAAAA_101
+    Single sample           PAAAAA_101              12-345678   PAAAAA_101
     Single project pool     PAAAAA_101, PAAAAA_102  23-456789   PAAAAA_23-456789
     Multi project pool      PAAAAA_101, PBBBBB_101  34-567890   34-567890
     """
@@ -174,6 +177,7 @@ def get_minknow_sample_id(art):
         
 
 def strip_characters(input_string):
+    """Remove potentially problematic characters from string."""
 
     allowed_characters = re.compile("[^a-zA-Z0-9_-]")
     subbed_string = allowed_characters.sub("_", input_string)
@@ -185,7 +189,7 @@ def strip_characters(input_string):
 
 
 def get_kit_string(sample):
-
+    """Combine prep kit and expansion kit UDFs (if any) into space-separated string"""
     kit_string = sample.udf.get('ONT prep kit')
 
     if sample.udf.get('ONT expansion kit') != "None":
