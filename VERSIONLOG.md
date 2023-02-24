@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230224.2
+Add four new EPPs related to the updated ONT workflow deploying shortly.
+
 ## 20230224.1
 Update after live troubleshooting of new Zika pooling code. Fix faulty variable name and improve error logging.
 
