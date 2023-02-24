@@ -37,14 +37,15 @@ def main(lims, args):
                 output_udfs.append(udf_tuple[0])
 
     # Start building log dataframe
-    # TODO assert input format
     rows = []
     for output in outputs:
         row = {}
         row["Sample"] = output.name
         for udf in output_udfs:
-            if output.udf[udf]:
+            try:
                 row[udf] = output.udf[udf]
+            except KeyError:
+                row[udf] = None
         rows.append(row)
 
     df = pd.DataFrame(rows).set_index("Sample")
