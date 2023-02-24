@@ -136,7 +136,7 @@ def pool(
 
                 # Set any negative or negligible concentrations to 0.01 and flag in log
                 if not df_pool.loc[df_pool.conc < 0.01, "conc"].empty:
-                    neg_conc_sample_names = df_pool.loc[df_pool.conc < 0.01, "name"].sort_values()
+                    neg_conc_sample_names = df_pool.loc[df_pool.conc < 0.01, "sample_name"].sort_values()
                     df_pool.loc[df_pool.conc < 0.01, "conc"] = 0.01
                     log.append(f"\nWARNING: The following {len(neg_conc_sample_names)} sample(s) fell short of, and will be treated as, \
                         0.01 {conc_unit}: {', '.join(neg_conc_sample_names)}")
