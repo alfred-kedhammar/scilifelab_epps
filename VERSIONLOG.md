@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230224.1
+Update after live troubleshooting of new Zika pooling code. Fix faulty variable name and improve error logging.
+
 ## 20230222.1
 Support nM as a valid conc unit for Aggregate QC DNA and RNA
 

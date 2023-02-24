@@ -7,7 +7,7 @@ import sys
 import re
 import pandas as pd
 import zika_methods
-import zika
+import zika_utils
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
@@ -267,7 +267,7 @@ def prepooling(currentStep, lims):
     log = []
 
     # New, non-accredited, prepooling code
-    if zika.verify_step(
+    if zika_utils.verify_step(
         currentStep, 
         targets = [
             ('RAD-seq for MiSeq', 'Library Pooling (RAD-seq) v1.0'),
@@ -676,7 +676,7 @@ def setup_qpcr(currentStep, lims):
 def default_bravo(lims, currentStep, with_total_vol=True):
 
     # Re-route to Zika
-    if zika.verify_step(
+    if zika_utils.verify_step(
         currentStep,
         targets = [
             ('SMARTer Pico RNA', "Setup Workset/Plate"),
@@ -687,7 +687,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             currentStep=currentStep, 
             lims=lims
             )
-    elif zika.verify_step(
+    elif zika_utils.verify_step(
         currentStep,
         targets = [("Amplicon", "Setup Workset/Plate")]
         ):
