@@ -138,8 +138,8 @@ def pool(
                 if not df_pool.loc[df_pool.conc < 0.01, "conc"].empty:
                     neg_conc_sample_names = df_pool.loc[df_pool.conc < 0.01, "sample_name"].sort_values()
                     df_pool.loc[df_pool.conc < 0.01, "conc"] = 0.01
-                    log.append(f"\nWARNING: The following {len(neg_conc_sample_names)} sample(s) fell short of, and will be treated as, \
-                        0.01 {conc_unit}: {', '.join(neg_conc_sample_names)}")
+                    log.append(f"\nWARNING: The following {len(neg_conc_sample_names)} sample(s) fell short of, and will be treated as, " + \
+                               f"0.01 {conc_unit}: {', '.join(neg_conc_sample_names)}")
 
                 # === CALCULATE SAMPLE RANGES ===
 
@@ -216,7 +216,8 @@ def pool(
                 else:
                     # There is no common transfer amount, and sample volumes can NOT be expanded without changing the even-ness of the pool
                     log.append(f"\nWARNING: Some samples will be depleted and under-represented in the final pool.\
-                    \nThe miminum transfer amount of the highest concentrated sample {highest_conc_sample.sample_name} ({highest_conc_sample.conc} {highest_conc_sample.conc_units}) will dictate the common transfer amount.")
+                    \nThe miminum transfer amount of the highest concentrated sample {highest_conc_sample.sample_name} ({round(highest_conc_sample.conc, 2)} " + \
+                    f"{highest_conc_sample.conc_units}) will dictate the common transfer amount.")
 
                     # Use the minimum transfer amount of the most concentrated sample as the common transfer amount
                     target_transfer_amt = max(df_pool.min_amount)
@@ -242,6 +243,7 @@ def pool(
                         log.append(f"Pooling cannot be normalized to less than {round(pool_real_min_sample_vol,1)} ul")
 
                         errors = True
+                        raise zika_utils.VolumeOverflow
             
                     log.append(f"Can aim to create a pool as even as possible for target conc {round(pool_flawed_min_conc,2)}-{round(pool_flawed_max_conc,2)} {conc_unit} and vol {round(pool_flawed_min_sample_vol,1)}-{round(well_max_vol,1)} ul")
                     log.append(f"WARNING: Due to sample depletion, the 'real' concentration of the pool will likely be {round(pool_real_min_conc,2)}-{round(pool_real_max_conc,2)} {conc_unit}")
