@@ -50,7 +50,8 @@ def main(lims, args):
         db = get_ONT_db()
         view = db.view("info/all_stats")
 
-        errors = []
+        runtime_log = []
+        errors = False
         for fc in fcs:
             
             rows_matching_fc = [row for row in view.rows if f'_{fc["fc_id"]}_' in row.value["TACA_run_path"]]
@@ -84,21 +85,26 @@ def main(lims, args):
                 }
 
                 try:
+                    # Try to find pre-existing list to append to
                     lims_list = doc["lims_fc_info"]
                 except KeyError:
+                    # Create new entry
                     lims_list = []
 
                 lims_list.append(dict_to_add)
 
                 doc.update({"lims_fc_info" : lims_list})
                 db[doc.id] = doc
+
+                runtime_log.append(f"Flowcell {fc['fc_id']} was updated successfully.")
         
             except AssertionError as e:
-                errors.append(str(e))
+                errors = True
+                runtime_log.append(str(e))
                 continue
         
         if errors:
-            raise AssertionError("\n".join(errors))
+            raise AssertionError("\n".join(runtime_log))
 
     except AssertionError as e:
         sys.stderr.write(str(e))
