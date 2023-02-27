@@ -7,7 +7,7 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 from datetime import datetime as dt
 from tabulate import tabulate
-from send_ont_flowcell_info_to_statusdb import assert_input
+from send_ont_flowcell_info_to_statusdb import parse_fc
 import pandas as pd
 import sys
 
@@ -45,6 +45,11 @@ def main(lims, args):
                 if udf_tuple[0] not in output_udfs:
                     output_udfs.append(udf_tuple[0])
 
+        # Step-specific assertions
+        if 'ONT Sequencing and Reloading' in currentStep.type.name:
+            for art_tuple in [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[1]["uri"].type == "Analyte"]:
+                parse_fc(art_tuple)
+
         # Start building log dataframe
         rows = []
         for output in outputs:
@@ -55,10 +60,6 @@ def main(lims, args):
                     row[udf] = output.udf[udf]
                 except KeyError:
                     row[udf] = None
-
-            # Step-specific assertions
-            if 'ONT Sequencing and Reloading' in currentStep.type.name:
-                assert_input(row)
 
             rows.append(row)
 

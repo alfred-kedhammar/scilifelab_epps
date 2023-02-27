@@ -43,21 +43,8 @@ def main(lims, args):
         fcs = []
         for art_tuple in art_tuples:
 
-            fc = {}
-            fc["fc_id"] = art_tuple[0]["uri"].udf.get("ONT flow cell ID")
-            fc["minknow_sample_id"] = get_minknow_sample_id(art_tuple[0]["uri"])
-
-            fc["reload_times"] = art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)").replace(" ","").split(",") if \
-                                art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)") else None
-            fc["reload_fmols"] = art_tuple[1]["uri"].udf.get("ONT reload amount (fmol)").replace(" ","").split(",") if \
-                                art_tuple[1]["uri"].udf.get("ONT reload amount (fmol)") else None
-            fc["reload_lots"] =  art_tuple[1]["uri"].udf.get("ONT reload wash kit").replace(" ","").split(",") if \
-                                art_tuple[1]["uri"].udf.get("ONT reload wash kit") else None
-
-            assert_input(fc)
-
+            fc = parse_fc(art_tuple)
             fcs.append(fc)
-
 
         samplesheet_process_id = currentStep.parent_processes()[-1].id
         db = get_ONT_db()
@@ -118,21 +105,37 @@ def main(lims, args):
         sys.exit(2)
 
 
-def assert_input(fc):
+def parse_fc(art_tuple):
+    """ For each art_tuple, assert UDFs and return parsed dictionary """
 
-    # Assert correct input
-    assert check_csv_udf_list("^\d{2,3}:\d{2}$", fc["reload_times"]), \
-        "Reload run times must be formatted as comma-separated hh:mm"
-    check_times_list(fc["reload_times"])
-    assert check_csv_udf_list("^[0-9.]+$", fc["reload_fmols"]), \
-        "Invalid flow cell reload amount(s)"
-    assert check_csv_udf_list("^[0-9a-zA-Z.-_]+$", fc["reload_lots"]), \
-        "Invalid Reload wash kit"
+    fc = {}
+    fc["fc_id"] = art_tuple[0]["uri"].udf.get("ONT flow cell ID")
+    fc["minknow_sample_id"] = get_minknow_sample_id(art_tuple[0]["uri"])
+    fc["qc"] = art_tuple[0]["uri"].udf.get("ONT Flow Cell QC Pore Count")
+    fc["load_fmol"] = art_tuple[0]["uri"].udf.get("ONT flow cell load amount (fmol)")
+
+    fc["reload_times"] = art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)").replace(" ","").split(",") if \
+                         art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)") else None
+    fc["reload_fmols"] = art_tuple[1]["uri"].udf.get("ONT reload amount (fmol)").replace(" ","").split(",") if \
+                         art_tuple[1]["uri"].udf.get("ONT reload amount (fmol)") else None
+    fc["reload_lots"] =  art_tuple[1]["uri"].udf.get("ONT reload wash kit").replace(" ","").split(",") if \
+                         art_tuple[1]["uri"].udf.get("ONT reload wash kit") else None
     
     if fc["reload_times"] or fc["reload_fmols"] or fc["reload_lots"]:
+        
         assert fc["reload_times"] and fc["reload_fmols"] and fc["reload_lots"] and \
             len(fc["reload_times"]) == len(fc["reload_fmols"]) == len(fc["reload_lots"]), \
             "All reload UDFs within a row must have the same number of comma-separated values"
+        
+        assert check_csv_udf_list("^\d{2,3}:\d{2}$", fc["reload_times"]), \
+            "Reload run times must be formatted as comma-separated hh:mm"
+        check_times_list(fc["reload_times"])
+        assert check_csv_udf_list("^[0-9.]+$", fc["reload_fmols"]), \
+            "Invalid flow cell reload amount(s)"
+        assert check_csv_udf_list("^[0-9a-zA-Z.-_]+$", fc["reload_lots"]), \
+            "Invalid Reload wash kit"
+        
+    return fc
 
 
 def check_times_list(times_list):
