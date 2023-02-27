@@ -12,9 +12,9 @@ import couchdb
 import yaml
 import sys
 from generate_ont_samplesheet import get_minknow_sample_id
-import log_udfs
 
-DESC = """ Script for EPP "Send ONT reloading info to StatusDB".
+
+DESC = """ Script for EPP "Send ONT flowcell info to StatusDB".
 Used to record the washing and reloading of ONT flow cells.
 Information is parsed from LIMS and uploaded to the CouchDB database nanopore_runs.
 """
@@ -54,19 +54,7 @@ def main(lims, args):
             fc["reload_lots"] =  art_tuple[1]["uri"].udf.get("ONT reload wash kit").replace(" ","").split(",") if \
                                 art_tuple[1]["uri"].udf.get("ONT reload wash kit") else None
 
-            # Assert correct input
-            assert check_csv_udf_list("^\d{2,3}:\d{2}$", fc["reload_times"]), \
-                "Reload run times must be formatted as comma-separated hh:mm"
-            check_times_list(fc["reload_times"])
-            assert check_csv_udf_list("^[0-9.]+$", fc["reload_fmols"]), \
-                "Invalid flow cell reload amount(s)"
-            assert check_csv_udf_list("^[0-9a-zA-Z.-_]+$", fc["reload_lots"]), \
-                "Invalid Reload wash kit"
-            
-            if fc["reload_times"] or fc["reload_fmols"] or fc["reload_lots"]:
-                assert fc["reload_times"] and fc["reload_fmols"] and fc["reload_lots"] and \
-                    len(fc["reload_times"]) == len(fc["reload_fmols"]) == len(fc["reload_lots"]), \
-                    "All reload UDFs within a row must have the same number of comma-separated values"
+            assert_input(fc)
 
             fcs.append(fc)
 
@@ -124,12 +112,27 @@ def main(lims, args):
                                 "If the run was recently started, wait until it appears in GenStat.")
                 sys.exit(2)
 
-        # Also update log after uploading to StatusDB
-        log_udfs.main(lims, args)
 
     except AssertionError as e:
         sys.stderr.write(str(e))
         sys.exit(2)
+
+
+def assert_input(fc):
+
+    # Assert correct input
+    assert check_csv_udf_list("^\d{2,3}:\d{2}$", fc["reload_times"]), \
+        "Reload run times must be formatted as comma-separated hh:mm"
+    check_times_list(fc["reload_times"])
+    assert check_csv_udf_list("^[0-9.]+$", fc["reload_fmols"]), \
+        "Invalid flow cell reload amount(s)"
+    assert check_csv_udf_list("^[0-9a-zA-Z.-_]+$", fc["reload_lots"]), \
+        "Invalid Reload wash kit"
+    
+    if fc["reload_times"] or fc["reload_fmols"] or fc["reload_lots"]:
+        assert fc["reload_times"] and fc["reload_fmols"] and fc["reload_lots"] and \
+            len(fc["reload_times"]) == len(fc["reload_fmols"]) == len(fc["reload_lots"]), \
+            "All reload UDFs within a row must have the same number of comma-separated values"
 
 
 def check_times_list(times_list):
