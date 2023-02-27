@@ -54,23 +54,12 @@ def main(lims, args):
         errors = False
         for fc in fcs:
             
-            rows_matching_fc = [row for row in view.rows if f'_{fc["fc_id"]}_' in row.value["TACA_run_path"]]
+            rows_matching_fc = [row for row in view.rows if f'_{fc["fc_id"]}_' in row.value["TACA_run_path"] and samplesheet_process_id in row.value["TACA_run_path"]]
 
             try:
-                assert len(rows_matching_fc) > 0, f"The flowcell {fc['fc_id']} was not found in the database. If the run was recently started, wait until it appears in GenStat."
-
-                if len(rows_matching_fc) > 1:
-                    """ Multiple runs match the FC ID, try to narrow down. 
-
-                    If the target run was started using a samplesheet generated in the previous step, the LIMS-ID
-                    of the step should be present in the experiment name.
-                    """
-                    rows_matching_fc = [row for row in rows_matching_fc if \
-                                        samplesheet_process_id in row.value["TACA_run_path"] and \
-                                        f'_{fc["fc_id"]}_' in row.value["TACA_run_path"]]
-                    
-                    assert len(rows_matching_fc) == 1, f"The database contains multiple documents whose samplesheet LIMS ID {samplesheet_process_id} and flowcell ID {fc['fc_id']} are identical"
-
+                assert len(rows_matching_fc) > 0, f"The database contains no document with flow cell ID {fc['fc_id']} and experiment ID {samplesheet_process_id}. If the run was recently started, wait until it appears in GenStat."
+                assert len(rows_matching_fc) == 1, f"The database contains multiple documents with flow cell ID {fc['fc_id']} and experiment ID {samplesheet_process_id}. Contact a database administrator."
+                
                 doc_id = rows_matching_fc[0].id
                 doc = db[doc_id]
 
