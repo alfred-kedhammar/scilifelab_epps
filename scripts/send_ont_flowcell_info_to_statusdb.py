@@ -23,7 +23,7 @@ Information is parsed from LIMS and uploaded to the CouchDB database nanopore_ru
 def main(lims, args):
     """ For all samples/flowcells, use the flowcell ID to find the sequencing run entry in the nanopore_runs database.
 
-    Then update the document "lims_fc_reloading" json object nest with the loading and reloading information.
+    Then update the document "lims_fc_info" json object nest with the loading and reloading information.
 
     In the rare event that multiple sequencing runs are found for the same flowcell, 
     use the LIMS-ID of the previous process (the samplesheet generation step) to identify the correct run.
@@ -50,11 +50,13 @@ def main(lims, args):
         db = get_ONT_db()
         view = db.view("info/all_stats")
 
+        errors = []
         for fc in fcs:
             
             rows_matching_fc = [row for row in view.rows if f'_{fc["fc_id"]}_' in row.value["TACA_run_path"]]
 
-            if len(rows_matching_fc) > 0:
+            try:
+                assert len(rows_matching_fc) > 0, f"The flowcell {fc['fc_id']} was not found in the database. If the run was recently started, wait until it appears in GenStat."
 
                 if len(rows_matching_fc) > 1:
                     """ Multiple runs match the FC ID, try to narrow down. 
@@ -66,12 +68,7 @@ def main(lims, args):
                                         samplesheet_process_id in row.value["TACA_run_path"] and \
                                         f'_{fc["fc_id"]}_' in row.value["TACA_run_path"]]
                     
-                    if len(rows_matching_fc) == 1:
-                        pass
-                    else:
-                        sys.stderr.write(f"The database contains multiple documents whose samplesheet LIMS ID "+
-                                        f"{samplesheet_process_id} and flowcell ID {fc['fc_id']} are identical")
-                        sys.exit(2)
+                    assert len(rows_matching_fc) == 1, f"The database contains multiple documents whose samplesheet LIMS ID {samplesheet_process_id} and flowcell ID {fc['fc_id']} are identical"
 
                 doc_id = rows_matching_fc[0].id
                 doc = db[doc_id]
@@ -79,26 +76,29 @@ def main(lims, args):
                 dict_to_add = {
                     "pid": currentStep.id, 
                     "timestamp": timestamp,
+                    "qc": fc["qc"],
+                    "load_fmol": fc["load_fmol"],
                     "reload_times": fc["reload_times"],
                     "reload_fmols": fc["reload_fmols"],
                     "reload_lots": fc["reload_lots"]
                 }
 
                 try:
-                    lims_list = doc["lims_fc_reloading"]
+                    lims_list = doc["lims_fc_info"]
                 except KeyError:
                     lims_list = []
 
                 lims_list.append(dict_to_add)
 
-                doc.update({"lims_fc_reloading" : lims_list})
+                doc.update({"lims_fc_info" : lims_list})
                 db[doc.id] = doc
-
-            else:
-                sys.stderr.write(f"The flowcell {fc['fc_id']} was not found in the database. "+
-                                "If the run was recently started, wait until it appears in GenStat.")
-                sys.exit(2)
-
+        
+            except AssertionError as e:
+                errors.append(str(e))
+                continue
+        
+        if errors:
+            raise AssertionError("\n".join(errors))
 
     except AssertionError as e:
         sys.stderr.write(str(e))
