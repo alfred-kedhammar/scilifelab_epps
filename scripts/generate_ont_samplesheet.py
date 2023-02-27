@@ -91,10 +91,10 @@ def main(lims, args):
                     row["alias"] = strip_characters(sample.name)
                     row["barcode"] = strip_characters("barcode" + label[0:2])   # TODO double check extraction of barcode number
                     rows.append(row.copy())
+            else:
+                rows.append(row)
 
             assert "" not in row.values(), "All fields must be populated."
-
-            rows.append(row)
 
         df = pd.DataFrame(rows)
 
