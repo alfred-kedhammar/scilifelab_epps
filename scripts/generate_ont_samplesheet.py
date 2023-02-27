@@ -73,7 +73,7 @@ def main(lims, args):
                 "sample_id": get_minknow_sample_id(art),
                 "experiment_id": f"{currentStep.id}_{dt.now().strftime('%y%m%d_%H%M%S')}",
                 "flow_cell_product_code": art.udf["ONT flow cell type"].split(" ")[0],
-                "flow_cell_type": art.udf["ONT flow cell type"].split(" ")[1],
+                "flow_cell_type": art.udf["ONT flow cell type"].split(" ")[1].strip("()"),
                 "kit": get_kit_string(art)
             }
 
@@ -93,6 +93,8 @@ def main(lims, args):
                     rows.append(row.copy())
 
             assert "" not in row.values(), "All fields must be populated."
+
+            rows.append(row)
 
         df = pd.DataFrame(rows)
 
