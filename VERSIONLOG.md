@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230227.1
+Improvements and bugfixes on ONT EPPs.
+
 ## 20230224.2
 Add four new EPPs related to the updated ONT workflow deploying shortly.
 

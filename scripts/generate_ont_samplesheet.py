@@ -73,7 +73,7 @@ def main(lims, args):
                 "sample_id": get_minknow_sample_id(art),
                 "experiment_id": f"{currentStep.id}_{dt.now().strftime('%y%m%d_%H%M%S')}",
                 "flow_cell_product_code": art.udf["ONT flow cell type"].split(" ")[0],
-                "flow_cell_type": art.udf["ONT flow cell type"].split(" ")[1],
+                "flow_cell_type": art.udf["ONT flow cell type"].split(" ")[1].strip("()"),
                 "kit": get_kit_string(art)
             }
 
@@ -91,6 +91,8 @@ def main(lims, args):
                     row["alias"] = strip_characters(sample.name)
                     row["barcode"] = strip_characters("barcode" + label[0:2])   # TODO double check extraction of barcode number
                     rows.append(row.copy())
+            else:
+                rows.append(row)
 
             assert "" not in row.values(), "All fields must be populated."
 

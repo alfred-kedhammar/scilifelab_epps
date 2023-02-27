@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from record_ont_reloading_info import get_minknow_sample_id
+from generate_ont_samplesheet import get_minknow_sample_id
 
 DESC = """ Script for EPP "Append ONT flow cell to sample name".
 Append flow cell information from previous step to sample names in the current step.
