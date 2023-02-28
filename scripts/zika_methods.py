@@ -223,7 +223,7 @@ def pool(
                     target_transfer_amt = max(df_pool.min_amount)
 
                     # Calculate pool limits...
-                    # --> Assuming all samples can meet the target common amount
+                    # --> Assuming all samples can meet the target common amount (they can't)
                     pool_flawed_min_amt = target_transfer_amt * len(df_pool)
                     pool_flawed_min_sample_vol = sum(target_transfer_amt / df_pool.conc)
                     pool_flawed_max_conc = pool_flawed_min_amt / pool_flawed_min_sample_vol
@@ -232,7 +232,7 @@ def pool(
                     # --> Taking into account sample depletion
                     pool_real_min_amt = sum(np.minimum(target_transfer_amt, df_pool.max_amount))
                     pool_real_min_sample_vol = sum(np.minimum(target_transfer_amt / df_pool.conc, df_pool.vol))
-                    pool_real_max_conc = pool_real_min_amt / pool_flawed_min_sample_vol
+                    pool_real_max_conc = pool_real_min_amt / pool_real_min_sample_vol
                     pool_real_min_conc = pool_real_min_amt / well_max_vol
 
                     # Ensure that pool will not overflow
@@ -246,19 +246,19 @@ def pool(
                         raise zika_utils.VolumeOverflow
             
                     log.append(f"Can aim to create a pool as even as possible for target conc {round(pool_flawed_min_conc,2)}-{round(pool_flawed_max_conc,2)} {conc_unit} and vol {round(pool_flawed_min_sample_vol,1)}-{round(well_max_vol,1)} ul")
-                    log.append(f"WARNING: Due to sample depletion, the 'real' concentration of the pool will likely be {round(pool_real_min_conc,2)}-{round(pool_real_max_conc,2)} {conc_unit}")
+                    log.append(f"WARNING: Due to sample depletion, the final pool will have the compound conc {round(pool_real_min_conc,2)}-{round(pool_real_max_conc,2)} {conc_unit} and vol {round(pool_real_min_sample_vol,1)}-{round(well_max_vol,1)} ul")
                     
                     # Nudge conc, if necessary
                     # Use the flawed target parameters for comparison and ignore sample depletion
-                    if target_pool_conc > pool_flawed_max_conc:
-                        pool_conc = pool_flawed_max_conc
-                    elif target_pool_conc < pool_flawed_min_conc:
-                        pool_conc = pool_flawed_min_conc
+                    if target_pool_conc > pool_real_max_conc:
+                        pool_conc = pool_real_max_conc
+                    elif target_pool_conc < pool_real_min_conc:
+                        pool_conc = pool_real_min_conc
                     else:
                         pool_conc = target_pool_conc
 
                     # No volume expansion is allowed, so pool volume is set to the minimum, given the conc
-                    pool_vol = pool_flawed_min_sample_vol
+                    pool_vol = pool_real_min_sample_vol
             
             except zika_utils.VolumeOverflow:
                 continue
@@ -268,11 +268,9 @@ def pool(
             # Append transfer volumes and corresponding fraction of target conc. for each sample
             df_pool["transfer_vol"] = np.minimum(target_transfer_amt / df_pool.conc, df_pool.vol)
             df_pool["transfer_amt"] = df_pool.transfer_vol * df_pool.conc
-            df_pool["final_conc_fraction"] = round((df_pool.transfer_vol * df_pool.conc / pool_vol) / (pool_conc / len(df_pool)), 2)
-            try:
-                df_pool["final_amt_fraction"] = round(df_pool.transfer_amt / df_pool.target_amt, 2)
-            except:
-                pass
+            df_pool["final_amt_fraction"] = round(
+                (df_pool.transfer_vol * df_pool.conc / pool_vol) / (target_transfer_amt / pool_vol),
+            2)
 
             # Report adjustments in log
             log.append("\nAdjustments:")
@@ -287,7 +285,7 @@ def pool(
 
             # Calculate and store pool buffer volume
             total_sample_vol = sum(df_pool["transfer_vol"])
-            buffer_vol = pool_vol - total_sample_vol if pool_vol - total_sample_vol > 0.5 else 0
+            buffer_vol = pool_vol - total_sample_vol if pool_vol - total_sample_vol > zika_min_vol else 0
             buffer_vols[pool.name] = buffer_vol
             log.append(f"\nThe final pool volume is {round(pool_vol,1)} ul ({round(total_sample_vol,1)} ul sample + {round(buffer_vol,1)} ul buffer)")         
 
@@ -527,7 +525,7 @@ def norm(
         df_buffer = zika_utils.resolve_buffer_transfers(df.copy(), buffer_strategy=buffer_strategy)
 
         # Format worklist
-        df_formatted = zika_utils.format_worklist(df_buffer, deck=deck, split_transfers=True)
+        df_formatted = zika_utils.format_worklist(df_buffer, deck=deck)
 
         # Write files
         method_name = "norm"
