@@ -214,13 +214,18 @@ def pool(
                     target_transfer_amt = pool_vol * pool_conc / len(df_pool)
 
                 else:
-                    # There is no common transfer amount, and sample volumes can NOT be expanded without changing the even-ness of the pool
-                    log.append(f"\nWARNING: Some samples will be depleted and under-represented in the final pool.\
-                    \nThe miminum transfer amount of the highest concentrated sample {highest_conc_sample.sample_name} ({round(highest_conc_sample.conc, 2)} " + \
-                    f"{highest_conc_sample.conc_units}) will dictate the common transfer amount.")
+                    # There is no common transfer amount, and sample volumes can NOT be expanded without worsening the even-ness of the pool
 
                     # Use the minimum transfer amount of the most concentrated sample as the common transfer amount
                     target_transfer_amt = max(df_pool.min_amount)
+
+                    df_low = df_pool[df_pool.max_amount < target_transfer_amt]
+
+                    log.append(f"\nWARNING: The samples cannot be evenly pooled!")
+                    log.append(f"The minimum transfer amount of the highest concentrated sample {highest_conc_sample.sample_name} ({round(highest_conc_sample.conc, 2)} {highest_conc_sample.conc_units}) exceeds the maximum transfer amount of the following samples:")
+                    for i, r in df_low.iterrows():
+                        log.append(f"{r.sample_name} ({round(r.conc,2)} {r.conc_units}, {round(r.vol,2)} uL)")
+                    log.append(f"The above samples will be depleted and under-represented in the final pool.")
 
                     # Calculate pool limits...
                     # --> Assuming all samples can meet the target common amount (they can't)
@@ -245,8 +250,10 @@ def pool(
                         errors = True
                         raise zika_utils.VolumeOverflow
             
-                    log.append(f"Can aim to create a pool as even as possible for target conc {round(pool_flawed_min_conc,2)}-{round(pool_flawed_max_conc,2)} {conc_unit} and vol {round(pool_flawed_min_sample_vol,1)}-{round(well_max_vol,1)} ul")
-                    log.append(f"WARNING: Due to sample depletion, the final pool will have the compound conc {round(pool_real_min_conc,2)}-{round(pool_real_max_conc,2)} {conc_unit} and vol {round(pool_real_min_sample_vol,1)}-{round(well_max_vol,1)} ul")
+                    log.append(f"\nWill try to create a pool that is as even as possible. Accounting for sample depletion, a pool can be created with the following parameter ranges: ")
+                    log.append(f" - Target amount per sample {round(target_transfer_amt,2)}")
+                    log.append(f" - Pool volume {round(pool_real_min_sample_vol,1)}-{round(well_max_vol,1)} ul")
+                    log.append(f" - Pool concentration {round(pool_real_min_conc,2)}-{round(pool_real_max_conc,2)} {conc_unit}")
                     
                     # Nudge conc, if necessary
                     # Use the flawed target parameters for comparison and ignore sample depletion
@@ -292,25 +299,13 @@ def pool(
             # === REPORT DEVIATING SAMPLES ===
 
             # Report deviating conc samples
-            outlier_conc_samples = df_pool[np.logical_or(df_pool.final_conc_fraction < 0.995, df_pool.final_conc_fraction > 1.005)]\
-                [["sample_name", "final_conc_fraction"]].sort_values("sample_name")
-            if not outlier_conc_samples.empty:
-                log.append("\nThe following samples deviate from the target concentration:")
+            outlier_samples = df_pool[np.logical_or(df_pool.final_amt_fraction < 0.995, df_pool.final_amt_fraction > 1.005)]\
+                [["sample_name", "final_amt_fraction"]].sort_values("sample_name")
+            if not outlier_samples.empty:
+                log.append("\nThe following samples deviate from the target representation within the pool:")
                 log.append("Sample\tFraction")
-                for name, frac in outlier_conc_samples.values:
+                for name, frac in outlier_samples.values:
                     log.append(f" - {name}\t{round(frac,2)}")
-            try:
-                # Report deviating amt samples
-                outlier_amt_samples = df_pool[np.logical_or(df_pool.final_amt_fraction < 0.995, df_pool.final_amt_fraction > 1.005)]\
-                    [["sample_name", "final_amt_fraction"]].sort_values("sample_name")
-                if not outlier_amt_samples.empty:
-                    log.append("\nThe following samples deviate from the target amount:")
-                    log.append(" - Sample\tFraction")
-                    for name, frac in outlier_amt_samples.values:
-                        log.append(f"{name}\t{round(frac,2)}")
-                log.append("\n")
-            except:
-                pass
 
             df_wl = pd.concat([df_wl, df_pool], axis=0)
 
