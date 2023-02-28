@@ -158,27 +158,45 @@ def format_worklist(df, deck):
 
     # Sort df
     try:
+        # Normalization, sort by column-wise dst, buffer before sample
         df.sort_values(by = ["dst_col", "dst_row", "src_type"], inplace = True)
     except KeyError:
-        df.sort_values(by = ["dst_col", "dst_row"], inplace = True)
+        # Pooling, sort by column-wise dst (pool), then by descending transfer volume
+        df.sort_values(by = ["dst_col", "dst_row", "transfer_vol"], ascending = [True, True, False], inplace = True)
 
     # Split >5000 nl transfers
     assert all(df.transfer_vol < 180000), "Some transfer volumes exceed 180 ul"
     max_vol = 5000
     df_split = pd.DataFrame(columns = df.columns)
 
+    # Iterate across rows
     for idx, row in df.iterrows():
-
+        
+        # If transfer volume of current row exceeds max
         if row.transfer_vol > max_vol:
+            # Make a copy of the row and set the transfer volume to the max
             row_cp = row.copy()
             row_cp.loc["transfer_vol"] = max_vol
 
+            # As long as the transfer volume of the current row exceeds max
             while row.transfer_vol > max_vol:
+                # Append the copy row whose transfer volume is the max
                 df_split = df_split.append(row_cp)
+                # Deduct the same transfer volume from the current row
                 row.loc["transfer_vol"] = row.transfer_vol - max_vol
             
-        df_split = df_split.append(row)
+            # After this while-loop breaks, the remaining transfer vol of the row will be less than the max, so it can be appended.
+        
+        try:
+            # If there are both sample and buffer transfers and current transfer is sample
+            if row.src_type == "sample":
+                df_split.loc[idx - 0.1] = row
+            else:
+                df_split = df_split.loc[idx + 0.1] = row
+        except AttributeError:
+            df_split = df_split.loc[idx + 0.1] = row
 
+    df_split.sort_index(inplace=True)
     df_split.reset_index(inplace = True, drop = True)
 
     return df_split
