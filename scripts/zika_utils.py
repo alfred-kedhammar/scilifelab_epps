@@ -79,40 +79,42 @@ def assert_udfs(currentStep):
 
 
 def fetch_sample_data(currentStep, to_fetch):
-    """ Given a dictionary "to_fetch" whose keys are the desired sample properties and whose values are the
+    """ Given a dictionary "to_fetch" whose keys are the headers of the sought sample properties and whose values are the
     corresponding object paths, fetch the sample properties for all elements of currentStep.input_output_maps
     and return them in a dataframe.
     """
 
     object_paths = [
-        # Current step input artifact
+        # Input info
         "art_tuple[0]['uri'].name",                                 # Sample name
-        "art_tuple[0]['uri'].id",                                   # Sample ID
+        "art_tuple[0]['uri'].samples[0].name",                      # Sample P-number, if not pool
+        "art_tuple[0]['uri'].id",                                   # Sample LIMS ID
         "art_tuple[0]['uri'].location[0].name",                     # Plate name
-        "art_tuple[0]['uri'].location[0].id",                       # Plate ID
+        "art_tuple[0]['uri'].location[0].id",                       # Plate LIMS ID
         "art_tuple[0]['uri'].location[1]",                          # Well
-        "art_tuple[0]['uri'].udf['Conc. Units']",
+
+        # Input UDFs
+        "art_tuple[0]['uri'].udf['Conc. Units']",                   # ng/ul or nM
         "art_tuple[0]['uri'].udf['Concentration']",
         "art_tuple[0]['uri'].udf['Volume (ul)']",
         "art_tuple[0]['uri'].udf['Amount (ng)']",
+        "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",      # ng/ul
+        "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
 
-        # Current step output artifact
+        # Output info
+        "art_tuple[1]['uri'].name", 
+        "art_tuple[1]['uri'].id",
+        "art_tuple[1]['uri'].location[0].name",
+        "art_tuple[1]['uri'].location[0].id",
+        "art_tuple[1]['uri'].location[1]",
+
+        # Output UDFs
         "art_tuple[1]['uri'].udf['Amount taken (ng)']",             # The amount (ng) that is taken from the original sample plate
         "art_tuple[1]['uri'].udf['Total Volume (uL)']",             # The total volume of dilution
         "art_tuple[1]['uri'].udf['Final Volume (uL)']",             # Final pool / sample volume
-        "art_tuple[1]['uri'].name", 
-        "art_tuple[1]['uri'].id",
         "art_tuple[1]['uri'].udf['Target Amount (ng)']",            # In methods where the prep input is possibly different from the sample dilution, this is the target concentration and minimum volume of the prep input
         "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",      # In methods where the prep input is possibly different from the sample dilution, this is the target concentration and minimum volume of the prep input
-        "art_tuple[1]['uri'].location[0].name",                     # Plate name
-        "art_tuple[1]['uri'].location[0].id",                       # Plate ID
-        "art_tuple[1]['uri'].location[1]",                          # Well
-       
-        # Input sample info
-        "art_tuple[0]['uri'].samples[0].name",
-        "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",      # ng/ul
-        "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
-        
+
         # Input sample RC measurements (?)
         "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
         "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
