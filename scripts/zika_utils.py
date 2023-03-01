@@ -201,7 +201,7 @@ def format_worklist(df, deck):
                 df_split = df_split.append(row)
                 
         else:
-            df_split.append(row)
+            df_split = df_split.append(row)
 
     df_split.sort_index(inplace=True)
     df_split.reset_index(inplace = True, drop = True)
