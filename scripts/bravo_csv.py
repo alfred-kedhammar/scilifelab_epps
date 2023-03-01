@@ -283,7 +283,7 @@ def prepooling(currentStep, lims):
             )
 
     # Old, accredited, prepooling code
-    if currentStep.instrument.name == "Zika":
+    elif currentStep.instrument.name == "Zika":
         # Constraints
         zika_min_vol = 0.5  # Possible to run on 0.1
         zika_max_vol = 5
