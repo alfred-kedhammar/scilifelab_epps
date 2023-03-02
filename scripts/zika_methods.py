@@ -15,10 +15,22 @@ import sys
 
 def pool(
     currentStep=None, 
-    lims=None, 
+    lims=None,
+    # Volume constraints
     zika_min_vol=0.5,           # 0.5 lowest validated, 0.1 lowest possible
     well_dead_vol=5,            # 5 ul generous estimate of dead volume in TwinTec96
     well_max_vol=180,           # TwinTec96
+    # Input and output metrics
+    udfs = {
+        # Different steps may use different UDFs in different contexts
+        # Here, ambiguity is eliminated within the script
+        "target_amt": None,     # Per sample
+        "target_vol": None,     # Pool
+        "target_conc": None,    # Pool
+        "final_amt": None,      # Per sample
+        "final_vol": None,      # Pool
+        "final_conc": None      # Pool
+    }
     ):
     """
     Pool samples. 
@@ -36,7 +48,7 @@ def pool(
 
     - If a sample has very low or negligible concentration
         --> Set concentration to 0.01
-        --> # TODO use everything
+        --> # TODO add option to use everything
 
     - If the highest minimum transferrable amount is lower than the lowest maximum transfer amount, an even pool can be created
         A) An even pool can be created:
@@ -56,15 +68,16 @@ def pool(
         # Write log header
         log = []
         for e in [
+            f"LIMS process {currentStep.id}"
+            "\nVolume constraints",
             f"Minimum pipetting volume: {zika_min_vol} ul",
             f"Applied dead volume: {well_dead_vol} ul",
-            f"Maximum allowed pool volume: {well_max_vol} ul"
+            f"Maximum allowed dst well volume: {well_max_vol} ul"
         ]:
             log.append(e)
 
         pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
         pools.sort(key=lambda pool: pool.name)
-        output_udfs = [kv_pair[0] for kv_pair in pools[0].udf.items()]
 
         # Supplement df with additional info
         to_fetch = {
@@ -83,6 +96,10 @@ def pool(
             "dst_well"          :       "art_tuple[1]['uri'].location[1]"
         }
         
+        for k, v in udfs.items():
+            if v:
+                to_fetch[k] = f"art_tuple[1]['uri'].udf['{v}']"
+
         df_all = zika_utils.fetch_sample_data(currentStep, to_fetch)
 
         # All samples should have accessible volume
@@ -114,17 +131,19 @@ def pool(
                 df_pool = df_all[df_all.target_name == pool.name].copy()
 
                 # Find target parameters, amount and conentration will be either in ng and ng/ul or fmol and nM
-                target_pool_vol = pool.udf["Final Volume (uL)"]
-                if "Pool Conc. (nM)" in output_udfs:
-                    target_pool_conc = float(pool.udf["Pool Conc. (nM)"])
+                target_pool_vol = df_pool.target_vol.unique()[0]
+                if udfs["target_conc"] == "Pool Conc. (nM)":
+                    target_pool_conc = df_pool.target_conc[0]
                     target_amt_taken = target_pool_conc * target_pool_vol / len(df_pool)
                     amt_unit = "fmol"
                     conc_unit = "nM"
-                elif 'Amount taken (ng)' in output_udfs:
-                    target_amt_taken = pool.udf['Amount taken (ng)']
+                elif udfs["target_amt"] == 'Amount taken (ng)':
+                    target_amt_taken = df_pool.target_amt.unique()[0]
                     target_pool_conc = target_amt_taken * len(df_pool) / target_pool_vol
                     amt_unit = "ng"
                     conc_unit = "ng/ul"
+                else:
+                    raise AssertionError("Could not make sense of input UDFs")
                 assert all(df_all.conc_units == conc_unit), "Samples and pools have different conc units"
 
                 # Append target parameters to log
@@ -135,11 +154,13 @@ def pool(
                 log.append(f" - Pool concentration: {round(target_pool_conc, 2)} {conc_unit}")
 
                 # Set any negative or negligible concentrations to 0.01 and flag in log
-                if not df_pool.loc[df_pool.conc < 0.01, "conc"].empty:
-                    neg_conc_sample_names = df_pool.loc[df_pool.conc < 0.01, "sample_name"].sort_values()
-                    df_pool.loc[df_pool.conc < 0.01, "conc"] = 0.01
+                conc_floor = 0.01
+                if not df_pool.loc[df_pool.conc < conc_floor, "conc"].empty:
+                    neg_conc_sample_names = df_pool.loc[df_pool.conc < conc_floor, "sample_name"].sort_values()
+                    df_pool.loc[df_pool.conc < conc_floor, "conc"] = conc_floor
                     log.append(f"\nWARNING: The following {len(neg_conc_sample_names)} sample(s) fell short of, and will be treated as, " + \
-                               f"0.01 {conc_unit}: {', '.join(neg_conc_sample_names)}")
+                               f"{conc_floor} {conc_unit}: {', '.join(neg_conc_sample_names)}")
+                    log.append("Low concentration samples will warrant high transfer volumes and may cause pool overflow.")
 
                 # === CALCULATE SAMPLE RANGES ===
 
@@ -372,7 +393,7 @@ def norm(
     # Volume constraints
     zika_min_vol=0.5,               # 0.5 lowest validated, 0.1 lowest possible
     well_dead_vol=5,                # 5 ul generous estimate of dead volume in TwinTec96
-    well_max_vol=180,
+    well_max_vol=180,               # TwinTec96
     # Input and output metrics
     use_customer_metrics=False,
     udfs = {
@@ -404,12 +425,17 @@ def norm(
         
         log = []
         for e in [
+            f"LIMS process {currentStep.id}"
+            "\nDilution strategy",
             f"Expand volume to obtain target conc: {volume_expansion}",
+            "\nBuffer strategy",
             f"Multi-aspirate buffer-sample: {multi_aspirate}",
+            f"Keep tips between consecutive buffer transfers: {keep_buffer_tips}",
+            "\nVolume constraints"
             f"Minimum pipetting volume: {zika_min_vol} ul",
             f"Applied dead volume: {well_dead_vol} ul",
             f"Maximum allowed dst well volume: {well_max_vol} ul",
-            "\n"
+            "\n\n"
         ]:
             log.append(e)
 
