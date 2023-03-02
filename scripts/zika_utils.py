@@ -16,31 +16,40 @@ from datetime import datetime as dt
 import sys
 
 
-def verify_step(currentStep, workflow_strings = None, step_strings = None):
-    """Verify the instrument and step for a given process is correct"""
+def verify_step(currentStep, targets):
+    """
+    Given a LIMS step and a list of targets, check whether they match. Workflow information unfortunately needs to be excavated from the samples.
 
-    sample_bools = []
+    The "targets" consist of a list of tuples, whose elements are partial string matches of a workflow and step, respectively.
+    Empty strings will match any workflow or step.
+    """
 
     if currentStep.instrument.name == "Zika":
-        if workflow_strings and step_strings:
+
+        if not targets:
+            # Instrument is correct and no targets are specified
+            return True
+
+        elif any(target_tuple[1] in currentStep.type.name and target_tuple[0] == "" for target_tuple in targets):
+            # Instrument and steps are correct and no workflows are specified
+            return True
+
+        else:
+            # Need to check all samples match at least one ongoing workflow / step combo of the targets
+
+            sample_bools = []
             for art in [art for art in currentStep.all_inputs() if art.type == "Analyte"]:
                 active_stages = [stage_tuple for stage_tuple in art.workflow_stages_and_statuses if stage_tuple[1] == "IN_PROGRESS"]
                 sample_bools.append(
+                        # Incredible list comprehension
                         any(
-                            [workflow_string in active_stage[0].workflow.name
+                            [workflow_string in active_stage[0].workflow.name and step_string in active_stage[2]
                                 for active_stage in active_stages
-                                    for workflow_string in workflow_strings]
-                        )
-                    and
-                        any(
-                            [step_string in active_stage[2]
-                                for active_stage in active_stages
-                                    for step_string in step_strings]
-                        )
-                )
-
-        if currentStep.type.name in step_strings:
-            return True
+                                    for workflow_string, step_string in targets]
+                        ))
+                
+            return all(sample_bools)
+        
     else:
         return False
 
