@@ -95,6 +95,8 @@ def pool(
             "dst_id"            :       "art_tuple[1]['uri'].location[0].id",
             "dst_well"          :       "art_tuple[1]['uri'].location[1]"
         }
+
+        assert udfs["target_vol"] and (udfs["target_conc"] or udfs["target_amt"])
         
         for k, v in udfs.items():
             if v:
@@ -579,8 +581,7 @@ def norm(
 
         # Write files
         
-        method_name = "norm"
-        wl_filename, log_filename = zika_utils.get_filenames(method_name, currentStep.id)
+        wl_filename, log_filename = zika_utils.get_filenames(method_name = "norm", currentStep.id)
 
         zika_utils.write_worklist(
             df=df_formatted,
