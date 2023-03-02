@@ -269,10 +269,7 @@ def prepooling(currentStep, lims):
     # New, non-accredited, prepooling code
     if zika_utils.verify_step(
         currentStep, 
-        targets = [
-            ('RAD-seq for MiSeq', 'Library Pooling (RAD-seq) v1.0'),
-            ('RAD-seq for NovaSeq', 'Library Pooling (RAD-seq) v1.0')
-        ]
+        targets = [('', 'Library Pooling (RAD-seq) v1.0')]
         ):
         zika_methods.pool(
             currentStep=currentStep, 
