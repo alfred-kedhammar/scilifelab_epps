@@ -442,9 +442,11 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=True, ke
 
         wl.write("worklist,\n")
 
-        # Conditionals for worklist variables can be added here as needed
-        wl.write("".join(tip_strats["always"]) + "\n")
-        wl.write("".join(tip_strats["never"]) + "\n")
+        # Define variables
+        for strat, tpl in tip_strats.items():
+            variable_name, variable_assignment = tpl
+            if variable_name in df.tip_strat.unique():
+                wl.write("".join((variable_name, variable_assignment)) + "\n")
 
         # Write header
         wl.write(f"COMMENT, This is the worklist {wl_filename}\n")
