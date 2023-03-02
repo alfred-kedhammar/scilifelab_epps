@@ -193,6 +193,7 @@ def format_worklist(df, deck):
     df.reset_index(inplace = True, drop = True)
 
     # Split >5000 nl transfers
+
     assert all(df.transfer_vol < 180000), "Some transfer volumes exceed 180 ul"
     max_vol = 5000
     df_split = pd.DataFrame(columns = df.columns)
@@ -240,7 +241,14 @@ class VolumeOverflow(Exception):
     pass
 
 
-def resolve_buffer_transfers(df, buffer_strategy):
+def resolve_buffer_transfers(
+    df = None, 
+    wl_comments = None,
+    buffer_strategy = "adaptive",
+    well_dead_vol = 5, 
+    well_max_vol = 180,
+    zika_max_vol = 5
+    ):
     """
     Melt buffer and sample information onto separate rows to
     produce a "one row <-> one transfer" dataframe.
@@ -274,15 +282,53 @@ def resolve_buffer_transfers(df, buffer_strategy):
     df.loc[df["src_type"] == "buffer", "src_name"] = "buffer_plate"
 
     # Assign buffer src wells
+
     if buffer_strategy == "first_column":
         # Keep rows, but only use column 1
         df.loc[df["src_type"] == "buffer", "src_well"] = df.loc[
             df["src_type"] == "buffer", "src_well"
         ].apply(lambda x: x[0:-1] + "1")
+        
+    elif buffer_strategy == "adaptive":
+
+        df_buffer = df[df.src_type == "buffer"]
+
+        # Make well iterator
+        wells = []
+        for col in range(1,13):
+            for row in list("ABCDEFGH"):
+                wells.append(f"{row}:{col}")
+        well_iter = iter(wells)
+
+        # Start "filling up" buffer wells based on transfer list
+        try:
+            # Start at first well
+            current_well = next(well_iter)
+            current_well_vol = well_dead_vol
+
+            for idx, row in df_buffer.iterrows():
+                # How many subtransfers will be needed?
+                n_transfers = (row.transfer_vol // zika_max_vol) + 1
+                vol_to_add = row.transfer_vol + 0.2 * n_transfers
+
+                # Estimate 0.2 ul loss per transfer due to overaspiration             
+                if current_well_vol + vol_to_add > well_max_vol:
+                    # Start on the next well
+                    current_well = next(well_iter)
+                    current_well_vol = well_dead_vol
+
+                current_well_vol += vol_to_add
+                df.loc[idx, "src_well"] = current_well
+
+        except StopIteration:
+            raise AssertionError("Total buffer volume exceeds plate capacity.")
+        
+        wl_comments.append(f"Fill up the buffer plate column-wise from well {wells[0]} to well {current_well} with {well_max_vol} uL buffer.")
+    
     else:
         raise Exception("No buffer strategy defined")
 
-    return df
+    return df, wl_comments
 
 
 def well2rowcol(well_iter):
@@ -314,7 +360,7 @@ def get_filenames(method_name, pid):
     return wl_filename, log_filename
 
 
-def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
+def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=True, keep_buffer_tips=True):
     """
     Write a Mosquito-interpretable advanced worklist.
 
@@ -322,7 +368,7 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
                       to the same well, and the sum of their volumes
                       is <= 5000 nl, use multi-aspiration.
     
-    TODO possible to avoid tip change between buffer transfers to clean dst well
+    keep_buffer_tips -- For consecutive buffer transfers to a clean well, don't change tips
     """
 
     # Replace all commas with semi-colons, so they can be printed without truncating the worklist
@@ -336,7 +382,6 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
 
     # Default transfer type is simple copy
     df["transfer_type"] = "COPY"
-
     if multi_aspirate:
         filter = np.all(
             [
@@ -363,6 +408,31 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
         "never": ("[VAR2]", "TipChangeStrategy,never"),
     }
 
+    # PRECAUTION Keep tip change strategy in a single dict to avoid mix-ups
+    tip_strats = {
+        "always": ("[VAR1]", "TipChangeStrategy,always"),
+        "never": ("[VAR2]", "TipChangeStrategy,never"),
+    }
+
+    df["tip_strat"] = tip_strats["always"][0]
+    if keep_buffer_tips:
+        filter = np.all(
+            [
+                # Keep tips IF...
+
+                # End position of next transfer is the same
+                df.dst_pos == df.shift(-1).dst_pos,
+                # End well of the next transfer is the same
+                df.dst_well == df.shift(-1).dst_well,
+                # This transfer is buffer
+                df.src_name == "buffer_plate",
+                # Next transfer is buffer
+                df.shift(-1).src_name == "buffer_plate",
+            ],
+            axis=0,
+        )
+        df.loc[filter, "tip_strat"] = tip_strats["never"][0]
+
     # Convert all data to strings
     for c in df:
         df.loc[:, c] = df[c].apply(str)
@@ -374,6 +444,7 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
 
         # Conditionals for worklist variables can be added here as needed
         wl.write("".join(tip_strats["always"]) + "\n")
+        wl.write("".join(tip_strats["never"]) + "\n")
 
         # Write header
         wl.write(f"COMMENT, This is the worklist {wl_filename}\n")
@@ -397,7 +468,7 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
                             r.dst_col,
                             r.dst_row,
                             r.transfer_vol,
-                            tip_strats["always"][0],
+                            r.tip_strat,
                         ]
                     )
                     + "\n"

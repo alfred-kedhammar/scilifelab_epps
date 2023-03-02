@@ -367,12 +367,12 @@ def norm(
     # Dilution strategy
     volume_expansion=True,          # For samples that are too concentrated, increase target volume to obtain correct conc
     # Buffer strategy
-    buffer_strategy="first_column", # Use first column of buffer plate as reservoir
     multi_aspirate=True,            # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
+    keep_buffer_tips=True,
     # Volume constraints
     zika_min_vol=0.5,               # 0.5 lowest validated, 0.1 lowest possible
     well_dead_vol=5,                # 5 ul generous estimate of dead volume in TwinTec96
-    well_max_vol=15,                # 15 ul max well vol enables single-column buffer reservoir
+    well_max_vol=180,
     # Input and output metrics
     use_customer_metrics=False,
     udfs = {
@@ -538,28 +538,31 @@ def norm(
         # Join dict to dataframe
         df = df.join(pd.DataFrame(d))
 
+        # Comments to attach to the worklist header
+        wl_comments = []
+
         # Resolve buffer transfers
-        df_buffer = zika_utils.resolve_buffer_transfers(df.copy(), buffer_strategy=buffer_strategy)
+        df_buffer, wl_comments = zika_utils.resolve_buffer_transfers(
+            df=df.copy(),
+            wl_comments=wl_comments
+        )
 
         # Format worklist
         df_formatted = zika_utils.format_worklist(df_buffer, deck=deck)
+        wl_comments.append(f"This worklist will enact normalization of {len(df_formatted)} samples. For detailed parameters see the worklist log")
 
         # Write files
         
         method_name = "norm"
         wl_filename, log_filename = zika_utils.get_filenames(method_name, currentStep.id)
 
-        # Comments to attach to the worklist header
-        comments = [
-            f"This worklist will enact normalization of {len(df_formatted)} samples",
-            "For detailed parameters see the worklist log"
-        ]
         zika_utils.write_worklist(
             df=df_formatted,
             deck=deck,
             wl_filename=wl_filename,
-            comments=comments,
+            comments=wl_comments,
             multi_aspirate=multi_aspirate,
+            keep_buffer_tips=keep_buffer_tips
         )
 
         zika_utils.write_log(log, log_filename)
