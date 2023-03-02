@@ -16,7 +16,7 @@ from datetime import datetime as dt
 import sys
 
 
-def verify_step(currentStep, targets):
+def verify_step(currentStep, targets = None):
     """
     Given a LIMS step and a list of targets, check whether they match. Workflow information unfortunately needs to be excavated from the samples.
 
@@ -27,25 +27,24 @@ def verify_step(currentStep, targets):
     if currentStep.instrument.name == "Zika":
 
         if not targets:
-            # Instrument is correct and no targets are specified
+            # Instrument is correct and no workflows or steps are specified
             return True
 
         elif any(target_tuple[1] in currentStep.type.name and target_tuple[0] == "" for target_tuple in targets):
-            # Instrument and steps are correct and no workflows are specified
+            # Instrument and step are correct and no workflow is specified
             return True
 
         else:
             # Need to check all samples match at least one ongoing workflow / step combo of the targets
-
             sample_bools = []
             for art in [art for art in currentStep.all_inputs() if art.type == "Analyte"]:
                 active_stages = [stage_tuple for stage_tuple in art.workflow_stages_and_statuses if stage_tuple[1] == "IN_PROGRESS"]
                 sample_bools.append(
-                        # Incredible list comprehension
+                        # Sample has at least one ongoing target step in the target workflow
                         any(
-                            [workflow_string in active_stage[0].workflow.name and step_string in active_stage[2]
+                            workflow_string in active_stage[0].workflow.name and step_string in active_stage[2]
                                 for active_stage in active_stages
-                                    for workflow_string, step_string in targets]
+                                    for workflow_string, step_string in targets
                         ))
                 
             return all(sample_bools)
