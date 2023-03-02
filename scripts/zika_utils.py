@@ -16,28 +16,31 @@ from datetime import datetime as dt
 import sys
 
 
-def verify_step(currentStep, targets):
-    """Verify the instrument, workflow and step for a given process is correct"""
-
-    # TODO if workflow or step is left blank, pass all
-    
-    if currentStep.instrument.name != "Zika":
-        return False
+def verify_step(currentStep, workflow_strings = None, step_strings = None):
+    """Verify the instrument and step for a given process is correct"""
 
     sample_bools = []
-    for art in currentStep.all_inputs():
 
-        # For each sample, check whether there is any active process that matches any in the target list
-        sample_bools.append(any([
-            status == "IN_PROGRESS" and any(
-                target_wf_prefix in wf.workflow.name and step == target_step 
-                for target_wf_prefix, target_step in targets
-                ) 
-                for wf, status, step in art.workflow_stages_and_statuses
-            ]))
-        
-    if all(sample_bools):
-        return True
+    if currentStep.instrument.name == "Zika":
+        if workflow_strings and step_strings:
+            for art in [art for art in currentStep.all_inputs() if art.type == "Analyte"]:
+                active_stages = [stage_tuple for stage_tuple in art.workflow_stages_and_statuses if stage_tuple[1] == "IN_PROGRESS"]
+                sample_bools.append(
+                        any(
+                            [workflow_string in active_stage[0].workflow.name
+                                for active_stage in active_stages
+                                    for workflow_string in workflow_strings]
+                        )
+                    and
+                        any(
+                            [step_string in active_stage[2]
+                                for active_stage in active_stages
+                                    for step_string in step_strings]
+                        )
+                )
+
+        if currentStep.type.name in step_strings:
+            return True
     else:
         return False
 
