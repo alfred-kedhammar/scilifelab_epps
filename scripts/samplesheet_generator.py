@@ -94,16 +94,17 @@ def gen_Novaseq_lane_data(pro):
                         sp_obj['sn'] = sample.name.replace('(','').replace(')','').replace('.','').replace(' ','_')
                         sp_obj['pj'] = 'Control'
                         sp_obj['ref'] = 'Control'
+                        sp_obj['rc'] = '0-0'
                     else:
                         sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
                         sp_obj['sn'] = sample.name.replace(',','')
                         sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
                         sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
-                    seq_setup = sample.project.udf.get('Sequencing setup', '')
-                    if SEQSETUP_PAT.findall(seq_setup):
-                        sp_obj['rc'] = '{}-{}'.format(seq_setup.split('-')[0], seq_setup.split('-')[3])
-                    else:
-                        sp_obj['rc'] = '0-0'
+                        seq_setup = sample.project.udf.get('Sequencing setup', '')
+                        if SEQSETUP_PAT.findall(seq_setup):
+                            sp_obj['rc'] = '{}-{}'.format(seq_setup.split('-')[0], seq_setup.split('-')[3])
+                        else:
+                            sp_obj['rc'] = '0-0'
                     sp_obj['ct'] = 'N'
                     sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
                     sp_obj['fc'] = out.location[0].name.replace(',','')
@@ -291,16 +292,17 @@ def gen_Nextseq_lane_data(pro):
                         sp_obj['sn'] = sample.name.replace('(','').replace(')','').replace('.','').replace(' ','_')
                         sp_obj['pj'] = 'Control'
                         sp_obj['ref'] = 'Control'
+                        sp_obj['rc'] = '0-0'
                     else:
                         sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
                         sp_obj['sn'] = sample.name.replace(',','')
                         sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
                         sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
-                    seq_setup = sample.project.udf.get('Sequencing setup', '')
-                    if SEQSETUP_PAT.findall(seq_setup):
-                        sp_obj['rc'] = '{}-{}'.format(seq_setup.split('-')[0], seq_setup.split('-')[3])
-                    else:
-                        sp_obj['rc'] = '0-0'
+                        seq_setup = sample.project.udf.get('Sequencing setup', '')
+                        if SEQSETUP_PAT.findall(seq_setup):
+                            sp_obj['rc'] = '{}-{}'.format(seq_setup.split('-')[0], seq_setup.split('-')[3])
+                        else:
+                            sp_obj['rc'] = '0-0'
                     sp_obj['ct'] = 'N'
                     sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
                     sp_obj['fc'] = out.location[0].name.replace(',','')
