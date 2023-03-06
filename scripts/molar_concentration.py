@@ -31,13 +31,13 @@ def apply_calculations(lims, artifacts, conc_udf, size_udf, unit_udf, epp_logger
         logging.info('Updated {0} to {1}.'.format(conc_udf,
                                                  artifact.udf[conc_udf]))
 
-def calculate_fmol(amount_ng, size_bp):
+def calculate_fmol(conc_ng_ul, size_bp):
     """
-    Converts ng --> fmol (or ng/ul --> nM)
+    Converts ng/ul --> nM (or ng --> fmol)
     Formula based on NEBioCalculator
     https://nebiocalculator.neb.com/#!/dsdnaamt
     """
-    return 10**6 * (amount_ng) / (size_bp * 617.96 + 36.04)  
+    return 10**6 * conc_ng_ul / (size_bp * 617.96 + 36.04)  
 
 def check_udf_is_defined(artifacts, udf):
     """ Filter and Warn if udf is not defined for any of artifacts. """
