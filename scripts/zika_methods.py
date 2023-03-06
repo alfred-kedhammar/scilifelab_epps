@@ -68,7 +68,7 @@ def pool(
         # Write log header
         log = []
         for e in [
-            f"LIMS process {currentStep.id}"
+            f"LIMS process {currentStep.id}\n"
             "\nVolume constraints",
             f"Minimum pipetting volume: {zika_min_vol} ul",
             f"Applied dead volume: {well_dead_vol} ul",
@@ -427,13 +427,13 @@ def norm(
         
         log = []
         for e in [
-            f"LIMS process {currentStep.id}"
+            f"LIMS process {currentStep.id}\n"
             "\nDilution strategy",
             f"Expand volume to obtain target conc: {volume_expansion}",
             "\nBuffer strategy",
             f"Multi-aspirate buffer-sample: {multi_aspirate}",
             f"Keep tips between consecutive buffer transfers: {keep_buffer_tips}",
-            "\nVolume constraints"
+            "\nVolume constraints",
             f"Minimum pipetting volume: {zika_min_vol} ul",
             f"Applied dead volume: {well_dead_vol} ul",
             f"Maximum allowed dst well volume: {well_max_vol} ul",
