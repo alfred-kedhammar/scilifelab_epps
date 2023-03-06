@@ -125,6 +125,7 @@ def fetch_sample_data(currentStep, to_fetch):
         "art_tuple[1]['uri'].udf['Final Volume (uL)']",             # Final pool / sample volume
         "art_tuple[1]['uri'].udf['Target Amount (ng)']",            # In methods where the prep input is possibly different from the sample dilution, this is the target concentration and minimum volume of the prep input
         "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",      # In methods where the prep input is possibly different from the sample dilution, this is the target concentration and minimum volume of the prep input
+        "art_tuple[1]['uri'].udf['Pool Conc. (nM)']",
 
         # Input sample RC measurements (?)
         "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
