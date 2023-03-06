@@ -246,19 +246,32 @@ def aliquot_fixed_volume(currentStep, lims, volume, log):
 def prepooling(currentStep, lims):
     log = []
 
-    # New, non-accredited, prepooling code
     if zika_utils.verify_step(
         currentStep, 
         targets = [('', 'Library Pooling (RAD-seq) v1.0')]
-        ):
+    ):
         zika_methods.pool(
             currentStep=currentStep, 
-            lims=lims
-            )
+            lims=lims,
+            udfs = {
+                "target_amt": "Amount taken (ng)",
+                "target_vol": "Final Volume (uL)",
+                "final_amt": "Amount taken (ng)",
+                "final_vol": "Final Volume (uL)"
+            }
+        )
 
     elif currentStep.instrument.name == "Zika":
-        sys.stderr.write("Zika is not enabled for the current workflow/step")
-        sys.exit(2)
+        zika_methods.pool(
+            currentStep=currentStep, 
+            lims=lims,
+            udfs = {
+                "target_conc": "Pool Conc. (nM)",
+                "target_vol": "Final Volume (uL)",
+                "final_conc": "Pool Conc. (nM)",
+                "final_vol": "Final Volume (uL)"
+            }
+        )
 
     else:
         # First thing to do is to grab the volumes of the input artifacts. The method is ... rather unique.
@@ -336,8 +349,14 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         ):
         zika_methods.norm(
             currentStep=currentStep, 
-            lims=lims
-            )
+            lims=lims,
+            udfs = {
+                "target_amt": "Target Amount (ng)",
+                "target_vol": "Target Total Volume (uL)",
+                "final_amt": "Amount taken (ng)",
+                "final_vol": "Total Volume (uL)"
+            }
+        )
     elif zika_utils.verify_step(
         currentStep,
         targets = [("Amplicon", "Setup Workset/Plate")]
@@ -347,8 +366,14 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             lims=lims, 
             # Use lower minimum pipetting volume and customer metrics
             zika_min_vol=0.1,
-            use_customer_metrics=True
-            )
+            use_customer_metrics=True,
+            udfs = {
+                "target_amt": "Target Amount (ng)",
+                "target_vol": "Target Total Volume (uL)",
+                "final_amt": "Amount taken (ng)",
+                "final_vol": "Total Volume (uL)"
+            }
+        )
     
     elif currentStep.instrument.name == "Zika":
         sys.stderr.write("Zika is not enabled for the current workflow/step")
