@@ -249,7 +249,7 @@ def pool(
                     log.append(f"\nWARNING: The samples cannot be evenly pooled!")
                     log.append(f"The minimum transfer amount of the highest concentrated sample {highest_conc_sample.sample_name} ({round(highest_conc_sample.conc, 2)} {highest_conc_sample.conc_units}) exceeds the maximum transfer amount of the following samples:")
                     for i, r in df_low.iterrows():
-                        log.append(f"{r.sample_name} ({round(r.conc,2)} {r.conc_units}, {round(r.vol,2)} uL)")
+                        log.append(f"{r.sample_name} ({round(r.conc,2)} {r.conc_units}, {round(r.vol,2)} uL accessible volume)")
                     log.append(f"The above samples will be depleted and under-represented in the final pool.")
 
                     # Calculate pool limits...
