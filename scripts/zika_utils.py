@@ -319,7 +319,7 @@ def resolve_buffer_transfers(
         except StopIteration:
             raise AssertionError("Total buffer volume exceeds plate capacity.")
         
-        wl_comments.append(f"Fill up the buffer plate column-wise from well {wells[0]} to well {current_well} with {well_max_vol} uL buffer.")
+        wl_comments.append(f"Fill up the buffer plate column-wise up to well {current_well} with {well_max_vol} uL buffer.")
     
     else:
         raise Exception("No buffer strategy defined")
