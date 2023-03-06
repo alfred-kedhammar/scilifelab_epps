@@ -581,7 +581,7 @@ def norm(
 
         # Write files
         
-        wl_filename, log_filename = zika_utils.get_filenames(method_name = "norm", currentStep.id)
+        wl_filename, log_filename = zika_utils.get_filenames(method_name = "norm", pid = currentStep.id)
 
         zika_utils.write_worklist(
             df=df_formatted,
