@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230306.1
+Replace formula used for ng -> molar conversion.
+
 ## 20230227.1
 Improvements and bugfixes on ONT EPPs.
 
