@@ -157,24 +157,6 @@ def fetch_sample_data(currentStep, to_fetch):
     return df
 
 
-def load_fake_samples(file, to_fetch):
-    """ This function is intended to output the same dataframe as fetch_sample_data(),
-    but the input data is taken from a .csv-exported spreadsheet and is thus easier
-    to change than data taken from upstream LIMS.
-    """
-
-    file_data = pd.read_csv(file, delimiter = "\t")
-
-    assert all(
-        [k in file_data.columns for k in to_fetch]
-    ), "load_fake_samples() did not find all required columns"
-
-    # Only retain specified columns
-    df = file_data[to_fetch]
-
-    return df
-
-
 def format_worklist(df, deck):
     """
     - Add columns in Mosquito-intepretable format
