@@ -95,9 +95,7 @@ def pool(
             "dst_id"            :       "art_tuple[1]['uri'].location[0].id",
             "dst_well"          :       "art_tuple[1]['uri'].location[1]"
         }
-
-        assert udfs["target_vol"] and (udfs["target_conc"] or udfs["target_amt"])
-        
+       
         for k, v in udfs.items():
             if v:
                 to_fetch[k] = f"art_tuple[1]['uri'].udf['{v}']"
