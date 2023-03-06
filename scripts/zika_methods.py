@@ -436,8 +436,7 @@ def norm(
             "\nVolume constraints",
             f"Minimum pipetting volume: {zika_min_vol} ul",
             f"Applied dead volume: {well_dead_vol} ul",
-            f"Maximum allowed dst well volume: {well_max_vol} ul",
-            "\n\n"
+            f"Maximum allowed dst well volume: {well_max_vol} ul"
         ]:
             log.append(e)
 
@@ -502,7 +501,7 @@ def norm(
             # Cases
 
             # 1) Not enough sample --> Conc below target
-            if r.max_transfer_amt < r.target_amt:
+            if round(r.max_transfer_amt,2) < round(r.target_amt,2):
 
                 sample_vol = min(r.vol, r.target_vol)
                 tot_vol = r.target_vol
@@ -510,14 +509,14 @@ def norm(
                 log.append(f"WARNING: Not enough sample to reach target")
 
             # 2) Ideal case
-            elif r.min_transfer_amt <= r.target_amt <= r.max_transfer_amt:
+            elif round(r.min_transfer_amt,2) <= round(r.target_amt,2) <= round(r.max_transfer_amt,2):
 
                 sample_vol = r.target_amt / r.conc
                 buffer_vol = r.target_vol - sample_vol
                 tot_vol = sample_vol + buffer_vol
 
             # 3) Sample too concentrated -> Increase final volume if possible
-            elif r.min_transfer_amt > r.target_amt:
+            elif round(r.min_transfer_amt,2) > round(r.target_amt,2):
 
                 if volume_expansion:
                     increased_vol = r.min_transfer_amt / r.target_conc
@@ -577,7 +576,7 @@ def norm(
 
         # Format worklist
         df_formatted = zika_utils.format_worklist(df_buffer, deck=deck)
-        wl_comments.append(f"This worklist will enact normalization of {len(df_formatted)} samples. For detailed parameters see the worklist log")
+        wl_comments.append(f"This worklist will enact normalization of {len(df)} samples. For detailed parameters see the worklist log")
 
         # Write files
         
