@@ -253,10 +253,7 @@ def prepooling(currentStep, lims):
         ):
         zika_methods.pool(
             currentStep=currentStep, 
-            lims=lims,
-            zika_min_vol=0.5,
-            well_dead_vol=5,
-            well_max_vol=180
+            lims=lims
             )
 
     elif currentStep.instrument.name == "Zika":
