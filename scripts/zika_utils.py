@@ -148,7 +148,10 @@ def fetch_sample_data(currentStep, to_fetch):
     for art_tuple in art_tuples:
         dict = {}
         for header, object_path in to_fetch.items():
-            dict[header] = eval(object_path)
+            try:
+                dict[header] = eval(object_path)
+            except KeyError:
+                dict[header] = None
         list_of_dicts.append(dict)
 
     # Compile to dataframe
