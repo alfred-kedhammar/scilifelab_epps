@@ -107,6 +107,8 @@ def pool(
         # All samples should have accessible volume
         assert all(df_all.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul"
 
+        assert all(df_all.target_vol <= well_max_vol), f"All target volumes must be at or below {well_max_vol} uL"
+
         # Adjust for dead volume
         df_all["full_vol"] = df_all.vol.copy()
         df_all.loc[:,"vol"] = df_all.vol - well_dead_vol
@@ -472,6 +474,8 @@ def norm(
         amt_unit = "ng" if conc_unit == "ng/ul" else "fmol"
 
         # Assertions
+        assert all(df.target_vol <= well_max_vol), f"All target volumes must be at or below {well_max_vol} uL"
+
         assert all(df.vol > well_dead_vol), f"The minimum required source volume is {well_dead_vol} ul"
         df["full_vol"] = df.vol.copy()
         df.loc[:,"vol"] = df.vol - well_dead_vol
