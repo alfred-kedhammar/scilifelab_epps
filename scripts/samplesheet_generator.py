@@ -26,12 +26,14 @@ TENX_SINGLE_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
 TENX_DUAL_PAT = re.compile("SI-(?:TT|NT|NN|TN|TS)-[A-H][1-9][0-2]?")
 SMARTSEQ_PAT = re.compile('SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]')
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
+SEQSETUP_PAT =re.compile("[0-9]+-[0-9A-z]+-[0-9A-z]+-[0-9]+")
 
 control_names = [ 'AM7852',
                   'E.Coli genDNA',
                   'Endogenous Positive Control',
                   'Exogenous Positive Control',
                   'Human Brain Reference RNA',
+                  'Human Genomic DNA Male',
                   'lambda DNA',
                   'Mouse Brain'
                   'mQ Negative Control',
@@ -46,6 +48,7 @@ control_names = [ 'AM7852',
                   'No Template Control',
                   'PhiX v3',
                   'S.cerevisiae Genomic DNA',
+                  'SARS-CoV-2 Synthetic RNA',
                   'Universal Human Reference RNA',
                   'lambda DNA (qPCR)'
                 ]
@@ -96,16 +99,11 @@ def gen_Novaseq_lane_data(pro):
                         sp_obj['sn'] = sample.name.replace(',','')
                         sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
                         sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
-                    try:
-                        if pro.udf.get('Read 2 Cycles'):
-                            if str(pro.udf['Read 2 Cycles']).replace(',','')==str(pro.udf['Read 1 Cycles']).replace(',',''):
-                                sp_obj['rc'] = "2x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
-                            else:
-                                sp_obj['rc'] = "{}-{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''),str(pro.udf['Read 2 Cycles']).replace(',',''))
-                        else:
-                            sp_obj['rc'] = "1x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
-                    except:
-                        sp_obj['rc'] = ''
+                    seq_setup = sample.project.udf.get('Sequencing setup', '')
+                    if SEQSETUP_PAT.findall(seq_setup):
+                        sp_obj['rc'] = '{}-{}'.format(seq_setup.split('-')[0], seq_setup.split('-')[3])
+                    else:
+                        sp_obj['rc'] = '0-0'
                     sp_obj['ct'] = 'N'
                     sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
                     sp_obj['fc'] = out.location[0].name.replace(',','')
@@ -298,16 +296,11 @@ def gen_Nextseq_lane_data(pro):
                         sp_obj['sn'] = sample.name.replace(',','')
                         sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
                         sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
-                    try:
-                        if pro.udf.get('Read 2 Cycles'):
-                            if str(pro.udf['Read 2 Cycles']).replace(',','')==str(pro.udf['Read 1 Cycles']).replace(',',''):
-                                sp_obj['rc'] = "2x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
-                            else:
-                                sp_obj['rc'] = "{}-{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''),str(pro.udf['Read 2 Cycles']).replace(',',''))
-                        else:
-                            sp_obj['rc'] = "1x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
-                    except:
-                        sp_obj['rc'] = ''
+                    seq_setup = sample.project.udf.get('Sequencing setup', '')
+                    if SEQSETUP_PAT.findall(seq_setup):
+                        sp_obj['rc'] = '{}-{}'.format(seq_setup.split('-')[0], seq_setup.split('-')[3])
+                    else:
+                        sp_obj['rc'] = '0-0'
                     sp_obj['ct'] = 'N'
                     sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
                     sp_obj['fc'] = out.location[0].name.replace(',','')
