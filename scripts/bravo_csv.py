@@ -256,8 +256,10 @@ def prepooling(currentStep, lims):
             udfs = {
                 "target_amt": "Amount taken (ng)",
                 "target_vol": "Final Volume (uL)",
+                "target_conc": None,
                 "final_amt": "Amount taken (ng)",
-                "final_vol": "Final Volume (uL)"
+                "final_vol": "Final Volume (uL)",
+                "final_conc": None
             }
         )
 
@@ -266,10 +268,12 @@ def prepooling(currentStep, lims):
             currentStep=currentStep, 
             lims=lims,
             udfs = {
-                "target_conc": "Pool Conc. (nM)",
+                "target_amt": None, 
                 "target_vol": "Final Volume (uL)",
-                "final_conc": "Pool Conc. (nM)",
-                "final_vol": "Final Volume (uL)"
+                "target_conc": "Pool Conc. (nM)",
+                "final_amt": None, 
+                "final_vol": "Final Volume (uL)",
+                "final_conc": "Pool Conc. (nM)"
             }
         )
 
@@ -353,8 +357,10 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             udfs = {
                 "target_amt": "Target Amount (ng)",
                 "target_vol": "Target Total Volume (uL)",
+                "target_conc": None,
                 "final_amt": "Amount taken (ng)",
-                "final_vol": "Total Volume (uL)"
+                "final_vol": "Total Volume (uL)",
+                "final_conc": None 
             }
         )
     elif zika_utils.verify_step(
@@ -370,8 +376,10 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             udfs = {
                 "target_amt": "Target Amount (ng)",
                 "target_vol": "Target Total Volume (uL)",
+                "target_conc": None,
                 "final_amt": "Amount taken (ng)",
-                "final_vol": "Total Volume (uL)"
+                "final_vol": "Total Volume (uL)",
+                "final_conc": None
             }
         )
     
