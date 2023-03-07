@@ -69,7 +69,7 @@ def pool(
         log = []
         for e in [
             f"LIMS process {currentStep.id}\n"
-            "\nVolume constraints",
+            "\n=== Volume constraints ===",
             f"Minimum pipetting volume: {zika_min_vol} ul",
             f"Applied dead volume: {well_dead_vol} ul",
             f"Maximum allowed dst well volume: {well_max_vol} ul"
@@ -350,6 +350,8 @@ def pool(
 
         # Format worklist 
         df_formatted = zika_utils.format_worklist(df_wl, deck)
+        # TODO only used for validation 23_02
+        df_formatted.to_csv("_".join(wl_filename.split("_")[2:]).split(".")[0])
 
         # Comments to attach to the worklist header
         comments = [f"This worklist will enact pooling of {len(df_all)} samples",
@@ -428,12 +430,13 @@ def norm(
         log = []
         for e in [
             f"LIMS process {currentStep.id}\n"
-            "\nDilution strategy",
+            "\n=== Dilution strategy ===",
             f"Expand volume to obtain target conc: {volume_expansion}",
-            "\nBuffer strategy",
+            f"Base calculations on user measurements: {use_customer_metrics}",
+            "\n=== Buffer strategy ===",
             f"Multi-aspirate buffer-sample: {multi_aspirate}",
             f"Keep tips between consecutive buffer transfers: {keep_buffer_tips}",
-            "\nVolume constraints",
+            "\n=== Volume constraints ===",
             f"Minimum pipetting volume: {zika_min_vol} ul",
             f"Applied dead volume: {well_dead_vol} ul",
             f"Maximum allowed dst well volume: {well_max_vol} ul"
@@ -508,7 +511,6 @@ def norm(
                 sample_vol = min(r.vol, r.target_vol)
                 tot_vol = r.target_vol
                 buffer_vol = tot_vol - sample_vol
-                log.append(f"WARNING: Not enough sample to reach target")
 
             # 2) Ideal case
             elif round(r.min_transfer_amt,2) <= round(r.target_amt,2) <= round(r.max_transfer_amt,2):
@@ -521,29 +523,30 @@ def norm(
             elif round(r.min_transfer_amt,2) > round(r.target_amt,2):
 
                 if volume_expansion:
-                    increased_vol = r.min_transfer_amt / r.target_conc
-                    assert (
-                        increased_vol <= well_max_vol
-                    ), f"Sample {r.name} is too concentrated ({r.conc} ng/ul) and must be diluted manually"
-
-                    tot_vol = increased_vol
+                    if r.min_transfer_amt / r.target_conc <= well_max_vol:
+                        tot_vol = r.min_transfer_amt / r.target_conc
+                    else:
+                        tot_vol = well_max_vol
                     sample_vol = zika_min_vol
                     buffer_vol = tot_vol - sample_vol
-
-                    log.append(f"INFO: Volume expansion required")
+                    log.append(f"INFO: Applying volume expansion")
 
                 else:
                     sample_vol = zika_min_vol
                     tot_vol = r.target_vol
                     buffer_vol = tot_vol - sample_vol
 
-                    log.append(f"WARNING: {r.sample_name} (conc {round(r.conc,2)} {conc_unit}, vol {round(r.vol,1)} ul), Sample is too concentrated")
-
             # Finalize calculations
-
+            if buffer_vol < zika_min_vol:
+                buffer_vol = 0
+                sample_vol = tot_vol
             final_amt = sample_vol * r.conc
             final_conc = final_amt / tot_vol
             final_conc_frac = final_conc / r.target_conc
+            if round(final_conc_frac, 2) > 1:
+                log.append("WARNING: Sample is too concentrated")
+            elif round(final_conc_frac, 2) < 1:
+                log.append("WARNING: Sample is depleted")
             log.append(f"--> Diluting {round(sample_vol,1)} ul ({round(final_amt,2)} {amt_unit}) to {round(tot_vol,1)} ul ({round(final_conc,2)} {conc_unit}, {round(final_conc_frac*100,1)}% of target)")
 
             # Append calculation results to dict
@@ -583,6 +586,8 @@ def norm(
         # Write files
         
         wl_filename, log_filename = zika_utils.get_filenames(method_name = "norm", pid = currentStep.id)
+            # TODO only used for validation 23_02
+        df_formatted.to_csv("_".join(wl_filename.split("_")[2:]).split(".")[0])
 
         zika_utils.write_worklist(
             df=df_formatted,
