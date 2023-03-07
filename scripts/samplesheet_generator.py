@@ -26,29 +26,7 @@ TENX_SINGLE_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
 TENX_DUAL_PAT = re.compile("SI-(?:TT|NT|NN|TN|TS)-[A-H][1-9][0-2]?")
 SMARTSEQ_PAT = re.compile('SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]')
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
-
-control_names = [ 'AM7852',
-                  'E.Coli genDNA',
-                  'Endogenous Positive Control',
-                  'Exogenous Positive Control',
-                  'Human Brain Reference RNA',
-                  'lambda DNA',
-                  'Mouse Brain'
-                  'mQ Negative Control',
-                  'NA10860',
-                  'NA11992',
-                  'NA11993',
-                  'NA12878',
-                  'NA12891',
-                  'NA12892',
-                  'No Amplification Control',
-                  'No Reverse Transcriptase Control',
-                  'No Template Control',
-                  'PhiX v3',
-                  'S.cerevisiae Genomic DNA',
-                  'Universal Human Reference RNA',
-                  'lambda DNA (qPCR)'
-                ]
+SEQSETUP_PAT =re.compile("[0-9]+-[0-9A-z]+-[0-9A-z]+-[0-9]+")
 
 def check_index_distance(data, log):
     lanes=set([x['lane'] for x in data])
@@ -86,26 +64,22 @@ def gen_Novaseq_lane_data(pro):
                 for idxs in sample_idxs:
                     sp_obj = {}
                     sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
-                    if sample.name in control_names:
-                        sp_obj['sid'] = "Sample_{}".format(sample.name).replace('(','').replace(')','').replace('.','').replace(' ','_')
-                        sp_obj['sn'] = sample.name.replace('(','').replace(')','').replace('.','').replace(' ','_')
-                        sp_obj['pj'] = 'Control'
-                        sp_obj['ref'] = 'Control'
-                    else:
+                    if NGISAMPLE_PAT.findall(sample.name):
                         sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
                         sp_obj['sn'] = sample.name.replace(',','')
                         sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
                         sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
-                    try:
-                        if pro.udf.get('Read 2 Cycles'):
-                            if str(pro.udf['Read 2 Cycles']).replace(',','')==str(pro.udf['Read 1 Cycles']).replace(',',''):
-                                sp_obj['rc'] = "2x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
-                            else:
-                                sp_obj['rc'] = "{}-{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''),str(pro.udf['Read 2 Cycles']).replace(',',''))
+                        seq_setup = sample.project.udf.get('Sequencing setup', '')
+                        if SEQSETUP_PAT.findall(seq_setup):
+                            sp_obj['rc'] = '{}-{}'.format(seq_setup.split('-')[0], seq_setup.split('-')[3])
                         else:
-                            sp_obj['rc'] = "1x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
-                    except:
-                        sp_obj['rc'] = ''
+                            sp_obj['rc'] = '0-0'
+                    else:
+                        sp_obj['sid'] = "Sample_{}".format(sample.name).replace('(','').replace(')','').replace('.','').replace(' ','_')
+                        sp_obj['sn'] = sample.name.replace('(','').replace(')','').replace('.','').replace(' ','_')
+                        sp_obj['pj'] = 'Control'
+                        sp_obj['ref'] = 'Control'
+                        sp_obj['rc'] = '0-0'
                     sp_obj['ct'] = 'N'
                     sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
                     sp_obj['fc'] = out.location[0].name.replace(',','')
@@ -181,16 +155,16 @@ def gen_Miseq_data(pro):
                 sp_obj = {}
                 pj_type = ''
                 sp_obj['lane'] = "1"
-                if sample.name in control_names:
-                    sp_obj['sid'] = "Sample_{}".format(sample.name).replace('(','').replace(')','').replace('.','').replace(' ','_')
-                    sp_obj['sn'] = sample.name.replace('(','').replace(')','').replace('.','').replace(' ','_')
-                    sp_obj['pj'] = 'Control'
-                    pj_type = 'Control'
-                else:
+                if NGISAMPLE_PAT.findall(sample.name):
                     sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
                     sp_obj['sn'] = sample.name.replace(',','')
                     sp_obj['pj'] = sample.project.name.replace('.','_').replace(',','')
                     pj_type = 'by user' if sample.project.udf['Library construction method'] == 'Finished library (by user)' else 'inhouse'
+                else:
+                    sp_obj['sid'] = "Sample_{}".format(sample.name).replace('(','').replace(')','').replace('.','').replace(' ','_')
+                    sp_obj['sn'] = sample.name.replace('(','').replace(')','').replace('.','').replace(' ','_')
+                    sp_obj['pj'] = 'Control'
+                    pj_type = 'Control'
                 sp_obj['fc'] = "{}-{}".format(io[0]['uri'].location[0].name.replace(',',''), out.location[1].replace(':',''))
                 sp_obj['sw'] = "A1"
                 sp_obj['gf'] = pro.udf['GenomeFolder'].replace(',','')
@@ -200,16 +174,16 @@ def gen_Miseq_data(pro):
                     sp_obj = {}
                     pj_type = ''
                     sp_obj['lane'] = "1"
-                    if sample.name in control_names:
-                        sp_obj['sid'] = "Sample_{}".format(sample.name).replace('(','').replace(')','').replace('.','').replace(' ','_')
-                        sp_obj['sn'] = sample.name.replace('(','').replace(')','').replace('.','').replace(' ','_')
-                        sp_obj['pj'] = 'Control'
-                        pj_type = 'Control'
-                    else:
+                    if if NGISAMPLE_PAT.findall(sample.name):
                         sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
                         sp_obj['sn'] = sample.name.replace(',','')
                         sp_obj['pj'] = sample.project.name.replace('.','_').replace(',','')
                         pj_type = 'by user' if sample.project.udf['Library construction method'] == 'Finished library (by user)' else 'inhouse'
+                    else:
+                        sp_obj['sid'] = "Sample_{}".format(sample.name).replace('(','').replace(')','').replace('.','').replace(' ','_')
+                        sp_obj['sn'] = sample.name.replace('(','').replace(')','').replace('.','').replace(' ','_')
+                        sp_obj['pj'] = 'Control'
+                        pj_type = 'Control'
                     sp_obj['fc'] = "{}-{}".format(io[0]['uri'].location[0].name.replace(',',''), out.location[1].replace(':',''))
                     sp_obj['sw'] = "A1"
                     sp_obj['gf'] = pro.udf['GenomeFolder'].replace(',','')
@@ -288,26 +262,22 @@ def gen_Nextseq_lane_data(pro):
                 for idxs in sample_idxs:
                     sp_obj = {}
                     sp_obj['lane'] = out.location[1].split(':')[0].replace(',','')
-                    if sample.name in control_names:
-                        sp_obj['sid'] = "Sample_{}".format(sample.name).replace('(','').replace(')','').replace('.','').replace(' ','_')
-                        sp_obj['sn'] = sample.name.replace('(','').replace(')','').replace('.','').replace(' ','_')
-                        sp_obj['pj'] = 'Control'
-                        sp_obj['ref'] = 'Control'
-                    else:
+                    if NGISAMPLE_PAT.findall(sample.name):
                         sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
                         sp_obj['sn'] = sample.name.replace(',','')
                         sp_obj['pj'] = sample.project.name.replace('.','__').replace(',','')
                         sp_obj['ref'] = sample.project.udf.get('Reference genome','').replace(',','')
-                    try:
-                        if pro.udf.get('Read 2 Cycles'):
-                            if str(pro.udf['Read 2 Cycles']).replace(',','')==str(pro.udf['Read 1 Cycles']).replace(',',''):
-                                sp_obj['rc'] = "2x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
-                            else:
-                                sp_obj['rc'] = "{}-{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''),str(pro.udf['Read 2 Cycles']).replace(',',''))
+                        seq_setup = sample.project.udf.get('Sequencing setup', '')
+                        if SEQSETUP_PAT.findall(seq_setup):
+                            sp_obj['rc'] = '{}-{}'.format(seq_setup.split('-')[0], seq_setup.split('-')[3])
                         else:
-                            sp_obj['rc'] = "1x{}".format(str(pro.udf['Read 1 Cycles']).replace(',',''))
-                    except:
-                        sp_obj['rc'] = ''
+                            sp_obj['rc'] = '0-0'
+                    else:
+                        sp_obj['sid'] = "Sample_{}".format(sample.name).replace('(','').replace(')','').replace('.','').replace(' ','_')
+                        sp_obj['sn'] = sample.name.replace('(','').replace(')','').replace('.','').replace(' ','_')
+                        sp_obj['pj'] = 'Control'
+                        sp_obj['ref'] = 'Control'
+                        sp_obj['rc'] = '0-0'
                     sp_obj['ct'] = 'N'
                     sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
                     sp_obj['fc'] = out.location[0].name.replace(',','')

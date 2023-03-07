@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230306.2
+Update control lists and fetch run recipe from project for samplesheet generator
+
 ## 20230306.1
 Replace formula used for ng -> molar conversion.
 
