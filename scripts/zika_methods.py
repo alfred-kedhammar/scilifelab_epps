@@ -350,8 +350,13 @@ def pool(
 
         # Format worklist 
         df_formatted = zika_utils.format_worklist(df_wl, deck)
+
         # TODO only used for validation 23_02
-        df_formatted.to_csv("_".join(wl_filename.split("_")[2:]).split(".")[0])
+        file_id = "_".join(wl_filename.split("_")[2:]).split(".")[0]
+        df_formatted.to_csv(file_id)
+        import yaml
+        with open(file_id+"_udfs", "w") as f:
+            f.write(yaml.dump(to_fetch))
 
         # Comments to attach to the worklist header
         comments = [f"This worklist will enact pooling of {len(df_all)} samples",
@@ -586,8 +591,13 @@ def norm(
         # Write files
         
         wl_filename, log_filename = zika_utils.get_filenames(method_name = "norm", pid = currentStep.id)
-            # TODO only used for validation 23_02
-        df_formatted.to_csv("_".join(wl_filename.split("_")[2:]).split(".")[0])
+        
+        # TODO only used for validation 23_02
+        file_id = "_".join(wl_filename.split("_")[2:]).split(".")[0]
+        df_formatted.to_csv(file_id)
+        import yaml
+        with open(file_id+"_udfs", "w") as f:
+            f.write(yaml.dump(to_fetch))
 
         zika_utils.write_worklist(
             df=df_formatted,
