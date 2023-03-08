@@ -174,7 +174,7 @@ def gen_Miseq_data(pro):
                     sp_obj = {}
                     pj_type = ''
                     sp_obj['lane'] = "1"
-                    if if NGISAMPLE_PAT.findall(sample.name):
+                    if NGISAMPLE_PAT.findall(sample.name):
                         sp_obj['sid'] = "Sample_{}".format(sample.name).replace(',','')
                         sp_obj['sn'] = sample.name.replace(',','')
                         sp_obj['pj'] = sample.project.name.replace('.','_').replace(',','')
