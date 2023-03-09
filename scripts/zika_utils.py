@@ -437,7 +437,7 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=None, ke
                 df.loc[i, "tip_strat"] = tip_strats["never"]
                 new_row = {"transfer_type": "CHANGE_PIPETTES"}
                 df.loc[i+0.5] = new_row
-        df.sort_index()
+        df.sort_index(inplace=True)
         df.reset_index(inplace=True, drop=True)
             
     # Convert all data to strings
