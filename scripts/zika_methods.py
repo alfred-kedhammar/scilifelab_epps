@@ -349,7 +349,7 @@ def pool(
             raise zika_utils.CheckLog(log, log_filename, lims, currentStep)
 
         # Format worklist 
-        df_formatted = zika_utils.format_worklist(df_wl, deck)
+        df_formatted = zika_utils.format_worklist(df_wl.copy(), deck)
 
         # TODO only used for validation 23_02
         file_id = "_".join(wl_filename.split("_")[2:]).split(".")[0]
@@ -367,7 +367,7 @@ def pool(
         
         # Write the output files
         zika_utils.write_worklist(
-            df=df_formatted,
+            df=df_formatted.copy(),
             deck=deck,
             wl_filename=wl_filename,
             comments=comments)
@@ -585,7 +585,7 @@ def norm(
         )
 
         # Format worklist
-        df_formatted = zika_utils.format_worklist(df_buffer, deck=deck)
+        df_formatted = zika_utils.format_worklist(df_buffer.copy(), deck=deck)
         wl_comments.append(f"This worklist will enact normalization of {len(df)} samples. For detailed parameters see the worklist log")
 
         # Write files
@@ -600,7 +600,7 @@ def norm(
             f.write(yaml.dump(to_fetch))
 
         zika_utils.write_worklist(
-            df=df_formatted,
+            df=df_formatted.copy(),
             deck=deck,
             wl_filename=wl_filename,
             comments=wl_comments,
