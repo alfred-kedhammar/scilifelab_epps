@@ -357,7 +357,7 @@ def get_filenames(method_name, pid):
     return wl_filename, log_filename
 
 
-def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=True, keep_buffer_tips=True):
+def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=None, keep_buffer_tips=None):
     """
     Write a Mosquito-interpretable advanced worklist.
 
@@ -399,15 +399,18 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=True, ke
         )
         df.loc[filter, "transfer_type"] = "MULTI_ASPIRATE"
 
-    # PRECAUTION Keep tip change strategy in a single dict to avoid mix-ups
-    tip_strats = {
-        "always": ("[VAR1]", "TipChangeStrategy,always"),
-        "never": ("[VAR2]", "TipChangeStrategy,never"),
+    # PRECAUTION Keep tip change strategy variable definitions immutable
+    tip_strats = { 
+        "always": "[VAR1]",
+        "never": "[VAR2]" 
     }
 
     # Initially, set all transfers to always change tips
-    df["tip_strat"] = tip_strats["always"][0]
+    df["tip_strat"] = tip_strats["always"]
+
     if keep_buffer_tips:
+
+        # Keep tips between buffer transfers
         filter = np.all(
             [
                 # Keep tips IF...
@@ -423,8 +426,20 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=True, ke
             ],
             axis=0,
         )
-        df.loc[filter, "tip_strat"] = tip_strats["never"][0]
+        df.loc[filter, "tip_strat"] = tip_strats["never"]
 
+        for i, r in df.iterrows():
+            # Drop nonsense columns from multiaspirate row
+            if r.transfer_type == "MULTI_ASPIRATE":
+                df.loc[i, ["tip_strat", "dst_pos", "dst_col", "dst_row", "dst_name", "dst_well", "dst_well_row", "dst_well_col"]] = np.nan
+            # Keep tips BEFORE multiaspirate transfer block and change tips AFTER
+            elif i>1 and df.loc[i-1,"transfer_type"] == "MULTI_ASPIRATE":
+                df.loc[i, "tip_strat"] = tip_strats["never"]
+                new_row = {"transfer_type": "CHANGE_PIPETTES"}
+                df.loc[i+0.5] = new_row
+        df.sort_index()
+        df.reset_index(inplace=True, drop=True)
+            
     # Convert all data to strings
     for c in df:
         df.loc[:, c] = df[c].apply(str)
@@ -435,10 +450,11 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=True, ke
         wl.write("worklist,\n")
 
         # Define variables
-        for strat, tpl in tip_strats.items():
-            variable_name, variable_assignment = tpl
-            if variable_name in df.tip_strat.unique():
-                wl.write("".join((variable_name, variable_assignment)) + "\n")
+        variable_definitions = []
+        for tip_strat in [tip_strat for tip_strat in tip_strats.items() if tip_strat[1] in df.tip_strat.unique()]:
+            variable_definitions.append(f"{tip_strat[1]}TipChangeStrategy")
+            variable_definitions.append(tip_strat[0])
+        wl.write(",".join(variable_definitions) + "\n")
 
         # Write header
         wl.write(f"COMMENT, This is the worklist {wl_filename}\n")
@@ -448,7 +464,7 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=True, ke
         wl.write(get_deck_comment(deck))
 
         # Write transfers
-        for i, r in df.iterrows():
+        for i, r in df.iterrows():    
             if r.transfer_type == "COPY":
                 wl.write(
                     ",".join(
@@ -481,6 +497,8 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=True, ke
                     )
                     + "\n"
                 )
+            elif r.transfer_type == "CHANGE_PIPETTES":
+                wl.write(r.transfer_type + "\n")
             else:
                 raise AssertionError("No transfer type defined")
         
