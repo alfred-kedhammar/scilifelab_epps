@@ -405,6 +405,7 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=True, ke
         "never": ("[VAR2]", "TipChangeStrategy,never"),
     }
 
+    # Initially, set all transfers to always change tips
     df["tip_strat"] = tip_strats["always"][0]
     if keep_buffer_tips:
         filter = np.all(
