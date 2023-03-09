@@ -405,12 +405,6 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=True, ke
         "never": ("[VAR2]", "TipChangeStrategy,never"),
     }
 
-    # PRECAUTION Keep tip change strategy in a single dict to avoid mix-ups
-    tip_strats = {
-        "always": ("[VAR1]", "TipChangeStrategy,always"),
-        "never": ("[VAR2]", "TipChangeStrategy,never"),
-    }
-
     df["tip_strat"] = tip_strats["always"][0]
     if keep_buffer_tips:
         filter = np.all(
