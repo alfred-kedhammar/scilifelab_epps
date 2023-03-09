@@ -366,6 +366,10 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=None, ke
                       is <= 5000 nl, use multi-aspiration.
     
     keep_buffer_tips -- For consecutive buffer transfers to a clean well, don't change tips
+
+    # TODO additional tips may be saved by omitting tip changes when doing multiple transfers from a
+    sample well to its normalization well
+
     """
 
     # Replace all commas with semi-colons, so they can be printed without truncating the worklist
@@ -420,9 +424,7 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=None, ke
                 # End well of the next transfer is the same
                 df.dst_well == df.shift(-1).dst_well,
                 # This transfer is buffer
-                df.src_name == "buffer_plate",
-                # Next transfer is buffer
-                df.shift(-1).src_name == "buffer_plate",
+                df.src_name == "buffer_plate"
             ],
             axis=0,
         )
