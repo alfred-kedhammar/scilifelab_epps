@@ -256,7 +256,7 @@ def resolve_buffer_transfers(
     # Sort df
     split_dst_well = df.dst_well.str.split(":", expand = True)
     df["dst_well_row"] = split_dst_well[0]
-    df["dst_well_col"] = split_dst_well[1]
+    df["dst_well_col"] = split_dst_well[1].apply(int)
 
     df.sort_values(by = ["src_type", "dst_well_col", "dst_well_row"], inplace = True)
 
@@ -266,11 +266,10 @@ def resolve_buffer_transfers(
     # Re-set index
     df = df.reset_index(drop=True)
 
-    # Assign buffer transfers to buffer plate
-    df.loc[df["src_type"] == "buffer", "src_name"] = "buffer_plate"
+    df.loc[df.src_type == "buffer","src_name"] = "buffer_plate"
+    df.loc[df.src_type == "buffer","src_well"] = np.nan
 
     # Assign buffer src wells
-
     if buffer_strategy == "first_column":
         # Keep rows, but only use column 1
         df.loc[df["src_type"] == "buffer", "src_well"] = df.loc[
@@ -278,8 +277,6 @@ def resolve_buffer_transfers(
         ].apply(lambda x: x[0:-1] + "1")
         
     elif buffer_strategy == "adaptive":
-
-        df_buffer = df[df.src_type == "buffer"]
 
         # Make well iterator
         wells = []
@@ -294,7 +291,7 @@ def resolve_buffer_transfers(
             current_well = next(well_iter)
             current_well_vol = well_dead_vol
 
-            for idx, row in df_buffer.iterrows():
+            for idx, row in df[df.src_type == "buffer"].iterrows():
                 # How many subtransfers will be needed?
                 n_transfers = (row.transfer_vol // zika_max_vol) + 1
                 # Estimate 0.2 ul loss per transfer due to overaspiration
@@ -334,8 +331,8 @@ def well2rowcol(well_iter):
         rowdict = {}
         for l, n in zip("ABCDEFGH", "12345678"):
             rowdict[l] = n
-        rows.append(rowdict[row_letter])
-        cols.append(col_number)
+        rows.append(int(rowdict[row_letter]))
+        cols.append(int(col_number))
     return rows, cols
 
 
@@ -352,16 +349,6 @@ def get_filenames(method_name, pid):
 def write_worklist(df, deck, wl_filename, comments=None, max_transfers_per_tip=5):
     """
     Write a Mosquito-interpretable advanced worklist.
-
-    multi_aspirate -- If a buffer transfer is followed by a sample transfer
-                      to the same well, and the sum of their volumes
-                      is <= 5000 nl, use multi-aspiration.
-    
-    keep_buffer_tips -- For consecutive buffer transfers to a clean well, don't change tips
-
-    # TODO additional tips may be saved by omitting tip changes when doing multiple transfers from a
-    sample well to its normalization well
-
     """
 
     # Replace all commas with semi-colons, so they can be printed without truncating the worklist
@@ -385,35 +372,23 @@ def write_worklist(df, deck, wl_filename, comments=None, max_transfers_per_tip=5
     # Initially, set all transfers to always change tips
     df["tip_strat"] = tip_strats["always"]
 
-    if keep_buffer_tips:
+    # As default, keep tips between buffer transfers
+    df.loc[df.src_name == "buffer_plate", "tip_strat"] = tip_strats["never"]
+    # Add tip changes every x buffer transfers
+    n_transfers = 0
+    for i, r in df.iterrows():
+        if r.tip_strat == tip_strats["never"] and n_transfers < max_transfers_per_tip-1:
+            n_transfers += 1
+        elif r.tip_strat == tip_strats["never"] and n_transfers >= max_transfers_per_tip-1:
+            df.loc[i, "tip_strat"] = tip_strats["always"]
+            n_transfers = 0
+        elif r.tip_strat != tip_strats["never"]:
+            n_transfers = 0
+        else:
+            raise AssertionError("Unpredicted case")
 
-        # Keep tips between buffer transfers
-        filter = np.all(
-            [
-                # Keep tips IF...
-
-                # End position of next transfer is the same
-                df.dst_pos == df.shift(-1).dst_pos,
-                # End well of the next transfer is the same
-                df.dst_well == df.shift(-1).dst_well,
-                # This transfer is buffer
-                df.src_name == "buffer_plate"
-            ],
-            axis=0,
-        )
-        df.loc[filter, "tip_strat"] = tip_strats["never"]
-
-        for i, r in df.iterrows():
-            # Drop nonsense columns from multiaspirate row
-            if r.transfer_type == "MULTI_ASPIRATE":
-                df.loc[i, ["tip_strat", "dst_pos", "dst_col", "dst_row", "dst_name", "dst_well", "dst_well_row", "dst_well_col"]] = np.nan
-            # Keep tips BEFORE multiaspirate transfer block and change tips AFTER
-            elif i>1 and df.loc[i-1,"transfer_type"] == "MULTI_ASPIRATE":
-                df.loc[i, "tip_strat"] = tip_strats["never"]
-                new_row = {"transfer_type": "CHANGE_PIPETTES"}
-                df.loc[i+0.5] = new_row
-        df.sort_index(inplace=True)
-        df.reset_index(inplace=True, drop=True)
+    df.sort_index(inplace=True)
+    df.reset_index(inplace=True, drop=True)
             
     # Convert all data to strings
     for c in df:
