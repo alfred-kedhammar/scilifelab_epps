@@ -349,7 +349,7 @@ def get_filenames(method_name, pid):
     return wl_filename, log_filename
 
 
-def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=None, keep_buffer_tips=None):
+def write_worklist(df, deck, wl_filename, comments=None, max_transfers_per_tip=5):
     """
     Write a Mosquito-interpretable advanced worklist.
 
@@ -375,25 +375,6 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=None, ke
 
     # Default transfer type is simple copy
     df["transfer_type"] = "COPY"
-    if multi_aspirate:
-        filter = np.all(
-            [
-                # Use multi-aspirate IF...
-
-                # End position of next transfer is the same
-                df.dst_pos == df.shift(-1).dst_pos,
-                # End well of the next transfer is the same
-                df.dst_well == df.shift(-1).dst_well,
-                # This transfer is buffer
-                df.src_name == "buffer_plate",
-                # Next transfer is not buffer
-                df.shift(-1).src_name != "buffer_plate",
-                # Sum of this and next transfer is <= 5 ul
-                df.transfer_vol + df.shift(-1).transfer_vol <= 5000,
-            ],
-            axis=0,
-        )
-        df.loc[filter, "transfer_type"] = "MULTI_ASPIRATE"
 
     # PRECAUTION Keep tip change strategy variable definitions immutable
     tip_strats = { 
