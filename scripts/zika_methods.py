@@ -484,9 +484,9 @@ def norm(
         assert len(df.src_id.unique()) == 1, "Only one input plate allowed"
         assert len(df.dst_id.unique()) == 1, "Only one output plate allowed"
         deck = {
-            "buffer_plate": 2,
-            df.src_name.unique()[0]: 3,
-            df.dst_name.unique()[0]: 4,
+            df.src_name.unique()[0]: 2,
+            df.dst_name.unique()[0]: 3,
+            "buffer_plate": 4
         }
 
         # Make calculations
