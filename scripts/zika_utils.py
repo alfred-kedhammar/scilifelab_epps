@@ -267,7 +267,7 @@ def resolve_buffer_transfers(
     df["dst_well_row"] = split_dst_well[0]
     df["dst_well_col"] = split_dst_well[1]
 
-    df.sort_values(by = ["dst_well_col", "dst_well_row", "src_type"], inplace = True)
+    df.sort_values(by = ["src_type", "dst_well_col", "dst_well_row"], inplace = True)
 
     # Remove zero-vol transfers
     df = df[df.transfer_vol > 0]
