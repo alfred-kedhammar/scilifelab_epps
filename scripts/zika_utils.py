@@ -164,7 +164,8 @@ def fetch_sample_data(currentStep, to_fetch):
 def format_worklist(df, deck):
     """
     - Add columns in Mosquito-intepretable format
-    - Sort by dst transfer type, dst col, dst row
+    - Split transfers exceeding max pipetting volume
+    - Sort by buffer/sample, dst col, dst row
     """
 
     # Add columns for plate positions
@@ -212,18 +213,9 @@ def format_worklist(df, deck):
                 # Deduct the same transfer volume from the current row
                 row.transfer_vol -= max_vol
             
-            try:
-                # If there are both sample and buffer transfers and current transfer is sample
-                if row.src_type == "sample":
-                    df_split = df_split.append(row)
-                    df_split = df_split.append(df_being_split)
-                else:
-                    df_split = df_split.append(df_being_split)
-                    df_split = df_split.append(row)
-            except AttributeError:
-                df_split = df_split.append(df_being_split)
-                df_split = df_split.append(row)
-                
+            df_split = df_split.append(df_being_split)
+            df_split = df_split.append(row)
+            
         else:
             df_split = df_split.append(row)
 
