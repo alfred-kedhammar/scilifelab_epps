@@ -164,8 +164,7 @@ def fetch_sample_data(currentStep, to_fetch):
 def format_worklist(df, deck):
     """
     - Add columns in Mosquito-intepretable format
-    - Resolve multi-transfers
-    - Sort by dst col, dst row, buffer, sample
+    - Sort by dst transfer type, dst col, dst row
     """
 
     # Add columns for plate positions
@@ -182,8 +181,8 @@ def format_worklist(df, deck):
 
     # Sort df
     try:
-        # Normalization, sort by column-wise dst, buffer before sample
-        df.sort_values(by = ["dst_col", "dst_row", "src_type"], inplace = True)
+        # Normalization, buffer first, work column-wise dst
+        df.sort_values(by = ["src_type", "dst_col", "dst_row"], inplace = True)
     except KeyError:
         # Pooling, sort by column-wise dst (pool), then by descending transfer volume
         df.sort_values(by = ["dst_col", "dst_row", "transfer_vol"], ascending = [True, True, False], inplace = True)
@@ -306,9 +305,10 @@ def resolve_buffer_transfers(
             for idx, row in df_buffer.iterrows():
                 # How many subtransfers will be needed?
                 n_transfers = (row.transfer_vol // zika_max_vol) + 1
+                # Estimate 0.2 ul loss per transfer due to overaspiration
                 vol_to_add = row.transfer_vol + 0.2 * n_transfers
 
-                # Estimate 0.2 ul loss per transfer due to overaspiration             
+                # TODO support switching buffer wells in the middle of subtransfer block
                 if current_well_vol + vol_to_add > well_max_vol:
                     # Start on the next well
                     current_well = next(well_iter)
