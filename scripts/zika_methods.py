@@ -396,9 +396,6 @@ def norm(
     lims=None,
     # Dilution strategy
     volume_expansion=True,          # For samples that are too concentrated, increase target volume to obtain correct conc
-    # Buffer strategy
-    multi_aspirate=True,            # Use multi-aspiration to fit buffer and sample into the same transfer, if possible
-    keep_buffer_tips=True,
     # Volume constraints
     zika_min_vol=0.5,               # 0.5 lowest validated, 0.1 lowest possible
     well_dead_vol=5,                # 5 ul generous estimate of dead volume in TwinTec96
@@ -438,9 +435,6 @@ def norm(
             "\n=== Dilution strategy ===",
             f"Expand volume to obtain target conc: {volume_expansion}",
             f"Base calculations on user measurements: {use_customer_metrics}",
-            "\n=== Buffer strategy ===",
-            f"Multi-aspirate buffer-sample: {multi_aspirate}",
-            f"Keep tips between consecutive buffer transfers: {keep_buffer_tips}",
             "\n=== Volume constraints ===",
             f"Minimum pipetting volume: {zika_min_vol} ul",
             f"Applied dead volume: {well_dead_vol} ul",
@@ -603,9 +597,7 @@ def norm(
             df=df_formatted.copy(),
             deck=deck,
             wl_filename=wl_filename,
-            comments=wl_comments,
-            multi_aspirate=multi_aspirate,
-            keep_buffer_tips=keep_buffer_tips
+            comments=wl_comments
         )
 
         zika_utils.write_log(log, log_filename)
