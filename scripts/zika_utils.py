@@ -346,7 +346,7 @@ def get_filenames(method_name, pid):
     return wl_filename, log_filename
 
 
-def write_worklist(df, deck, wl_filename, comments=None, max_transfers_per_tip=5):
+def write_worklist(df, deck, wl_filename, comments=None, max_transfers_per_tip=10):
     """
     Write a Mosquito-interpretable advanced worklist.
     """
