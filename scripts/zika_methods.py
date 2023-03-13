@@ -117,6 +117,7 @@ def pool(
         deck = {}
         deck[df_all.dst_name.unique()[0]] = 3
         available = [2, 4, 1, 5][0:len(df_all.src_name.unique())]
+        # TODO assign deck positions to minimize travel distance
         for plate, pos in zip(df_all.src_name.unique(), available):
             deck[plate] = pos
 
