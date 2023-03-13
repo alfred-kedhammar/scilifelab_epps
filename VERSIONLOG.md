@@ -3,6 +3,12 @@
 ## 20230313.1
 Deploy validation 23_02_zika_codebase_revamp to replace accredited codebase for pooling using Mosquito X1.
 
+## 20230306.2
+Update control lists and fetch run recipe from project for samplesheet generator
+
+## 20230306.1
+Replace formula used for ng -> molar conversion.
+
 ## 20230227.1
 Improvements and bugfixes on ONT EPPs.
 
