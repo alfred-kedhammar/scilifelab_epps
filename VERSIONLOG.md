@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230313.1
+Deploy validation 23_02_zika_codebase_revamp to replace accredited codebase for pooling using Mosquito X1.
+
 ## 20230227.1
 Improvements and bugfixes on ONT EPPs.
 
