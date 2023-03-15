@@ -4,6 +4,7 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 from ont_update_amount import fetch_last
+from zika_utils import fetch_sample_data
 
 DESC = """
 EPP "ONT pooling"
@@ -14,12 +15,21 @@ def main(lims, args):
         
         currentStep = Process(lims, id=args.pid)
 
-        # TODO
-
-        # Iterate across pools
-        pools = [output for output in currentStep.all_outputs if output.type == "Analyte"]
-        for pool in pools:
-             
+        pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
+        pools.sort(key=lambda pool: pool.name)
+        
+        to_fetch = {
+            # Input sample
+            "sample_name"       :       "art_tuple[0]['uri'].name",
+            "vol"               :       "art_tuple[0]['uri'].udf['Volume (ul)']",
+            "conc"              :       "art_tuple[0]['uri'].udf['Concentration']",
+            "dst_id"            :       "art_tuple[1]['uri'].location[0].id",
+            "dst_well"          :       "art_tuple[1]['uri'].location[1]",
+            "target_amt"        :       "art_tuple[1]['uri'].udf['Amount (fmol)']",
+            "target_vol"        :       "art_tuple[1]['uri'].udf['Final Volume (uL)']",
+        }
+            
+        fetch_sample_data(currentStep, to_fetch)
 
         d = {}
         for art_tuple in art_tuples:
