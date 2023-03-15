@@ -21,7 +21,7 @@ def main(lims, args):
             
             # Fetch info
             art_out = art_tuple[1]["uri"]
-            conc = art_out.udf["Final concentration"]
+            conc = art_out.udf["Final Concentration"]
             vol = art_out.udf["Final Volume (uL)"]
             
             # Calculate amount ng

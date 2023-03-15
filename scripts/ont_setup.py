@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
+from ont_update_amount import fetch_last
 
 DESC = """
 EPP "Calculate volumes"
@@ -18,19 +19,20 @@ def main(lims, args):
             
             # Fetch info
             target_amt = art_tuple[1]["uri"].udf["Amount (fmol)"]
+            target_vol = art_tuple[1]["uri"].udf["Total Volume (uL)"]
 
             prev_amt = art_tuple[0]["uri"].udf["Amount (fmol)"]
-            try:
-                prev_vol = art_tuple[0]["uri"].udf["Final Volume (uL)"]
-            except KeyError:
-                 prev_vol = art_tuple[0]["uri"].udf["Volume (uL)"]
+            if fetch_last(currentStep, art_tuple, "Final Volume (uL)"):
+                prev_vol = fetch_last(currentStep, art_tuple, "Final Volume (uL)")
+            else:
+                 prev_vol = fetch_last(currentStep, art_tuple, "Volume (ul)")
 
             # This is calculated
-            vol_taken = min((target_amt / prev_amt) * prev_vol, prev_vol)
+            vol_to_take = min((target_amt / prev_amt) * prev_vol, prev_vol, target_vol)
 
             # Put
             art_tuple[1]["uri"].udf["Amount (fmol)"] = min(prev_amt, target_amt)
-            art_tuple[1]["uri"].udf["Volume to take (ul)"] = vol_taken
+            art_tuple[1]["uri"].udf["Volume to take (uL)"] = vol_to_take
             art_tuple[1]["uri"].put()
 
 if __name__ == "__main__":
