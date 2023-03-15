@@ -7,7 +7,7 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 from datetime import datetime as dt
 from tabulate import tabulate
-from send_ont_flowcell_info_to_statusdb import parse_fc
+from ont_send_fc_to_db import parse_fc
 import pandas as pd
 import sys
 
