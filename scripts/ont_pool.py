@@ -7,22 +7,17 @@ from zika_utils import fetch_sample_data
 from molar_concentration import calculate_fmol
 from numpy import minimum
 from tabulate import tabulate
-from pandas.api.types import is_numeric_dtype
 from datetime import datetime as dt
-import pandas as pd
 
 DESC = """
 EPP "ONT pooling"
-Given a target fmol amount and total volume, try to create an equimolar pool.
+
+For each pool, given either a target amount (UDF 'Amount (fmol)') or a target volume (UDF 'Final Volume (uL)'),
+will calculate the other UDF (if both are specified, amount will overwrite volume) as well as corresponding
+volumes, amounts and molar percentages of samples. These values are tabulated and returned as a log.
 """
 
 def main(lims, args):
-        """
-        1) Find molar proportions of samples within each pool
-        2) Apply inverse molar proprotions to target pool volume to get the sample
-           volumes corresponding to equimolar pooling.
-        3) 
-        """
 
         currentStep = Process(lims, id=args.pid)
         log = []
