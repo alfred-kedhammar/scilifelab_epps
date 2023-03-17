@@ -64,6 +64,7 @@ def main(lims, args):
             rows.append(row)
 
         df = pd.DataFrame(rows).set_index("Sample")
+        df.sort_index(inplace = True)
 
         new_log_name = f"UDF_log_{currentStep.id}_{timestamp}.txt"
         with open(new_log_name, "w") as f:
