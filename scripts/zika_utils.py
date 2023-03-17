@@ -101,18 +101,12 @@ def fetch_sample_data(currentStep, to_fetch):
     Examples of dictionary contents:
     
     to_fetch = {
-                                  # These values are eval strings, which will fetch
-                                    info within the art tupleof the current step.
+    
+        # Dict keys will be the headers of the returned df
 
-        <header for target UDF> : <string which will eval to target UDF within the context of this function>,
-        "vol"                   : "art_tuple[0]['uri'].udf['Final Volume (uL)']",
-        "conc"                  : "art_tuple[0]['uri'].udf['Final Concentration']",
-
-                                  # These values are simply UDF names,
-                                    indicating what info to fetch recursively
-
-        <header for target UDF> : <target UDF name>
-        "size"                  : 'Size (bp)'
+        "vol"   : "art_tuple[0]['uri'].udf['Final Volume (uL)']",       # Eval string
+        "conc"  : "art_tuple[0]['uri'].udf['Final Concentration']",     # Eval string
+        "size"  : 'Size (bp)'                                           # UDF name, to fetch recursively
     }
     """
 
