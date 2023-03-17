@@ -122,8 +122,8 @@ def parse_fc(art_tuple):
             len(fc["reload_times"]) == len(fc["reload_fmols"]) == len(fc["reload_lots"]), \
             "All reload UDFs within a row must have the same number of comma-separated values"
         
-        assert check_csv_udf_list("^\d{2,3}:\d{2}$", fc["reload_times"]), \
-            "Reload run times must be formatted as comma-separated hh:mm"
+        assert check_csv_udf_list("^\d{1,3}:\d{2}$", fc["reload_times"]), \
+            "Reload run times must be formatted as comma-separated h:mm"
         check_times_list(fc["reload_times"])
         assert check_csv_udf_list("^[0-9.]+$", fc["reload_fmols"]), \
             "Invalid flow cell reload amount(s)"
