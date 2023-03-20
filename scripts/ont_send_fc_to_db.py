@@ -29,6 +29,9 @@ def main(lims, args):
     use the LIMS-ID of the previous process (the samplesheet generation step) to identify the correct run.
 
     Finish by also updating the step UDF log.
+
+    TODO Get parent process ID on a sample-by-sample basis, rather than once for the entire step.
+         Current approach may cause issues if samples originate from different steps.
     """
 
     try:
