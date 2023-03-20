@@ -68,14 +68,6 @@ def main(lims, args):
             art_tuple[1]["uri"].put()
 
 
-def has_udf(art, udf):
-    try:
-        art.udf[udf]
-        return True
-    except KeyError:
-        return False
-
-
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
     parser.add_argument('--pid',
