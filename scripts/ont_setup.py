@@ -19,37 +19,51 @@ def main(lims, args):
 
         for art_tuple in art_tuples:
             
-            # Parse target amount and volume
-            # Target Amount (ng), can be derived from Amount (fmol)
+            size = fetch_last(currentStep, art_tuple, "Size (bp)")
+
+            # Fetch target amount, either fmol or ng
             try:
                 target_amt_fmol = art_tuple[1]["uri"].udf["Amount (fmol)"]
-                target_amt_ng = fmol_to_ng(target_amt_fmol, fetch_last(currentStep, art_tuple, "Size (bp)"))
+                target_amt_ng = fmol_to_ng(target_amt_fmol, size)
 
             except KeyError:
-                target_amt_ng = art_tuple[0]["uri"].udf["Amount (ng)"]
-                target_amt_fmol = ng_to_fmol(target_amt_ng, fetch_last(currentStep, art_tuple, "Size (bp)"))
+                target_amt_ng = art_tuple[1]["uri"].udf["Amount (ng)"]
+                target_amt_fmol = ng_to_fmol(target_amt_ng, size)
             
             target_vol = art_tuple[1]["uri"].udf["Total Volume (uL)"]
 
-            # Calculate how much sample to take
+            # Fetch last known sample volume
             if fetch_last(currentStep, art_tuple, "Final Volume (uL)"):
                 prev_vol = fetch_last(currentStep, art_tuple, "Final Volume (uL)")
             else:
                 prev_vol = fetch_last(currentStep, art_tuple, "Volume (ul)")
 
+            # Calculate how much sample to take
             conc_units = art_tuple[0]["uri"].udf['Conc. Units']
             if conc_units == "ng/ul":
-                vol_needed = target_amt_ng / art_tuple[0]["uri"].udf["Concentration"]
-            elif conc_units == "fmol":
-                vol_needed = target_amt_fmol / art_tuple[0]["uri"].udf["Concentration"]
 
-            vol_to_take = min(
-                vol_needed,  # Enough sample
-                prev_vol,    # Sample depletion --> Use all previous volume
-                target_vol   # Sample low conc  --> Use target volume
-            )
+                vol_to_take = min(
+                    target_amt_ng / art_tuple[0]["uri"].udf["Concentration"],   # Enough sample
+                    prev_vol,                                                   # Sample depletion --> Use all previous volume
+                    target_vol                                                  # Sample low conc  --> Use target volume                                                                                
+                )
 
-            # Put UDFs TODO amounts
+                amt_taken_ng = vol_to_take * art_tuple[0]["uri"].udf["Concentration"]
+                amt_taken_fmol = ng_to_fmol(amt_taken_ng, size)
+
+            elif conc_units == "nM":
+
+                vol_to_take = min(
+                    target_amt_fmol / art_tuple[0]["uri"].udf["Concentration"], # Enough sample
+                    prev_vol,                                                   # Sample depletion --> Use all previous volume
+                    target_vol                                                  # Sample low conc  --> Use target volume
+                )
+
+                amt_taken_fmol = vol_to_take * art_tuple[0]["uri"].udf["Concentration"]
+                amt_taken_ng = fmol_to_ng(amt_taken_fmol, size)
+
+            art_tuple[1]["uri"].udf["Amount (ng)"] = round(amt_taken_ng,1)
+            art_tuple[1]["uri"].udf["Amount (fmol)"] = round(amt_taken_fmol,1)
             art_tuple[1]["uri"].udf["Volume to take (uL)"] = round(vol_to_take,1)
             art_tuple[1]["uri"].put()
 
