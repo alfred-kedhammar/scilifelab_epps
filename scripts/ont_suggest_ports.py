@@ -32,7 +32,7 @@ def main():
             ports[position] += 1
 
     # Print ports to stdout, starting with the least used
-    ports_list = list(ports)
+    ports_list = list(ports.items())
     ports_list.sort(key = lambda x: x[1])
     message = f'Listing ports, from least to most used: {", ".join([port[0] for port in ports_list])}'
     sys.stdout.write(message)
