@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from molar_concentration import calculate_fmol
+from molar_concentration import ng_to_fmol
 
 DESC = """ Calculate the sample amount based on new (or, if needed, previous) measurements. Written to run between the steps of the
 Nanopore ligation library prep.
@@ -34,7 +34,7 @@ def main(lims, args):
             except KeyError:
                 # Otherwise, use last known length
                 size_bp = fetch_last(currentStep, art_tuple, "Size (bp)")
-            art_out.udf["Amount (fmol)"] = round(calculate_fmol(art_out.udf["Amount (ng)"], size_bp), 2)
+            art_out.udf["Amount (fmol)"] = round(ng_to_fmol(art_out.udf["Amount (ng)"], size_bp), 2)
 
             art_out.put()
 

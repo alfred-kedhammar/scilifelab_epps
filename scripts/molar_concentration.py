@@ -25,19 +25,33 @@ def apply_calculations(lims, artifacts, conc_udf, size_udf, unit_udf, epp_logger
                      "Concentration: {1}, Size: {2}, ").format(artifact.id,
                                                         artifact.udf[conc_udf],
                                                         artifact.udf[size_udf]))
-        artifact.udf[conc_udf] = calculate_fmol(artifact.udf[conc_udf], artifact.udf[size_udf])
+        artifact.udf[conc_udf] = ng_ul_to_nM(artifact.udf[conc_udf], artifact.udf[size_udf])
         artifact.udf[unit_udf] = 'nM'
         artifact.put()
         logging.info('Updated {0} to {1}.'.format(conc_udf,
                                                  artifact.udf[conc_udf]))
 
-def calculate_fmol(conc_ng_ul, size_bp):
+
+# To keep be explicit, define four functions from the same formula
+def ng_to_fmol(ng, bp):
     """
-    Converts ng/ul --> nM (or ng --> fmol)
+    Converts ng --> fmol (or ng/ul --> nM)
     Formula based on NEBioCalculator
     https://nebiocalculator.neb.com/#!/dsdnaamt
     """
-    return 10**6 * conc_ng_ul / (size_bp * 617.96 + 36.04)  
+    return 10**6 * ng / (bp * 617.96 + 36.04)
+def ng_ul_to_nM(ng_ul, bp):
+    return ng_to_fmol(ng_ul, bp)
+def fmol_to_ng(fmol, bp):
+    """
+    Converts fmol --> ng (or nM to ng/ul)
+    Formula based on NEBioCalculator
+    https://nebiocalculator.neb.com/#!/dsdnaamt 
+    """
+    return fmol * (bp * 617.96 + 36.04) / 10**6
+def nM_to_ng_ul(nM, bp):
+    return fmol_to_ng(nM, bp)
+
 
 def check_udf_is_defined(artifacts, udf):
     """ Filter and Warn if udf is not defined for any of artifacts. """
