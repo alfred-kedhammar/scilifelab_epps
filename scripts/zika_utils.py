@@ -16,28 +16,39 @@ from datetime import datetime as dt
 import sys
 
 
-def verify_step(currentStep, targets):
-    """Verify the instrument, workflow and step for a given process is correct"""
+def verify_step(currentStep, targets = None):
+    """
+    Given a LIMS step and a list of targets, check whether they match. Workflow information unfortunately needs to be excavated from the samples.
 
-    # TODO if workflow or step is left blank, pass all
-    
-    if currentStep.instrument.name != "Zika":
-        return False
+    The "targets" consist of a list of tuples, whose elements are partial string matches of a workflow and step, respectively.
+    Empty strings will match any workflow or step.
+    """
 
-    sample_bools = []
-    for art in currentStep.all_inputs():
+    if currentStep.instrument.name == "Zika":
 
-        # For each sample, check whether there is any active process that matches any in the target list
-        sample_bools.append(any([
-            status == "IN_PROGRESS" and any(
-                target_wf_prefix in wf.workflow.name and step == target_step 
-                for target_wf_prefix, target_step in targets
-                ) 
-                for wf, status, step in art.workflow_stages_and_statuses
-            ]))
+        if not targets:
+            # Instrument is correct and no workflows or steps are specified
+            return True
+
+        elif any(target_tuple[1] in currentStep.type.name and target_tuple[0] == "" for target_tuple in targets):
+            # Instrument and step are correct and no workflow is specified
+            return True
+
+        else:
+            # Need to check all samples match at least one ongoing workflow / step combo of the targets
+            sample_bools = []
+            for art in [art for art in currentStep.all_inputs() if art.type == "Analyte"]:
+                active_stages = [stage_tuple for stage_tuple in art.workflow_stages_and_statuses if stage_tuple[1] == "IN_PROGRESS"]
+                sample_bools.append(
+                        # Sample has at least one ongoing target step in the target workflow
+                        any(
+                            workflow_string in active_stage[0].workflow.name and step_string in active_stage[2]
+                                for active_stage in active_stages
+                                    for workflow_string, step_string in targets
+                        ))
+                
+            return all(sample_bools)
         
-    if all(sample_bools):
-        return True
     else:
         return False
 
@@ -53,41 +64,69 @@ class CheckLog(Exception):
         sys.exit(2)
         
 
+def fetch_output_udfs(currentStep):
+    outputs = [output for output in currentStep.all_outputs() if output.type == "Analyte"]
+    return currentStep.all_outputs
+
+
+def assert_udfs(currentStep):
+
+    conc_or_amount_udfs = ["Target Amount (ng)", "Pool Conc. (nM)"]
+    vol_udfs = ["Final Volume (uL)", "Target Total Volume (uL)"]
+    
+    outputs = [output for output in currentStep.all_outputs() if output.type == "Analyte"]
+        
+    try:
+        for output in outputs:
+
+            output_udfs = [kv[0] for kv in output.udf.items()]
+            assert any([vol_udf in output_udfs for vol_udf in vol_udfs]) and \
+                any([conc_or_amount_udf in output_udfs for conc_or_amount_udf in conc_or_amount_udfs]), \
+                "All samples / pools need to have a specified output volume and concentration / amount"
+
+    except AssertionError as e:
+        sys.stderr.write(str(e))
+        sys.exit(2)
+
+
 def fetch_sample_data(currentStep, to_fetch):
-    """ Given a dictionary "to_fetch" whose keys are the desired sample properties and whose values are the
+    """ Given a dictionary "to_fetch" whose keys are the headers of the sought sample properties and whose values are the
     corresponding object paths, fetch the sample properties for all elements of currentStep.input_output_maps
     and return them in a dataframe.
     """
 
     object_paths = [
-        # Current step input artifact
+        # Input info
         "art_tuple[0]['uri'].name",                                 # Sample name
-        "art_tuple[0]['uri'].id",                                   # Sample ID
+        "art_tuple[0]['uri'].samples[0].name",                      # Sample P-number, if not pool
+        "art_tuple[0]['uri'].id",                                   # Sample LIMS ID
         "art_tuple[0]['uri'].location[0].name",                     # Plate name
-        "art_tuple[0]['uri'].location[0].id",                       # Plate ID
+        "art_tuple[0]['uri'].location[0].id",                       # Plate LIMS ID
         "art_tuple[0]['uri'].location[1]",                          # Well
-        "art_tuple[0]['uri'].udf['Conc. Units']",
+
+        # Input UDFs
+        "art_tuple[0]['uri'].udf['Conc. Units']",                   # ng/ul or nM
         "art_tuple[0]['uri'].udf['Concentration']",
         "art_tuple[0]['uri'].udf['Volume (ul)']",
         "art_tuple[0]['uri'].udf['Amount (ng)']",
+        "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",      # ng/ul
+        "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
 
-        # Current step output artifact
+        # Output info
+        "art_tuple[1]['uri'].name", 
+        "art_tuple[1]['uri'].id",
+        "art_tuple[1]['uri'].location[0].name",
+        "art_tuple[1]['uri'].location[0].id",
+        "art_tuple[1]['uri'].location[1]",
+
+        # Output UDFs
         "art_tuple[1]['uri'].udf['Amount taken (ng)']",             # The amount (ng) that is taken from the original sample plate
         "art_tuple[1]['uri'].udf['Total Volume (uL)']",             # The total volume of dilution
         "art_tuple[1]['uri'].udf['Final Volume (uL)']",             # Final pool / sample volume
-        "art_tuple[1]['uri'].name", 
-        "art_tuple[1]['uri'].id",
         "art_tuple[1]['uri'].udf['Target Amount (ng)']",            # In methods where the prep input is possibly different from the sample dilution, this is the target concentration and minimum volume of the prep input
         "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",      # In methods where the prep input is possibly different from the sample dilution, this is the target concentration and minimum volume of the prep input
-        "art_tuple[1]['uri'].location[0].name",                     # Plate name
-        "art_tuple[1]['uri'].location[0].id",                       # Plate ID
-        "art_tuple[1]['uri'].location[1]",                          # Well
-       
-        # Input sample info
-        "art_tuple[0]['uri'].samples[0].name",
-        "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",      # ng/ul
-        "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
-        
+        "art_tuple[1]['uri'].udf['Pool Conc. (nM)']",
+
         # Input sample RC measurements (?)
         "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
         "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
@@ -110,7 +149,10 @@ def fetch_sample_data(currentStep, to_fetch):
     for art_tuple in art_tuples:
         dict = {}
         for header, object_path in to_fetch.items():
-            dict[header] = eval(object_path)
+            try:
+                dict[header] = eval(object_path)
+            except KeyError:
+                dict[header] = None
         list_of_dicts.append(dict)
 
     # Compile to dataframe
@@ -119,29 +161,11 @@ def fetch_sample_data(currentStep, to_fetch):
     return df
 
 
-def load_fake_samples(file, to_fetch):
-    """ This function is intended to output the same dataframe as fetch_sample_data(),
-    but the input data is taken from a .csv-exported spreadsheet and is thus easier
-    to change than data taken from upstream LIMS.
-    """
-
-    file_data = pd.read_csv(file, delimiter = "\t")
-
-    assert all(
-        [k in file_data.columns for k in to_fetch]
-    ), "load_fake_samples() did not find all required columns"
-
-    # Only retain specified columns
-    df = file_data[to_fetch]
-
-    return df
-
-
-def format_worklist(df, deck, split_transfers = False):
+def format_worklist(df, deck):
     """
     - Add columns in Mosquito-intepretable format
-    - Resolve multi-transfers
-    - Sort by dst col, dst row, buffer, sample
+    - Split transfers exceeding max pipetting volume
+    - Sort by buffer/sample, dst col, dst row
     """
 
     # Add columns for plate positions
@@ -158,39 +182,61 @@ def format_worklist(df, deck, split_transfers = False):
 
     # Sort df
     try:
-        df.sort_values(by = ["dst_col", "dst_row", "src_type"], inplace = True)
+        # Normalization, buffer first, work column-wise dst
+        df.sort_values(by = ["src_type", "dst_col", "dst_row"], inplace = True)
     except KeyError:
-        df.sort_values(by = ["dst_col", "dst_row"], inplace = True)
+        # Pooling, sort by column-wise dst (pool), then by descending transfer volume
+        df.sort_values(by = ["dst_col", "dst_row", "transfer_vol"], ascending = [True, True, False], inplace = True)
+    df.reset_index(inplace = True, drop = True)
 
-    if split_transfers:
-        # Split >5000 nl transfers
-        assert all(df.transfer_vol < 180000), "Some transfer volumes exceed 180 ul"
-        max_vol = 5000
-        df_split = pd.DataFrame(columns = df.columns)
+    # Split >5000 nl transfers
 
-        for idx, row in df.iterrows():
+    assert all(df.transfer_vol < 180000), "Some transfer volumes exceed 180 ul"
+    max_vol = 5000
+    df_split = pd.DataFrame(columns = df.columns)
+    # Iterate across rows
+    for idx, row in df.iterrows():
+        
+        # If transfer volume of current row exceeds max
+        if row.transfer_vol > max_vol:
+            
+            df_being_split = pd.DataFrame(columns = df.columns)
 
-            if row.transfer_vol > max_vol:
-                row_cp = row.copy()
-                row_cp.loc["transfer_vol"] = max_vol
+            # Make a copy of the row and set the transfer volume to the max
+            row_cp = row.copy()
+            row_cp.loc["transfer_vol"] = max_vol
 
-                while row.transfer_vol > max_vol:
-                    df_split = df_split.append(row_cp)
-                    row.loc["transfer_vol"] = row.transfer_vol - max_vol
-                
+            # As long as the transfer volume of the current row exceeds max
+            while row.transfer_vol > max_vol:
+                # Append the copy row whose transfer volume is the max
+                df_being_split = df_being_split.append(row_cp)
+                # Deduct the same transfer volume from the current row
+                row.transfer_vol -= max_vol
+            
+            df_split = df_split.append(df_being_split)
+            df_split = df_split.append(row)
+            
+        else:
             df_split = df_split.append(row)
 
-        df_split.reset_index(inplace = True, drop = True)
+    df_split.sort_index(inplace=True)
+    df_split.reset_index(inplace = True, drop = True)
 
-        return df_split
-    
-    else:
-        return df
+    return df_split
+
 
 class VolumeOverflow(Exception):
     pass
 
-def resolve_buffer_transfers(df, buffer_strategy):
+
+def resolve_buffer_transfers(
+    df = None, 
+    wl_comments = None,
+    buffer_strategy = "adaptive",
+    well_dead_vol = 5, 
+    well_max_vol = 180,
+    zika_max_vol = 5
+    ):
     """
     Melt buffer and sample information onto separate rows to
     produce a "one row <-> one transfer" dataframe.
@@ -210,9 +256,9 @@ def resolve_buffer_transfers(df, buffer_strategy):
     # Sort df
     split_dst_well = df.dst_well.str.split(":", expand = True)
     df["dst_well_row"] = split_dst_well[0]
-    df["dst_well_col"] = split_dst_well[1]
+    df["dst_well_col"] = split_dst_well[1].apply(int)
 
-    df.sort_values(by = ["dst_well_col", "dst_well_row", "src_type"], inplace = True)
+    df.sort_values(by = ["src_type", "dst_well_col", "dst_well_row"], inplace = True)
 
     # Remove zero-vol transfers
     df = df[df.transfer_vol > 0]
@@ -220,8 +266,8 @@ def resolve_buffer_transfers(df, buffer_strategy):
     # Re-set index
     df = df.reset_index(drop=True)
 
-    # Assign buffer transfers to buffer plate
-    df.loc[df["src_type"] == "buffer", "src_name"] = "buffer_plate"
+    df.loc[df.src_type == "buffer","src_name"] = "buffer_plate"
+    df.loc[df.src_type == "buffer","src_well"] = np.nan
 
     # Assign buffer src wells
     if buffer_strategy == "first_column":
@@ -229,10 +275,46 @@ def resolve_buffer_transfers(df, buffer_strategy):
         df.loc[df["src_type"] == "buffer", "src_well"] = df.loc[
             df["src_type"] == "buffer", "src_well"
         ].apply(lambda x: x[0:-1] + "1")
+        
+    elif buffer_strategy == "adaptive":
+
+        # Make well iterator
+        wells = []
+        for col in range(1,13):
+            for row in list("ABCDEFGH"):
+                wells.append(f"{row}:{col}")
+        well_iter = iter(wells)
+
+        # Start "filling up" buffer wells based on transfer list
+        try:
+            # Start at first well
+            current_well = next(well_iter)
+            current_well_vol = well_dead_vol
+
+            for idx, row in df[df.src_type == "buffer"].iterrows():
+                # How many subtransfers will be needed?
+                n_transfers = (row.transfer_vol // zika_max_vol) + 1
+                # Estimate 0.2 ul loss per transfer due to overaspiration
+                vol_to_add = row.transfer_vol + 0.2 * n_transfers
+
+                # TODO support switching buffer wells in the middle of subtransfer block
+                if current_well_vol + vol_to_add > well_max_vol:
+                    # Start on the next well
+                    current_well = next(well_iter)
+                    current_well_vol = well_dead_vol
+
+                current_well_vol += vol_to_add
+                df.loc[idx, "src_well"] = current_well
+
+        except StopIteration:
+            raise AssertionError("Total buffer volume exceeds plate capacity.")
+        
+        wl_comments.append(f"Fill up the buffer plate column-wise up to well {current_well} with {well_max_vol} uL buffer.")
+    
     else:
         raise Exception("No buffer strategy defined")
 
-    return df
+    return df, wl_comments
 
 
 def well2rowcol(well_iter):
@@ -249,8 +331,8 @@ def well2rowcol(well_iter):
         rowdict = {}
         for l, n in zip("ABCDEFGH", "12345678"):
             rowdict[l] = n
-        rows.append(rowdict[row_letter])
-        cols.append(col_number)
+        rows.append(int(rowdict[row_letter]))
+        cols.append(int(col_number))
     return rows, cols
 
 
@@ -264,15 +346,9 @@ def get_filenames(method_name, pid):
     return wl_filename, log_filename
 
 
-def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
+def write_worklist(df, deck, wl_filename, comments=None, max_transfers_per_tip=10):
     """
     Write a Mosquito-interpretable advanced worklist.
-
-    multi_aspirate -- If a buffer transfer is followed by a sample transfer
-                      to the same well, and the sum of their volumes
-                      is <= 5000 nl, use multi-aspiration.
-    
-    TODO possible to avoid tip change between buffer transfers to clean dst well
     """
 
     # Replace all commas with semi-colons, so they can be printed without truncating the worklist
@@ -287,32 +363,33 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
     # Default transfer type is simple copy
     df["transfer_type"] = "COPY"
 
-    if multi_aspirate:
-        filter = np.all(
-            [
-                # Use multi-aspirate IF...
-
-                # End position of next transfer is the same
-                df.dst_pos == df.shift(-1).dst_pos,
-                # End well of the next transfer is the same
-                df.dst_well == df.shift(-1).dst_well,
-                # This transfer is buffer
-                df.src_name == "buffer_plate",
-                # Next transfer is not buffer
-                df.shift(-1).src_name != "buffer_plate",
-                # Sum of this and next transfer is <= 5 ul
-                df.transfer_vol + df.shift(-1).transfer_vol <= 5000,
-            ],
-            axis=0,
-        )
-        df.loc[filter, "transfer_type"] = "MULTI_ASPIRATE"
-
-    # PRECAUTION Keep tip change strategy in a single dict to avoid mix-ups
-    tip_strats = {
-        "always": ("[VAR1]", "TipChangeStrategy,always"),
-        "never": ("[VAR2]", "TipChangeStrategy,never"),
+    # PRECAUTION Keep tip change strategy variable definitions immutable
+    tip_strats = { 
+        "always": "[VAR1]",
+        "never": "[VAR2]" 
     }
 
+    # Initially, set all transfers to always change tips
+    df["tip_strat"] = tip_strats["always"]
+
+    # As default, keep tips between buffer transfers
+    df.loc[df.src_name == "buffer_plate", "tip_strat"] = tip_strats["never"]
+    # Add tip changes every x buffer transfers
+    n_transfers = 0
+    for i, r in df.iterrows():
+        if r.tip_strat == tip_strats["never"] and n_transfers < max_transfers_per_tip-1:
+            n_transfers += 1
+        elif r.tip_strat == tip_strats["never"] and n_transfers >= max_transfers_per_tip-1:
+            df.loc[i, "tip_strat"] = tip_strats["always"]
+            n_transfers = 0
+        elif r.tip_strat != tip_strats["never"]:
+            n_transfers = 0
+        else:
+            raise AssertionError("Unpredicted case")
+
+    df.sort_index(inplace=True)
+    df.reset_index(inplace=True, drop=True)
+            
     # Convert all data to strings
     for c in df:
         df.loc[:, c] = df[c].apply(str)
@@ -322,8 +399,12 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
 
         wl.write("worklist,\n")
 
-        # Conditionals for worklist variables can be added here as needed
-        wl.write("".join(tip_strats["always"]) + "\n")
+        # Define variables
+        variable_definitions = []
+        for tip_strat in [tip_strat for tip_strat in tip_strats.items() if tip_strat[1] in df.tip_strat.unique()]:
+            variable_definitions.append(f"{tip_strat[1]}TipChangeStrategy")
+            variable_definitions.append(tip_strat[0])
+        wl.write(",".join(variable_definitions) + "\n")
 
         # Write header
         wl.write(f"COMMENT, This is the worklist {wl_filename}\n")
@@ -333,7 +414,7 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
         wl.write(get_deck_comment(deck))
 
         # Write transfers
-        for i, r in df.iterrows():
+        for i, r in df.iterrows():    
             if r.transfer_type == "COPY":
                 wl.write(
                     ",".join(
@@ -347,7 +428,7 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
                             r.dst_col,
                             r.dst_row,
                             r.transfer_vol,
-                            tip_strats["always"][0],
+                            r.tip_strat,
                         ]
                     )
                     + "\n"
@@ -366,6 +447,8 @@ def write_worklist(df, deck, wl_filename, comments=None, multi_aspirate=False):
                     )
                     + "\n"
                 )
+            elif r.transfer_type == "CHANGE_PIPETTES":
+                wl.write(r.transfer_type + "\n")
             else:
                 raise AssertionError("No transfer type defined")
         
