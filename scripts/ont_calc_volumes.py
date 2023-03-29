@@ -7,7 +7,7 @@ from ont_update_amount import fetch_last
 from molar_concentration import fmol_to_ng, ng_to_fmol
 
 DESC = """
-EPP "Calculate volumes"
+EPP "ONT calculate volumes"
 Given a target amount and total volume, calculate the volume to take. Decrease target amount if necessary.
 Target amount can optionally be specified as fmol, which will populate the Amount (ng) UDF.
 """
@@ -29,8 +29,6 @@ def main(lims, args):
             except KeyError:
                 target_amt_ng = art_tuple[1]["uri"].udf["Amount (ng)"]
                 target_amt_fmol = ng_to_fmol(target_amt_ng, size)
-            
-            target_vol = art_tuple[1]["uri"].udf["Total Volume (uL)"]
 
             # Fetch last known sample volume
             if fetch_last(currentStep, art_tuple, "Final Volume (uL)"):
@@ -44,8 +42,7 @@ def main(lims, args):
 
                 vol_to_take = min(
                     target_amt_ng / art_tuple[0]["uri"].udf["Concentration"],   # Enough sample
-                    prev_vol,                                                   # Sample depletion --> Use all previous volume
-                    target_vol                                                  # Sample low conc  --> Use target volume                                                                                
+                    prev_vol                                                # Sample low conc  --> Use target volume                                                                                
                 )
 
                 amt_taken_ng = vol_to_take * art_tuple[0]["uri"].udf["Concentration"]
@@ -55,14 +52,14 @@ def main(lims, args):
 
                 vol_to_take = min(
                     target_amt_fmol / art_tuple[0]["uri"].udf["Concentration"], # Enough sample
-                    prev_vol,                                                   # Sample depletion --> Use all previous volume
-                    target_vol                                                  # Sample low conc  --> Use target volume
+                    prev_vol                                                # Sample low conc  --> Use target volume
                 )
 
                 amt_taken_fmol = vol_to_take * art_tuple[0]["uri"].udf["Concentration"]
                 amt_taken_ng = fmol_to_ng(amt_taken_fmol, size)
 
-            art_tuple[1]["uri"].udf["Amount (ng)"] = round(amt_taken_ng,1)
+            if "Amount (ng)" in [t[0] for t in art_tuple[1]["uri"].udf.items()]:
+                art_tuple[1]["uri"].udf["Amount (ng)"] = round(amt_taken_ng,1)
             art_tuple[1]["uri"].udf["Amount (fmol)"] = round(amt_taken_fmol,1)
             art_tuple[1]["uri"].udf["Volume to take (uL)"] = round(vol_to_take,1)
             art_tuple[1]["uri"].put()

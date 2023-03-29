@@ -110,7 +110,7 @@ def parse_fc(art_tuple):
     fc["fc_id"] = art_tuple[0]["uri"].udf.get("ONT flow cell ID")
     fc["minknow_sample_id"] = get_minknow_sample_id(art_tuple[0]["uri"])
     fc["qc"] = art_tuple[0]["uri"].udf.get("ONT Flow Cell QC Pore Count")
-    fc["load_fmol"] = art_tuple[0]["uri"].udf.get("ONT flow cell load amount (fmol)")
+    fc["load_fmol"] = art_tuple[0]["uri"].udf.get("Amount (fmol)")
 
     fc["reload_times"] = art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)").replace(" ","").split(",") if \
                          art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)") else None
