@@ -8,8 +8,18 @@ from molar_concentration import fmol_to_ng, ng_to_fmol
 
 DESC = """
 EPP "ONT calculate volumes"
-Given a target amount and total volume, calculate the volume to take. Decrease target amount if necessary.
-Target amount can optionally be specified as fmol, which will populate the Amount (ng) UDF.
+
+Given output UDFs
+- Amount (fmol)
+- Amount (ng)
+- Volume to take (uL)
+
+and last known UDFs
+- Final Volume (uL) / Volume (uL)
+- Concentration
+- Size (bp)
+
+Will use ONE of the output UDFs (prioritized in the listed order) to calculate all three output UDFs.
 """
 
 def main(lims, args):
