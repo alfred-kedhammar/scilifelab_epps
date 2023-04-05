@@ -10,7 +10,7 @@ from tabulate import tabulate
 from datetime import datetime as dt
 
 DESC = """
-EPP "ONT pooling"
+EPP "ONT pooling", file slot "ONT pooling log".
 
 For each pool, given either a target amount (UDF 'Amount (fmol)') or a target volume (UDF 'Final Volume (uL)'),
 will calculate the other UDF (if both are specified, amount will overwrite volume) as well as corresponding
