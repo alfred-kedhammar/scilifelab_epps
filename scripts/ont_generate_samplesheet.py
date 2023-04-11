@@ -61,8 +61,7 @@ def main(lims, args):
 
         currentStep = Process(lims, id=args.pid)
 
-        arts = [art for art in currentStep.all_outputs() \
-            if art.type == "Analyte"]
+        arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
 
         rows = []
         for art in arts:
@@ -80,10 +79,6 @@ def main(lims, args):
             if "PromethION" in row["flow_cell_type"]:
                 assert row["position_id"] != "None", "Positions must be specified for PromethION flow cells."
 
-            # Add extra column for positions
-            if art.udf.get("ONT flow cell position") != "None":
-                row["position_id"] = art.udf.get("ONT flow cell position")
-            
             # Add extra columns for barcodes
             if art.udf.get('ONT expansion kit') != "None":
                 assert len(art.reagent_labels) > 0, f"No barcodes found within pool {art.name}"
@@ -125,13 +120,16 @@ def write_csv(df):
     file_name = f"ONT_samplesheet_{df.experiment_id.unique()[0]}.csv"
 
     columns = [
-        "flow_cell_id",
+        "flow_cell_id", 
         "position_id",
         "sample_id",
         "experiment_id",
         "flow_cell_product_code",
         "kit"
     ]
+
+    if df.position_id[0] == "None":
+        columns.remove("position_id")
 
     if "alias" in df.columns and "barcode" in df.columns:
         columns.append("alias")

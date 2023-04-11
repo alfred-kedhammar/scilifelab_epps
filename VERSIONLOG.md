@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230329.1
+Improve modularity and readability of ONT EPP script names and contents. Also implement changes requested during live testing.
+
 ## 20230313.1
 Deploy validation 23_02_zika_codebase_revamp to replace accredited codebase for pooling using Mosquito X1.
 

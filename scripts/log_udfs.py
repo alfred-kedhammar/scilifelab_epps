@@ -7,7 +7,7 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 from datetime import datetime as dt
 from tabulate import tabulate
-from send_ont_flowcell_info_to_statusdb import parse_fc
+from ont_send_fc_to_db import parse_fc
 import pandas as pd
 import sys
 
@@ -64,6 +64,7 @@ def main(lims, args):
             rows.append(row)
 
         df = pd.DataFrame(rows).set_index("Sample")
+        df.sort_index(inplace = True)
 
         new_log_name = f"UDF_log_{currentStep.id}_{timestamp}.txt"
         with open(new_log_name, "w") as f:

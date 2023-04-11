@@ -3,8 +3,9 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
+from molar_concentration import ng_to_fmol
 
-DESC = """ Calculate the sample metrics based on new and previous measurements. Written to run between the steps of the
+DESC = """ Calculate the sample amount based on new (or, if needed, previous) measurements. Written to run between the steps of the
 Nanopore ligation library prep.
 
 Alfred Kedhammar, NGI SciLifeLab
@@ -18,54 +19,24 @@ def main(lims, args):
 
         for art_tuple in art_tuples:
             
-            art_in = art_tuple[0]["uri"]
+            # Fetch info
             art_out = art_tuple[1]["uri"]
-
-            try:
-                conc = art_out.udf["Concentration"]
-            except KeyError:
-                conc = fetch_last(currentStep, art_tuple, "Concentration")
-
-            try:
-                vol = art_out.udf["Volume to take (uL)"]
-            except KeyError:
-                try:
-                    vol = art_out.udf["Final Volume (uL)"]
-                except:
-                    raise AssertionError
+            conc = art_out.udf["Final Concentration"]
+            vol = art_out.udf["Final Volume (uL)"]
+            
+            # Calculate amount ng
             art_out.udf["Amount (ng)"] = round(conc * vol, 2)
             
-            # Calculate fmol
+            # Calculate amount fmol
             try:
                  # Use current length if present
                 size_bp = art_out.udf["Size (bp)"]
             except KeyError:
                 # Otherwise, use last known length
                 size_bp = fetch_last(currentStep, art_tuple, "Size (bp)")
-            art_out.udf["Amount (fmol)"] = round(calculate_fmol(art_out.udf["Amount (ng)"], size_bp), 2)
-
-            if currentStep.parent_processes() != [None]:
-                try:
-                    # Calculate yield if amount (ng) present in previous step, otherwise pass
-                    art_out.udf["% Yield (ng/ng)"] = round((art_out.udf["Amount (ng)"] / art_in.udf["Amount (ng)"]) * 100,2)
-                    try:
-                        # If no cumulative yield in previous field, use yield
-                        cml_yield = art_in.udf["% Cumulative yield (ng/ng)"]
-                        art_out.udf["% Cumulative yield (ng/ng)"] = round((art_out.udf["% Yield (ng/ng)"] * cml_yield) / 100,2)
-                    except KeyError:
-                        art_out.udf["% Cumulative yield (ng/ng)"] = round(art_out.udf["% Yield (ng/ng)"],2)
-                except KeyError:
-                    pass
-            else:
-                pass
+            art_out.udf["Amount (fmol)"] = round(ng_to_fmol(art_out.udf["Amount (ng)"], size_bp), 2)
 
             art_out.put()
-
-
-def calculate_fmol(amount_ng, size_bp):
-    # Formula based on NEBioCalculator
-    # https://nebiocalculator.neb.com/#!/dsdnaamt
-    return 10**6 * (amount_ng) / (size_bp * 617.96 + 36.04)
 
 
 def fetch_last(currentStep, art_tuple, target_udf):

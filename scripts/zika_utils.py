@@ -14,6 +14,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime as dt
 import sys
+from ont_update_amount import fetch_last
 
 
 def verify_step(currentStep, targets = None):
@@ -90,53 +91,24 @@ def assert_udfs(currentStep):
 
 
 def fetch_sample_data(currentStep, to_fetch):
-    """ Given a dictionary "to_fetch" whose keys are the headers of the sought sample properties and whose values are the
-    corresponding object paths, fetch the sample properties for all elements of currentStep.input_output_maps
-    and return them in a dataframe.
     """
+    Given a LIMS step and a dictionary detailing which info to fetch, this function
+    will go through all analyte input/output tuples of the step (or previous steps)
+    and try to fetch the relevant information to return a Pandas dataframe where the
+    input/output tuples are the rows and the items of the input dicts determine the
+    columns.
 
-    object_paths = [
-        # Input info
-        "art_tuple[0]['uri'].name",                                 # Sample name
-        "art_tuple[0]['uri'].samples[0].name",                      # Sample P-number, if not pool
-        "art_tuple[0]['uri'].id",                                   # Sample LIMS ID
-        "art_tuple[0]['uri'].location[0].name",                     # Plate name
-        "art_tuple[0]['uri'].location[0].id",                       # Plate LIMS ID
-        "art_tuple[0]['uri'].location[1]",                          # Well
+    Examples of dictionary contents:
+    
+    to_fetch = {
+    
+        # Dict keys will be the headers of the returned df
 
-        # Input UDFs
-        "art_tuple[0]['uri'].udf['Conc. Units']",                   # ng/ul or nM
-        "art_tuple[0]['uri'].udf['Concentration']",
-        "art_tuple[0]['uri'].udf['Volume (ul)']",
-        "art_tuple[0]['uri'].udf['Amount (ng)']",
-        "art_tuple[0]['uri'].samples[0].udf['Customer Conc']",      # ng/ul
-        "art_tuple[0]['uri'].samples[0].udf['Customer Volume']",
-
-        # Output info
-        "art_tuple[1]['uri'].name", 
-        "art_tuple[1]['uri'].id",
-        "art_tuple[1]['uri'].location[0].name",
-        "art_tuple[1]['uri'].location[0].id",
-        "art_tuple[1]['uri'].location[1]",
-
-        # Output UDFs
-        "art_tuple[1]['uri'].udf['Amount taken (ng)']",             # The amount (ng) that is taken from the original sample plate
-        "art_tuple[1]['uri'].udf['Total Volume (uL)']",             # The total volume of dilution
-        "art_tuple[1]['uri'].udf['Final Volume (uL)']",             # Final pool / sample volume
-        "art_tuple[1]['uri'].udf['Target Amount (ng)']",            # In methods where the prep input is possibly different from the sample dilution, this is the target concentration and minimum volume of the prep input
-        "art_tuple[1]['uri'].udf['Target Total Volume (uL)']",      # In methods where the prep input is possibly different from the sample dilution, this is the target concentration and minimum volume of the prep input
-        "art_tuple[1]['uri'].udf['Pool Conc. (nM)']",
-
-        # Input sample RC measurements (?)
-        "art_tuple[0]['uri'].samples[0].artifact.udf['Conc. Units']",
-        "art_tuple[0]['uri'].samples[0].artifact.udf['Concentration']",
-        "art_tuple[0]['uri'].samples[0].artifact.udf['Volume (ul)']",
-        "art_tuple[0]['uri'].samples[0].artifact.udf['Amount (ng)']"
-    ]
-
-    # Verify all target metrics are found in object_paths, if not - add them
-    for header, object_path in to_fetch.items():
-        assert object_path in object_paths, f"fetch_sample_data() is missing the requested object path {object_path}"
+        "vol"   : "art_tuple[0]['uri'].udf['Final Volume (uL)']",       # Eval string
+        "conc"  : "art_tuple[0]['uri'].udf['Final Concentration']",     # Eval string
+        "size"  : 'Size (bp)'                                           # UDF name, to fetch recursively
+    }
+    """
 
     # Fetch all input/output sample tuples
     art_tuples = [
@@ -148,11 +120,14 @@ def fetch_sample_data(currentStep, to_fetch):
     list_of_dicts = []
     for art_tuple in art_tuples:
         dict = {}
-        for header, object_path in to_fetch.items():
-            try:
-                dict[header] = eval(object_path)
-            except KeyError:
-                dict[header] = None
+        for header, target_info in to_fetch.items():
+            if "art_tuple" in target_info:
+                try:
+                    dict[header] = eval(target_info)
+                except KeyError:
+                    dict[header] = None
+            else:
+                dict[header] = fetch_last(currentStep, art_tuple, target_info)
         list_of_dicts.append(dict)
 
     # Compile to dataframe

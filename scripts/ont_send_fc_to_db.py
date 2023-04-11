@@ -11,7 +11,7 @@ import os
 import couchdb
 import yaml
 import sys
-from generate_ont_samplesheet import get_minknow_sample_id
+from ont_generate_samplesheet import get_minknow_sample_id
 
 
 DESC = """ Script for EPP "Send ONT flowcell info to StatusDB".
@@ -29,6 +29,9 @@ def main(lims, args):
     use the LIMS-ID of the previous process (the samplesheet generation step) to identify the correct run.
 
     Finish by also updating the step UDF log.
+
+    TODO Get parent process ID on a sample-by-sample basis, rather than once for the entire step.
+         Current approach may cause issues if samples originate from different steps.
     """
 
     try:
@@ -107,7 +110,7 @@ def parse_fc(art_tuple):
     fc["fc_id"] = art_tuple[0]["uri"].udf.get("ONT flow cell ID")
     fc["minknow_sample_id"] = get_minknow_sample_id(art_tuple[0]["uri"])
     fc["qc"] = art_tuple[0]["uri"].udf.get("ONT Flow Cell QC Pore Count")
-    fc["load_fmol"] = art_tuple[0]["uri"].udf.get("ONT flow cell load amount (fmol)")
+    fc["load_fmol"] = art_tuple[0]["uri"].udf.get("Amount (fmol)")
 
     fc["reload_times"] = art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)").replace(" ","").split(",") if \
                          art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)") else None
@@ -122,8 +125,8 @@ def parse_fc(art_tuple):
             len(fc["reload_times"]) == len(fc["reload_fmols"]) == len(fc["reload_lots"]), \
             "All reload UDFs within a row must have the same number of comma-separated values"
         
-        assert check_csv_udf_list("^\d{2,3}:\d{2}$", fc["reload_times"]), \
-            "Reload run times must be formatted as comma-separated hh:mm"
+        assert check_csv_udf_list("^\d{1,3}:\d{2}$", fc["reload_times"]), \
+            "Reload run times must be formatted as comma-separated h:mm"
         check_times_list(fc["reload_times"])
         assert check_csv_udf_list("^[0-9.]+$", fc["reload_fmols"]), \
             "Invalid flow cell reload amount(s)"
