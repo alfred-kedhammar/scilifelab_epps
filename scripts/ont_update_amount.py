@@ -3,8 +3,8 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from molar_concentration import ng_to_fmol
 from requests.exceptions import HTTPError
+import utils
 
 DESC = """ Calculate the sample amount based on new (or, if needed, previous) measurements. Written to run between the steps of the
 Nanopore ligation library prep.
@@ -22,56 +22,17 @@ def main(lims, args):
             
             # Fetch info
             art_out = art_tuple[1]["uri"]
+
+            # Calculate amount ng based on info in current step
             conc = art_out.udf["Final Concentration"]
             vol = art_out.udf["Final Volume (uL)"]
+
+            utils.udf.put(art_out, "Amount (ng)", round(conc * vol, 2))
             
-            # Calculate amount ng
-            art_out.udf["Amount (ng)"] = round(conc * vol, 2)
-            
-            # Calculate amount fmol
-            try:
-                 # Use current length if present
-                size_bp = art_out.udf["Size (bp)"]
-            except KeyError:
-                # Otherwise, use last known length
-                size_bp = fetch_last(currentStep, art_tuple, "Size (bp)")
-            art_out.udf["Amount (fmol)"] = round(ng_to_fmol(art_out.udf["Amount (ng)"], size_bp), 2)
+            # Calculate amount fmol based on length in this, or previous, step
+            size_bp = utils.udf.fetch_last(currentStep, art_tuple, "Size (bp)")
 
-            try:
-                art_out.put()
-            except HTTPError as e:
-                del art_out.udf["Amount (fmol)"]
-                art_out.put()
-
-
-def fetch_last(currentStep, art_tuple, target_udf):
-
-    # Return udf if present in input of current step
-    if target_udf in [item_tuple[0] for item_tuple in art_tuple[0]["uri"].udf.items()]:
-        return art_tuple[0]["uri"].udf[target_udf]
-
-    # Start looking though previous steps. Use input articles.
-    else:
-        input_art = art_tuple[0]["uri"]
-        # Traceback of artifact ID, step and UDFs
-        history = [(input_art.id, currentStep.type.name, art_tuple[1]["uri"].udf.items())]
-        
-        while True:
-            if input_art.parent_process:
-                pp = input_art.parent_process
-                pp_tuples = pp.input_output_maps
-
-                # Find the input whose output is the current artifact
-                pp_input_art = [pp_tuple[0]["uri"] for pp_tuple in pp_tuples if pp_tuple[1]["uri"].id == input_art.id][0]
-                history.append((pp_input_art.id, pp.type.name, pp_input_art.udf.items()))
-
-                if target_udf in [tuple[0] for tuple in pp_input_art.udf.items()]:
-                    return pp_input_art.udf[target_udf]
-                else:
-                    input_art = pp_input_art
-
-            else:
-                return None
+            utils.udf.put(art_out, "Amount (fmol)", round(utils.formulas.ng_to_fmol(art_out.udf["Amount (ng)"], size_bp), 2))
 
 
 if __name__ == "__main__":
