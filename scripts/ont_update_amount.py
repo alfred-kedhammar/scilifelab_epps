@@ -3,10 +3,11 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from requests.exceptions import HTTPError
 import utils
 
-DESC = """ Calculate the sample amount based on new (or, if needed, previous) measurements. Written to run between the steps of the
+DESC = """ EPP "ONT Update Amount".
+
+Calculate the sample amount based on new (or, if needed, previous) measurements. Written to run between the steps of the
 Nanopore ligation library prep.
 
 Alfred Kedhammar, NGI SciLifeLab
