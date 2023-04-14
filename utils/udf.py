@@ -39,13 +39,13 @@ def is_filled(art, target_udf):
         return False
     
 
-def fetch(art, target_udf, default=None):
+def fetch(art, target_udf, return_failed=None):
     "Try to fetch UDF from artifact without causing fatar error."
 
     try:
         return art.udf[target_udf]
     except KeyError:
-        return default
+        return return_failed
     
 
 def fetch_last(currentStep, art_tuple, target_udf, current=True):
