@@ -5,7 +5,7 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 import utils
 
-DESC = """ EPP "ONT Update Amount".
+DESC = """ EPP "ONT Update Amounts".
 
 Calculate the sample amount based on new (or, if needed, previous) measurements. Written to run between the steps of the
 Nanopore ligation library prep.
