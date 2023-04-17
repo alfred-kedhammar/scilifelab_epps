@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from utils import udf
+from utils import udf_tools
 
 DESC = """
 EPP "inherit_udfs".
@@ -22,8 +22,9 @@ def main(lims, args):
         ip, op = art_tuple[0]["uri"], art_tuple[1]["uri"]
 
         for target_udf in args.udfs:
-            if udf.is_filled(ip, target_udf):
-                udf.put(op, udf, udf.fetch(ip, target_udf))
+            if udf_tools.is_filled(ip, target_udf):
+                val = udf_tools.fetch(ip, target_udf)
+                udf_tools.put(op, target_udf, val)
 
 
 if __name__ == "__main__":

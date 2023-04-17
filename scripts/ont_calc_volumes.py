@@ -3,8 +3,8 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from ont_update_amount import fetch_last
-from molar_concentration import fmol_to_ng, ng_to_fmol
+from utils.udf_tools import fetch_last, fetch, exists
+from utils.formula import fmol_to_ng, ng_to_fmol
 
 DESC = """
 EPP "ONT calculate volumes"
@@ -25,12 +25,13 @@ Will use ONE of the output UDFs (prioritized in the listed order) to calculate a
 def main(lims, args):
         
     currentStep = Process(lims, id=args.pid)
+
     art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[1]["output-type"] == "Analyte"]
 
     for art_tuple in art_tuples:
         
         size = fetch_last(currentStep, art_tuple, "Size (bp)")
-        conc_units = art_tuple[0]["uri"].udf['Conc. Units']
+        conc_units = fetch(art_tuple[0]["uri"], "Conc. Units", return_failed="ng/ul")
 
         # Fetch target amount, either fmol or ng
         try:
@@ -55,24 +56,26 @@ def main(lims, args):
         # Calculate
         if basis == "fmol" or basis == "ng":
             if conc_units == "nM":
-                target_vol = target_amt_fmol / art_tuple[0]["uri"].udf["Concentration"]
+                target_vol = target_amt_fmol / art_tuple[0]["uri"].udf["Final Concentration"]
             elif conc_units == "ng/ul":
-                target_vol = target_amt_ng / art_tuple[0]["uri"].udf["Concentration"]
+                target_vol = target_amt_ng / art_tuple[0]["uri"].udf["Final Concentration"]
         
         vol_to_take = min(
             target_vol,
             prev_vol
         )
+    
+    # TODO utilize both "Final Concentration and "Concentration"
 
         if conc_units == "nM":
-            amt_taken_fmol = vol_to_take * art_tuple[0]["uri"].udf["Concentration"]
+            amt_taken_fmol = vol_to_take * art_tuple[0]["uri"].udf["Final Concentration"]
             amt_taken_ng = fmol_to_ng(amt_taken_fmol, size)
 
         elif conc_units == "ng/ul":
-            amt_taken_ng = vol_to_take * art_tuple[0]["uri"].udf["Concentration"]
+            amt_taken_ng = vol_to_take * art_tuple[0]["uri"].udf["Final Concentration"]
             amt_taken_fmol = ng_to_fmol(amt_taken_ng, size)
 
-        if "Amount (ng)" in [t[0] for t in art_tuple[1]["uri"].udf.items()]:
+        if exists(art_tuple[1]["uri"], "Amount (ng)"):
             art_tuple[1]["uri"].udf["Amount (ng)"] = round(amt_taken_ng,1)
         art_tuple[1]["uri"].udf["Amount (fmol)"] = round(amt_taken_fmol,1)
         art_tuple[1]["uri"].udf["Volume to take (uL)"] = round(vol_to_take,1)
