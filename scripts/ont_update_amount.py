@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-import utils
+from utils import udf, formula
 
 DESC = """ EPP "ONT Update Amounts".
 
@@ -28,12 +28,12 @@ def main(lims, args):
             conc = art_out.udf["Final Concentration"]
             vol = art_out.udf["Final Volume (uL)"]
 
-            utils.udf.put(art_out, "Amount (ng)", round(conc * vol, 2))
+            udf.put(art_out, "Amount (ng)", round(conc * vol, 2))
             
             # Calculate amount fmol based on length in this, or previous, step
-            size_bp = utils.udf.fetch_last(currentStep, art_tuple, "Size (bp)")
+            size_bp = udf.fetch_last(currentStep, art_tuple, "Size (bp)")
 
-            utils.udf.put(art_out, "Amount (fmol)", round(utils.formulas.ng_to_fmol(art_out.udf["Amount (ng)"], size_bp), 2))
+            udf.put(art_out, "Amount (fmol)", round(formula.ng_to_fmol(art_out.udf["Amount (ng)"], size_bp), 2))
 
 
 if __name__ == "__main__":
