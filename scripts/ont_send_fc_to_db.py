@@ -49,7 +49,6 @@ def main(lims, args):
             fc = parse_fc(art_tuple)
             fcs.append(fc)
 
-        samplesheet_process_id = currentStep.parent_processes()[-1].id
         db = get_ONT_db()
         view = db.view("info/all_stats")
 
@@ -57,11 +56,11 @@ def main(lims, args):
         errors = False
         for fc in fcs:
             
-            rows_matching_fc = [row for row in view.rows if f'_{fc["fc_id"]}_' in row.value["TACA_run_path"] and samplesheet_process_id in row.value["TACA_run_path"]]
+            rows_matching_fc = [row for row in view.rows if f'{fc["fc_id"]}' in row.value["TACA_run_path"] and fc["samplesheet_id"] in row.value["TACA_run_path"]]
 
             try:
-                assert len(rows_matching_fc) > 0, f"The database contains no document with flow cell ID {fc['fc_id']} and experiment ID {samplesheet_process_id}. If the run was recently started, wait until it appears in GenStat."
-                assert len(rows_matching_fc) == 1, f"The database contains multiple documents with flow cell ID {fc['fc_id']} and experiment ID {samplesheet_process_id}. Contact a database administrator."
+                assert len(rows_matching_fc) > 0, f"The database contains no document with flow cell ID {fc['fc_id']} and experiment ID {fc['samplesheet_id']}. If the run was recently started, wait until it appears in GenStat."
+                assert len(rows_matching_fc) == 1, f"The database contains multiple documents with flow cell ID {fc['fc_id']} and experiment ID {fc['samplesheet_id']}. Contact a database administrator."
                 
                 doc_id = rows_matching_fc[0].id
                 doc = db[doc_id]
@@ -107,6 +106,7 @@ def parse_fc(art_tuple):
     """ For each art_tuple, assert UDFs and return parsed dictionary """
 
     fc = {}
+    fc["samplesheet_id"] = art_tuple[0]["uri"].parent_process.id
     fc["fc_id"] = art_tuple[0]["uri"].udf.get("ONT flow cell ID")
     fc["minknow_sample_id"] = get_minknow_sample_id(art_tuple[0]["uri"])
     fc["qc"] = art_tuple[0]["uri"].udf.get("ONT Flow Cell QC Pore Count")
