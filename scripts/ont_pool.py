@@ -4,7 +4,7 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 from zika_utils import fetch_sample_data
-from molar_concentration import calculate_fmol
+from utils import formula
 from numpy import minimum
 from tabulate import tabulate
 from datetime import datetime as dt
@@ -37,7 +37,7 @@ def main(lims, args):
             
         df = fetch_sample_data(currentStep, to_fetch)
 
-        df["conc_nM"] = df.apply(lambda x: calculate_fmol(x["conc_ng_ul"], x["size_bp"]), axis = 1)
+        df["conc_nM"] = df.apply(lambda x: formula.ng_ul_to_nM(x["conc_ng_ul"], x["size_bp"]), axis = 1)
 
         for pool in pools:
 

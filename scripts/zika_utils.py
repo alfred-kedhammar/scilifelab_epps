@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime as dt
 import sys
-from ont_update_amount import fetch_last
+from utils.udf_tools import fetch_last
 
 
 def verify_step(currentStep, targets = None):
@@ -127,7 +127,7 @@ def fetch_sample_data(currentStep, to_fetch):
                 except KeyError:
                     dict[header] = None
             else:
-                dict[header] = fetch_last(currentStep, art_tuple, target_info)
+                dict[header] = fetch_last(art_tuple, target_info)
         list_of_dicts.append(dict)
 
     # Compile to dataframe
