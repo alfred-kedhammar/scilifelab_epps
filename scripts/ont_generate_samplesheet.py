@@ -10,6 +10,7 @@ import pandas as pd
 import re
 import sys
 import shutil
+from datetime import datetime as dt
 
 DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot "ONT sample sheet".
 Used to generate MinKNOW samplesheets.
@@ -102,7 +103,7 @@ def main(lims, args):
 
         file_name = write_csv(df)
         upload_file(file_name, currentStep, lims)
-        shutil.move(file_name, "/srv/mfs/samplesheets/nanopore/")
+        shutil.move(file_name, f"/srv/mfs/samplesheets/nanopore/{dt.now().year}/")
 
     except AssertionError as e:
         sys.stderr.write(str(e))
