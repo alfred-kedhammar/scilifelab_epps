@@ -21,7 +21,7 @@ def put(art: Artifact, target_udf: str, val, on_fail=AssertionError()):
 
     except HTTPError as e:
         del art.udf[target_udf]
-        if issubclass(on_fail, BaseException):
+        if issubclass(type(on_fail), BaseException):
             raise on_fail
         else:
             return on_fail
@@ -62,35 +62,48 @@ def get_art_tuples(currentStep: Process) -> list:
 
     art_tuples = []
     for art_tuple in currentStep.input_output_maps:
-        if (art_tuple[0] and art_tuple[0]["uri"].type == "Analyte") or (art_tuple[1] and art_tuple[1]["uri"].type == "Analyte"):
-            art_tuples.append(art_tuple)
-
+        if art_tuple[0] and art_tuple[1]:
+            if art_tuple[0]["uri"].type == art_tuple[1]["uri"].type == "Analyte":
+                art_tuples.append(art_tuple)
+        elif art_tuple[0] and not art_tuple[1]:
+            if art_tuple[0]["uri"].type == "Analyte":
+                art_tuples.append(art_tuple)
+        elif not art_tuple[0] and art_tuple[1]:
+            if art_tuple[1]["uri"].type == "Analyte":
+                art_tuples.append(art_tuple)
     return art_tuples
 
 
-def fetch(query: Artifact or tuple, target_udfs: str or list, on_fail=AssertionError(), step: Process or None = None):
-    """Try to fetch UDF from artifact, optionally without causing fatar error.
+def fetch_from_tuple(art_tuple: tuple, target_udfs: str or list, on_fail=AssertionError()):
+    """Try to fetch UDF based on input/output tuple of step that is missing either input or output artifacts,
+    optionally without causing fatar error.
 
-    - If "query" is supplied as an io tuple, and "currentStep" is specified, this function supports non-standard steps.
-    - Target UDF can be supplied as a string, or as a prioritized list of strings.
+    Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
 
-    # Start with assumption the query article is the query arg
-    art = query
+    if type(target_udfs) == str:
+        target_udfs = [target_udfs]
 
-    # If args prepare us for dealing with non-standard step...
-    if type(query) == tuple and step:
-        ios = get_art_tuples(step)
-        # ... iterate through the step IOs to find our query ...
-        for io in ios:
-            if io == query:
-                # ... then, if either input or output is not defined, use whichever is defined.
-                if io[0] == None:
-                    art = io[1]["uri"]
-                    break
-                elif io[1] == None:
-                    art = io[0]["uri"]
-                    break
+    for target_udf in target_udfs:
+        try:
+            return art_tuple[1]["uri"].udf[target_udf]
+        except KeyError:
+            try:
+                return art_tuple[0]["uri"].udf[target_udf]
+            except:
+                continue
+
+    if issubclass(type(on_fail), BaseException):
+        raise on_fail
+    else:
+        return on_fail
+
+
+def fetch(art: Artifact, target_udfs: str or list, on_fail=AssertionError()):
+    """Try to fetch UDF from artifact, optionally without causing fatar error.
+
+    Target UDF can be supplied as a string, or as a prioritized list of strings.
+    """
  
     if type(target_udfs) == str:
         target_udfs = [target_udfs]
@@ -101,7 +114,7 @@ def fetch(query: Artifact or tuple, target_udfs: str or list, on_fail=AssertionE
         except KeyError:
             continue
 
-    if issubclass(on_fail, BaseException):
+    if issubclass(type(on_fail), BaseException):
         raise on_fail
     else:
         return on_fail
@@ -154,24 +167,9 @@ def fetch_last(
                         print(json.dumps(j, indent=2))
                 return output_art.udf[target_udf]
 
-    # Use input article if no parent process can be found
-    if not input_art.parent_process:
-        history.append(
-            {
-                "Step name": "-",
-                "Output article ID": input_art.id,
-                "Output article UDFs": dict(input_art.udf.items()),
-            }
-        )
-        for target_udf in target_udfs:
-            if target_udf in list_udfs(input_art):
-                if print_history == True:
-                    for j in history:
-                        print(json.dumps(j, indent=2))
-                return input_art.udf[target_udf]
-
     # Start looking though previous steps.
     while True:
+
         if input_art.parent_process:
             pp = input_art.parent_process
             pp_tuples = pp.input_output_maps
@@ -203,7 +201,23 @@ def fetch_last(
             input_art = pp_input
 
         else:
-            if issubclass(on_fail, BaseException):
+            # Use input artifact UDFs from this step if previous step can't be traced
+            history.append(
+                {
+                    "Step name": pp.type.name,
+                    "Input article ID": pp_input.id,
+                    "Input article UDFs": dict(pp_input.udf.items()),
+                }
+            )
+
+            for target_udf in target_udfs:
+                if target_udf in list_udfs(pp_input):
+                    if print_history == True:
+                        for j in history:
+                            print(json.dumps(j, indent=2))
+                    return pp_input.udf[target_udf]
+                
+            if issubclass(type(on_fail), BaseException):
                 raise on_fail
             else:
                 return on_fail

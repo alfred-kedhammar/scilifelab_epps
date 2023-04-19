@@ -36,7 +36,7 @@ def main(lims, args):
     for art_tuple in art_tuples:
 
         size = fetch_last(art_tuple, "Size (bp)")
-        conc_units = fetch(art_tuple[0]["uri"], "Conc. Units", return_failed="ng/ul")
+        conc_units = fetch(art_tuple[0]["uri"], "Conc. Units", on_fail="ng/ul")
 
         # Fetch target amount, either fmol or ng
         try:
