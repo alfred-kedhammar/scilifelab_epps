@@ -55,7 +55,7 @@ def is_filled(art: Artifact, target_udf: str) -> bool:
         return True
     except KeyError:
         return False
-    
+
 
 def get_art_tuples(currentStep: Process) -> list:
     """Return i/o tuples whose input OR output is an Analyte."""
@@ -74,7 +74,9 @@ def get_art_tuples(currentStep: Process) -> list:
     return art_tuples
 
 
-def fetch_from_tuple(art_tuple: tuple, target_udfs: str or list, on_fail=AssertionError()):
+def fetch_from_tuple(
+    art_tuple: tuple, target_udfs: str or list, on_fail=AssertionError()
+):
     """Try to fetch UDF based on input/output tuple of step that is missing either input or output artifacts,
     optionally without causing fatar error.
 
@@ -104,7 +106,7 @@ def fetch(art: Artifact, target_udfs: str or list, on_fail=AssertionError()):
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
- 
+
     if type(target_udfs) == str:
         target_udfs = [target_udfs]
 
@@ -169,7 +171,6 @@ def fetch_last(
 
     # Start looking though previous steps.
     while True:
-
         if input_art.parent_process:
             pp = input_art.parent_process
             pp_tuples = pp.input_output_maps
@@ -216,7 +217,7 @@ def fetch_last(
                         for j in history:
                             print(json.dumps(j, indent=2))
                     return pp_input.udf[target_udf]
-                
+
             if issubclass(type(on_fail), BaseException):
                 raise on_fail
             else:

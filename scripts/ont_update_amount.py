@@ -15,28 +15,34 @@ Alfred Kedhammar, NGI SciLifeLab
 
 
 def main(lims, args):
-
     currentStep = Process(lims, id=args.pid)
 
     art_tuples = udf_tools.get_art_tuples(currentStep)
 
     for art_tuple in art_tuples:
-
         # Calculate amount ng based on info in current step
         try:
             conc = udf_tools.fetch(art_tuple, ["Final Concentration", "Concentration"])
         except:
-            conc = udf_tools.fetch_from_tuple(art_tuple, ["Final Concentration", "Concentration"])
-        
+            conc = udf_tools.fetch_from_tuple(
+                art_tuple, ["Final Concentration", "Concentration"]
+            )
+
         try:
             vol = udf_tools.fetch(art_tuple, ["Final Volume (uL)", "Volume (ul)"])
         except:
-            vol = udf_tools.fetch_from_tuple(art_tuple, ["Final Volume (uL)", "Volume (ul)"])
+            vol = udf_tools.fetch_from_tuple(
+                art_tuple, ["Final Volume (uL)", "Volume (ul)"]
+            )
 
         try:
-            udf_tools.put(art_tuple[1]["uri"], "Amount (ng)", round(conc * vol, 2), on_fail=None)
+            udf_tools.put(
+                art_tuple[1]["uri"], "Amount (ng)", round(conc * vol, 2), on_fail=None
+            )
         except TypeError:
-            udf_tools.put(art_tuple[0]["uri"], "Amount (ng)", round(conc * vol, 2), on_fail=None)
+            udf_tools.put(
+                art_tuple[0]["uri"], "Amount (ng)", round(conc * vol, 2), on_fail=None
+            )
 
         # Calculate amount fmol based on length in this, or previous, step
         size_bp = udf_tools.fetch_last(art_tuple, "Size (bp)")
@@ -45,15 +51,21 @@ def main(lims, args):
             udf_tools.put(
                 art_tuple[1]["uri"],
                 "Amount (fmol)",
-                round(formula.ng_to_fmol(art_tuple[1]["uri"].udf["Amount (ng)"], size_bp), 2),
-                on_fail=None
+                round(
+                    formula.ng_to_fmol(art_tuple[1]["uri"].udf["Amount (ng)"], size_bp),
+                    2,
+                ),
+                on_fail=None,
             )
         except TypeError:
             udf_tools.put(
                 art_tuple[0]["uri"],
                 "Amount (fmol)",
-                round(formula.ng_to_fmol(art_tuple[0]["uri"].udf["Amount (ng)"], size_bp), 2),
-                on_fail=None
+                round(
+                    formula.ng_to_fmol(art_tuple[0]["uri"].udf["Amount (ng)"], size_bp),
+                    2,
+                ),
+                on_fail=None,
             )
 
 
