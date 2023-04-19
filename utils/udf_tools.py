@@ -1,22 +1,32 @@
 from requests.exceptions import HTTPError
+from genologics.entities import Artifact
 import json
 
 
-def put(art, target_udf, val):
-    "Try to put UDF on artifact without causing fatal error."
+DESC = """ This is a submodule for defining reuasble functions to handle artifact UDFs in in the Genonolics Clarity LIMS API. """
+
+
+def put(art :Artifact, target_udf: str, val, return_failed=None):
+    """Try to put UDF on artifact, optionally without causing fatal error.
+    Evaluates true on success and error (default) or return_failed param on failue.
+    """
 
     art.udf[target_udf] = val
 
     try:
         art.put()
         return True
+    
     except HTTPError as e:
         del art.udf[target_udf]
-        return False
+        if return_failed == None:
+            raise
+        else:
+            return return_failed
     
 
-def exists(art, target_udf):
-    "Check whether UDF exists (is assignable) for current article"
+def exists(art: Artifact, target_udf: str) -> bool:
+    """Check whether UDF exists (is assignable) for current article"""
 
     dummy_value = 0
 
@@ -36,8 +46,8 @@ def exists(art, target_udf):
         return False
     
 
-def is_filled(art, target_udf):
-    "Check whether current UDF is populated for current article"
+def is_filled(art: Artifact, target_udf: str) -> bool:
+    """Check whether current UDF is populated for current article"""
     try:
         art.udf[target_udf]
         return True
@@ -45,20 +55,23 @@ def is_filled(art, target_udf):
         return False
     
 
-def fetch(art, target_udf, return_failed=None):
-    "Try to fetch UDF from artifact without causing fatar error."
+def fetch(art: Artifact, target_udf: str, return_failed=None):
+    """Try to fetch UDF from artifact, optionally without causing fatar error."""
 
     try:
         return art.udf[target_udf]
     except KeyError:
-        return return_failed
+        if return_failed == None:
+            raise
+        else:
+            return return_failed
     
 
-def list_udfs(art):
+def list_udfs(art: Artifact) -> list:
     return [item_tuple[0] for item_tuple in art.udf.items()]
     
 
-def fetch_last(art_tuple, target_udfs, use_current=True, print_history=False):
+def fetch_last(art_tuple: tuple, target_udfs: str or list, use_current=True, print_history=False, return_failed=None):
     """Recursively look for target UDF. 
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
@@ -135,4 +148,7 @@ def fetch_last(art_tuple, target_udfs, use_current=True, print_history=False):
             input_art = pp_input
 
         else:
-            return False
+            if return_failed == None:
+                raise
+            else:
+                return return_failed
