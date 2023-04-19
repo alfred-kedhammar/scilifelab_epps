@@ -41,7 +41,7 @@ def main(lims, args):
     - flow_cell_id
     - position_id
     - sample_id TODO check on instrument
-    
+
     Must be unique within the same flowcell
     - alias TODO check on instrument
     - barcode TODO check on instrument
@@ -74,19 +74,27 @@ def main(lims, args):
                 "sample_id": get_minknow_sample_id(art),
                 "experiment_id": f"{currentStep.id}_{dt.now().strftime('%y%m%d_%H%M%S')}",
                 "flow_cell_product_code": art.udf["ONT flow cell type"].split(" ")[0],
-                "flow_cell_type": art.udf["ONT flow cell type"].split(" ")[1].strip("()"),
-                "kit": get_kit_string(art)
+                "flow_cell_type": art.udf["ONT flow cell type"]
+                .split(" ")[1]
+                .strip("()"),
+                "kit": get_kit_string(art),
             }
 
             if "PromethION" in row["flow_cell_type"]:
-                assert row["position_id"] != "None", "Positions must be specified for PromethION flow cells."
+                assert (
+                    row["position_id"] != "None"
+                ), "Positions must be specified for PromethION flow cells."
 
             # Add extra columns for barcodes
-            if art.udf.get('ONT expansion kit') != "None":
-                assert len(art.reagent_labels) > 0, f"No barcodes found within pool {art.name}"
+            if art.udf.get("ONT expansion kit") != "None":
+                assert (
+                    len(art.reagent_labels) > 0
+                ), f"No barcodes found within pool {art.name}"
                 for sample, label in zip(art.samples, art.reagent_labels):
                     row["alias"] = strip_characters(sample.name)
-                    row["barcode"] = strip_characters("barcode" + label[0:2])   # TODO double check extraction of barcode number
+                    row["barcode"] = strip_characters(
+                        "barcode" + label[0:2]
+                    )  # TODO double check extraction of barcode number
                     rows.append(row.copy())
             else:
                 rows.append(row)
@@ -96,10 +104,18 @@ def main(lims, args):
         df = pd.DataFrame(rows)
 
         if len(df) > 1:
-            assert "PromethION" in df.flow_cell_type.unique()[0], "Only PromethION flowcells can be grouped together in the same sample sheet."
-            assert len(df) <= 24, "Only up to 24 PromethION flowcells may be started at once."      
-        assert len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1, "All rows must have the same flow cell type and kits"
-        assert len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts), "All rows must have different flow cell positions and IDs"
+            assert (
+                "PromethION" in df.flow_cell_type.unique()[0]
+            ), "Only PromethION flowcells can be grouped together in the same sample sheet."
+            assert (
+                len(df) <= 24
+            ), "Only up to 24 PromethION flowcells may be started at once."
+        assert (
+            len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
+        ), "All rows must have the same flow cell type and kits"
+        assert (
+            len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
+        ), "All rows must have different flow cell positions and IDs"
 
         file_name = write_csv(df)
         upload_file(file_name, currentStep, lims)
@@ -123,12 +139,12 @@ def write_csv(df):
     file_name = f"ONT_samplesheet_{df.experiment_id.unique()[0]}.csv"
 
     columns = [
-        "flow_cell_id", 
+        "flow_cell_id",
         "position_id",
         "sample_id",
         "experiment_id",
         "flow_cell_product_code",
-        "kit"
+        "kit",
     ]
 
     if df.position_id[0] == "None":
@@ -137,10 +153,10 @@ def write_csv(df):
     if "alias" in df.columns and "barcode" in df.columns:
         columns.append("alias")
         columns.append("barcode")
-    
+
     df_csv = df.loc[:, columns]
 
-    df_csv.to_csv(file_name, index = False)
+    df_csv.to_csv(file_name, index=False)
 
     return file_name
 
@@ -173,11 +189,17 @@ def get_minknow_sample_id(art):
         # Look at the name of the first sample in the pool
         re_match = re.match(sample_id_pattern, art.samples[0].name)
         # If all samples in the pool have the same project
-        if all([re.match(sample_id_pattern, sample.name).groups()[0] == re_match.groups()[0] for sample in art.samples]):
+        if all(
+            [
+                re.match(sample_id_pattern, sample.name).groups()[0]
+                == re_match.groups()[0]
+                for sample in art.samples
+            ]
+        ):
             return f"{re_match.groups()[0]}_{art.id}"
         else:
             return art.id
-        
+
 
 def strip_characters(input_string):
     """Remove potentially problematic characters from string."""
@@ -193,9 +215,9 @@ def strip_characters(input_string):
 
 def get_kit_string(sample):
     """Combine prep kit and expansion kit UDFs (if any) into space-separated string"""
-    kit_string = sample.udf.get('ONT prep kit')
+    kit_string = sample.udf.get("ONT prep kit")
 
-    if sample.udf.get('ONT expansion kit') != "None":
+    if sample.udf.get("ONT expansion kit") != "None":
         kit_string += f" {sample.udf.get('ONT expansion kit')}"
 
     return kit_string
@@ -203,8 +225,7 @@ def get_kit_string(sample):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid',
-                        help='Lims id for current Process')
+    parser.add_argument("--pid", help="Lims id for current Process")
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)

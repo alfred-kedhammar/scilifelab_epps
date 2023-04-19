@@ -6,7 +6,7 @@ import json
 DESC = """ This is a submodule for defining reuasble functions to handle artifact UDFs in in the Genonolics Clarity LIMS API. """
 
 
-def put(art :Artifact, target_udf: str, val, return_failed=None):
+def put(art: Artifact, target_udf: str, val, return_failed=None):
     """Try to put UDF on artifact, optionally without causing fatal error.
     Evaluates true on success and error (default) or return_failed param on failue.
     """
@@ -16,14 +16,14 @@ def put(art :Artifact, target_udf: str, val, return_failed=None):
     try:
         art.put()
         return True
-    
+
     except HTTPError as e:
         del art.udf[target_udf]
         if return_failed == None:
             raise
         else:
             return return_failed
-    
+
 
 def exists(art: Artifact, target_udf: str) -> bool:
     """Check whether UDF exists (is assignable) for current article"""
@@ -44,7 +44,7 @@ def exists(art: Artifact, target_udf: str) -> bool:
     except HTTPError as e:
         del art.udf[target_udf]
         return False
-    
+
 
 def is_filled(art: Artifact, target_udf: str) -> bool:
     """Check whether current UDF is populated for current article"""
@@ -53,7 +53,7 @@ def is_filled(art: Artifact, target_udf: str) -> bool:
         return True
     except KeyError:
         return False
-    
+
 
 def fetch(art: Artifact, target_udf: str, return_failed=None):
     """Try to fetch UDF from artifact, optionally without causing fatar error."""
@@ -65,14 +65,20 @@ def fetch(art: Artifact, target_udf: str, return_failed=None):
             raise
         else:
             return return_failed
-    
+
 
 def list_udfs(art: Artifact) -> list:
     return [item_tuple[0] for item_tuple in art.udf.items()]
-    
 
-def fetch_last(art_tuple: tuple, target_udfs: str or list, use_current=True, print_history=False, return_failed=None):
-    """Recursively look for target UDF. 
+
+def fetch_last(
+    art_tuple: tuple,
+    target_udfs: str or list,
+    use_current=True,
+    print_history=False,
+    return_failed=None,
+):
+    """Recursively look for target UDF.
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
@@ -89,7 +95,7 @@ def fetch_last(art_tuple: tuple, target_udfs: str or list, use_current=True, pri
         {
             "Step name": art_tuple[1]["uri"].parent_process.type.name,
             "Output article ID": output_art.id,
-            "Output article UDFs": dict(output_art.udf.items())
+            "Output article UDFs": dict(output_art.udf.items()),
         }
     ]
 
@@ -101,15 +107,14 @@ def fetch_last(art_tuple: tuple, target_udfs: str or list, use_current=True, pri
                     for j in history:
                         print(json.dumps(j, indent=2))
                 return output_art.udf[target_udf]
-    
 
     # Use input article if no parent process can be found
     if not input_art.parent_process:
-        history.append(            
+        history.append(
             {
                 "Step name": "-",
                 "Output article ID": input_art.id,
-                "Output article UDFs": dict(input_art.udf.items())
+                "Output article UDFs": dict(input_art.udf.items()),
             }
         )
         for target_udf in target_udfs:
@@ -126,15 +131,19 @@ def fetch_last(art_tuple: tuple, target_udfs: str or list, use_current=True, pri
             pp_tuples = pp.input_output_maps
 
             # Find the input whose output is the current artifact
-            pp_tuple = [pp_tuple for pp_tuple in pp_tuples if pp_tuple[1]["uri"].id == input_art.id][0]
+            pp_tuple = [
+                pp_tuple
+                for pp_tuple in pp_tuples
+                if pp_tuple[1]["uri"].id == input_art.id
+            ][0]
             pp_input = pp_tuple[0]["uri"]
             pp_output = pp_tuple[1]["uri"]
 
-            history.append(            
+            history.append(
                 {
                     "Step name": pp.type.name,
                     "Output article ID": pp_output.id,
-                    "Output article UDFs": dict(pp_output.udf.items())
+                    "Output article UDFs": dict(pp_output.udf.items()),
                 }
             )
 

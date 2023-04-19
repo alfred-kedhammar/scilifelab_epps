@@ -13,10 +13,14 @@ The UDFs specified in the args are read from the input artifacts and written to 
 
 
 def main(lims, args):
-    
+
     currentStep = Process(lims, id=args.pid)
 
-    art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[0]["uri"].type == "Analyte"]
+    art_tuples = [
+        art_tuple
+        for art_tuple in currentStep.input_output_maps
+        if art_tuple[0]["uri"].type == "Analyte"
+    ]
 
     for art_tuple in art_tuples:
         ip, op = art_tuple[0]["uri"], art_tuple[1]["uri"]
@@ -29,9 +33,10 @@ def main(lims, args):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid',
-                        help='Lims id for current Process')
-    parser.add_argument('--udfs', metavar="U", type=str, nargs="+", help="UDFs to inherit, as strings")
+    parser.add_argument("--pid", help="Lims id for current Process")
+    parser.add_argument(
+        "--udfs", metavar="U", type=str, nargs="+", help="UDFs to inherit, as strings"
+    )
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)

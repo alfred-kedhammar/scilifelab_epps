@@ -22,14 +22,19 @@ and last known UDFs
 Will use ONE of the output UDFs (prioritized in the listed order) to calculate all three output UDFs.
 """
 
+
 def main(lims, args):
-        
+
     currentStep = Process(lims, id=args.pid)
 
-    art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[1]["output-type"] == "Analyte"]
+    art_tuples = [
+        art_tuple
+        for art_tuple in currentStep.input_output_maps
+        if art_tuple[1]["output-type"] == "Analyte"
+    ]
 
     for art_tuple in art_tuples:
-        
+
         size = fetch_last(art_tuple, "Size (bp)")
         conc_units = fetch(art_tuple[0]["uri"], "Conc. Units", return_failed="ng/ul")
 
@@ -53,33 +58,36 @@ def main(lims, args):
         # Calculate
         if basis == "fmol" or basis == "ng":
             if conc_units == "nM":
-                target_vol = target_amt_fmol / fetch_last(art_tuple, ["Final Concentration", "Concentration"])
+                target_vol = target_amt_fmol / fetch_last(
+                    art_tuple, ["Final Concentration", "Concentration"]
+                )
             elif conc_units == "ng/ul":
-                target_vol = target_amt_ng / fetch_last(art_tuple, ["Final Concentration", "Concentration"])
-        
-        vol_to_take = min(
-            target_vol,
-            prev_vol
-        )
+                target_vol = target_amt_ng / fetch_last(
+                    art_tuple, ["Final Concentration", "Concentration"]
+                )
+
+        vol_to_take = min(target_vol, prev_vol)
 
         if conc_units == "nM":
-            amt_taken_fmol = vol_to_take * fetch_last(art_tuple, ["Final Concentration", "Concentration"])
+            amt_taken_fmol = vol_to_take * fetch_last(
+                art_tuple, ["Final Concentration", "Concentration"]
+            )
             amt_taken_ng = fmol_to_ng(amt_taken_fmol, size)
 
         elif conc_units == "ng/ul":
-            amt_taken_ng = vol_to_take * fetch_last(art_tuple, ["Final Concentration", "Concentration"])
+            amt_taken_ng = vol_to_take * fetch_last(
+                art_tuple, ["Final Concentration", "Concentration"]
+            )
             amt_taken_fmol = ng_to_fmol(amt_taken_ng, size)
 
-
-        put(art_tuple[1]["uri"], "Amount (ng)", round(amt_taken_ng,1))
-        put(art_tuple[1]["uri"], "Amount (fmol)", round(amt_taken_fmol,1))
-        put(art_tuple[1]["uri"], "Volume to take (uL)", round(vol_to_take,1))
+        put(art_tuple[1]["uri"], "Amount (ng)", round(amt_taken_ng, 1))
+        put(art_tuple[1]["uri"], "Amount (fmol)", round(amt_taken_fmol, 1))
+        put(art_tuple[1]["uri"], "Volume to take (uL)", round(vol_to_take, 1))
 
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid',
-                        help='Lims id for current Process')
+    parser.add_argument("--pid", help="Lims id for current Process")
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
