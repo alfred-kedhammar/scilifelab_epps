@@ -31,7 +31,7 @@ def main(lims, args):
             udf_tools.put(art_out, "Amount (ng)", round(conc * vol, 2))
             
             # Calculate amount fmol based on length in this, or previous, step
-            size_bp = udf_tools.fetch_last(currentStep, art_tuple, "Size (bp)")
+            size_bp = udf_tools.fetch_last(art_tuple, "Size (bp)")
 
             udf_tools.put(art_out, "Amount (fmol)", round(formula.ng_to_fmol(art_out.udf["Amount (ng)"], size_bp), 2))
 
