@@ -18,31 +18,36 @@ def main(lims, args):
 
     currentStep = Process(lims, id=args.pid)
 
-    art_tuples = [
-        art_tuple
-        for art_tuple in currentStep.input_output_maps
-        if art_tuple[1]["output-type"] == "Analyte"
-    ]
+    art_tuples = udf_tools.get_art_tuples(currentStep)
 
     for art_tuple in art_tuples:
 
-        # Fetch info
-        art_out = art_tuple[1]["uri"]
-
         # Calculate amount ng based on info in current step
-        conc = art_out.udf["Final Concentration"]
-        vol = art_out.udf["Final Volume (uL)"]
+        conc = udf_tools.fetch(art_tuple, ["Final Concentration", "Concentration"], step=currentStep)
+        vol = udf_tools.fetch(art_tuple, ["Final Volume (uL)", "Volume (ul)"], step=currentStep)
 
-        udf_tools.put(art_out, "Amount (ng)", round(conc * vol, 2))
+        try:
+            udf_tools.put(art_tuple[1]["uri"], "Amount (ng)", round(conc * vol, 2), on_fail=None)
+        except TypeError:
+            udf_tools.put(art_tuple[0]["uri"], "Amount (ng)", round(conc * vol, 2), on_fail=None)
 
         # Calculate amount fmol based on length in this, or previous, step
         size_bp = udf_tools.fetch_last(art_tuple, "Size (bp)")
 
-        udf_tools.put(
-            art_out,
-            "Amount (fmol)",
-            round(formula.ng_to_fmol(art_out.udf["Amount (ng)"], size_bp), 2),
-        )
+        try:
+            udf_tools.put(
+                art_tuple[1]["uri"],
+                "Amount (fmol)",
+                round(formula.ng_to_fmol(art_tuple[1]["uri"].udf["Amount (ng)"], size_bp), 2),
+                on_fail=None
+            )
+        except TypeError:
+            udf_tools.put(
+                art_tuple[0]["uri"],
+                "Amount (fmol)",
+                round(formula.ng_to_fmol(art_tuple[0]["uri"].udf["Amount (ng)"], size_bp), 2),
+                on_fail=None
+            )
 
 
 if __name__ == "__main__":
