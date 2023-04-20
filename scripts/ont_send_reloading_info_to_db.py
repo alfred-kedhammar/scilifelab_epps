@@ -21,12 +21,9 @@ Information is parsed from LIMS and uploaded to the CouchDB database nanopore_ru
 
 
 def main(lims, args):
-    """For all samples/flowcells, use the flowcell ID to find the sequencing run entry in the nanopore_runs database.
+    """For all samples/flowcells, use the experiment ID and flowcell ID to find the sequencing run entry in the nanopore_runs database.
 
     Then update the document "lims_fc_info" json object nest with the loading and reloading information.
-
-    In the rare event that multiple sequencing runs are found for the same flowcell,
-    use the LIMS-ID of the previous process (the samplesheet generation step) to identify the correct run.
 
     Finish by also updating the step UDF log.
 
@@ -35,7 +32,6 @@ def main(lims, args):
     """
 
     try:
-
         currentStep = Process(lims, id=args.pid)
 
         timestamp = dt.now().strftime("%y%m%d_%H%M%S")
@@ -49,7 +45,6 @@ def main(lims, args):
 
         fcs = []
         for art_tuple in art_tuples:
-
             fc = parse_fc(art_tuple)
             fcs.append(fc)
 
@@ -59,7 +54,6 @@ def main(lims, args):
         runtime_log = []
         errors = False
         for fc in fcs:
-
             rows_matching_fc = [
                 row
                 for row in view.rows
@@ -70,7 +64,7 @@ def main(lims, args):
             try:
                 assert (
                     len(rows_matching_fc) > 0
-                ), f"The database contains no document with flow cell ID {fc['fc_id']} and experiment ID {fc['samplesheet_id']}. If the run was recently started, wait until it appears in GenStat."
+                ), f"The database contains no document with experiment ID {fc['samplesheet_id']} and flow cell ID {fc['fc_id']}. If the run was recently started, wait until it appears in GenStat."
                 assert (
                     len(rows_matching_fc) == 1
                 ), f"The database contains multiple documents with flow cell ID {fc['fc_id']} and experiment ID {fc['samplesheet_id']}. Contact a database administrator."
@@ -119,11 +113,6 @@ def parse_fc(art_tuple):
     """For each art_tuple, assert UDFs and return parsed dictionary"""
 
     fc = {}
-    fc["samplesheet_id"] = art_tuple[0]["uri"].parent_process.id
-    fc["fc_id"] = art_tuple[0]["uri"].udf.get("ONT flow cell ID")
-    fc["minknow_sample_id"] = get_minknow_sample_id(art_tuple[0]["uri"])
-    fc["qc"] = art_tuple[0]["uri"].udf.get("ONT Flow Cell QC Pore Count")
-    fc["load_fmol"] = art_tuple[0]["uri"].udf.get("Amount (fmol)")
 
     fc["reload_times"] = (
         art_tuple[1]["uri"]
@@ -148,7 +137,6 @@ def parse_fc(art_tuple):
     )
 
     if fc["reload_times"] or fc["reload_fmols"] or fc["reload_lots"]:
-
         assert (
             fc["reload_times"]
             and fc["reload_fmols"]
@@ -173,10 +161,8 @@ def parse_fc(art_tuple):
 
 
 def check_times_list(times_list):
-
     prev_hours, prev_minutes = 0, 0
     for time in times_list:
-
         hours, minutes = time.split(":")
         hours, minutes = int(hours), int(minutes)
         assert hours > prev_hours or (

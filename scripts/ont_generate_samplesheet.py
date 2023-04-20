@@ -26,7 +26,7 @@ def main(lims, args):
     sample_id                   - For single samples:       e.g. P12345_101,
                                 - For pools: e.g.           P12345_lims-pool-id
                                 - For multi-project pools:  lims-pool-id
-    experiment_id               lims-step-id_yymmdd_hhmmss
+    experiment_id               lims-step-id
     flow_cell_product_code      e.g. FLO-MIN106D
     kit                         Product codes separated by spaces
     alias                       Only included for barcoded pools, sample name e.g. P12345_101
@@ -72,7 +72,7 @@ def main(lims, args):
                 "flow_cell_id": art.udf.get("ONT flow cell ID"),
                 "position_id": art.udf.get("ONT flow cell position"),
                 "sample_id": get_minknow_sample_id(art),
-                "experiment_id": f"{currentStep.id}_{dt.now().strftime('%y%m%d_%H%M%S')}",
+                "experiment_id": f"{currentStep.id}",
                 "flow_cell_product_code": art.udf["ONT flow cell type"].split(" ")[0],
                 "flow_cell_type": art.udf["ONT flow cell type"]
                 .split(" ")[1]
@@ -86,6 +86,10 @@ def main(lims, args):
                 ), "Positions must be specified for PromethION flow cells."
 
             # Add extra columns for barcodes
+            if len(art.reagent_labels) > 0:
+                assert (
+                    art.udf.get("ONT expansion kit") != "None"
+                ), f"Barcodes found in pool {art.name}, but no barcode kit specified."
             if art.udf.get("ONT expansion kit") != "None":
                 assert (
                     len(art.reagent_labels) > 0
