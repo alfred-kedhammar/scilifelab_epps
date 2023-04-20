@@ -103,14 +103,14 @@ def main(lims, args):
 
         df = pd.DataFrame(rows)
 
-        if len(df) > 1:
+        if len(arts) > 1:
             assert all(
                 ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
             ), "Only PromethION flowcells can be grouped together in the same sample sheet."
             assert (
-                len(df) <= 24
+                len(arts) <= 24
             ), "Only up to 24 PromethION flowcells may be started at once."
-        elif len(df) == 1 and "MinION" in df.flow_cell_type[0]:
+        elif len(arts) == 1 and "MinION" in df.flow_cell_type[0]:
             assert (
                 df.position_id[0] == "None"
             ), "MinION flow cells should not have a position assigned."
