@@ -21,14 +21,16 @@ def main(lims, args):
     """
     === Sample sheet columns ===
 
-    flow_cell_id                -
+    flow_cell_id                e.g. PAM96489
     position_id                 [1-3A-G] for PromethION, else None
-    sample_id                   For single samples: e.g. P12345_101, For pools: e.g. P12345_lims-pool-id
-    experiment_id               lims-step_yymmdd_hhmmss_nickname
-    flow_cell_product_code      -
+    sample_id                   - For single samples:       e.g. P12345_101,
+                                - For pools: e.g.           P12345_lims-pool-id
+                                - For multi-project pools:  lims-pool-id
+    experiment_id               lims-step-id_yymmdd_hhmmss
+    flow_cell_product_code      e.g. FLO-MIN106D
     kit                         Product codes separated by spaces
     alias                       Only included for barcoded pools, sample name e.g. P12345_101
-    barcode                     barcode01, barcode02, etc, excavated from LIMS
+    barcode                     barcode01, barcode02, etc, fetched from LIMS
 
     === Constraints ===
 
@@ -40,11 +42,11 @@ def main(lims, args):
     Must be unique within sheet:
     - flow_cell_id
     - position_id
-    - sample_id TODO check on instrument
+    - sample_id (TODO check if enforced by MinKNOW)
 
     Must be unique within the same flowcell
-    - alias TODO check on instrument
-    - barcode TODO check on instrument
+    - alias (TODO check if enforced by MinKNOW)
+    - barcode (TODO check if enforced by MinKNOW)
 
     === Flowcell product codes ===
 
@@ -60,14 +62,12 @@ def main(lims, args):
     ONT_samplesheet_lims-step_yymmdd_hhmmss.csv
     """
     try:
-
         currentStep = Process(lims, id=args.pid)
 
         arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
 
         rows = []
         for art in arts:
-
             row = {
                 "flow_cell_id": art.udf.get("ONT flow cell ID"),
                 "position_id": art.udf.get("ONT flow cell position"),
@@ -104,12 +104,17 @@ def main(lims, args):
         df = pd.DataFrame(rows)
 
         if len(df) > 1:
-            assert (
-                "PromethION" in df.flow_cell_type.unique()[0]
+            assert all(
+                ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
             ), "Only PromethION flowcells can be grouped together in the same sample sheet."
             assert (
                 len(df) <= 24
             ), "Only up to 24 PromethION flowcells may be started at once."
+        elif len(df) == 1 and "MinION" in df.flow_cell_type[0]:
+            assert (
+                df.position_id[0] == "None"
+            ), "MinION flow cells should not have a position assigned."
+
         assert (
             len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
         ), "All rows must have the same flow cell type and kits"
@@ -135,7 +140,6 @@ def upload_file(file_name, currentStep, lims):
 
 
 def write_csv(df):
-
     file_name = f"ONT_samplesheet_{df.experiment_id.unique()[0]}.csv"
 
     columns = [
