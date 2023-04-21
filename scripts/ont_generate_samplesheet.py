@@ -144,7 +144,8 @@ def upload_file(file_name, currentStep, lims):
 
 
 def write_csv(df):
-    file_name = f"ONT_samplesheet_{df.experiment_id.unique()[0]}.csv"
+    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+    file_name = f"ONT_samplesheet_{df.experiment_id.unique()[0]}_{timestamp}.csv"
 
     columns = [
         "flow_cell_id",
