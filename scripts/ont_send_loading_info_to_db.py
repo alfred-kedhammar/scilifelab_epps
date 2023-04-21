@@ -11,6 +11,7 @@ import sys
 import pandas as pd
 from io import StringIO
 from datetime import datetime as dt
+import re
 
 DESC = """ Script for EPP "ont_check_run_has_started".
 
@@ -78,47 +79,43 @@ def main(lims, args):
         runtime_log = []
         errors = False
         for i, row in df.iterrows():
-            matching_docs = [
-                doc
-                for doc in view.rows
-                if f"{row.experiment_id}" in doc.value["TACA_run_path"]
-                and f"{row.sample_id}" in doc.value["TACA_run_path"]
-                and f"{row.flow_cell_id}" in doc.value["TACA_run_path"]
-                and f"{row.position_id}" in doc.value["TACA_run_path"]
-            ]
+            if row.position_id == "None":
+                pattern = f"{row.experiment_id}/{row.sample_id}/[^/]*_{row.flow_cell_id}_[^/]*"
+            else:
+                pattern = f"{row.experiment_id}/{row.sample_id}/[^/]*_{row.position_id}_{row.flow_cell_id}_[^/]*"
+
+            runtime_log_lines = [f"Checking StatusDB for run path: \n{pattern}"]
+
+            matching_docs = []
+            for doc in view.rows:
+                query = doc.value["TACA_run_path"]
+                if re.match(pattern, query):
+                    matching_docs.append(query)
 
             try:
                 if len(matching_docs) == 0:
                     partially_matching_paths = [
-                        "\t".join(doc.value["TACA_run_path"].split("/"))
+                        doc.value["TACA_run_path"]
                         for doc in view.rows
                         if f"{row.experiment_id}" in doc.value["TACA_run_path"]
                         or f"{row.sample_id}" in doc.value["TACA_run_path"]
                         or f"{row.flow_cell_id}" in doc.value["TACA_run_path"]
                     ]
 
-                    msg_lines = [
-                        f"The database contains no runs matching the query on flow cell {row.flow_cell_id}",
-                        "\nIf the run was recently started, wait until it appears in GenStat. If the samplesheet is incorrect, modify it accordingly.",
-                        "\n"
-                        + "\t".join(["Experiment ID", "Sample ID", "Flow Cell ID"]),
-                        "=============================================",
-                        "\nQuery:",
-                        "\t".join([row.experiment_id, row.sample_id, row.flow_cell_id]),
-                        "\nPartial matches:",
-                        "\t".join([row.experiment_id, row.sample_id, row.flow_cell_id]),
-                        "\t".join(partially_matching_paths),
+                    runtime_log_lines += [
+                        f"The database contains no runs matching the sample sheet",
+                        "If the run was recently started, wait until it appears in GenStat. If the samplesheet is incorrect, upload the correct one.",
+                        "Partial matches:",
+                        "\n".join(partially_matching_paths),
                     ]
 
-                    raise AssertionError("\n".join(msg_lines))
+                    raise AssertionError("\n".join(runtime_log_lines))
 
                 if len(matching_docs) > 1:
-                    msg_lines = [
-                        "Checking StatusDB for: "
-                        f"MinKNOW Experiment ID {row.experiment_id}, MinKNOW Sample ID {row.sample_id}, Flow cell ID {row.flow_cell_id}, Position {row.position_id}.",
-                        "The database contains multiple matching documents contact a database administrator.",
-                    ]
-                    raise AssertionError("\n".join(msg_lines))
+                    runtime_log_lines.append(
+                        "The database contains multiple matching documents. Contact a database administrator.",
+                    )
+                    raise AssertionError("\n".join(runtime_log_lines))
 
                 doc_id = matching_docs[0].id
                 doc = db[doc_id]
