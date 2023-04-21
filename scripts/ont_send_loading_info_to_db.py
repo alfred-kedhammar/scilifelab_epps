@@ -58,14 +58,12 @@ def main(lims, args):
         arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
 
         # Match sample sheet contents to artifacts
-        assert len(df) == len(
-            arts
-        ), "Sample sheet contents doesn't match current step info."
-
         qcs = []
         amts = []
         for i, row in df.iterrows():
-            matching_arts = [art for art in arts if art.udf["ONT flow cell ID"]]
+            matching_arts = [
+                art for art in arts if art.udf["ONT flow cell ID"] == row.flow_cell_id
+            ]
             assert (
                 len(matching_arts) == 1
             ), "Sample sheet contents doesn't match current step."
@@ -90,7 +88,7 @@ def main(lims, args):
             for doc in view.rows:
                 query = doc.value["TACA_run_path"]
                 if re.match(pattern, query):
-                    matching_docs.append(query)
+                    matching_docs.append(doc)
 
             try:
                 if len(matching_docs) == 0:
@@ -111,22 +109,23 @@ def main(lims, args):
 
                     raise AssertionError("\n".join(runtime_log_lines))
 
-                if len(matching_docs) > 1:
+                elif len(matching_docs) > 1:
                     runtime_log_lines.append(
                         "The database contains multiple matching documents. Contact a database administrator.",
                     )
                     raise AssertionError("\n".join(runtime_log_lines))
 
-                doc_id = matching_docs[0].id
-                doc = db[doc_id]
+                elif len(matching_docs) == 1:
+                    doc_id = matching_docs[0].id
+                    doc = db[doc_id]
 
-                dict_to_add = {
-                    "step_name": currentStep.type.name,
-                    "pid": currentStep.id,
-                    "timestamp": timestamp,
-                    "qc": row.qc_pore_count,
-                    "load_fmol": row.initial_loading_fmol,
-                }
+                    dict_to_add = {
+                        "step_name": currentStep.type.name,
+                        "pid": currentStep.id,
+                        "timestamp": timestamp,
+                        "qc": row.qc_pore_count,
+                        "load_fmol": row.initial_loading_fmol,
+                    }
 
                 try:
                     # Try to find pre-existing nest and loading list to append to
