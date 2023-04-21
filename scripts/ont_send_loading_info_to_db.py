@@ -5,29 +5,18 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from ont_send_fc_to_db import get_ONT_db
-from ont_generate_samplesheet import get_minknow_sample_id
+from ont_send_reloading_info_to_db import get_ONT_db
 import sys
 import pandas as pd
 from io import StringIO
 from datetime import datetime as dt
 import re
+from utils import udf_tools
 
 DESC = """ Script for EPP "ont_check_run_has_started".
 
 Ensure all samples in the step correspond to an ONT run that was started with the correct samplesheet.
 """
-
-
-def parse_fc(art_tuple):
-    fc = {}
-    fc["samplesheet_id"] = art_tuple[1]["uri"].parent_process.id
-    fc["fc_id"] = art_tuple[1]["uri"].udf.get("ONT flow cell ID")
-    fc["minknow_sample_id"] = get_minknow_sample_id(art_tuple[1]["uri"])
-    fc["qc"] = art_tuple[1]["uri"].udf.get("ONT Flow Cell QC Pore Count")
-    fc["load_fmol"] = art_tuple[1]["uri"].udf.get("Amount (fmol)")
-
-    return fc
 
 
 def get_file(lims, currentStep, file_name):
@@ -48,9 +37,14 @@ def main(lims, args):
             samplesheet = pd.read_csv(get_file(lims, currentStep, "ONT sample sheet"))
         except:
             raise AssertionError("No sample sheet provided.")
-        df = samplesheet[
-            ["experiment_id", "sample_id", "flow_cell_id", "position_id"]
-        ].drop_duplicates()
+        if "position_id" in samplesheet.columns:
+            df = samplesheet[
+                ["experiment_id", "sample_id", "flow_cell_id", "position_id"]
+            ].drop_duplicates()
+        else:
+            df = samplesheet[
+                ["experiment_id", "sample_id", "flow_cell_id"]
+            ].drop_duplicates()
 
         db = get_ONT_db()
         view = db.view("info/all_stats")
@@ -67,8 +61,14 @@ def main(lims, args):
             assert (
                 len(matching_arts) == 1
             ), "Sample sheet contents doesn't match current step."
-            qcs.append(matching_arts[0].udf["ONT Flow Cell QC Pore Count"])
-            amts.append(matching_arts[0].udf["Amount (fmol)"])
+            qcs.append(
+                udf_tools.fetch(
+                    matching_arts[0], "ONT Flow Cell QC Pore Count", on_fail="None"
+                )
+            )
+            amts.append(
+                udf_tools.fetch(matching_arts[0], "Amount (fmol)", on_fail="None")
+            )
 
         df["qc_pore_count"] = qcs
         df["initial_loading_fmol"] = amts
@@ -77,10 +77,10 @@ def main(lims, args):
         runtime_log = []
         errors = False
         for i, row in df.iterrows():
-            if row.position_id == "None":
-                pattern = f"{row.experiment_id}/{row.sample_id}/[^/]*_{row.flow_cell_id}_[^/]*"
-            else:
+            try:
                 pattern = f"{row.experiment_id}/{row.sample_id}/[^/]*_{row.position_id}_{row.flow_cell_id}_[^/]*"
+            except AttributeError:
+                pattern = f"{row.experiment_id}/{row.sample_id}/[^/]*_{row.flow_cell_id}_[^/]*"
 
             runtime_log_lines = [f"Checking StatusDB for run path: \n{pattern}"]
 
@@ -103,9 +103,13 @@ def main(lims, args):
                     runtime_log_lines += [
                         f"The database contains no runs matching the sample sheet",
                         "If the run was recently started, wait until it appears in GenStat. If the samplesheet is incorrect, upload the correct one.",
-                        "Partial matches:",
-                        "\n".join(partially_matching_paths),
                     ]
+
+                    if partially_matching_paths:
+                        runtime_log_lines += [
+                            "Partial matches:",
+                            "\n".join(partially_matching_paths),
+                        ]
 
                     raise AssertionError("\n".join(runtime_log_lines))
 
