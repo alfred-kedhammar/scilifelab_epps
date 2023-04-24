@@ -79,20 +79,16 @@ def main(lims, args):
                 }
 
                 try:
-                    # Try to find pre-existing nest and loading list to append to
-                    lims_nest = doc["lims"]
                     try:
-                        reloading_list = lims_nest["reloading"]
+                        doc["lims"]["reloading"].append(dict_to_add)
                     except KeyError:
-                        reloading_list = []
-                except KeyError:
-                    # Create new nest and loading list
-                    reloading_list = []
-                    lims_nest = {"reloading": reloading_list}
+                        doc["lims"]["reloading"] = []
+                        doc["lims"]["reloading"].append(dict_to_add)
+                except:
+                    doc["lims"] = {}
+                    doc["lims"]["reloading"] = []
+                    doc["lims"]["reloading"].append(dict_to_add)
 
-                reloading_list.append(dict_to_add)
-
-                doc.update({"lims": lims_nest})
                 db[doc.id] = doc
 
                 runtime_log.append(
