@@ -19,7 +19,6 @@ volumes, amounts and molar percentages of samples. These values are tabulated an
 
 
 def main(lims, args):
-
     currentStep = Process(lims, id=args.pid)
     log = []
 
@@ -43,7 +42,6 @@ def main(lims, args):
     )
 
     for pool in pools:
-
         log.append(f"{pool.name}")
 
         # Subset data
