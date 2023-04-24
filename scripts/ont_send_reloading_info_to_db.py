@@ -11,7 +11,6 @@ import os
 import couchdb
 import yaml
 import sys
-from ont_generate_samplesheet import get_minknow_sample_id
 
 
 DESC = """ Script for EPP "Send ONT flowcell info to StatusDB".
