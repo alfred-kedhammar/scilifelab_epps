@@ -20,11 +20,9 @@ Information is parsed from LIMS and uploaded to the CouchDB database nanopore_ru
 
 
 def main(lims, args):
-    """For all samples/flowcells, use the experiment ID and flowcell ID to find the sequencing run entry in the nanopore_runs database.
+    """For all samples/flowcells, use the run name to find the correct database entry.
 
-    Then update the document "lims_fc_info" json object nest with the loading and reloading information.
-
-    Finish by also updating the step UDF log.
+    Then update the document "lims" json object nest with the reloading information.
 
     TODO Get parent process ID on a sample-by-sample basis, rather than once for the entire step.
          Current approach may cause issues if samples originate from different steps.
@@ -42,58 +40,64 @@ def main(lims, args):
             if art_tuple[1]["uri"].type == "Analyte"
         ]
 
-        fcs = []
+        runs = []
         for art_tuple in art_tuples:
-            fc = parse_fc(art_tuple)
-            fcs.append(fc)
+            run = parse_run(art_tuple)
+            if run:
+                runs.append(run)
 
         db = get_ONT_db()
         view = db.view("info/all_stats")
 
         runtime_log = []
         errors = False
-        for fc in fcs:
-            rows_matching_fc = [
+        for run in runs:
+            rows_matching_run = [
                 row
                 for row in view.rows
-                if f'{fc["fc_id"]}' in row.value["TACA_run_path"]
-                and fc["samplesheet_id"] in row.value["TACA_run_path"]
+                if f'{run["run_name"]}' in row.value["TACA_run_path"]
             ]
 
             try:
                 assert (
-                    len(rows_matching_fc) > 0
-                ), f"The database contains no document with experiment ID {fc['samplesheet_id']} and flow cell ID {fc['fc_id']}. If the run was recently started, wait until it appears in GenStat."
+                    len(rows_matching_run) > 0
+                ), f"The database contains no document with run name {run['run_name']}. If the run was recently started, wait until it appears in GenStat."
                 assert (
-                    len(rows_matching_fc) == 1
-                ), f"The database contains multiple documents with flow cell ID {fc['fc_id']} and experiment ID {fc['samplesheet_id']}. Contact a database administrator."
+                    len(rows_matching_run) == 1
+                ), f"The database contains multiple documents with run name {run['run_name']}. Contact a database administrator."
 
-                doc_id = rows_matching_fc[0].id
+                doc_id = rows_matching_run[0].id
                 doc = db[doc_id]
 
                 dict_to_add = {
+                    "step_name": currentStep.type.name,
                     "pid": currentStep.id,
                     "timestamp": timestamp,
-                    "qc": fc["qc"],
-                    "load_fmol": fc["load_fmol"],
-                    "reload_times": fc["reload_times"],
-                    "reload_fmols": fc["reload_fmols"],
-                    "reload_lots": fc["reload_lots"],
+                    "reload_times": run["reload_times"],
+                    "reload_fmols": run["reload_fmols"],
+                    "reload_lots": run["reload_lots"],
                 }
 
                 try:
-                    # Try to find pre-existing list to append to
-                    lims_list = doc["lims_fc_info"]
+                    # Try to find pre-existing nest and loading list to append to
+                    lims_nest = doc["lims"]
+                    try:
+                        reloading_list = lims_nest["reloading"]
+                    except KeyError:
+                        reloading_list = []
                 except KeyError:
-                    # Create new entry
-                    lims_list = []
+                    # Create new nest and loading list
+                    reloading_list = []
+                    lims_nest = {"reloading": reloading_list}
 
-                lims_list.append(dict_to_add)
+                reloading_list.append(dict_to_add)
 
-                doc.update({"lims_fc_info": lims_list})
+                doc.update({"lims": lims_nest})
                 db[doc.id] = doc
 
-                runtime_log.append(f"Flowcell {fc['fc_id']} was updated successfully.")
+                runtime_log.append(
+                    f"Flowcell {run['run_name']} was updated successfully."
+                )
 
             except AssertionError as e:
                 errors = True
@@ -108,10 +112,12 @@ def main(lims, args):
         sys.exit(2)
 
 
-def parse_fc(art_tuple):
+def parse_run(art_tuple):
     """For each art_tuple, assert UDFs and return parsed dictionary"""
 
     fc = {}
+
+    fc["run_name"] = art_tuple[1]["uri"].udf["ONT run name"]
 
     fc["reload_times"] = (
         art_tuple[1]["uri"]
@@ -156,7 +162,10 @@ def parse_fc(art_tuple):
             "^[0-9a-zA-Z.-_]+$", fc["reload_lots"]
         ), "Invalid Reload wash kit"
 
-    return fc
+        return fc
+
+    else:
+        return None
 
 
 def check_times_list(times_list):
