@@ -130,25 +130,24 @@ def main(lims, args):
                     )
                     raise AssertionError("\n".join(runtime_log_lines))
 
-                elif len(matching_docs) == 1:
-                    # Make dict for mapping to run names
-                    fc = [
-                        art.udf["ONT flow cell ID"]
-                        for art in arts
-                        if art.udf["ONT flow cell ID"] == row.flow_cell_id
-                    ][0]
-                    fc2run[fc] = matching_docs[0].value["TACA_run_path"].split("/")[-1]
+                # Make dict for mapping to run names
+                fc = [
+                    art.udf["ONT flow cell ID"]
+                    for art in arts
+                    if art.udf["ONT flow cell ID"] == row.flow_cell_id
+                ][0]
+                fc2run[fc] = matching_docs[0].value["TACA_run_path"].split("/")[-1]
 
-                    doc_id = matching_docs[0].id
-                    doc = db[doc_id]
+                doc_id = matching_docs[0].id
+                doc = db[doc_id]
 
-                    dict_to_add = {
-                        "step_name": currentStep.type.name,
-                        "pid": currentStep.id,
-                        "timestamp": timestamp,
-                        "qc": row.qc_pore_count,
-                        "load_fmol": row.initial_loading_fmol,
-                    }
+                dict_to_add = {
+                    "step_name": currentStep.type.name,
+                    "pid": currentStep.id,
+                    "timestamp": timestamp,
+                    "qc": row.qc_pore_count,
+                    "load_fmol": row.initial_loading_fmol,
+                }
 
                 try:
                     # Try to find pre-existing nest and loading list to append to
