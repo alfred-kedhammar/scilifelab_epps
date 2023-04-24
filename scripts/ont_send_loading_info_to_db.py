@@ -12,6 +12,8 @@ from io import StringIO
 from datetime import datetime as dt
 import re
 from utils import udf_tools
+from ont_generate_samplesheet import make_samplesheet
+import os
 
 DESC = """ Script for EPP "ont_check_run_has_started".
 
@@ -34,17 +36,25 @@ def main(lims, args):
 
         # Read samplesheet and extract run info (trim out sample specific info)
         try:
-            samplesheet = pd.read_csv(get_file(lims, currentStep, "ONT sample sheet"))
+            samplesheet = get_file(lims, currentStep, "ONT sample sheet")
         except:
             raise AssertionError("No sample sheet provided.")
-        if "position_id" in samplesheet.columns:
-            df = samplesheet[
+
+        # Check that current UDFs correspond to the current samplesheet, by generating it anew and comparing
+        new_ss_path = make_samplesheet(currentStep)
+        new_ss_contents = open(new_ss_path, "r").read()
+        os.remove(new_ss_path)
+        assert (
+            samplesheet.read() == new_ss_contents
+        ), "The current sample sheet doesn't correspond to the current UDFs."
+
+        df = pd.read_csv(get_file(lims, currentStep, "ONT sample sheet"))
+        if "position_id" in df.columns:
+            df = df[
                 ["experiment_id", "sample_id", "flow_cell_id", "position_id"]
             ].drop_duplicates()
         else:
-            df = samplesheet[
-                ["experiment_id", "sample_id", "flow_cell_id"]
-            ].drop_duplicates()
+            df = df[["experiment_id", "sample_id", "flow_cell_id"]].drop_duplicates()
 
         db = get_ONT_db()
         view = db.view("info/all_stats")
