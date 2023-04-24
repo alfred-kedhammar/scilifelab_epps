@@ -86,6 +86,7 @@ def main(lims, args):
         # Match sample sheet contents and artifacts to db
         runtime_log = []
         errors = False
+        fc2run = {}
         for i, row in df.iterrows():
             try:
                 pattern = f"{row.experiment_id}/{row.sample_id}/[^/]*_{row.position_id}_{row.flow_cell_id}_[^/]*"
@@ -130,6 +131,14 @@ def main(lims, args):
                     raise AssertionError("\n".join(runtime_log_lines))
 
                 elif len(matching_docs) == 1:
+                    # Make dict for mapping to run names
+                    fc = [
+                        art.udf["ONT flow cell ID"]
+                        for art in arts
+                        if art.udf["ONT flow cell ID"] == row.flow_cell_id
+                    ][0]
+                    fc2run[fc] = matching_docs[0].value["TACA_run_path"].split("/")[-1]
+
                     doc_id = matching_docs[0].id
                     doc = db[doc_id]
 
@@ -169,6 +178,9 @@ def main(lims, args):
 
         if errors:
             raise AssertionError("\n".join(runtime_log))
+
+        for art in arts:
+            udf_tools.put(art, "ONT run name", fc2run[art.udf["ONT flow cell ID"]])
 
     except AssertionError as e:
         sys.stderr.write(str(e))
