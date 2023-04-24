@@ -22,14 +22,18 @@ def main(lims, args):
     for art_tuple in art_tuples:
         # Calculate amount ng based on info in current step
         try:
-            conc = udf_tools.fetch(art_tuple, ["Final Concentration", "Concentration"])
+            conc = udf_tools.fetch(
+                art_tuple[1]["uri"], ["Final Concentration", "Concentration"]
+            )
         except:
             conc = udf_tools.fetch_from_tuple(
                 art_tuple, ["Final Concentration", "Concentration"]
             )
 
         try:
-            vol = udf_tools.fetch(art_tuple, ["Final Volume (uL)", "Volume (ul)"])
+            vol = udf_tools.fetch(
+                art_tuple[1]["uri"], ["Final Volume (uL)", "Volume (ul)"]
+            )
         except:
             vol = udf_tools.fetch_from_tuple(
                 art_tuple, ["Final Volume (uL)", "Volume (ul)"]

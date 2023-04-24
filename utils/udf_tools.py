@@ -139,88 +139,84 @@ def fetch_last(
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
 
-    history = []
-
-    try:
-        input_art = art_tuple[0]["uri"]
-    except:
-        input_art = None
-    try:
-        output_art = art_tuple[1]["uri"]
-    except:
-        output_art = None
-
     # Convert to list, to enable iteration
     if type(target_udfs) == str:
         target_udfs = [target_udfs]
 
-    # Search output of current step (optional)
-    if output_art:
-        history.append(
-            {
-                "Step name": currentStep.type.name,
-                "Output article ID": output_art.id,
-                "Output article UDFs": dict(output_art.udf.items()),
-            }
-        )
+    history = []
 
-        if use_current:
-            for target_udf in target_udfs:
-                if target_udf in list_udfs(output_art):
-                    if print_history == True:
-                        for j in history:
-                            print(json.dumps(j, indent=2))
-                    return output_art.udf[target_udf]
-
-    # Search input of current step
-    if input_art:
-        history.append(
-            {
-                "Step name": currentStep.type.name,
-                "Input article ID": input_art.id,
-                "Input article UDFs": dict(input_art.udf.items()),
-            }
-        )
-        for target_udf in target_udfs:
-            if target_udf in list_udfs(input_art):
-                if print_history == True:
-                    for j in history:
-                        print(json.dumps(j, indent=2))
-                return input_art.udf[target_udf]
-
-    # Start looking though previous steps.
     while True:
-        if input_art.parent_process:
-            pp = input_art.parent_process
-            pp_tuples = pp.input_output_maps
+        history.append({"step_name": currentStep.type.name})
 
-            # Find the input whose output is the current artifact
-            pp_tuple = [
-                pp_tuple
-                for pp_tuple in pp_tuples
-                if pp_tuple[1]["uri"].id == input_art.id
-            ][0]
-            pp_input = pp_tuple[0]["uri"]
-            pp_output = pp_tuple[1]["uri"]
+        try:
+            input_art = art_tuple[0]["uri"]
+        except:
+            input_art = None
+        try:
+            output_art = art_tuple[1]["uri"]
+        except:
+            output_art = None
 
-            history.append(
-                {
-                    "Step name": pp.type.name,
-                    "Output article ID": pp_output.id,
-                    "Output article UDFs": dict(pp_output.udf.items()),
-                }
-            )
-
-            for target_udf in target_udfs:
-                if target_udf in list_udfs(pp_output):
-                    if print_history == True:
-                        for j in history:
-                            print(json.dumps(j, indent=2))
-                    return pp_output.udf[target_udf]
-
-            input_art = pp_input
-
-        elif issubclass(type(on_fail), BaseException):
-            raise on_fail
+        # Look trough outputs
+        if len(history) == 1 and use_current != True:
+            pass
         else:
-            return on_fail
+            if output_art:
+                history[-1].update(
+                    {
+                        "Output article ID": output_art.id,
+                        "Output article UDFs": dict(output_art.udf.items()),
+                    }
+                )
+
+                for target_udf in target_udfs:
+                    if target_udf in list_udfs(output_art):
+                        return output_art.udf[target_udf]
+
+            # Look through inputs
+            if input_art:
+                history[-1].update(
+                    {
+                        "Input article ID": input_art.id,
+                        "Input article UDFs": dict(input_art.udf.items()),
+                    }
+                )
+
+                for target_udf in target_udfs:
+                    if target_udf in list_udfs(input_art):
+                        return input_art.udf[target_udf]
+
+        # Cycle to previous step, if possible
+        try:
+            pp = input_art.parent_process
+            pp_tuples = get_art_tuples(currentStep)
+            matching_tuples = []
+            for pp_tuple in pp_tuples:
+                try:
+                    pp_input = pp_tuple[0]["uri"]
+                except:
+                    pp_input = None
+                try:
+                    pp_output = pp_tuple[1]["uri"]
+                except:
+                    pp_output = None
+
+                if (pp_input and pp_input.id == input_art.id) or (
+                    pp_output and pp_output.id == input_art.id
+                ):
+                    matching_tuples.append(pp_tuple)
+
+            assert len(matching_tuples) == 1
+
+            currentStep = pp
+            art_tuple = pp_tuples[0]
+
+        except:
+            if issubclass(type(on_fail), BaseException):
+                if print_history == True:
+                    print(json.dumps(history, indent=2))
+                raise on_fail
+            else:
+                if print_history == True:
+                    print(json.dumps(history, indent=2))
+                return on_fail
