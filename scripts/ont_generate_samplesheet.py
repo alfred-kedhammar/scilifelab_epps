@@ -64,75 +64,79 @@ def main(lims, args):
     try:
         currentStep = Process(lims, id=args.pid)
 
-        arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
-
-        rows = []
-        for art in arts:
-            row = {
-                "flow_cell_id": art.udf.get("ONT flow cell ID"),
-                "position_id": art.udf.get("ONT flow cell position"),
-                "sample_id": get_minknow_sample_id(art),
-                "experiment_id": f"{currentStep.id}",
-                "flow_cell_product_code": art.udf["ONT flow cell type"].split(" ")[0],
-                "flow_cell_type": art.udf["ONT flow cell type"]
-                .split(" ")[1]
-                .strip("()"),
-                "kit": get_kit_string(art),
-            }
-
-            if "PromethION" in row["flow_cell_type"]:
-                assert (
-                    row["position_id"] != "None"
-                ), "Positions must be specified for PromethION flow cells."
-
-            # Add extra columns for barcodes
-            if len(art.reagent_labels) > 0:
-                assert (
-                    art.udf.get("ONT expansion kit") != "None"
-                ), f"Barcodes found in pool {art.name}, but no barcode kit specified."
-            if art.udf.get("ONT expansion kit") != "None":
-                assert (
-                    len(art.reagent_labels) > 0
-                ), f"No barcodes found within pool {art.name}"
-                for sample, label in zip(art.samples, art.reagent_labels):
-                    row["alias"] = strip_characters(sample.name)
-                    row["barcode"] = strip_characters(
-                        "barcode" + label[0:2]
-                    )  # TODO double check extraction of barcode number
-                    rows.append(row.copy())
-            else:
-                rows.append(row)
-
-            assert "" not in row.values(), "All fields must be populated."
-
-        df = pd.DataFrame(rows)
-
-        if len(arts) > 1:
-            assert all(
-                ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
-            ), "Only PromethION flowcells can be grouped together in the same sample sheet."
-            assert (
-                len(arts) <= 24
-            ), "Only up to 24 PromethION flowcells may be started at once."
-        elif len(arts) == 1 and "MinION" in df.flow_cell_type[0]:
-            assert (
-                df.position_id[0] == "None"
-            ), "MinION flow cells should not have a position assigned."
-
-        assert (
-            len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
-        ), "All rows must have the same flow cell type and kits"
-        assert (
-            len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
-        ), "All rows must have different flow cell positions and IDs"
-
-        file_name = write_csv(df)
+        file_name = make_samplesheet(currentStep)
         upload_file(file_name, currentStep, lims)
         shutil.move(file_name, f"/srv/mfs/samplesheets/nanopore/{dt.now().year}/")
 
     except AssertionError as e:
         sys.stderr.write(str(e))
         sys.exit(2)
+
+
+def make_samplesheet(currentStep):
+    arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
+
+    rows = []
+    for art in arts:
+        row = {
+            "flow_cell_id": art.udf.get("ONT flow cell ID"),
+            "position_id": art.udf.get("ONT flow cell position"),
+            "sample_id": get_minknow_sample_id(art),
+            "experiment_id": f"{currentStep.id}",
+            "flow_cell_product_code": art.udf["ONT flow cell type"].split(" ")[0],
+            "flow_cell_type": art.udf["ONT flow cell type"].split(" ")[1].strip("()"),
+            "kit": get_kit_string(art),
+        }
+
+        if "PromethION" in row["flow_cell_type"]:
+            assert (
+                row["position_id"] != "None"
+            ), "Positions must be specified for PromethION flow cells."
+
+        # Add extra columns for barcodes
+        if len(art.reagent_labels) > 0:
+            assert (
+                art.udf.get("ONT expansion kit") != "None"
+            ), f"Barcodes found in pool {art.name}, but no barcode kit specified."
+        if art.udf.get("ONT expansion kit") != "None":
+            assert (
+                len(art.reagent_labels) > 0
+            ), f"No barcodes found within pool {art.name}"
+            for sample, label in zip(art.samples, art.reagent_labels):
+                row["alias"] = strip_characters(sample.name)
+                row["barcode"] = strip_characters(
+                    "barcode" + label[0:2]
+                )  # TODO double check extraction of barcode number
+                rows.append(row.copy())
+        else:
+            rows.append(row)
+
+        assert "" not in row.values(), "All fields must be populated."
+
+    df = pd.DataFrame(rows)
+
+    if len(arts) > 1:
+        assert all(
+            ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
+        ), "Only PromethION flowcells can be grouped together in the same sample sheet."
+        assert (
+            len(arts) <= 24
+        ), "Only up to 24 PromethION flowcells may be started at once."
+    elif len(arts) == 1 and "MinION" in df.flow_cell_type[0]:
+        assert (
+            df.position_id[0] == "None"
+        ), "MinION flow cells should not have a position assigned."
+
+    assert (
+        len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
+    ), "All rows must have the same flow cell type and kits"
+    assert (
+        len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
+    ), "All rows must have different flow cell positions and IDs"
+
+    file_name = write_csv(df)
+
+    return file_name
 
 
 def upload_file(file_name, currentStep, lims):
