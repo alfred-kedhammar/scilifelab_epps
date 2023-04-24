@@ -24,7 +24,6 @@ Will use ONE of the output UDFs (prioritized in the listed order) to calculate a
 
 
 def main(lims, args):
-
     currentStep = Process(lims, id=args.pid)
 
     art_tuples = [
@@ -34,8 +33,7 @@ def main(lims, args):
     ]
 
     for art_tuple in art_tuples:
-
-        size = fetch_last(art_tuple, "Size (bp)")
+        size = fetch_last(currentStep, art_tuple, "Size (bp)")
         conc_units = fetch(art_tuple[0]["uri"], "Conc. Units", on_fail="ng/ul")
 
         # Fetch target amount, either fmol or ng
@@ -53,30 +51,32 @@ def main(lims, args):
                 basis = "vol"
 
         # Fetch last known sample volume
-        prev_vol = fetch_last(art_tuple, ["Final Volume (uL)", "Volume (ul)"])
+        prev_vol = fetch_last(
+            currentStep, art_tuple, ["Final Volume (uL)", "Volume (ul)"]
+        )
 
         # Calculate
         if basis == "fmol" or basis == "ng":
             if conc_units == "nM":
                 target_vol = target_amt_fmol / fetch_last(
-                    art_tuple, ["Final Concentration", "Concentration"]
+                    currentStep, art_tuple, ["Final Concentration", "Concentration"]
                 )
             elif conc_units == "ng/ul":
                 target_vol = target_amt_ng / fetch_last(
-                    art_tuple, ["Final Concentration", "Concentration"]
+                    currentStep, art_tuple, ["Final Concentration", "Concentration"]
                 )
 
         vol_to_take = min(target_vol, prev_vol)
 
         if conc_units == "nM":
             amt_taken_fmol = vol_to_take * fetch_last(
-                art_tuple, ["Final Concentration", "Concentration"]
+                currentStep, art_tuple, ["Final Concentration", "Concentration"]
             )
             amt_taken_ng = fmol_to_ng(amt_taken_fmol, size)
 
         elif conc_units == "ng/ul":
             amt_taken_ng = vol_to_take * fetch_last(
-                art_tuple, ["Final Concentration", "Concentration"]
+                currentStep, art_tuple, ["Final Concentration", "Concentration"]
             )
             amt_taken_fmol = ng_to_fmol(amt_taken_ng, size)
 

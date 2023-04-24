@@ -89,7 +89,7 @@ def fetch_from_tuple(
     for target_udf in target_udfs:
         try:
             return art_tuple[1]["uri"].udf[target_udf]
-        except KeyError:
+        except:
             try:
                 return art_tuple[0]["uri"].udf[target_udf]
             except:
@@ -127,6 +127,7 @@ def list_udfs(art: Artifact) -> list:
 
 
 def fetch_last(
+    currentStep: Process,
     art_tuple: tuple,
     target_udfs: str or list,
     use_current=True,
@@ -140,34 +141,52 @@ def fetch_last(
 
     history = []
 
-    input_art = art_tuple[0]["uri"]
-    if art_tuple[1]:
+    try:
+        input_art = art_tuple[0]["uri"]
+    except:
+        input_art = None
+    try:
         output_art = art_tuple[1]["uri"]
-    else:
+    except:
         output_art = None
 
     # Convert to list, to enable iteration
     if type(target_udfs) == str:
         target_udfs = [target_udfs]
 
-    # Traceback of artifact ID, step and UDFs
+    # Search output of current step (optional)
     if output_art:
         history.append(
             {
-                "Step name": output_art.parent_process.type.name,
+                "Step name": currentStep.type.name,
                 "Output article ID": output_art.id,
                 "Output article UDFs": dict(output_art.udf.items()),
             }
         )
 
-    # Return UDF if present in output of current step
-    if use_current and output_art:
+        if use_current:
+            for target_udf in target_udfs:
+                if target_udf in list_udfs(output_art):
+                    if print_history == True:
+                        for j in history:
+                            print(json.dumps(j, indent=2))
+                    return output_art.udf[target_udf]
+
+    # Search input of current step
+    if input_art:
+        history.append(
+            {
+                "Step name": currentStep.type.name,
+                "Input article ID": input_art.id,
+                "Input article UDFs": dict(input_art.udf.items()),
+            }
+        )
         for target_udf in target_udfs:
-            if target_udf in list_udfs(output_art):
+            if target_udf in list_udfs(input_art):
                 if print_history == True:
                     for j in history:
                         print(json.dumps(j, indent=2))
-                return output_art.udf[target_udf]
+                return input_art.udf[target_udf]
 
     # Start looking though previous steps.
     while True:
@@ -201,24 +220,7 @@ def fetch_last(
 
             input_art = pp_input
 
+        elif issubclass(type(on_fail), BaseException):
+            raise on_fail
         else:
-            # Use input artifact UDFs from this step if previous step can't be traced
-            history.append(
-                {
-                    "Step name": pp.type.name,
-                    "Input article ID": pp_input.id,
-                    "Input article UDFs": dict(pp_input.udf.items()),
-                }
-            )
-
-            for target_udf in target_udfs:
-                if target_udf in list_udfs(pp_input):
-                    if print_history == True:
-                        for j in history:
-                            print(json.dumps(j, indent=2))
-                    return pp_input.udf[target_udf]
-
-            if issubclass(type(on_fail), BaseException):
-                raise on_fail
-            else:
-                return on_fail
+            return on_fail
