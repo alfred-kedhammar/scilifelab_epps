@@ -13,7 +13,6 @@ The UDFs specified in the args are read from the input artifacts and written to 
 
 
 def main(lims, args):
-
     currentStep = Process(lims, id=args.pid)
 
     art_tuples = [
@@ -25,10 +24,17 @@ def main(lims, args):
     for art_tuple in art_tuples:
         ip, op = art_tuple[0]["uri"], art_tuple[1]["uri"]
 
-        for target_udf in args.udfs:
-            if udf_tools.is_filled(ip, target_udf):
-                val = udf_tools.fetch(ip, target_udf)
-                udf_tools.put(op, target_udf, val)
+        if args.udfs:
+            for target_udf in args.udfs:
+                if udf_tools.is_filled(ip, target_udf):
+                    val = udf_tools.fetch(ip, target_udf)
+                    udf_tools.put(op, target_udf, val, on_fail=None)
+
+        else:
+            ip_udfs = udf_tools.list_udfs(ip)
+
+            for udf in ip_udfs:
+                udf_tools.put(op, udf, ip.udf[udf], on_fail=None)
 
 
 if __name__ == "__main__":
