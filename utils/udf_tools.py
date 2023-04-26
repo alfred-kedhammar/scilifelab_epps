@@ -157,10 +157,11 @@ def fetch_last(
         except:
             output_art = None
 
-        # Look trough outputs
         if len(history) == 1 and use_current != True:
+            # If we are in the original step and "use_current" is false, skip
             pass
         else:
+            # Look trough outputs
             if output_art:
                 history[-1].update(
                     {
@@ -206,8 +207,11 @@ def fetch_last(
                 ):
                     matching_tuples.append(pp_tuple)
 
-            assert len(matching_tuples) == 1
+            assert (
+                len(matching_tuples) == 1
+            ), "Target artifact matches multiple inputs/outputs in previous step."
 
+            # Back-tracking successful, re-assign variables to represent previous step
             currentStep = pp
             art_tuple = pp_tuples[0]
 
