@@ -9,7 +9,7 @@ from utils.formula import fmol_to_ng, ng_to_fmol
 DESC = """
 EPP "ONT calculate volumes"
 
-Given output UDFs
+Given any output UDF(s)
 - Amount (fmol)
 - Amount (ng)
 - Volume to take (uL)
