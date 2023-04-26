@@ -7,8 +7,9 @@ from utils import formula, udf_tools
 
 DESC = """ EPP "ONT Update Amounts".
 
-Calculate the sample amount based on new (or, if needed, previous) measurements. Written to run between the steps of the
-Nanopore ligation library prep.
+Use new concentration and volume measurements to calculate amount (ng) and, if possible, amount (fmol).
+
+For the amount (fmol) calculation, the last recorded size is used.
 
 Alfred Kedhammar, NGI SciLifeLab
 """
@@ -21,56 +22,29 @@ def main(lims, args):
 
     for art_tuple in art_tuples:
         # Calculate amount ng based on info in current step
-        try:
-            conc = udf_tools.fetch(
-                art_tuple[1]["uri"], ["Final Concentration", "Concentration"]
-            )
-        except:
-            conc = udf_tools.fetch_from_tuple(
-                art_tuple, ["Final Concentration", "Concentration"]
-            )
 
-        try:
-            vol = udf_tools.fetch(
-                art_tuple[1]["uri"], ["Final Volume (uL)", "Volume (ul)"]
-            )
-        except:
-            vol = udf_tools.fetch_from_tuple(
-                art_tuple, ["Final Volume (uL)", "Volume (ul)"]
-            )
+        conc = udf_tools.fetch(
+            art_tuple[1]["uri"], ["Final Concentration", "Concentration"]
+        )
 
-        try:
-            udf_tools.put(
-                art_tuple[1]["uri"], "Amount (ng)", round(conc * vol, 2), on_fail=None
-            )
-        except TypeError:
-            udf_tools.put(
-                art_tuple[0]["uri"], "Amount (ng)", round(conc * vol, 2), on_fail=None
-            )
+        vol = udf_tools.fetch(art_tuple[1]["uri"], ["Final Volume (uL)", "Volume (ul)"])
+
+        udf_tools.put(
+            art_tuple[1]["uri"], "Amount (ng)", round(conc * vol, 2), on_fail=None
+        )
 
         # Calculate amount fmol based on length in this, or previous, step
         size_bp = udf_tools.fetch_last(currentStep, art_tuple, "Size (bp)")
 
-        try:
-            udf_tools.put(
-                art_tuple[1]["uri"],
-                "Amount (fmol)",
-                round(
-                    formula.ng_to_fmol(art_tuple[1]["uri"].udf["Amount (ng)"], size_bp),
-                    2,
-                ),
-                on_fail=None,
-            )
-        except TypeError:
-            udf_tools.put(
-                art_tuple[0]["uri"],
-                "Amount (fmol)",
-                round(
-                    formula.ng_to_fmol(art_tuple[0]["uri"].udf["Amount (ng)"], size_bp),
-                    2,
-                ),
-                on_fail=None,
-            )
+        udf_tools.put(
+            art_tuple[1]["uri"],
+            "Amount (fmol)",
+            round(
+                formula.ng_to_fmol(art_tuple[1]["uri"].udf["Amount (ng)"], size_bp),
+                2,
+            ),
+            on_fail=None,
+        )
 
 
 if __name__ == "__main__":
