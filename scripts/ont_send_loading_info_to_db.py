@@ -66,7 +66,9 @@ def main(lims, args):
         amts = []
         for i, row in df.iterrows():
             matching_arts = [
-                art for art in arts if art.udf["ONT flow cell ID"] == row.flow_cell_id
+                art
+                for art in arts
+                if str(art.udf["ONT flow cell ID"]) == str(row.flow_cell_id)
             ]
             assert (
                 len(matching_arts) == 1
@@ -84,7 +86,9 @@ def main(lims, args):
         df["initial_loading_fmol"] = amts
 
         # Match sample sheet contents and artifacts to db
-        runtime_log = []
+        runtime_log = [
+            "Check that all runs have synced to the database (i.e. they are visible in GenStat) and that the samplesheet info is correct."
+        ]
         errors = False
         fc2run = {}
         for i, row in df.iterrows():
@@ -92,8 +96,6 @@ def main(lims, args):
                 pattern = f"{row.experiment_id}/{row.sample_id}/[^/]*_{row.position_id}_{row.flow_cell_id}_[^/]*"
             except AttributeError:
                 pattern = f"{row.experiment_id}/{row.sample_id}/[^/]*_{row.flow_cell_id}_[^/]*"
-
-            runtime_log_lines = [f"Checking StatusDB for run path: \n{pattern}"]
 
             matching_docs = []
             for doc in view.rows:
@@ -103,32 +105,17 @@ def main(lims, args):
 
             try:
                 if len(matching_docs) == 0:
-                    partially_matching_paths = [
-                        doc.value["TACA_run_path"]
-                        for doc in view.rows
-                        if f"{row.experiment_id}" in doc.value["TACA_run_path"]
-                        or f"{row.sample_id}" in doc.value["TACA_run_path"]
-                        or f"{row.flow_cell_id}" in doc.value["TACA_run_path"]
-                    ]
+                    runtime_log.append(
+                        f"Path {pattern.replace('[^/]','')} was not found in the database."
+                    )
 
-                    runtime_log_lines += [
-                        f"The database contains no runs matching the sample sheet",
-                        "If the run was recently started, wait until it appears in GenStat. If the samplesheet is incorrect, upload the correct one.",
-                    ]
-
-                    if partially_matching_paths:
-                        runtime_log_lines += [
-                            "Partial matches:",
-                            "\n".join(partially_matching_paths),
-                        ]
-
-                    raise AssertionError("\n".join(runtime_log_lines))
+                    raise AssertionError()
 
                 elif len(matching_docs) > 1:
-                    runtime_log_lines.append(
-                        "The database contains multiple matching documents. Contact a database administrator.",
+                    runtime_log.append(
+                        f"Path {pattern.replace('[^/]','')} was found in multiple instances in the database. Contact a database administrator."
                     )
-                    raise AssertionError("\n".join(runtime_log_lines))
+                    raise AssertionError()
 
                 # Make dict for mapping to run names
                 fc = [
@@ -163,12 +150,11 @@ def main(lims, args):
                 db[doc.id] = doc
 
                 runtime_log.append(
-                    f"Flowcell {row.flow_cell_id} was updated successfully."
+                    f"Path {pattern.replace('[^/]','')} was found and updated successfully."
                 )
 
             except AssertionError as e:
                 errors = True
-                runtime_log.append(str(e))
                 continue
 
         if errors:
