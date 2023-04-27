@@ -75,6 +75,7 @@ def main(lims, args):
 
 def make_samplesheet(currentStep):
     arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
+    arts.sort(key=lambda art: art.id)
 
     rows = []
     for art in arts:
@@ -102,7 +103,9 @@ def make_samplesheet(currentStep):
             assert (
                 len(art.reagent_labels) > 0
             ), f"No barcodes found within pool {art.name}"
-            for sample, label in zip(art.samples, art.reagent_labels):
+            label_tuples = [(e[0], e[1]) for e in zip(art.samples, art.reagent_labels)]
+            label_tuples.sort(key=str)
+            for sample, label in label_tuples:
                 row["alias"] = strip_characters(sample.name)
                 row["barcode"] = strip_characters(
                     "barcode" + label[0:2]
