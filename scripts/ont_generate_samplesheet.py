@@ -24,7 +24,7 @@ def main(lims, args):
     flow_cell_id                e.g. PAM96489
     position_id                 [1-3A-G] for PromethION, else None
     sample_id                   - For single samples:       e.g. P12345_101,
-                                - For pools: e.g.           e.g. P12345_lims-pool-id
+                                - For pools:                e.g. P12345_lims-pool-id
                                 - For multi-project pools:  lims-pool-id
     experiment_id               lims-step-id
     flow_cell_product_code      e.g. FLO-MIN106D
