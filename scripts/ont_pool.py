@@ -29,16 +29,24 @@ def main(lims, args):
         # Search within step
         "sample_name": "art_tuple[0]['uri'].name",
         "dst_name": "art_tuple[1]['uri'].name",
-        "vol_ul": "art_tuple[0]['uri'].udf['Final Volume (uL)']",
-        "conc_ng_ul": "art_tuple[0]['uri'].udf['Final Concentration']",
+        "vol_ul": "art_tuple[0]['uri'].udf['Volume (ul)']",
+        "conc": "art_tuple[0]['uri'].udf['Concentration']",
+        "conc_units": "art_tuple[0]['uri'].udf['Conc. Units']",
         # Seach recursively
         "size_bp": "Size (bp)",
     }
 
     df = fetch_sample_data(currentStep, to_fetch)
 
+    assert all(
+        df.conc_units in ["ng/ul", "nM"]
+    ), "Some of the pool inputs have invalid concentration units."
+
     df["conc_nM"] = df.apply(
-        lambda x: formula.ng_ul_to_nM(x["conc_ng_ul"], x["size_bp"]), axis=1
+        lambda x: x
+        if x["conc_units"] == "nM"
+        else formula.ng_ul_to_nM(x["conc"], x["size_bp"]),
+        axis=1,
     )
 
     for pool in pools:
@@ -118,7 +126,7 @@ def main(lims, args):
 
     # Write log
     timestamp = dt.now().strftime("%y%m%d_%H%M%S")
-    log_filename = "_".join(["ont_pooling_log", currentStep.id, timestamp]) + ".log"
+    log_filename = "_".join(["ont_pooling_log", currentStep.id, timestamp]) + ".txt"
     with open(log_filename, "w") as logContext:
         logContext.write("\n".join(log))
 
