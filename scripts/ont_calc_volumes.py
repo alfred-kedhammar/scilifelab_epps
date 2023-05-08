@@ -3,20 +3,24 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from utils.udf_tools import fetch_last, fetch, put
-from utils.formula import fmol_to_ng, ng_to_fmol
+from utils import udf_tools, formula
 
 DESC = """
 EPP "ONT calculate volumes"
 
-Given any output UDF(s)
+Given any:
+
+...output UDF(s)
 - Amount (fmol)
 - Amount (ng)
 - Volume to take (uL)
 
+...input UDF(s)
 and last known UDFs
 - Final Volume (uL) / Volume (uL)
 - Concentration
+
+...and last known UDF(s)
 - Size (bp)
 
 Will use ONE of the output UDFs (prioritized in the listed order) to calculate all three output UDFs.
@@ -26,63 +30,61 @@ Will use ONE of the output UDFs (prioritized in the listed order) to calculate a
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
 
-    art_tuples = [
-        art_tuple
-        for art_tuple in currentStep.input_output_maps
-        if art_tuple[1]["output-type"] == "Analyte"
-    ]
+    art_tuples = udf_tools.get_art_tuples(currentStep)
 
     for art_tuple in art_tuples:
-        size = fetch_last(currentStep, art_tuple, "Size (bp)")
-        conc_units = fetch(art_tuple[0]["uri"], "Conc. Units", on_fail="ng/ul")
+        art_in = art_tuple[0]["uri"]
+        art_out = art_tuple[1]["uri"]
 
-        # Fetch target amount, either fmol or ng
-        try:
-            target_amt_fmol = art_tuple[1]["uri"].udf["Amount (fmol)"]
-            target_amt_ng = fmol_to_ng(target_amt_fmol, size)
-            basis = "fmol"
-        except KeyError:
-            try:
-                target_amt_ng = art_tuple[1]["uri"].udf["Amount (ng)"]
-                target_amt_fmol = ng_to_fmol(target_amt_ng, size)
-                basis = "ng"
-            except KeyError:
-                target_vol = art_tuple[1]["uri"].udf["Volume to take (uL)"]
-                basis = "vol"
-
-        # Fetch last known sample volume
-        prev_vol = fetch_last(
-            currentStep, art_tuple, ["Final Volume (uL)", "Volume (ul)"]
+        # Get last known length
+        size_bp = udf_tools.fetch_last(
+            currentStep, art_tuple, "Size (bp)", on_fail=None
         )
 
-        # Calculate
-        if basis == "fmol" or basis == "ng":
+        # Get current stats
+        vol = udf_tools.fetch(art_in, "Volume (ul)")
+        conc = udf_tools.fetch(art_in, "Concentration")
+        conc_units = udf_tools.fetch(art_in, "Conc. Units")
+        assert conc_units in [
+            "ng/ul",
+            "nM",
+        ], f'Unsupported conc. units "{conc_units}" for art {art_in.name}'
+
+        # Calculate volume to take, based on supplied info
+        if udf_tools.is_filled(art_out, "Amount (fmol)"):
             if conc_units == "nM":
-                target_vol = target_amt_fmol / fetch_last(
-                    currentStep, art_tuple, ["Final Concentration", "Concentration"]
-                )
+                vol_to_take = min(udf_tools.fetch(art_out, "Amount (fmol)") / conc, vol)
             elif conc_units == "ng/ul":
-                target_vol = target_amt_ng / fetch_last(
-                    currentStep, art_tuple, ["Final Concentration", "Concentration"]
+                vol_to_take = min(
+                    formula.fmol_to_ng(udf_tools.fetch(art_out, "Amount (fmol)"))
+                    / conc,
+                    vol,
                 )
+        elif udf_tools.is_filled(art_out, "Amount (ng)"):
+            if conc_units == "ng/ul":
+                vol_to_take = min(udf_tools.fetch(art_out, "Amount (ng)") / conc, vol)
+            elif conc_units == "nM":
+                vol_to_take = min(
+                    formula.ng_to_fmol(udf_tools.fetch(art_out, "Amount (ng)")) / conc,
+                    vol,
+                )
+        elif udf_tools.is_filled(art_out, "Volume (uL)"):
+            vol_to_take = min(udf_tools.fetch(art_out, "Volume (uL)"), vol)
+        else:
+            raise AssertionError(f"No target metrics specified for {art_out.name}")
 
-        vol_to_take = min(target_vol, prev_vol)
-
+        # Based on volume to take, calculate corresponding amounts
         if conc_units == "nM":
-            amt_taken_fmol = vol_to_take * fetch_last(
-                currentStep, art_tuple, ["Final Concentration", "Concentration"]
-            )
-            amt_taken_ng = fmol_to_ng(amt_taken_fmol, size)
-
+            amt_taken_fmol = conc * vol_to_take
+            amt_taken_ng = formula.fmol_to_ng(amt_taken_fmol, size_bp)
         elif conc_units == "ng/ul":
-            amt_taken_ng = vol_to_take * fetch_last(
-                currentStep, art_tuple, ["Final Concentration", "Concentration"]
-            )
-            amt_taken_fmol = ng_to_fmol(amt_taken_ng, size)
+            amt_taken_ng = conc * vol_to_take
+            amt_taken_fmol = formula.ng_to_fmol(amt_taken_ng, size_bp)
 
-        put(art_tuple[1]["uri"], "Amount (ng)", round(amt_taken_ng, 1))
-        put(art_tuple[1]["uri"], "Amount (fmol)", round(amt_taken_fmol, 1))
-        put(art_tuple[1]["uri"], "Volume to take (uL)", round(vol_to_take, 1))
+        # Populate fields
+        udf_tools.put(art_out, "Amount (fmol)", round(amt_taken_fmol, 1))
+        udf_tools.put(art_out, "Amount (ng)", round(amt_taken_ng, 1))
+        udf_tools.put(art_out, "Volume to take (uL)", round(vol_to_take, 1))
 
 
 if __name__ == "__main__":

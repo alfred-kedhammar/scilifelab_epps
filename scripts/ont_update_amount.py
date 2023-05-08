@@ -7,9 +7,9 @@ from utils import formula, udf_tools
 
 DESC = """ EPP "ONT Update Amounts".
 
-Use new concentration and volume measurements to calculate amount (ng) and, if possible, amount (fmol).
+Calculate and populate the ng and fmol amount of the output UDFs of the current step.
 
-For the amount (fmol) calculation, the last recorded size is used.
+The calculation is based on the "Concentration", "Conc. Units" and "Volume (ul)" output UDFs as well as the last recorded "Size (bp)" UDF of the sample.
 
 Alfred Kedhammar, NGI SciLifeLab
 """
@@ -21,26 +21,41 @@ def main(lims, args):
     art_tuples = udf_tools.get_art_tuples(currentStep)
 
     for art_tuple in art_tuples:
-        # Calculate amount ng based on info in current step
-
-        conc = udf_tools.fetch(
-            art_tuple[1]["uri"], ["Final Concentration", "Concentration"]
+        # Get last known length
+        size_bp = udf_tools.fetch_last(
+            currentStep, art_tuple, "Size (bp)", on_fail=None
         )
 
-        vol = udf_tools.fetch(art_tuple[1]["uri"], ["Final Volume (uL)", "Volume (ul)"])
+        # Get current metrics
+        vol = udf_tools.fetch(art_tuple[1]["uri"], "Volume (ul)")
+        conc_units = udf_tools.fetch(art_tuple[1]["uri"], "Conc. Units")
+        assert conc_units in [
+            "ng/ul",
+            "nM",
+        ], f'Unsupported conc. units "{conc_units}" for art {art_tuple[1]["uri"].name}'
 
-        udf_tools.put(
-            art_tuple[1]["uri"], "Amount (ng)", round(conc * vol, 2), on_fail=None
-        )
+        # Fetch or calculate conc in ng/ul
+        if conc_units == "nM" and size_bp:
+            conc_ng_ul = formula.nM_to_ng_ul(
+                nM=udf_tools.fetch(art_tuple[1]["uri"], "Concentration"), bp=size_bp
+            )
+        elif conc_units == "ng/ul":
+            conc_ng_ul = udf_tools.fetch(art_tuple[1]["uri"], "Concentration")
+        else:
+            raise AssertionError(
+                f'Cannot parse concentration of {art_tuple[1]["uri"].name}'
+            )
 
-        # Calculate amount fmol based on length in this, or previous, step
-        size_bp = udf_tools.fetch_last(currentStep, art_tuple, "Size (bp)")
+        # Calculate and put ng amount
+        amount_ng = round(conc_ng_ul * vol, 2)
+        udf_tools.put(art_tuple[1]["uri"], "Amount (ng)", amount_ng, on_fail=None)
 
+        # Calculate and put fmol amount
         udf_tools.put(
             art_tuple[1]["uri"],
             "Amount (fmol)",
             round(
-                formula.ng_to_fmol(art_tuple[1]["uri"].udf["Amount (ng)"], size_bp),
+                formula.ng_to_fmol(amount_ng, size_bp),
                 2,
             ),
             on_fail=None,
