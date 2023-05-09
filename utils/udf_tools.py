@@ -30,22 +30,25 @@ def put(art: Artifact, target_udf: str, val, on_fail=AssertionError()):
 def exists(art: Artifact, target_udf: str) -> bool:
     """Check whether UDF exists (is assignable) for current article."""
 
-    dummy_value = 0
-
-    # Assign dummy value to UDF, adapt the data type
-    try:
-        art.udf[target_udf] = dummy_value
-    except TypeError:
-        art.udf[target_udf] = str(dummy_value)
-
-    # Check whether UDF is assignable
-    try:
-        art.put()
-        del art.udf[target_udf]
+    if is_filled(art, target_udf):
         return True
-    except HTTPError as e:
-        del art.udf[target_udf]
-        return False
+    else:
+        dummy_value = 0
+
+        # Assign dummy value to UDF, adapt the data type
+        try:
+            art.udf[target_udf] = dummy_value
+        except TypeError:
+            art.udf[target_udf] = str(dummy_value)
+
+        # Check whether UDF is assignable
+        try:
+            art.put()
+            art.udf.__delitem__("Size (bp)")
+            art.put()
+            return True
+        except HTTPError as e:
+            return False
 
 
 def is_filled(art: Artifact, target_udf: str) -> bool:
@@ -137,6 +140,8 @@ def fetch_last(
     """Recursively look for target UDF.
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
+
+    If "print_history" == True, will return both the target metric and the lookup history as a string.
     """
 
     # Convert to list, to enable iteration
@@ -172,7 +177,12 @@ def fetch_last(
 
                 for target_udf in target_udfs:
                     if target_udf in list_udfs(output_art):
-                        return output_art.udf[target_udf]
+                        if print_history == True:
+                            return output_art.udf[target_udf], json.dumps(
+                                history, indent=2
+                            )
+                        else:
+                            return output_art.udf[target_udf]
 
             # Look through inputs
             if input_art:
@@ -185,7 +195,12 @@ def fetch_last(
 
                 for target_udf in target_udfs:
                     if target_udf in list_udfs(input_art):
-                        return input_art.udf[target_udf]
+                        if print_history == True:
+                            return input_art.udf[target_udf], json.dumps(
+                                history, indent=2
+                            )
+                        else:
+                            return input_art.udf[target_udf]
 
         # Cycle to previous step, if possible
         try:
