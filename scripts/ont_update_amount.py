@@ -4,6 +4,8 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 from utils import formula, udf_tools
+from datetime import datetime as dt
+import sys
 
 DESC = """ EPP "ONT Update Amounts".
 
@@ -16,50 +18,98 @@ Alfred Kedhammar, NGI SciLifeLab
 
 
 def main(lims, args):
-    currentStep = Process(lims, id=args.pid)
+    try:
+        currentStep = Process(lims, id=args.pid)
 
-    art_tuples = udf_tools.get_art_tuples(currentStep)
+        log = []
+        art_tuples = udf_tools.get_art_tuples(currentStep)
 
-    for art_tuple in art_tuples:
-        # Get last known length
-        size_bp = udf_tools.fetch_last(
-            currentStep, art_tuple, "Size (bp)", on_fail=None
-        )
+        for art_tuple in art_tuples:
+            art_in = art_tuple[0]["uri"]
+            art_out = art_tuple[1]["uri"]
 
-        # Get current metrics
-        vol = udf_tools.fetch(art_tuple[1]["uri"], "Volume (ul)")
-        conc_units = udf_tools.fetch(art_tuple[1]["uri"], "Conc. Units")
-        assert conc_units in [
-            "ng/ul",
-            "nM",
-        ], f'Unsupported conc. units "{conc_units}" for art {art_tuple[1]["uri"].name}'
+            log.append(f"Input {art_in.name} --> Output {art_out.name}")
 
-        # Fetch or calculate conc in ng/ul
-        if conc_units == "nM" and size_bp:
-            conc_ng_ul = formula.nM_to_ng_ul(
-                nM=udf_tools.fetch(art_tuple[1]["uri"], "Concentration"), bp=size_bp
-            )
-        elif conc_units == "ng/ul":
-            conc_ng_ul = udf_tools.fetch(art_tuple[1]["uri"], "Concentration")
-        else:
-            raise AssertionError(
-                f'Cannot parse concentration of {art_tuple[1]["uri"].name}'
-            )
+            # UDF exists and is filled --> Use it
+            if udf_tools.is_filled(art_out, "Size (bp)"):
+                size_bp = udf_tools.fetch(art_out, "Size (bp)")
+                log.append(f"'Size (bp)': {size_bp}")
+            # UDF exists and is empty --> Raise error
+            elif udf_tools.exists(art_out, "Size (bp)"):
+                raise AssertionError(f"UDF 'Size (bp)' missing for {art_out.name}")
+            # UDF does not exist --> Try to fetch recursively
+            else:
+                size_bp, size_bp_history = udf_tools.fetch_last(
+                    currentStep=currentStep,
+                    art_tuple=art_tuple,
+                    target_udfs="Size (bp)",
+                    print_history=True,
+                    on_fail=None,
+                )
+                log.append(f"'Size (bp)': {size_bp}\n{size_bp_history}")
 
-        # Calculate and put ng amount
-        amount_ng = round(conc_ng_ul * vol, 2)
-        udf_tools.put(art_tuple[1]["uri"], "Amount (ng)", amount_ng, on_fail=None)
+            # Get current metrics
+            vol = udf_tools.fetch(art_out, "Volume (ul)")
+            log.append(f"'Volume (ul)': {vol}")
+            conc_units = udf_tools.fetch(art_out, "Conc. Units")
+            assert conc_units in [
+                "ng/ul",
+                "nM",
+            ], f'Unsupported conc. units "{conc_units}" for art {art_out.name}'
+            log.append(f"'Conc. Units': {conc_units}")
 
-        # Calculate and put fmol amount
-        udf_tools.put(
-            art_tuple[1]["uri"],
-            "Amount (fmol)",
-            round(
+            # Fetch or calculate conc in ng/ul
+            if conc_units == "nM" and size_bp:
+                conc_nM = udf_tools.fetch(art_out, "Concentration")
+                log.append(f"'Concentration': {conc_nM}")
+                conc_ng_ul = formula.nM_to_ng_ul(nM=conc_nM, bp=size_bp)
+                log.append(f"--> Concentration (ng/ul): {conc_ng_ul}")
+            elif conc_units == "ng/ul":
+                conc_ng_ul = udf_tools.fetch(art_out, "Concentration")
+                log.append(f"'Concentration': {conc_ng_ul}")
+            else:
+                raise AssertionError(f"Cannot parse concentration of {art_out.name}")
+
+            # Calculate and put ng amount
+            amount_ng = round(conc_ng_ul * vol, 2)
+            udf_tools.put(art_out, "Amount (ng)", amount_ng, on_fail=None)
+            log.append(f"--> 'Amount (ng)': {amount_ng}")
+
+            # Calculate and put fmol amount
+            amount_fmol = round(
                 formula.ng_to_fmol(amount_ng, size_bp),
                 2,
-            ),
-            on_fail=None,
+            )
+            log.append(f"--> 'Amount (fmol)': {amount_fmol}")
+            udf_tools.put(
+                art_out,
+                "Amount (fmol)",
+                round(
+                    formula.ng_to_fmol(amount_ng, size_bp),
+                    2,
+                ),
+                on_fail=None,
+            )
+            log.append("\n")
+
+        # Write log
+        timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+        log_filename = (
+            "_".join(["ont_update_amounts_log", currentStep.id, timestamp]) + ".txt"
         )
+        with open(log_filename, "w") as logContext:
+            logContext.write("\n".join(log))
+
+        # Upload log
+        for out in currentStep.all_outputs():
+            if out.name == "ONT Update Amounts log":
+                for f in out.files:
+                    lims.request_session.delete(f.uri)
+                lims.upload_new_file(out, log_filename)
+
+    except BaseException as e:
+        sys.stderr.write(str(e))
+        sys.exit(2)
 
 
 if __name__ == "__main__":
