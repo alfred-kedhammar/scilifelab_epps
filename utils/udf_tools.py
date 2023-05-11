@@ -27,30 +27,6 @@ def put(art: Artifact, target_udf: str, val, on_fail=AssertionError()):
             return on_fail
 
 
-def exists(art: Artifact, target_udf: str) -> bool:
-    """Check whether UDF exists (is assignable) for current article."""
-
-    if is_filled(art, target_udf):
-        return True
-    else:
-        dummy_value = 0
-
-        # Assign dummy value to UDF, adapt the data type
-        try:
-            art.udf[target_udf] = dummy_value
-        except TypeError:
-            art.udf[target_udf] = str(dummy_value)
-
-        # Check whether UDF is assignable
-        try:
-            art.put()
-            art.udf.__delitem__("Size (bp)")
-            art.put()
-            return True
-        except HTTPError as e:
-            return False
-
-
 def is_filled(art: Artifact, target_udf: str) -> bool:
     """Check whether current UDF is populated for current article."""
     try:
@@ -60,8 +36,28 @@ def is_filled(art: Artifact, target_udf: str) -> bool:
         return False
 
 
+def no_outputs(currentStep: Process) -> bool:
+    """Check whether step has outputs or not"""
+
+    art_tuples = get_art_tuples(currentStep)
+
+    if art_tuples:
+        none_outputs = [t[1] == None for t in art_tuples]
+
+        if all(none_outputs):
+            return True
+        else:
+            return False
+    else:
+        return True
+
+
 def get_art_tuples(currentStep: Process) -> list:
-    """Return i/o tuples whose input OR output is an Analyte."""
+    """Return I/O tuples whose elements are either
+    1) both analytes
+        or
+    2) an analyte and None
+    """
 
     art_tuples = []
     for art_tuple in currentStep.input_output_maps:
@@ -74,6 +70,10 @@ def get_art_tuples(currentStep: Process) -> list:
         elif not art_tuple[0] and art_tuple[1]:
             if art_tuple[1]["uri"].type == "Analyte":
                 art_tuples.append(art_tuple)
+
+    # Sort
+    art_tuples.sort(key=lambda t: t[1]["uri"].name if t[1] else t[0]["uri"].name)
+
     return art_tuples
 
 

@@ -34,14 +34,10 @@ def main(lims, args):
         timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
         # Parse inputs and their UDFs
-        art_tuples = [
-            art_tuple
-            for art_tuple in currentStep.input_output_maps
-            if art_tuple[1]["uri"].type == "Analyte"
-        ]
+        arts = currentStep.all_inputs()
 
         runs = []
-        for art_tuple in art_tuples:
+        for art_tuple in arts:
             run = parse_run(art_tuple)
             if run:
                 runs.append(run)
@@ -108,32 +104,26 @@ def main(lims, args):
         sys.exit(2)
 
 
-def parse_run(art_tuple):
-    """For each art_tuple, assert UDFs and return parsed dictionary"""
+def parse_run(art):
+    """For each art, assert UDFs and return parsed dictionary"""
 
     fc = {}
 
-    fc["run_name"] = art_tuple[1]["uri"].udf["ONT run name"]
+    fc["run_name"] = art.udf["ONT run name"]
 
     fc["reload_times"] = (
-        art_tuple[1]["uri"]
-        .udf.get("ONT reload run time (hh:mm)")
-        .replace(" ", "")
-        .split(",")
-        if art_tuple[1]["uri"].udf.get("ONT reload run time (hh:mm)")
+        art.udf.get("ONT reload run time (hh:mm)").replace(" ", "").split(",")
+        if art.udf.get("ONT reload run time (hh:mm)")
         else None
     )
     fc["reload_fmols"] = (
-        art_tuple[1]["uri"]
-        .udf.get("ONT reload amount (fmol)")
-        .replace(" ", "")
-        .split(",")
-        if art_tuple[1]["uri"].udf.get("ONT reload amount (fmol)")
+        art.udf.get("ONT reload amount (fmol)").replace(" ", "").split(",")
+        if art.udf.get("ONT reload amount (fmol)")
         else None
     )
     fc["reload_lots"] = (
-        art_tuple[1]["uri"].udf.get("ONT reload wash kit").replace(" ", "").split(",")
-        if art_tuple[1]["uri"].udf.get("ONT reload wash kit")
+        art.udf.get("ONT reload wash kit").replace(" ", "").split(",")
+        if art.udf.get("ONT reload wash kit")
         else None
     )
 

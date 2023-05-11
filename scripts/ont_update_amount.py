@@ -30,23 +30,26 @@ def main(lims, args):
 
             log.append(f"Input {art_in.name} --> Output {art_out.name}")
 
-            # UDF exists and is filled --> Use it
+            # Get size
             if udf_tools.is_filled(art_out, "Size (bp)"):
                 size_bp = udf_tools.fetch(art_out, "Size (bp)")
                 log.append(f"'Size (bp)': {size_bp}")
-            # UDF exists and is empty --> Raise error
-            elif udf_tools.exists(art_out, "Size (bp)"):
-                raise AssertionError(f"UDF 'Size (bp)' missing for {art_out.name}")
-            # UDF does not exist --> Try to fetch recursively
             else:
-                size_bp, size_bp_history = udf_tools.fetch_last(
-                    currentStep=currentStep,
-                    art_tuple=art_tuple,
-                    target_udfs="Size (bp)",
-                    print_history=True,
-                    on_fail=None,
-                )
-                log.append(f"'Size (bp)': {size_bp}\n{size_bp_history}")
+                # Fetch recursively, if appropriate
+                if (
+                    "ONT End-prep" in currentStep.type.name
+                    or "ONT Barcoding" in currentStep.type.name
+                ):
+                    size_bp, size_bp_history = udf_tools.fetch_last(
+                        currentStep=currentStep,
+                        art_tuple=art_tuple,
+                        target_udfs="Size (bp)",
+                        print_history=True,
+                        on_fail=None,
+                    )
+                    log.append(f"'Size (bp)': {size_bp}\n{size_bp_history}")
+                else:
+                    raise AssertionError(f"Size is not provided for {art_out.name}")
 
             # Get current metrics
             vol = udf_tools.fetch(art_out, "Volume (ul)")
