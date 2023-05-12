@@ -84,9 +84,13 @@ def make_samplesheet(currentStep):
             "position_id": art.udf.get("ONT flow cell position"),
             "sample_id": get_minknow_sample_id(art),
             "experiment_id": f"{currentStep.id}",
-            "flow_cell_product_code": art.udf["ONT flow cell type"].split(" ")[0],
-            "flow_cell_type": art.udf["ONT flow cell type"].split(" ")[1].strip("()"),
-            "kit": get_kit_string(art),
+            "flow_cell_product_code": currentStep.udf["ONT flow cell type"].split(" ")[
+                0
+            ],
+            "flow_cell_type": currentStep.udf["ONT flow cell type"]
+            .split(" ")[1]
+            .strip("()"),
+            "kit": get_kit_string(currentStep),
         }
 
         if "PromethION" in row["flow_cell_type"]:
@@ -97,9 +101,9 @@ def make_samplesheet(currentStep):
         # Add extra columns for barcodes
         if len(art.reagent_labels) > 0:
             assert (
-                art.udf.get("ONT expansion kit") != "None"
+                currentStep.udf.get("ONT expansion kit") != "None"
             ), f"Barcodes found in pool {art.name}, but no barcode kit specified."
-        if art.udf.get("ONT expansion kit") != "None":
+        if currentStep.udf.get("ONT expansion kit") != "None":
             assert (
                 len(art.reagent_labels) > 0
             ), f"No barcodes found within pool {art.name}"
@@ -229,12 +233,12 @@ def strip_characters(input_string):
     return shortened_string
 
 
-def get_kit_string(sample):
+def get_kit_string(currentStep):
     """Combine prep kit and expansion kit UDFs (if any) into space-separated string"""
-    kit_string = sample.udf.get("ONT prep kit")
+    kit_string = currentStep.udf.get("ONT prep kit")
 
-    if sample.udf.get("ONT expansion kit") != "None":
-        kit_string += f" {sample.udf.get('ONT expansion kit')}"
+    if currentStep.udf.get("ONT expansion kit") != "None":
+        kit_string += f" {currentStep.udf.get('ONT expansion kit')}"
 
     return kit_string
 
