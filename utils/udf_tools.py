@@ -186,33 +186,32 @@ def fetch_last(
 
             # Look through inputs
             if input_art:
+                history[-1].update({"Input sample ID": input_art.id})
                 if input_art.parent_process:
                     history[-1].update(
+                        {"Input sample parent step ID": input_art.parent_process.id}
+                    )
+                else:
+                    history[-1].update(
                         {
-                            "Input sample parent step name": input_art.parent_process.type.name,
-                            "Input sample parent step ID": input_art.parent_process.id,
+                            "Input sample ID": input_art.id,
+                            "Input sample UDFs": dict(input_art.udf.items()),
                         }
                     )
-                history[-1].update(
-                    {
-                        "Input sample ID": input_art.id,
-                        "Input sample UDFs": dict(input_art.udf.items()),
-                    }
-                )
 
-                for target_udf in target_udfs:
-                    if target_udf in list_udfs(input_art):
-                        if print_history == True:
-                            return input_art.udf[target_udf], json.dumps(
-                                history, indent=2
-                            )
-                        else:
-                            return input_art.udf[target_udf]
+                    for target_udf in target_udfs:
+                        if target_udf in list_udfs(input_art):
+                            if print_history == True:
+                                return input_art.udf[target_udf], json.dumps(
+                                    history, indent=2
+                                )
+                            else:
+                                return input_art.udf[target_udf]
 
         # Cycle to previous step, if possible
         try:
             pp = input_art.parent_process
-            pp_tuples = get_art_tuples(currentStep)
+            pp_tuples = get_art_tuples(pp)
             matching_tuples = []
             for pp_tuple in pp_tuples:
                 try:
@@ -235,7 +234,7 @@ def fetch_last(
 
             # Back-tracking successful, re-assign variables to represent previous step
             currentStep = pp
-            art_tuple = pp_tuples[0]
+            art_tuple = matching_tuples[0]
 
         except:
             if issubclass(type(on_fail), BaseException):
