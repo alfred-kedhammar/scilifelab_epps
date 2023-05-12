@@ -75,7 +75,7 @@ def main(lims, args):
 
             # Calculate and put ng amount
             amount_ng = round(conc_ng_ul * vol, 2)
-            udf_tools.put(art_out, "Amount (ng)", amount_ng, on_fail=None)
+            udf_tools.put(art_out, "Amount (ng)", round(amount_ng, 2), on_fail=None)
             log.append(f"--> 'Amount (ng)': {amount_ng}")
 
             # Calculate and put fmol amount

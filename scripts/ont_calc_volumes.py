@@ -113,9 +113,9 @@ def main(lims, args):
             log.append(f"--> 'Amount (fmol)': {amt_taken_fmol}")
 
             # Populate fields
-            udf_tools.put(art_out, "Amount (fmol)", round(amt_taken_fmol, 1))
-            udf_tools.put(art_out, "Amount (ng)", round(amt_taken_ng, 1))
-            udf_tools.put(art_out, "Volume to take (uL)", round(vol_to_take, 1))
+            udf_tools.put(art_out, "Amount (fmol)", round(amt_taken_fmol, 2))
+            udf_tools.put(art_out, "Amount (ng)", round(amt_taken_ng, 2))
+            udf_tools.put(art_out, "Volume to take (uL)", round(vol_to_take, 2))
 
             log.append("\n")
 
