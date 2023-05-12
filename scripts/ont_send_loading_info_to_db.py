@@ -34,11 +34,13 @@ def main(lims, args):
         currentStep = Process(lims, id=args.pid)
         timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
+        arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
+
         # Read samplesheet and extract run info (trim out sample specific info)
         try:
             samplesheet = get_file(lims, currentStep, "ONT sample sheet")
         except:
-            raise AssertionError("No sample sheet provided.")
+            samplesheet = None
 
         # Check that current UDFs correspond to the current samplesheet, by generating it anew and comparing
         new_ss_path = make_samplesheet(currentStep)
@@ -59,8 +61,6 @@ def main(lims, args):
         db = get_ONT_db()
         view = db.view("info/all_stats")
 
-        arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
-
         # Match sample sheet contents to artifacts
         qcs = []
         amts = []
@@ -79,7 +79,9 @@ def main(lims, args):
                 )
             )
             amts.append(
-                udf_tools.fetch(matching_arts[0], "Amount (fmol)", on_fail="None")
+                udf_tools.fetch(
+                    matching_arts[0], "ONT flow cell load amount (fmol)", on_fail="None"
+                )
             )
 
         df["qc_pore_count"] = qcs
@@ -161,7 +163,7 @@ def main(lims, args):
             raise AssertionError("\n".join(runtime_log))
 
         for art in arts:
-            udf_tools.put(art, "ONT run name", fc2run[art.udf["ONT flow cell ID"]])
+            udf_tools.put(art, "ONT run ID", fc2run[art.udf["ONT flow cell ID"]])
 
     except AssertionError as e:
         sys.stderr.write(str(e))
