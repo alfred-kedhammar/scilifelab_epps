@@ -151,7 +151,7 @@ def fetch_last(
     history = []
 
     while True:
-        history.append({"step_name": currentStep.type.name})
+        history.append({"Step name": currentStep.type.name, "Step ID": currentStep.id})
 
         try:
             input_art = art_tuple[0]["uri"]
@@ -170,8 +170,8 @@ def fetch_last(
             if output_art:
                 history[-1].update(
                     {
-                        "Output article ID": output_art.id,
-                        "Output article UDFs": dict(output_art.udf.items()),
+                        "Derived sample ID": output_art.id,
+                        "Derived sample UDFs": dict(output_art.udf.items()),
                     }
                 )
 
@@ -186,10 +186,17 @@ def fetch_last(
 
             # Look through inputs
             if input_art:
+                if input_art.parent_process:
+                    history[-1].update(
+                        {
+                            "Input sample parent step name": input_art.parent_process.type.name,
+                            "Input sample parent step ID": input_art.parent_process.id,
+                        }
+                    )
                 history[-1].update(
                     {
-                        "Input article ID": input_art.id,
-                        "Input article UDFs": dict(input_art.udf.items()),
+                        "Input sample ID": input_art.id,
+                        "Input sample UDFs": dict(input_art.udf.items()),
                     }
                 )
 
