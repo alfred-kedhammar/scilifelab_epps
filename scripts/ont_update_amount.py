@@ -37,7 +37,7 @@ def main(lims, args):
             else:
                 # Fetch recursively, if appropriate
                 if (
-                    "ONT End-prep" in currentStep.type.name
+                    "ONT End-Prep" in currentStep.type.name
                     or "ONT Barcoding" in currentStep.type.name
                 ):
                     size_bp, size_bp_history = udf_tools.fetch_last(

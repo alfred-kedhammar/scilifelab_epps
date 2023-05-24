@@ -81,6 +81,16 @@ lims_process_record={
               "dest_file" : "PCR"
           }
       },
+      "AMPure Size Selection" : {
+          "lims_instrument" : {
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
+          },
+          "udf_Instrument Used" : {
+              "dest_file" : "FragmentAnalyzer",
+              "details" : ["Lot no: Fragment Analyzer Reagents"]
+          }
+      },
       "Automated Quant-iT QC (DNA) 4.0" : {
           "lims_instrument" : {
               "dest_file" : "Bravo",
@@ -416,9 +426,30 @@ lims_process_record={
               "dest_file" : "PCR"
           }
       },
-      "ONT End-Prep and Cleanup" : {
+      "ONT Barcoding" : {
           "lims_instrument" : {
-              "dest_file" : "PCR"
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
+          },
+          "udf_Instrument Used" : {
+              "dest_file" : "FragmentAnalyzer",
+              "details" : ["Lot no: Fragment Analyzer Reagents"]
+          }
+      },
+      "ONT End-Prep v2.0" : {
+          "lims_instrument" : {
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
+          },
+          "udf_Instrument Used" : {
+              "dest_file" : "FragmentAnalyzer",
+              "details" : ["Lot no: Fragment Analyzer Reagents"]
+          }
+      },
+      "ONT Pooling v2.0" : {
+          "lims_instrument" : {
+              "dest_file" : ["Bravo", "Mosquito"],
+              "details" : ["Processname"]
           }
       },
       "PCR1 (Amplicon)" : {
