@@ -274,6 +274,16 @@ lims_process_record={
               "dest_file" : "PCR"
           }
       },
+      "g-Tube Fragmentation" : {
+          "lims_instrument" : {
+              "dest_file" : "Qubit",
+              "details" : ["Assay", "Lot no: Qubit kit"]
+          },
+          "udf_Instrument Used" : {
+              "dest_file" : "FragmentAnalyzer",
+              "details" : ["Lot no: Fragment Analyzer Reagents"]
+          }
+      },
       "GEM Generation (Chromium Genome v2)" : {
           "lims_instrument" : {
               "dest_file" : "Chromium"
