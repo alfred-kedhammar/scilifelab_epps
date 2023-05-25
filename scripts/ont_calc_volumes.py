@@ -49,9 +49,9 @@ def main(lims, args):
 
             # Get current stats
             vol = udf_tools.fetch(art_in, "Volume (ul)")
-            log.append(f"'Volume (ul)': {vol}")
+            log.append(f"'Volume (ul)': {round(vol,2)}")
             conc = udf_tools.fetch(art_in, "Concentration")
-            log.append(f"'Concentration': {conc}")
+            log.append(f"'Concentration': {round(conc,2)}")
             conc_units = udf_tools.fetch(art_in, "Conc. Units")
             log.append(f"'Conc. Units': {conc_units}")
             assert conc_units in [
@@ -60,9 +60,30 @@ def main(lims, args):
             ], f'Unsupported conc. units "{conc_units}" for art {art_in.name}'
 
             # Calculate volume to take, based on supplied info
-            if udf_tools.is_filled(art_out, "Amount (fmol)"):
+            if udf_tools.is_filled(art_out, "ONT flow cell loading amount (fmol)"):
                 log.append(
-                    f"Basing calculations on 'Amount (fmol): {udf_tools.fetch(art_out, 'Amount (fmol)')}'"
+                    f"Basing calculations on 'ONT flow cell loading amount (fmol)': {round(udf_tools.fetch(art_out, 'ONT flow cell loading amount (fmol)'),2)}"
+                )
+                if conc_units == "nM":
+                    vol_to_take = min(
+                        udf_tools.fetch(art_out, "ONT flow cell loading amount (fmol)")
+                        / conc,
+                        vol,
+                    )
+                elif conc_units == "ng/ul":
+                    vol_to_take = min(
+                        formula.fmol_to_ng(
+                            udf_tools.fetch(
+                                art_out, "ONT flow cell loading amount (fmol)"
+                            ),
+                            size_bp,
+                        )
+                        / conc,
+                        vol,
+                    )
+            elif udf_tools.is_filled(art_out, "Amount (fmol)"):
+                log.append(
+                    f"Basing calculations on 'Amount (fmol): {round(udf_tools.fetch(art_out, 'Amount (fmol)'),2)}'"
                 )
                 if conc_units == "nM":
                     vol_to_take = min(
@@ -78,7 +99,7 @@ def main(lims, args):
                     )
             elif udf_tools.is_filled(art_out, "Amount (ng)"):
                 log.append(
-                    f"Basing calculations on 'Amount (ng)': {udf_tools.fetch(art_out, 'Amount (ng)')}"
+                    f"Basing calculations on 'Amount (ng)': {round(udf_tools.fetch(art_out, 'Amount (ng)'),2)}"
                 )
                 if conc_units == "ng/ul":
                     vol_to_take = min(
@@ -94,7 +115,7 @@ def main(lims, args):
                     )
             elif udf_tools.is_filled(art_out, "Volume to take (uL)"):
                 log.append(
-                    f"Basing calculations on 'Volume to take (uL)': {udf_tools.fetch(art_out, 'Volume to take (uL)')}"
+                    f"Basing calculations on 'Volume to take (uL)': {round(udf_tools.fetch(art_out, 'Volume to take (uL)'),2)}"
                 )
                 vol_to_take = min(udf_tools.fetch(art_out, "Volume to take (uL)"), vol)
             else:
@@ -108,14 +129,22 @@ def main(lims, args):
                 amt_taken_ng = conc * vol_to_take
                 amt_taken_fmol = formula.ng_to_fmol(amt_taken_ng, size_bp)
 
-            log.append(f"--> 'Volume to take (uL)': {vol_to_take}")
-            log.append(f"--> 'Amount (ng)': {amt_taken_ng}")
-            log.append(f"--> 'Amount (fmol)': {amt_taken_fmol}")
+            log.append(f"--> 'Volume to take (uL)': {round(vol_to_take, 2)}")
+            log.append(f"--> 'Amount (ng)': {round(amt_taken_ng, 2)}")
+            log.append(f"--> 'Amount (fmol)': {round(amt_taken_fmol, 2)}")
 
             # Populate fields
-            udf_tools.put(art_out, "Amount (fmol)", round(amt_taken_fmol, 2))
-            udf_tools.put(art_out, "Amount (ng)", round(amt_taken_ng, 2))
-            udf_tools.put(art_out, "Volume to take (uL)", round(vol_to_take, 2))
+            if "ONT Start Sequencing" in currentStep.type.name:
+                udf_tools.put(
+                    art_out,
+                    "ONT flow cell loading amount (fmol)",
+                    round(amt_taken_fmol, 2),
+                )
+                udf_tools.put(art_out, "Volume to take (uL)", round(vol_to_take, 2))
+            else:
+                udf_tools.put(art_out, "Amount (fmol)", round(amt_taken_fmol, 2))
+                udf_tools.put(art_out, "Amount (ng)", round(amt_taken_ng, 2))
+                udf_tools.put(art_out, "Volume to take (uL)", round(vol_to_take, 2))
 
             log.append("\n")
 

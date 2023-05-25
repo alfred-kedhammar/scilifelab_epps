@@ -41,9 +41,9 @@ def match_to_db_using_run_id(lims, args):
     errors = False
     for art in arts:
         try:
-            run_id = art.udf["ONT run ID"]
+            run_id = art.udf["ONT run name"]
         except KeyError:
-            runtime_log.append(f"No run ID supplied for {art.name}")
+            runtime_log.append(f"No run name supplied for {art.name}")
             errors = True
 
         matching_docs = []
@@ -69,8 +69,8 @@ def match_to_db_using_run_id(lims, args):
                 "step_name": currentStep.type.name,
                 "pid": currentStep.id,
                 "timestamp": timestamp,
-                "qc": art.udf["ONT Flow Cell QC Pore Count"],
-                "load_fmol": art.udf["ONT flow cell load amount (fmol)"],
+                "qc": art.udf["ONT flow cell QC pore count"],
+                "load_fmol": art.udf["ONT flow cell loading amount (fmol)"],
             }
 
             try:
@@ -154,12 +154,12 @@ def match_to_db_using_samplesheet(lims, args):
         ), "Sample sheet contents doesn't match current step."
         qcs.append(
             udf_tools.fetch(
-                matching_arts[0], "ONT Flow Cell QC Pore Count", on_fail="None"
+                matching_arts[0], "ONT flow cell QC pore count", on_fail="None"
             )
         )
         amts.append(
             udf_tools.fetch(
-                matching_arts[0], "ONT flow cell load amount (fmol)", on_fail="None"
+                matching_arts[0], "ONT flow cell loading amount (fmol)", on_fail="None"
             )
         )
 
@@ -247,7 +247,7 @@ def match_to_db_using_samplesheet(lims, args):
         raise AssertionError("\n".join(runtime_log))
 
     for art in arts:
-        udf_tools.put(art, "ONT run ID", fc2run[art.udf["ONT flow cell ID"]])
+        udf_tools.put(art, "ONT run name", fc2run[art.udf["ONT flow cell ID"]])
 
 
 if __name__ == "__main__":

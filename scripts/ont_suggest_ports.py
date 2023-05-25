@@ -3,7 +3,7 @@
 from __future__ import division
 import re
 import sys
-from ont_send_fc_to_db import get_ONT_db
+from ont_send_reloading_info_to_db import get_ONT_db
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
@@ -16,7 +16,6 @@ Use StatusDB to find the least used ports and populate the positions UDFs with t
 
 
 def main(lims, args):
-
     try:
         currentStep = Process(lims, id=args.pid)
         outputs = [op for op in currentStep.all_outputs() if op.type == "Analyte"]
@@ -59,7 +58,6 @@ def main(lims, args):
 
         # Populate non-specified port UDFs with least used ports
         for output in outputs:
-
             # If port is already specified, skip to next output
             try:
                 if output.udf["ONT flow cell position"] != "None":

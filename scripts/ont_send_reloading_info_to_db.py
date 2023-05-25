@@ -109,7 +109,7 @@ def parse_run(art):
 
     fc = {}
 
-    fc["run_name"] = art.udf["ONT run ID"]
+    fc["run_name"] = art.udf["ONT run name"]
 
     fc["reload_times"] = (
         art.udf.get("ONT reload run time (hh:mm)").replace(" ", "").split(",")

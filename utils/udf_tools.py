@@ -186,27 +186,27 @@ def fetch_last(
 
             # Look through inputs
             if input_art:
-                history[-1].update({"Input sample ID": input_art.id})
                 if input_art.parent_process:
                     history[-1].update(
-                        {"Input sample parent step ID": input_art.parent_process.id}
-                    )
-                else:
-                    history[-1].update(
                         {
-                            "Input sample ID": input_art.id,
-                            "Input sample UDFs": dict(input_art.udf.items()),
+                            "Input sample parent step name": input_art.parent_process.type.name,
+                            "Input sample parent step ID": input_art.parent_process.id,
                         }
                     )
-
-                    for target_udf in target_udfs:
-                        if target_udf in list_udfs(input_art):
-                            if print_history == True:
-                                return input_art.udf[target_udf], json.dumps(
-                                    history, indent=2
-                                )
-                            else:
-                                return input_art.udf[target_udf]
+                history[-1].update(
+                    {
+                        "Input sample ID": input_art.id,
+                        "Input sample UDFs": dict(input_art.udf.items()),
+                    }
+                )
+                for target_udf in target_udfs:
+                    if target_udf in list_udfs(input_art):
+                        if print_history == True:
+                            return input_art.udf[target_udf], json.dumps(
+                                history, indent=2
+                            )
+                        else:
+                            return input_art.udf[target_udf]
 
         # Cycle to previous step, if possible
         try:
