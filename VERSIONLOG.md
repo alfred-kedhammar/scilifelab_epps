@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230525.1
+Live troubleshooting of ONT EPPs upon deployment of new workflow to LIMS prod.
+
 ## 20230329.1
 Improve modularity and readability of ONT EPP script names and contents. Also implement changes requested during live testing.
 
