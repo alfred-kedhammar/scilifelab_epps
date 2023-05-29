@@ -3,76 +3,121 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from molar_concentration import ng_to_fmol
+from utils import formula, udf_tools
+from datetime import datetime as dt
+import sys
 
-DESC = """ Calculate the sample amount based on new (or, if needed, previous) measurements. Written to run between the steps of the
-Nanopore ligation library prep.
+DESC = """ EPP "ONT Update Amounts".
+
+Calculate and populate the ng and fmol amount of the output UDFs of the current step.
+
+The calculation is based on the "Concentration", "Conc. Units" and "Volume (ul)" output UDFs as well as the last recorded "Size (bp)" UDF of the sample.
 
 Alfred Kedhammar, NGI SciLifeLab
 """
 
+
 def main(lims, args):
-        
+    try:
         currentStep = Process(lims, id=args.pid)
 
-        art_tuples = [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[1]["output-type"] == "Analyte"]
+        log = []
+        art_tuples = udf_tools.get_art_tuples(currentStep)
 
         for art_tuple in art_tuples:
-            
-            # Fetch info
+            art_in = art_tuple[0]["uri"]
             art_out = art_tuple[1]["uri"]
-            conc = art_out.udf["Final Concentration"]
-            vol = art_out.udf["Final Volume (uL)"]
-            
-            # Calculate amount ng
-            art_out.udf["Amount (ng)"] = round(conc * vol, 2)
-            
-            # Calculate amount fmol
-            try:
-                 # Use current length if present
-                size_bp = art_out.udf["Size (bp)"]
-            except KeyError:
-                # Otherwise, use last known length
-                size_bp = fetch_last(currentStep, art_tuple, "Size (bp)")
-            art_out.udf["Amount (fmol)"] = round(ng_to_fmol(art_out.udf["Amount (ng)"], size_bp), 2)
 
-            art_out.put()
+            log.append(f"Input {art_in.name} --> Output {art_out.name}")
 
-
-def fetch_last(currentStep, art_tuple, target_udf):
-
-    # Return udf if present in input of current step
-    if target_udf in [item_tuple[0] for item_tuple in art_tuple[0]["uri"].udf.items()]:
-        return art_tuple[0]["uri"].udf[target_udf]
-
-    # Start looking though previous steps. Use input articles.
-    else:
-        input_art = art_tuple[0]["uri"]
-        # Traceback of artifact ID, step and UDFs
-        history = [(input_art.id, currentStep.type.name, art_tuple[1]["uri"].udf.items())]
-        
-        while True:
-            if input_art.parent_process:
-                pp = input_art.parent_process
-                pp_tuples = pp.input_output_maps
-
-                # Find the input whose output is the current artifact
-                pp_input_art = [pp_tuple[0]["uri"] for pp_tuple in pp_tuples if pp_tuple[1]["uri"].id == input_art.id][0]
-                history.append((pp_input_art.id, pp.type.name, pp_input_art.udf.items()))
-
-                if target_udf in [tuple[0] for tuple in pp_input_art.udf.items()]:
-                    return pp_input_art.udf[target_udf]
-                else:
-                    input_art = pp_input_art
-
+            # Get size
+            if udf_tools.is_filled(art_out, "Size (bp)"):
+                size_bp = udf_tools.fetch(art_out, "Size (bp)")
+                log.append(f"'Size (bp)': {size_bp}")
             else:
-                return None
+                # Fetch recursively, if appropriate
+                if (
+                    "ONT End-Prep" in currentStep.type.name
+                    or "ONT Barcoding" in currentStep.type.name
+                ):
+                    size_bp, size_bp_history = udf_tools.fetch_last(
+                        currentStep=currentStep,
+                        art_tuple=art_tuple,
+                        target_udfs="Size (bp)",
+                        print_history=True,
+                        on_fail=None,
+                    )
+                    log.append(f"'Size (bp)': {size_bp}\n{size_bp_history}")
+                else:
+                    raise AssertionError(f"Size is not provided for {art_out.name}")
+
+            # Get current metrics
+            vol = udf_tools.fetch(art_out, "Volume (ul)")
+            log.append(f"'Volume (ul)': {vol}")
+            conc_units = udf_tools.fetch(art_out, "Conc. Units")
+            assert conc_units in [
+                "ng/ul",
+                "nM",
+            ], f'Unsupported conc. units "{conc_units}" for art {art_out.name}'
+            log.append(f"'Conc. Units': {conc_units}")
+
+            # Fetch or calculate conc in ng/ul
+            if conc_units == "nM" and size_bp:
+                conc_nM = udf_tools.fetch(art_out, "Concentration")
+                log.append(f"'Concentration': {conc_nM}")
+                conc_ng_ul = formula.nM_to_ng_ul(nM=conc_nM, bp=size_bp)
+                log.append(f"--> Concentration (ng/ul): {conc_ng_ul}")
+            elif conc_units == "ng/ul":
+                conc_ng_ul = udf_tools.fetch(art_out, "Concentration")
+                log.append(f"'Concentration': {conc_ng_ul}")
+            else:
+                raise AssertionError(f"Cannot parse concentration of {art_out.name}")
+
+            # Calculate and put ng amount
+            amount_ng = round(conc_ng_ul * vol, 2)
+            udf_tools.put(art_out, "Amount (ng)", round(amount_ng, 2), on_fail=None)
+            log.append(f"--> 'Amount (ng)': {amount_ng}")
+
+            # Calculate and put fmol amount
+            amount_fmol = round(
+                formula.ng_to_fmol(amount_ng, size_bp),
+                2,
+            )
+            log.append(f"--> 'Amount (fmol)': {amount_fmol}")
+            udf_tools.put(
+                art_out,
+                "Amount (fmol)",
+                round(
+                    formula.ng_to_fmol(amount_ng, size_bp),
+                    2,
+                ),
+                on_fail=None,
+            )
+            log.append("\n")
+
+        # Write log
+        timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+        log_filename = (
+            "_".join(["ont_update_amounts_log", currentStep.id, timestamp]) + ".txt"
+        )
+        with open(log_filename, "w") as logContext:
+            logContext.write("\n".join(log))
+
+        # Upload log
+        for out in currentStep.all_outputs():
+            if out.name == "ONT Update Amounts log":
+                for f in out.files:
+                    lims.request_session.delete(f.uri)
+                lims.upload_new_file(out, log_filename)
+
+    except BaseException as e:
+        sys.stderr.write(str(e))
+        sys.exit(2)
 
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid',
-                        help='Lims id for current Process')
+    parser.add_argument("--pid", help="Lims id for current Process")
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
