@@ -217,16 +217,11 @@ def match_to_db_using_samplesheet(lims, args):
                 "load_fmol": row.initial_loading_fmol,
             }
 
-            try:
-                try:
-                    doc["lims"]["loading"].append(dict_to_add)
-                except KeyError:
-                    doc["lims"]["loading"] = []
-                    doc["lims"]["loading"].append(dict_to_add)
-            except:
+            if "lims" not in doc:
                 doc["lims"] = {}
+            if "loading" not in doc["lims"]:
                 doc["lims"]["loading"] = []
-                doc["lims"]["loading"].append(dict_to_add)
+            doc["lims"]["loading"].append(dict_to_add)
 
             db[doc.id] = doc
 

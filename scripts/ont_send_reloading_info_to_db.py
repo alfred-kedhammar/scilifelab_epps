@@ -28,80 +28,67 @@ def main(lims, args):
          Current approach may cause issues if samples originate from different steps.
     """
 
-    try:
-        currentStep = Process(lims, id=args.pid)
+    currentStep = Process(lims, id=args.pid)
+    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
-        timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+    # Parse inputs and their UDFs
+    arts = currentStep.all_inputs()
 
-        # Parse inputs and their UDFs
-        arts = currentStep.all_inputs()
+    runs = []
+    for art_tuple in arts:
+        run = parse_run(art_tuple)
+        if run:
+            runs.append(run)
 
-        runs = []
-        for art_tuple in arts:
-            run = parse_run(art_tuple)
-            if run:
-                runs.append(run)
+    db = get_ONT_db()
+    view = db.view("info/all_stats")
 
-        db = get_ONT_db()
-        view = db.view("info/all_stats")
+    runtime_log = []
+    errors = False
+    for run in runs:
+        rows_matching_run = [
+            row
+            for row in view.rows
+            if f'{run["run_name"]}' in row.value["TACA_run_path"]
+        ]
 
-        runtime_log = []
-        errors = False
-        for run in runs:
-            rows_matching_run = [
-                row
-                for row in view.rows
-                if f'{run["run_name"]}' in row.value["TACA_run_path"]
-            ]
+        try:
+            assert (
+                len(rows_matching_run) > 0
+            ), f"The database contains no document with run name {run['run_name']}. If the run was recently started, wait until it appears in GenStat."
+            assert (
+                len(rows_matching_run) == 1
+            ), f"The database contains multiple documents with run name {run['run_name']}. Contact a database administrator."
 
-            try:
-                assert (
-                    len(rows_matching_run) > 0
-                ), f"The database contains no document with run name {run['run_name']}. If the run was recently started, wait until it appears in GenStat."
-                assert (
-                    len(rows_matching_run) == 1
-                ), f"The database contains multiple documents with run name {run['run_name']}. Contact a database administrator."
+            doc_id = rows_matching_run[0].id
+            doc = db[doc_id]
 
-                doc_id = rows_matching_run[0].id
-                doc = db[doc_id]
+            dict_to_add = {
+                "step_name": currentStep.type.name,
+                "pid": currentStep.id,
+                "timestamp": timestamp,
+                "reload_times": run["reload_times"],
+                "reload_fmols": run["reload_fmols"],
+                "reload_lots": run["reload_lots"],
+            }
 
-                dict_to_add = {
-                    "step_name": currentStep.type.name,
-                    "pid": currentStep.id,
-                    "timestamp": timestamp,
-                    "reload_times": run["reload_times"],
-                    "reload_fmols": run["reload_fmols"],
-                    "reload_lots": run["reload_lots"],
-                }
+            if "lims" not in doc:
+                doc["lims"] = {}
+            if "reloading" not in doc["lims"]:
+                doc["lims"]["reloading"] = []
+            doc["lims"]["reloading"].append(dict_to_add)
 
-                try:
-                    try:
-                        doc["lims"]["reloading"].append(dict_to_add)
-                    except KeyError:
-                        doc["lims"]["reloading"] = []
-                        doc["lims"]["reloading"].append(dict_to_add)
-                except:
-                    doc["lims"] = {}
-                    doc["lims"]["reloading"] = []
-                    doc["lims"]["reloading"].append(dict_to_add)
+            db[doc.id] = doc
 
-                db[doc.id] = doc
+            runtime_log.append(f"Flowcell {run['run_name']} was updated successfully.")
 
-                runtime_log.append(
-                    f"Flowcell {run['run_name']} was updated successfully."
-                )
+        except AssertionError as e:
+            errors = True
+            runtime_log.append(str(e))
+            continue
 
-            except AssertionError as e:
-                errors = True
-                runtime_log.append(str(e))
-                continue
-
-        if errors:
-            raise AssertionError("\n".join(runtime_log))
-
-    except AssertionError as e:
-        sys.stderr.write(str(e))
-        sys.exit(2)
+    if errors:
+        raise AssertionError("\n".join(runtime_log))
 
 
 def parse_run(art):
@@ -196,4 +183,9 @@ if __name__ == "__main__":
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
-    main(lims, args)
+
+    try:
+        main(lims, args)
+    except AssertionError as e:
+        sys.stderr.write(str(e))
+        sys.exit(2)
