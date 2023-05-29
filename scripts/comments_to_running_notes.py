@@ -68,6 +68,7 @@ def categorization(process_name):
         "Fragment DNA (ThruPlex)": "Workset",
         "Fragment DNA (TruSeq DNA) 4.0": "Workset",
         "Fragmentation & cDNA synthesis (TruSeq RNA) 4.0": "Workset",
+        "g-Tube Fragmentation": "Workset",
         "Generic QC": "",
         "HT-End repair, A-tailing and adapter ligation (TruSeq RNA) 4.0": "Workset",
         "HiC Intermediate QC": "",
