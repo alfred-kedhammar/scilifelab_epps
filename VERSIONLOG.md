@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230529.1
+Assign step (accidentally omitted from PR #150) to RN config.
+
 ## 20230525.1
 Live troubleshooting of ONT EPPs upon deployment of new workflow to LIMS prod.
 
