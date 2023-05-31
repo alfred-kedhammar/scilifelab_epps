@@ -323,12 +323,58 @@ def lims_for_novaseq(process, run_dir):
 def lims_for_NovaSeqXPlus(process, run_dir):
     # Parse run
     runParserObj, RunParametersParserObj = parse_run(run_dir)
-    # Set values for LIMS UDFs
+
+    # Subset parsed data
     runParameters = RunParametersParserObj.data["RunParameters"]
+    consumables = runParameters["ConsumableInfo"]["ConsumableInfo"]
+    reads = runParameters["PlannedReads"]["Read"]
+
+    # Set values for LIMS UDFs
+    process.udf["Flow Cell Mode"] = runParameters["FlowCellName"]
+    process.udf["Run ID"] = runParameters["RunId"]
     process.udf["Output Folder"] = runParameters["OutputFolder"]
+
+    for read in reads:
+        if read["ReadName"] == "Read1":
+            process.udf["Read 1 Cycles"] = read["Cycles"]
+        elif read["ReadName"] == "Index1":
+            process.udf["Index Read 1"] = read["Cycles"]
+        elif read["ReadName"] == "Index2":
+            process.udf["Index Read 2"] = read["Cycles"]
+        elif read["ReadName"] == "Read2":
+            process.udf["Read 2 Cycles"] = read["Cycles"]
+
+    for consumable in consumables:
+        if consumable["Type"] == "FlowCell":
+            process.udf["Flow Cell ID"] = consumable["SerialNumber"]
+            process.udf["Flow Cell Part Number"] = consumable["PartNumber"]
+            process.udf["Flow Cell Lot Number"] = consumable["LotNumber"]
+            process.udf["Flow Cell Expiration Date"] = consumable["ExpirationDate"]
+        elif consumable["Type"] == "Reagent":
+            process.udf["Reagent Serial Barcode"] = consumable["SerialNumber"]
+            process.udf["Reagent Part Number"] = consumable["PartNumber"]
+            process.udf["Reagent Lot Number"] = consumable["LotNumber"]
+            process.udf["Reagent Expiration Date"] = consumable["ExpirationDate"]
+        elif consumable["Type"] == "Buffer":
+            process.udf["Buffer Serial Barcode"] = consumable["SerialNumber"]
+            process.udf["Buffer Part Number"] = consumable["PartNumber"]
+            process.udf["Buffer Lot Number"] = consumable["LotNumber"]
+            process.udf["Buffer Expiration Date"] = consumable["ExpirationDate"]
+        elif consumable["Type"] == "SampleTube":
+            process.udf["SampleTube Serial Barcode"] = consumable["SerialNumber"]
+            process.udf["SampleTube Part Number"] = consumable["PartNumber"]
+            process.udf["SampleTube Lot Number"] = consumable["LotNumber"]
+            process.udf["SampleTube Expiration Date"] = consumable["ExpirationDate"]
+        elif consumable["Type"] == "Lyo":
+            process.udf["Lyo Serial Barcode"] = consumable["SerialNumber"]
+            process.udf["Lyo Part Number"] = consumable["PartNumber"]
+            process.udf["Lyo Lot Number"] = consumable["LotNumber"]
+            process.udf["Lyo Expiration Date"] = consumable["ExpirationDate"]
+
     # Put in LIMS
     process.put()
-    # Set run stats parsed from InterOp
+
+    # Set run stats parsed from InterOp to measurement UDFs
     run_stats_summary = parse_illumina_interop(run_dir)
     set_run_stats_in_lims(process, run_stats_summary)
 
