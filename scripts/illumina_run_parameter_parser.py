@@ -35,6 +35,8 @@ def fetch_fc(process):
             sys.exit(2)
     elif process.parent_processes()[0].type.name == 'Load to Flowcell (NovaSeq 6000 v2.0)':
         fc_id = process.parent_processes()[0].output_containers()[0].name
+    elif "Load to Flowcell (NovaSeqXPlus)" in process.parent_processes()[0].type.name:
+        fc_id = process.parent_processes()[0].output_containers()[0].name
     else:
         sys.stderr.write("No associated parent step can be found.")
         sys.exit(2)
@@ -49,6 +51,9 @@ def fetch_rundir(fc_id, run_type):
         data_dir = 'miseq_data'
     elif run_type == 'novaseq':
         data_dir = 'NovaSeq_data'
+    elif run_type == "NovaSeqXPlus":
+        # TODO add path
+        return ""
     run_dir_path = os.path.join(os.sep,"srv","mfs",data_dir,"*{}".format(fc_id))
     if len(glob.glob(run_dir_path)) == 1:
         run_dir = glob.glob(run_dir_path)[0]
@@ -316,16 +321,31 @@ def lims_for_novaseq(process, run_dir):
     set_run_stats_in_lims(process, run_stats_summary)
 
 
+def lims_for_NovaSeqXPlus(process, run_dir):
+    # Parse run
+    runParserObj, RunParametersParserObj = parse_run(run_dir)
+    # Set values for LIMS UDFs
+    runParameters = RunParametersParserObj.data["RunParameters"]
+    process.udf["Output Folder"] = runParameters["OutputFolder"]
+    # Put in LIMS
+    process.put()
+    # Set run stats parsed from InterOp
+    run_stats_summary = parse_illumina_interop(run_dir)
+    set_run_stats_in_lims(process, run_stats_summary)
+
+
 def main(lims, args):
 
     process = Process(lims, id=args.pid)
 
-    if process.type.name == 'Illumina Sequencing (NextSeq) v1.0':
-        run_type =  'nextseq'
-    elif process.type.name == 'MiSeq Run (MiSeq) 4.0':
-        run_type = 'miseq'
-    elif process.type.name == 'AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)':
-        run_type = 'novaseq'
+    if process.type.name == "Illumina Sequencing (NextSeq) v1.0":
+        run_type = "nextseq"
+    elif process.type.name == "MiSeq Run (MiSeq) 4.0":
+        run_type = "miseq"
+    elif "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)" in process.type.name:
+        run_type = "novaseq"
+    elif "NovaSeqXPlus Run" in process.type.name:
+        run_type = "NovaSeqXPlus"
 
     # Fetch FC ID
     fc_id = fetch_fc(process)
@@ -340,6 +360,8 @@ def main(lims, args):
         lims_for_miseq(process, run_dir)
     elif run_type == 'novaseq':
         lims_for_novaseq(process, run_dir)
+    elif run_type == "NovaSeqXPlus":
+        lims_for_NovaSeqXPlus(process, run_dir)
 
 
 if __name__ == "__main__":
