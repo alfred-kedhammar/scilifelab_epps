@@ -536,7 +536,17 @@ def main(lims, args):
         elif "Load to Flowcell (NovaSeqXPlus)" in process.type.name:
             (content, obj) = gen_NovaSeqXPlus_lane_data(process)
             check_index_distance(obj, log)
-            # TODO add mfs
+            if os.path.exists("/srv/mfs/samplesheets/NovaSeqXPlus/{}".format(thisyear)):
+                try:
+                    with open(
+                        "/srv/mfs/samplesheets/NovaSeqXPlus/{}/{}.csv".format(
+                            thisyear, obj[0]["fc"]
+                        ),
+                        "w",
+                    ) as sf:
+                        sf.write(content)
+                except Exception as e:
+                    log.append(str(e))
 
         elif process.type.name == "Denature, Dilute and Load Sample (MiSeq) 4.0":
             header = gen_Miseq_header(process)
