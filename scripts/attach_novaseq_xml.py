@@ -26,20 +26,69 @@ def main(lims, args):
                 process.udf[i] = process.parent_processes()[0].udf[i]
         process.put()
 
-    # Fetch Flowcell ID
-    FCID=process.parent_processes()[0].output_containers()[0].name
+        # Fetch Flowcell ID
+        FCID = process.parent_processes()[0].output_containers()[0].name
 
-    for outart in process.all_outputs():
-        if outart.type == 'ResultFile' and outart.name == 'Run Info':
-            try:
-                lims.upload_new_file(outart,max(glob.glob('/srv/mfs/NovaSeq_data/*{}/RunInfo.xml'.format(FCID)),key=os.path.getctime))
-            except:
-                raise RuntimeError("No RunInfo.xml Found!")
-        elif outart.type == 'ResultFile' and outart.name == 'Run Parameters':
-            try:
-                lims.upload_new_file(outart,max(glob.glob('/srv/mfs/NovaSeq_data/*{}/RunParameters.xml'.format(FCID)),key=os.path.getctime))
-            except:
-                raise RuntimeError("No RunParameters.xml Found!")
+        for outart in process.all_outputs():
+            if outart.type == "ResultFile" and outart.name == "Run Info":
+                try:
+                    lims.upload_new_file(
+                        outart,
+                        max(
+                            glob.glob(
+                                "/srv/mfs/NovaSeq_data/*{}/RunInfo.xml".format(FCID)
+                            ),
+                            key=os.path.getctime,
+                        ),
+                    )
+                except:
+                    raise RuntimeError("No RunInfo.xml Found!")
+            elif outart.type == "ResultFile" and outart.name == "Run Parameters":
+                try:
+                    lims.upload_new_file(
+                        outart,
+                        max(
+                            glob.glob(
+                                "/srv/mfs/NovaSeq_data/*{}/RunParameters.xml".format(
+                                    FCID
+                                )
+                            ),
+                            key=os.path.getctime,
+                        ),
+                    )
+                except:
+                    raise RuntimeError("No RunParameters.xml Found!")
+
+    elif "NovaSeqXPlus Run" in process.type.name:
+
+        # Fetch Flowcell ID
+        FCID = process.parent_processes()[0].output_containers()[0].name
+
+        for outart in process.all_outputs():
+            if outart.type == "ResultFile" and outart.name == "Run Info":
+                try:
+                    lims.upload_new_file(
+                        outart,
+                        max(
+                            glob.glob("/srv/mfs/NovaseqX/*{}/RunInfo.xml".format(FCID)),
+                            key=os.path.getctime,
+                        ),
+                    )
+                except:
+                    raise RuntimeError("No RunInfo.xml Found!")
+            elif outart.type == "ResultFile" and outart.name == "Run Parameters":
+                try:
+                    lims.upload_new_file(
+                        outart,
+                        max(
+                            glob.glob(
+                                "/srv/mfs/NovaseqX/*{}/RunParameters.xml".format(FCID)
+                            ),
+                            key=os.path.getctime,
+                        ),
+                    )
+                except:
+                    raise RuntimeError("No RunParameters.xml Found!")
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
