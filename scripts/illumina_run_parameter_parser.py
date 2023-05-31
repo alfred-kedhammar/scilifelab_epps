@@ -52,8 +52,7 @@ def fetch_rundir(fc_id, run_type):
     elif run_type == 'novaseq':
         data_dir = 'NovaSeq_data'
     elif run_type == "NovaSeqXPlus":
-        # TODO add path
-        return ""
+        data_dir = "NovaseqX"
     run_dir_path = os.path.join(os.sep,"srv","mfs",data_dir,"*{}".format(fc_id))
     if len(glob.glob(run_dir_path)) == 1:
         run_dir = glob.glob(run_dir_path)[0]
