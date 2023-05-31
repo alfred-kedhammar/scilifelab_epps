@@ -70,7 +70,9 @@ def main(lims, args):
                     lims.upload_new_file(
                         outart,
                         max(
-                            glob.glob("/srv/mfs/NovaseqX/*{}/RunInfo.xml".format(FCID)),
+                            glob.glob(
+                                "/srv/mfs/NovaSeqXPlus/*{}/RunInfo.xml".format(FCID)
+                            ),
                             key=os.path.getctime,
                         ),
                     )
@@ -82,7 +84,9 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/mfs/NovaseqX/*{}/RunParameters.xml".format(FCID)
+                                "/srv/mfs/NovaSeqXPlus/*{}/RunParameters.xml".format(
+                                    FCID
+                                )
                             ),
                             key=os.path.getctime,
                         ),
