@@ -349,27 +349,31 @@ def lims_for_NovaSeqXPlus(process, run_dir):
             process.udf["Flow Cell ID"] = consumable["SerialNumber"]
             process.udf["Flow Cell Part Number"] = consumable["PartNumber"]
             process.udf["Flow Cell Lot Number"] = consumable["LotNumber"]
-            process.udf["Flow Cell Expiration Date"] = consumable["ExpirationDate"]
+            process.udf["Flow Cell Expiration Date"] = consumable["ExpirationDate"][
+                0:10
+            ]
         elif consumable["Type"] == "Reagent":
             process.udf["Reagent Serial Barcode"] = consumable["SerialNumber"]
             process.udf["Reagent Part Number"] = consumable["PartNumber"]
             process.udf["Reagent Lot Number"] = consumable["LotNumber"]
-            process.udf["Reagent Expiration Date"] = consumable["ExpirationDate"]
+            process.udf["Reagent Expiration Date"] = consumable["ExpirationDate"][0:10]
         elif consumable["Type"] == "Buffer":
             process.udf["Buffer Serial Barcode"] = consumable["SerialNumber"]
             process.udf["Buffer Part Number"] = consumable["PartNumber"]
             process.udf["Buffer Lot Number"] = consumable["LotNumber"]
-            process.udf["Buffer Expiration Date"] = consumable["ExpirationDate"]
+            process.udf["Buffer Expiration Date"] = consumable["ExpirationDate"][0:10]
         elif consumable["Type"] == "SampleTube":
             process.udf["SampleTube Serial Barcode"] = consumable["SerialNumber"]
             process.udf["SampleTube Part Number"] = consumable["PartNumber"]
             process.udf["SampleTube Lot Number"] = consumable["LotNumber"]
-            process.udf["SampleTube Expiration Date"] = consumable["ExpirationDate"]
+            process.udf["SampleTube Expiration Date"] = consumable["ExpirationDate"][
+                0:10
+            ]
         elif consumable["Type"] == "Lyo":
             process.udf["Lyo Serial Barcode"] = consumable["SerialNumber"]
             process.udf["Lyo Part Number"] = consumable["PartNumber"]
             process.udf["Lyo Lot Number"] = consumable["LotNumber"]
-            process.udf["Lyo Expiration Date"] = consumable["ExpirationDate"]
+            process.udf["Lyo Expiration Date"] = consumable["ExpirationDate"][0:10]
 
     # Put in LIMS
     process.put()
