@@ -54,6 +54,7 @@ def fetch_rundir(fc_id, run_type):
     elif run_type == "NovaSeqXPlus":
         data_dir = "NovaSeqXPlus"
     run_dir_path = os.path.join(os.sep,"srv","mfs",data_dir,"*{}".format(fc_id))
+
     if len(glob.glob(run_dir_path)) == 1:
         run_dir = glob.glob(run_dir_path)[0]
     elif len(glob.glob(run_dir_path)) == 0:
@@ -336,13 +337,13 @@ def lims_for_NovaSeqXPlus(process, run_dir):
 
     for read in reads:
         if read["ReadName"] == "Read1":
-            process.udf["Read 1 Cycles"] = read["Cycles"]
+            process.udf["Read 1 Cycles"] = int(read["Cycles"])
         elif read["ReadName"] == "Index1":
-            process.udf["Index Read 1"] = read["Cycles"]
+            process.udf["Index Read 1"] = int(read["Cycles"])
         elif read["ReadName"] == "Index2":
-            process.udf["Index Read 2"] = read["Cycles"]
+            process.udf["Index Read 2"] = int(read["Cycles"])
         elif read["ReadName"] == "Read2":
-            process.udf["Read 2 Cycles"] = read["Cycles"]
+            process.udf["Read 2 Cycles"] = int(read["Cycles"])
 
     for consumable in consumables:
         if consumable["Type"] == "FlowCell":
