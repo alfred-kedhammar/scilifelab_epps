@@ -73,7 +73,7 @@ def parse_run(run_dir):
     elif os.path.exists("{}/runParameters.xml".format(run_dir)):
         RunParametersParserObj = RunParametersParser("{}/runParameters.xml".format(run_dir))
     else:
-        sys.stderr.write("No RunParameters.xml found for FC {}".format(fc_id))
+        sys.stderr.write("No RunParameters.xml found in path {}".format(run_dir))
         sys.exit(2)
     return runParserObj, RunParametersParserObj
 
