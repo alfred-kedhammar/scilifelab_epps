@@ -331,7 +331,6 @@ def lims_for_NovaSeqXPlus(process, run_dir):
     reads = runParameters["PlannedReads"]["Read"]
 
     # Set values for LIMS UDFs
-    process.udf["Flow Cell Mode"] = runParameters["FlowCellName"]
     process.udf["Run ID"] = runParameters["RunId"]
     process.udf["Output Folder"] = runParameters["OutputFolder"]
 
@@ -347,22 +346,27 @@ def lims_for_NovaSeqXPlus(process, run_dir):
 
     for consumable in consumables:
         if consumable["Type"] == "FlowCell":
+            process.udf["Flow Cell Mode"] = consumable["Mode"]
+
             process.udf["Flow Cell ID"] = consumable["SerialNumber"]
             process.udf["Flow Cell Part Number"] = consumable["PartNumber"]
             process.udf["Flow Cell Lot Number"] = consumable["LotNumber"]
             process.udf["Flow Cell Expiration Date"] = consumable["ExpirationDate"][
                 0:10
             ]
+
         elif consumable["Type"] == "Reagent":
             process.udf["Reagent Serial Barcode"] = consumable["SerialNumber"]
             process.udf["Reagent Part Number"] = consumable["PartNumber"]
             process.udf["Reagent Lot Number"] = consumable["LotNumber"]
             process.udf["Reagent Expiration Date"] = consumable["ExpirationDate"][0:10]
+
         elif consumable["Type"] == "Buffer":
             process.udf["Buffer Serial Barcode"] = consumable["SerialNumber"]
             process.udf["Buffer Part Number"] = consumable["PartNumber"]
             process.udf["Buffer Lot Number"] = consumable["LotNumber"]
             process.udf["Buffer Expiration Date"] = consumable["ExpirationDate"][0:10]
+
         elif consumable["Type"] == "SampleTube":
             process.udf["SampleTube Serial Barcode"] = consumable["SerialNumber"]
             process.udf["SampleTube Part Number"] = consumable["PartNumber"]
@@ -370,6 +374,7 @@ def lims_for_NovaSeqXPlus(process, run_dir):
             process.udf["SampleTube Expiration Date"] = consumable["ExpirationDate"][
                 0:10
             ]
+
         elif consumable["Type"] == "Lyo":
             process.udf["Lyo Serial Barcode"] = consumable["SerialNumber"]
             process.udf["Lyo Part Number"] = consumable["PartNumber"]
