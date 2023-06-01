@@ -136,13 +136,13 @@ def get_process_stats(demux_process):
     return proc_stats
 
 
-def fill_process_fields(demux_process, proc_stats):
+def fill_process_fields(demux_process, process_stats):
     """Sets run thresholds"""
     thresholds = Thresholds(
-        proc_stats["Instrument"],
-        proc_stats["Chemistry"],
-        proc_stats["Paired"],
-        proc_stats["Read Length"],
+        process_stats["Instrument"],
+        process_stats["Chemistry"],
+        process_stats["Paired"],
+        process_stats["Read Length"],
     )
 
     if not "Threshold for % bases >= Q30" in demux_process.udf:
@@ -175,7 +175,7 @@ def fill_process_fields(demux_process, proc_stats):
     #Sets Run ID if not already exists:
     if not "Run ID" in demux_process.udf:
         try:
-            demux_process.udf["Run ID"] = proc_stats["Run ID"]
+            demux_process.udf["Run ID"] = process_stats["Run ID"]
         except Exception as e:
             logger.info("Unable to automatically regenerate Run ID: {}".format(str(e)))
 
@@ -189,10 +189,15 @@ def fill_process_fields(demux_process, proc_stats):
         problem_handler("exit", "Failed to apply process thresholds to LIMS: {}".format(str(e)))
 
 
-def set_sample_values(demux_process, parser_struct, proc_stats):
+def set_sample_values(demux_process, parser_struct, process_stats):
     """Sets artifact = sample values"""
 
-    thresholds = Thresholds(proc_stats["Instrument"], proc_stats["Chemistry"], proc_stats["Paired"], proc_stats["Read Length"])
+    thresholds = Thresholds(
+        process_stats["Instrument"],
+        process_stats["Chemistry"],
+        process_stats["Paired"],
+        process_stats["Read Length"],
+    )
     failed_entries = 0
     undet_included = False
     noIndex = False
@@ -207,6 +212,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
             "Illumina Sequencing (HiSeq X) 1.0",
             "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
             "Illumina Sequencing (NextSeq) v1.0",
+            "NovaSeqXPlus Run v1.0",
         }
         seq_process = lims.get_processes(
             inputartifactlimsid=demux_process.all_inputs()[0].id, type=seq_processes
@@ -231,7 +237,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
             outarts_per_lane = demux_process.outputs_per_input(pool.id, ResultFile = True)
         except Exception as e:
             problem_handler("exit", "Unable to fetch artifacts of process: {}".format(str(e)))
-        if proc_stats["Instrument"] == "miseq":
+        if process_stats["Instrument"] == "miseq":
             lane_no = "1"
         else:
             try:
@@ -280,7 +286,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 else:
                                     clusterType = "Clusters"
                                 #Paired runs are divided by two within flowcell parser
-                                if proc_stats["Paired"]:
+                                if process_stats["Paired"]:
                                     undet_reads = int(undet[clusterType].replace(",",""))*2
                                 #Since a single ended run has no pairs, pairs is set to equal reads
                                 else:
@@ -339,7 +345,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                 try:
                                     for inp in seq_process.all_outputs():
                                         if inp.output_type == "ResultFile" and inp.name.split(' ')[1] == lane_no and "Reads PF (M) R1" in inp.udf:
-                                            if proc_stats["Paired"]:
+                                            if process_stats["Paired"]:
                                                 target_file.udf["# Reads"] = inp.udf["Reads PF (M) R1"]*1000000*2
                                                 target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
                                             else:
@@ -357,7 +363,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                         # Handle special case for MiSeq with noIndex case:
                                         inp_location = "1" if inp.location[1][0] == "A" else inp.location[1][0]
                                         if inp_location == lane_no and "Clusters PF R1" in inp.udf:
-                                            if proc_stats["Paired"]:
+                                            if process_stats["Paired"]:
                                                 target_file.udf["# Reads"] = inp.udf["Clusters PF R1"]*2
                                                 target_file.udf["# Read Pairs"] = target_file.udf["# Reads"]/2
                                             else:
@@ -377,7 +383,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                                     clusterType = "Clusters"
                                 #Paired runs are divided by two within flowcell parser
                                 basenumber = int(entry[clusterType].replace(",",""))
-                                if proc_stats["Paired"]:
+                                if process_stats["Paired"]:
                                     #Undet always 0 unless manually included
                                     samplesum[sample]["# Reads"] = basenumber*2 + undet_reads if not "# Reads" in samplesum[sample] \
                                     else samplesum[sample]["# Reads"] + basenumber*2 + undet_reads
@@ -443,7 +449,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         else:
                             clusterType = "Clusters"
 
-                        if proc_stats["Paired"]:
+                        if process_stats["Paired"]:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))*2
                         else:
                             undet_lane_reads = int(entry[clusterType].replace(",",""))
