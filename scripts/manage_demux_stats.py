@@ -44,48 +44,75 @@ def problem_handler(type, message):
     else:
         logger.info(message)
 
-"""Fetches overarching workflow info"""
-def manipulate_workflow(demux_process):
-    run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0","AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)", "Illumina Sequencing (NextSeq) v1.0"}
+
+def get_process_stats(demux_process):
+    """Fetches overarching process info"""
+    seq_processes = {
+        "MiSeq Run (MiSeq) 4.0",
+        "Illumina Sequencing (Illumina SBS) 4.0",
+        "Illumina Sequencing (HiSeq X) 1.0",
+        "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
+        "Illumina Sequencing (NextSeq) v1.0",
+        "NovaSeqXPlus Run v1.0",
+    }
     try:
-        workflow = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id, type=run_types)[0]
+        # Query LIMS for all steps containing the first input artifact of this step and match to the set of sequencing steps
+        seq_process = lims.get_processes(
+            inputartifactlimsid=demux_process.all_inputs()[0].id, type=seq_processes
+        )[0]
     except Exception as e:
         problem_handler("exit", "Undefined prior workflow step (run type): {}".format(str(e)))
     #Copies LIMS sequencing step content
-    proc_stats = dict(list(workflow.udf.items()))
+    proc_stats = dict(list(seq_process.udf.items()))
     #Instrument is denoted the way it is since it is also used to find
     #the folder of the laneBarcode.html file
-    if "MiSeq Run (MiSeq) 4.0" == workflow.type.name:
-        if workflow.udf["Run Type"] == 'null':
-            proc_stats["Chemistry"] = 'MiSeq'
+    if "MiSeq Run (MiSeq) 4.0" == seq_process.type.name:
+        if seq_process.udf["Run Type"] == "null":
+            proc_stats["Chemistry"] = "MiSeq"
         else:
-            proc_stats["Chemistry"] = workflow.udf["Run Type"]
+            proc_stats["Chemistry"] = seq_process.udf["Run Type"]
         proc_stats["Instrument"] = "miseq"
-    elif "Illumina Sequencing (Illumina SBS) 4.0" == workflow.type.name:
+
+    elif "Illumina Sequencing (Illumina SBS) 4.0" == seq_process.type.name:
         try:
-            proc_stats["Chemistry"] = workflow.udf["Flow Cell Version"]
+            proc_stats["Chemistry"] = seq_process.udf["Flow Cell Version"]
         except Exception as e:
             problem_handler("exit", "No flowcell version set in sequencing step: {}".format(str(e)))
         proc_stats["Instrument"] = "hiseq"
-    elif "Illumina Sequencing (HiSeq X) 1.0" == workflow.type.name:
+
+    elif "Illumina Sequencing (HiSeq X) 1.0" == seq_process.type.name:
         proc_stats["Chemistry"] ="HiSeqX v2.5"
         proc_stats["Instrument"] = "HiSeq_X"
-    elif "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)" == workflow.type.name:
+
+    elif "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)" == seq_process.type.name:
         try:
-            proc_stats["Chemistry"] = workflow.udf["Flow Cell Mode"]
+            proc_stats["Chemistry"] = seq_process.udf["Flow Cell Mode"]
         except Exception as e:
             problem_handler("exit", "No flowcell version set in sequencing step: {}".format(str(e)))
         proc_stats["Instrument"] = "NovaSeq"
-        proc_stats["Read Length"] = workflow.udf['Read 1 Cycles']
-        proc_stats["Paired"] = True if workflow.udf.get('Read 2 Cycles') else False
-    elif "Illumina Sequencing (NextSeq) v1.0" == workflow.type.name:
+        proc_stats["Read Length"] = seq_process.udf["Read 1 Cycles"]
+        proc_stats["Paired"] = True if seq_process.udf.get("Read 2 Cycles") else False
+
+    elif "NovaSeqXPlus Run" in seq_process.type.name:
         try:
-            proc_stats["Chemistry"] = workflow.udf["Chemistry"]
+            proc_stats["Chemistry"] = seq_process.udf["Flow Cell Mode"]
+        except Exception as e:
+            problem_handler(
+                "exit", "No flowcell version set in sequencing step: {}".format(str(e))
+            )
+        proc_stats["Instrument"] = "NovaSeqXPlus"
+        proc_stats["Read Length"] = seq_process.udf["Read 1 Cycles"]
+        proc_stats["Paired"] = True if seq_process.udf.get("Read 2 Cycles") else False
+
+    elif "Illumina Sequencing (NextSeq) v1.0" == seq_process.type.name:
+        try:
+            proc_stats["Chemistry"] = seq_process.udf["Chemistry"]
         except Exception as e:
             problem_handler("exit", "No run type set in sequencing step: {}".format(str(e)))
         proc_stats["Instrument"] = "NextSeq"
-        proc_stats["Read Length"] = workflow.udf['Read 1 Cycles']
-        proc_stats["Paired"] = True if workflow.udf.get('Read 2 Cycles') else False
+        proc_stats["Read Length"] = seq_process.udf["Read 1 Cycles"]
+        proc_stats["Paired"] = True if seq_process.udf.get("Read 2 Cycles") else False
+
     else:
         problem_handler("exit", "Unhandled workflow step (run type)")
     logger.info("Run type/chemistry set to {}".format(proc_stats["Chemistry"]))
@@ -98,11 +125,13 @@ def manipulate_workflow(demux_process):
     if "Read 2 Cycles" in proc_stats:
         proc_stats["Paired"] = True
     logger.info("Paired libraries: {}".format(proc_stats["Paired"]))
+
     #Assignment to make usage more explicit
     try:
         proc_stats["Read Length"] = proc_stats["Read Length"] if proc_stats.get("Read Length", None) else proc_stats["Read 1 Cycles"]
     except Exception as e:
         problem_handler("exit", "Read 1 Cycles not found. Unable to read Read Length: {}".format(str(e)))
+
     logger.info("Read length set to {}".format(proc_stats["Read Length"]))
     return proc_stats
 
@@ -475,7 +504,7 @@ def main(process_lims_id, demux_id, log_id):
 
     demux_process = Process(lims,id = process_lims_id)
     #Fetches info on "workflow" level
-    proc_stats = manipulate_workflow(demux_process)
+    proc_stats = get_process_stats(demux_process)
     #Sets up the process values
     manipulate_process(demux_process, proc_stats)
     #Create the demux output file
