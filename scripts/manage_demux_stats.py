@@ -135,9 +135,15 @@ def get_process_stats(demux_process):
     logger.info("Read length set to {}".format(proc_stats["Read Length"]))
     return proc_stats
 
-"""Sets run thresholds"""
-def manipulate_process(demux_process, proc_stats):
-    thresholds = Thresholds(proc_stats["Instrument"], proc_stats["Chemistry"], proc_stats["Paired"], proc_stats["Read Length"])
+
+def fill_process_fields(demux_process, proc_stats):
+    """Sets run thresholds"""
+    thresholds = Thresholds(
+        proc_stats["Instrument"],
+        proc_stats["Chemistry"],
+        proc_stats["Paired"],
+        proc_stats["Read Length"],
+    )
 
     if not "Threshold for % bases >= Q30" in demux_process.udf:
         thresholds.set_Q30()
@@ -146,6 +152,7 @@ def manipulate_process(demux_process, proc_stats):
             logger.info("Q30 threshold set to {}".format(demux_process.udf["Threshold for % bases >= Q30"]))
         except Exception as e:
             problem_handler("exit", "Udf improperly formatted. Unable to set Q30 threshold: {}".format(str(e)))
+
     #Would REALLY prefer "Minimum Reads per Lane" over "Threshold for # Reads"
     if not "Minimum Reads per Lane" in demux_process.udf:
         thresholds.set_exp_lane_clust()
@@ -171,6 +178,7 @@ def manipulate_process(demux_process, proc_stats):
             demux_process.udf["Run ID"] = proc_stats["Run ID"]
         except Exception as e:
             logger.info("Unable to automatically regenerate Run ID: {}".format(str(e)))
+
     #Checks for document version
     if not "Document Version" in demux_process.udf:
         problem_handler("exit", "No Document Version set. Please set one.")
@@ -453,15 +461,19 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
         problem_handler("warning", "{} entries failed automatic QC".format(failed_entries))
 
 """Creates demux_{FCID}.csv and attaches it to process"""
-def write_demuxfile(proc_stats, demux_id):
+
+
+def write_demuxfile(process_stats, demux_id):
     #Includes windows drive letter support
-    datafolder = "{}_data".format(proc_stats["Instrument"])
-    lanebc_path = os.path.join(os.sep,"srv","mfs", datafolder,proc_stats["Run ID"],"laneBarcode.html")
+    datafolder = "{}_data".format(process_stats["Instrument"])
+    lanebc_path = os.path.join(
+        os.sep, "srv", "mfs", datafolder, process_stats["Run ID"], "laneBarcode.html"
+    )
     try:
         laneBC = classes.LaneBarcodeParser(lanebc_path)
     except Exception as e:
         problem_handler("exit", "Unable to fetch laneBarcode.html from {}: {}".format(lanebc_path, str(e)))
-    fname = "{}_demuxstats_{}.csv".format(demux_id, proc_stats["Flow Cell ID"])
+    fname = "{}_demuxstats_{}.csv".format(demux_id, process_stats["Flow Cell ID"])
 
     #Writes less undetermined info than undemultiplex_index.py. May cause problems downstreams
     with open(fname, "w") as csvfile:
@@ -474,7 +486,7 @@ def write_demuxfile(proc_stats, demux_id):
             else:
                 reads = entry["Clusters"]
 
-            if proc_stats["Paired"]:
+            if process_stats["Paired"]:
                 reads = int(reads.replace(",",""))*2
             else:
                 reads = int(reads.replace(",",""))
@@ -503,17 +515,21 @@ def main(process_lims_id, demux_id, log_id):
     logger.info("--process_lims_id {} --demux_id {} --log_id {}".format(process_lims_id, demux_id, log_id))
 
     demux_process = Process(lims,id = process_lims_id)
+
     #Fetches info on "workflow" level
-    proc_stats = get_process_stats(demux_process)
+    process_stats = get_process_stats(demux_process)
+
     #Sets up the process values
-    manipulate_process(demux_process, proc_stats)
+    fill_process_fields(demux_process, process_stats)
+
     #Create the demux output file
-    parser_struct = write_demuxfile(proc_stats, demux_id)
+    parser_struct = write_demuxfile(process_stats, demux_id)
+
     #Alters artifacts
-    set_sample_values(demux_process, parser_struct, proc_stats)
+    set_sample_values(demux_process, parser_struct, process_stats)
 
     #Changing log file name, can't do this step earlier since proc_stats is made during runtime.
-    new_name = "{}_logfile_{}.txt".format(log_id, proc_stats["Flow Cell ID"])
+    new_name = "{}_logfile_{}.txt".format(log_id, process_stats["Flow Cell ID"])
     move(basic_name, new_name)
 
 if __name__ =="__main__":
