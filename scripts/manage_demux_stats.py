@@ -188,18 +188,29 @@ def fill_process_fields(demux_process, proc_stats):
     except Exception as e:
         problem_handler("exit", "Failed to apply process thresholds to LIMS: {}".format(str(e)))
 
-"""Sets artifact = sample values """
+
 def set_sample_values(demux_process, parser_struct, proc_stats):
+    """Sets artifact = sample values"""
+
     thresholds = Thresholds(proc_stats["Instrument"], proc_stats["Chemistry"], proc_stats["Paired"], proc_stats["Read Length"])
     failed_entries = 0
     undet_included = False
     noIndex = False
     undet_lanes = list()
     proj_pattern = re.compile('(P\w+_\d+)')
+
     #Necessary for noindexruns, should always resolve
     try:
-        run_types = {"MiSeq Run (MiSeq) 4.0","Illumina Sequencing (Illumina SBS) 4.0","Illumina Sequencing (HiSeq X) 1.0","AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)","Illumina Sequencing (NextSeq) v1.0"}
-        seqstep = lims.get_processes(inputartifactlimsid = demux_process.all_inputs()[0].id, type=run_types)[0]
+        seq_processes = {
+            "MiSeq Run (MiSeq) 4.0",
+            "Illumina Sequencing (Illumina SBS) 4.0",
+            "Illumina Sequencing (HiSeq X) 1.0",
+            "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
+            "Illumina Sequencing (NextSeq) v1.0",
+        }
+        seq_process = lims.get_processes(
+            inputartifactlimsid=demux_process.all_inputs()[0].id, type=seq_processes
+        )[0]
     except Exception as e:
         problem_handler("exit", "Undefined prior workflow step (run type): {}".format(str(e)))
 
@@ -320,9 +331,13 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                         #Fetches clusters from laneBarcode.html file
                         if noIndex:
                             # For the case of NovaSeq run, parse lane yield from the ResultsFile of all_outputs.
-                            if seqstep.type.name in ["AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)", "Illumina Sequencing (NextSeq) v1.0"]:
+                            if seq_process.type.name in [
+                                "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
+                                "Illumina Sequencing (NextSeq) v1.0",
+                                "NovaSeqXPlus Run v1.0",
+                            ]:
                                 try:
-                                    for inp in seqstep.all_outputs():
+                                    for inp in seq_process.all_outputs():
                                         if inp.output_type == "ResultFile" and inp.name.split(' ')[1] == lane_no and "Reads PF (M) R1" in inp.udf:
                                             if proc_stats["Paired"]:
                                                 target_file.udf["# Reads"] = inp.udf["Reads PF (M) R1"]*1000000*2
@@ -337,7 +352,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             # For all other cases, parse lane yield from all_inputs
                             else:
                                 try:
-                                    for inp in seqstep.all_inputs():
+                                    for inp in seq_process.all_inputs():
                                         #If reads in seq step, and the lane is equal to the current lane
                                         # Handle special case for MiSeq with noIndex case:
                                         inp_location = "1" if inp.location[1][0] == "A" else inp.location[1][0]
@@ -420,6 +435,7 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
                             problem_handler("exit", "Unable to set QC status for sample: {}".format(str(e)))
 
                         lane_reads = lane_reads + target_file.udf["# Reads"]
+
                     #Counts undetermined
                     elif sample == "Undetermined":
                         if "PF Clusters" in entry:
@@ -444,28 +460,44 @@ def set_sample_values(demux_process, parser_struct, proc_stats):
         #Counts undetermined per lane
         if not undet_included:
             try:
-                found_undet = round(my_float(undet_lane_reads)/(lane_reads+undet_lane_reads)*100, 2)
-            #Only plausible error situation. Avoids zero division
+                found_undet = round(
+                    my_float(undet_lane_reads) / (lane_reads + undet_lane_reads) * 100,
+                    2,
+                )
+
+            # Only plausible error situation. Avoids zero division
             except Exception as e:
-                problem_handler("error", "BCLConverter parsing error. No reads detected for lane {}.".format(lane_no))
-            #If undetermined reads are greater than threshold*reads_in_lane
+                problem_handler(
+                    "error",
+                    "BCLConverter parsing error. No reads detected for lane {}.".format(
+                        lane_no
+                    ),
+                )
+
+            # If undetermined reads are greater than threshold*reads_in_lane
             if not noIndex:
                 if found_undet > demux_process.udf["Maximum % Undetermined Reads per Lane"]:
                     problem_handler("warning", "Undemultiplexed reads for lane {} was {} ({})% thus exceeding defined limit." \
                                    .format(lane_no, undet_lane_reads, found_undet))
                 else:
-                    logger.info("Found {} ({}%) undemultiplexed reads for lane {}.".format(undet_lane_reads, found_undet, lane_no))
+                    logger.info(
+                        "Found {} ({}%) undemultiplexed reads for lane {}.".format(
+                            undet_lane_reads, found_undet, lane_no
+                        )
+                    )
+
     if undet_included:
         problem_handler("warning", "Undetermined reads included in read count!")
+
     if failed_entries > 0:
         problem_handler("warning", "{} entries failed automatic QC".format(failed_entries))
 
-"""Creates demux_{FCID}.csv and attaches it to process"""
-
 
 def write_demuxfile(process_stats, demux_id):
+    """Creates demux_{FCID}.csv and attaches it to process"""
     #Includes windows drive letter support
     datafolder = "{}_data".format(process_stats["Instrument"])
+
     lanebc_path = os.path.join(
         os.sep, "srv", "mfs", datafolder, process_stats["Run ID"], "laneBarcode.html"
     )
