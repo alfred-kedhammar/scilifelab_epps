@@ -179,19 +179,40 @@ def make_samplesheet_for_qc(currentStep):
     # Iterate through the input Illumina pools one by one
     for pool in currentStep.all_inputs():
 
-        # Find all outputs belonging to the current Illumina pool and assert they have the same barcode
+        # Find all outputs belonging to the current Illumina pool
         pool_samples = [
             art_tuple[1]["uri"]
             for art_tuple in art_tuples
             if art_tuple[0]["uri"].id == pool.id
         ]
-        ont_barcodes = set([art.udf["Nanopore Barcode"] for art in pool_samples])
+
+        # Assert barcode is correctly formatted
+        ont_barcodes_in_pool = set()
+        for art in pool_samples:
+            try:
+                barcode_field = art.udf["Nanopore Barcode"]
+            except:
+                barcode_field = None
+
+            if barcode_field:
+                try:
+                    int_barcode_field = int(barcode_field)
+                    assert int_barcode_field in list(range(1, 97))
+                except:
+                    raise AssertionError(
+                        f"Nanopore barcodes must be either left empty or set to 1-96. Sample {art.name} in pool {pool.name} has invalid nanopore barcode '{barcode_field}'."
+                    )
+            else:
+                pass
+
+            ont_barcodes_in_pool.add(barcode_field)
+
         assert (
-            len(ont_barcodes) == 1
-        ), "The same Nanopore Barcode must be set for all samples within the same Illumina pool"
+            len(ont_barcodes_in_pool) == 1
+        ), f"The same Nanopore Barcode must be set for all samples within the same Illumina pool, not the case for pool {pool.name}"
 
         # Excise the number of the ONT barcode of the Illumina pool
-        ont_barcode_number = ont_barcodes.pop()[2:4]
+        ont_barcode = ont_barcodes_in_pool.pop()
 
         row = {
             "position_id": "None",
@@ -205,13 +226,24 @@ def make_samplesheet_for_qc(currentStep):
             .split(" ")[1]
             .strip("()"),
             "kit": get_kit_string(currentStep),
-            "alias": strip_characters(pool.name),
-            "barcode": "barcode" + ont_barcode_number,
         }
+
+        if ont_barcode:
+            row["alias"] = strip_characters(pool.name)
+            row["barcode"] = "barcode" + ont_barcode
 
         rows.append(row)
 
     df = pd.DataFrame(rows)
+
+    if "barcode" in df.columns:
+        assert all(
+            df.barcode.notna()
+        ), "Nanopore barcodes must be specified for either ALL samples, or NONE."
+
+        assert len(df.barcode.unique()) == len(
+            currentStep.all_inputs()
+        ), "Nanopore barcodes are shared between Illumina pools"
 
     file_name = write_csv(df)
     return file_name
@@ -321,4 +353,8 @@ if __name__ == "__main__":
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
-    main(lims, args)
+    try:
+        main(lims, args)
+    except BaseException as e:
+        sys.stderr.write(str(e))
+        sys.exit(2)
