@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230602.1
+Rename utils module to epp_utils to avoid name collision with native Python module and fix bug causing fatal error for Zika pooling.
+
 ## 20230529.1
 Assign step (accidentally omitted from PR #150) to RN config.
 
