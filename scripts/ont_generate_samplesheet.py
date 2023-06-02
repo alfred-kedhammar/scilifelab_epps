@@ -23,9 +23,10 @@ def main(lims, args):
 
     flow_cell_id                e.g. PAM96489
     position_id                 [1-3A-G] for PromethION, else None
-    sample_id                   - For single samples:       e.g. P12345_101,
-                                - For pools:                e.g. P12345_lims-pool-id
-                                - For multi-project pools:  lims-pool-id
+    sample_id                   - For single samples:       <sample-id>
+                                - For pools:                <proj-id>_<lims-pool-id>
+                                - For multi-project pools:  <lims-pool-id>
+                                - For Illumina QC           QC_<timestamp>_<operator>
     experiment_id               lims-step-id
     flow_cell_product_code      e.g. FLO-MIN106D
     kit                         Product codes separated by spaces, e.g. SQK-LSK109 EXP-NBD196
@@ -64,7 +65,11 @@ def main(lims, args):
     try:
         currentStep = Process(lims, id=args.pid)
 
-        file_name = make_samplesheet(currentStep)
+        if "MinION QC" in currentStep.type.name:
+            file_name = make_samplesheet_for_qc(currentStep)
+        else:
+            file_name = make_samplesheet_default(currentStep)
+
         upload_file(file_name, currentStep, lims)
         shutil.move(file_name, f"/srv/mfs/samplesheets/nanopore/{dt.now().year}/")
 
@@ -73,7 +78,7 @@ def main(lims, args):
         sys.exit(2)
 
 
-def make_samplesheet(currentStep):
+def make_samplesheet_default(currentStep):
     arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
     arts.sort(key=lambda art: art.id)
 
@@ -143,6 +148,72 @@ def make_samplesheet(currentStep):
 
     file_name = write_csv(df)
 
+    return file_name
+
+
+def make_samplesheet_for_qc(currentStep):
+    timestamp = dt.now().strftime("%y%m%d")
+
+    # Start by differentiating file outputs from measurements outputs
+    measurements = []
+    files = []
+
+    sample_pattern = re.compile("P\d{5}_\d{3,4}")
+
+    for art in currentStep.all_outputs():
+        if re.search(sample_pattern, art.name):
+            measurements.append(art)
+        else:
+            files.append(art)
+
+    # Build an input output map objects omitting the files
+    art_tuples = []
+    for art_tuple in currentStep.input_output_maps:
+        if art_tuple[1]["uri"].id in [m.id for m in measurements]:
+            art_tuples.append(art_tuple)
+        else:
+            pass
+
+    rows = []
+
+    # Iterate through the input Illumina pools one by one
+    for pool in currentStep.all_inputs():
+
+        # Find all outputs belonging to the current Illumina pool and assert they have the same barcode
+        pool_samples = [
+            art_tuple[1]["uri"]
+            for art_tuple in art_tuples
+            if art_tuple[0]["uri"].id == pool.id
+        ]
+        ont_barcodes = set([art.udf["Nanopore Barcode"] for art in pool_samples])
+        assert (
+            len(ont_barcodes) == 1
+        ), "The same Nanopore Barcode must be set for all samples within the same Illumina pool"
+
+        # Excise the number of the ONT barcode of the Illumina pool
+        ont_barcode_number = ont_barcodes.pop()[2:4]
+
+        row = {
+            "position_id": "None",
+            "flow_cell_id": currentStep.udf["ONT flow cell ID"],
+            "sample_id": f"QC_{timestamp}_{currentStep.technician.name.replace(' ', '')}",
+            "experiment_id": f"{currentStep.id}",
+            "flow_cell_product_code": currentStep.udf["ONT flow cell type"].split(" ")[
+                0
+            ],
+            "flow_cell_type": currentStep.udf["ONT flow cell type"]
+            .split(" ")[1]
+            .strip("()"),
+            "kit": get_kit_string(currentStep),
+            "alias": strip_characters(pool.name),
+            "barcode": "barcode" + ont_barcode_number,
+        }
+
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+
+    file_name = write_csv(df)
     return file_name
 
 
