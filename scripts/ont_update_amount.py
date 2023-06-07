@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
-from utils import formula, udf_tools
+from epp_utils import formula, udf_tools
 from datetime import datetime as dt
 import sys
 

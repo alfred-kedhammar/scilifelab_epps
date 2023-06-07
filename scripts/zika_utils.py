@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime as dt
 import sys
-from utils.udf_tools import fetch_last
+from epp_utils.udf_tools import fetch_last
 
 
 def verify_step(currentStep, targets=None):
