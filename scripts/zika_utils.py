@@ -153,7 +153,11 @@ def fetch_sample_data(currentStep, to_fetch):
 def format_worklist(df, deck):
     """
     - Add columns in Mosquito-intepretable format
-    - Split transfers exceeding max pipetting volume
+
+    - Split transfers exceeding max pipetting volume.
+      Create splits of 5000 nl at a time until the remaining volume is >5000 and <= 10000,
+      then split it in half.
+
     - Sort by buffer/sample, dst col, dst row
     """
 
@@ -187,24 +191,32 @@ def format_worklist(df, deck):
     assert all(df.transfer_vol < 180000), "Some transfer volumes exceed 180 ul"
     max_vol = 5000
     df_split = pd.DataFrame(columns=df.columns)
+
     # Iterate across rows
     for idx, row in df.iterrows():
+
         # If transfer volume of current row exceeds max
         if row.transfer_vol > max_vol:
-            df_being_split = pd.DataFrame(columns=df.columns)
+
+            # Make new df to add the split transfers to
+            df_splits_to_add = pd.DataFrame(columns=df.columns)
 
             # Make a copy of the row and set the transfer volume to the max
             row_cp = row.copy()
             row_cp.loc["transfer_vol"] = max_vol
 
-            # As long as the transfer volume of the current row exceeds max
-            while row.transfer_vol > max_vol:
-                # Append the copy row whose transfer volume is the max
-                df_being_split = df_being_split.append(row_cp)
+            # As long as the transfer volume of the current row exceeds twice the max
+            while row.transfer_vol > 2 * max_vol:
+                # Append the copied row whose transfer volume is the max
+                df_splits_to_add = df_splits_to_add.append(row_cp)
                 # Deduct the same transfer volume from the current row
                 row.transfer_vol -= max_vol
 
-            df_split = df_split.append(df_being_split)
+            # The remaining volume is higher than the max but lower than twice the max. Split this volume across two transfers.
+            df_splits_to_add = df_splits_to_add.append(round(row_cp / 2))
+            row.transfer_vol -= round(row_cp / 2)
+
+            df_split = df_split.append(df_splits_to_add)
             df_split = df_split.append(row)
 
         else:
