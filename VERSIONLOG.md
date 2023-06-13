@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230613.1
+Rework zika_utils.format_worklist() split transfers logic to prevent the post-split volume from ending up as less than what is allowed by the instrument.
+
 ## 20230602.1
 Rename utils module to epp_utils to avoid name collision with native Python module and fix bug causing fatal error for Zika pooling.
 
