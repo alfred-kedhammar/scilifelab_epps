@@ -198,25 +198,27 @@ def format_worklist(df, deck):
         # If transfer volume of current row exceeds max
         if row.transfer_vol > max_vol:
 
-            # Make new df to add the split transfers to
-            df_splits_to_add = pd.DataFrame(columns=df.columns)
+            # We need to split the row across multiple sub-transfers. Make new df to add the sub-transfers to.
+            transfers_to_add = pd.DataFrame(columns=df.columns)
 
-            # Make a copy of the row and set the transfer volume to the max
-            row_cp = row.copy()
-            row_cp.loc["transfer_vol"] = max_vol
+            # Create a row corresponding to the max permitted volume
+            max_vol_transfer = row.copy()
+            max_vol_transfer.loc["transfer_vol"] = max_vol
 
             # As long as the transfer volume of the current row exceeds twice the max
             while row.transfer_vol > 2 * max_vol:
-                # Append the copied row whose transfer volume is the max
-                df_splits_to_add = df_splits_to_add.append(row_cp)
-                # Deduct the same transfer volume from the current row
+                # Add a max-volume sub-transfer and deduct the same volume from the current row
+                transfers_to_add = transfers_to_add.append(max_vol_transfer)
                 row.transfer_vol -= max_vol
 
             # The remaining volume is higher than the max but lower than twice the max. Split this volume across two transfers.
-            df_splits_to_add = df_splits_to_add.append(round(row_cp / 2))
-            row.transfer_vol -= round(row_cp / 2)
+            final_split = row.copy()
+            final_split.loc["transfer_vol"] = round(row.transfer_vol / 2)
+            transfers_to_add = transfers_to_add.append(final_split)
+            row.transfer_vol -= final_split["transfer_vol"]
 
-            df_split = df_split.append(df_splits_to_add)
+            # Append all the resolved sub-transfers and what remains of the original row to the new df
+            df_split = df_split.append(transfers_to_add)
             df_split = df_split.append(row)
 
         else:
