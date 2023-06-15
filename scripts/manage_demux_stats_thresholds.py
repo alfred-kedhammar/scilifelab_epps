@@ -137,58 +137,58 @@ class Thresholds():
         """Expected lanes per cluster are derived from undemultiplex_index.py"""
         if self.instrument == "miseq":
             if self.chemistry == "Version3":
-                self.exp_lane_clust = 18000000
+                self.exp_lane_clust = 18e6
             elif self.chemistry == "Version2":
-                self.exp_lane_clust = 10000000
+                self.exp_lane_clust = 10e6
             elif self.chemistry == "Version2Nano":
                 self.exp_lane_clust = 750000
             else:
                 if self.read_length >= 76 and self.read_length <= 301:
-                    self.exp_lane_clust = 18000000
+                    self.exp_lane_clust = 18e6
                 else:
-                    self.exp_lane_clust = 10000000
+                    self.exp_lane_clust = 10e6
         elif self.instrument == "hiseq":
             #Rapid run flowcell
             if self.chemistry in ["HiSeq Rapid Flow Cell v1","HiSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v1"] :
-                self.exp_lane_clust = 114000000
+                self.exp_lane_clust = 114e6
             #v3
             elif self.chemistry == "HiSeq Flow Cell v3":
-               self.exp_lane_clust = 143000000
-            #v4
+                self.exp_lane_clust = 143e6
+            # v4
             elif self.chemistry == "HiSeq Flow Cell v4":
-                self.exp_lane_clust = 188000000
+                self.exp_lane_clust = 188e6
         elif self.instrument == "HiSeq_X":
             #HiSeqX runs are always paired!
             if self.paired:
                 #X v2.5 (common)
                 if self.chemistry == "HiSeqX v2.5":
-                    self.exp_lane_clust = 320000000
+                    self.exp_lane_clust = 320e6
                 #X v2.0 (rare)
                 elif self.chemistry == "HiSeqX v2.0":
-                    self.exp_lane_clust = 305000000
+                    self.exp_lane_clust = 305e6
         elif self.instrument == "NovaSeq":
             if self.chemistry == "SP":
-                self.exp_lane_clust = 325000000
+                self.exp_lane_clust = 325e6
             elif self.chemistry == "S1":
-                self.exp_lane_clust = 650000000
+                self.exp_lane_clust = 650e6
             elif self.chemistry == "S2":
-                self.exp_lane_clust = 1650000000
+                self.exp_lane_clust = 1650e6
             elif self.chemistry == "S4":
-                self.exp_lane_clust = 2000000000
+                self.exp_lane_clust = 2000e6
         elif self.instrument == "NovaSeqXPlus":
             if self.chemistry == "10B":
-                self.exp_lane_clust = 2000000000
+                self.exp_lane_clust = 1250e6
         elif self.instrument == "NextSeq":
             if self.chemistry == "NextSeq Mid":
-                self.exp_lane_clust = 25000000
+                self.exp_lane_clust = 25e6
             elif self.chemistry == "NextSeq High":
-                self.exp_lane_clust = 75000000
+                self.exp_lane_clust = 75e6
             elif self.chemistry == "NextSeq 2000 P1":
-                self.exp_lane_clust = 100000000
+                self.exp_lane_clust = 100e6
             elif self.chemistry == "NextSeq 2000 P2":
-                self.exp_lane_clust = 400000000
+                self.exp_lane_clust = 400e6
             elif self.chemistry == "NextSeq 2000 P3":
-                self.exp_lane_clust = 1100000000
+                self.exp_lane_clust = 1100e6
         else:
             self.problem_handler("exit", "HiSeqX runs should always be paired but script has detected otherwise. Something has gone terribly wrong.")
         if not self.exp_lane_clust:
