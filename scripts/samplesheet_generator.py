@@ -536,10 +536,12 @@ def main(lims, args):
         elif "Load to Flowcell (NovaSeqXPlus)" in process.type.name:
             (content, obj) = gen_NovaSeqXPlus_lane_data(process)
             check_index_distance(obj, log)
-            if os.path.exists("/srv/mfs/samplesheets/NovaSeqXPlus/{}".format(thisyear)):
+            if os.path.exists(
+                "/srv/ngi-nas-ns/samplesheets/NovaSeqXPlus/{}".format(thisyear)
+            ):
                 try:
                     with open(
-                        "/srv/mfs/samplesheets/NovaSeqXPlus/{}/{}.csv".format(
+                        "/srv/ngi-nas-ns/samplesheets/NovaSeqXPlus/{}/{}.csv".format(
                             thisyear, obj[0]["fc"]
                         ),
                         "w",
