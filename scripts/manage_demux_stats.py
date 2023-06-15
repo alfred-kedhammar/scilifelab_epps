@@ -505,7 +505,12 @@ def write_demuxfile(process_stats, demux_id):
     datafolder = "{}_data".format(process_stats["Instrument"])
 
     lanebc_path = os.path.join(
-        os.sep, "srv", "mfs", datafolder, process_stats["Run ID"], "laneBarcode.html"
+        os.sep,
+        "srv",
+        "ngi-nas-ns",
+        datafolder,
+        process_stats["Run ID"],
+        "laneBarcode.html",
     )
     try:
         laneBC = classes.LaneBarcodeParser(lanebc_path)
