@@ -523,7 +523,7 @@ def main(lims, args):
     else:
         process = Process(lims, id=args.pid)
 
-        if "Load to Flowcell (NovaSeq 6000 v2.0)" in process.type.name:
+        if "Load to Flowcell (NovaSeq 6000 v2.0)" == process.type.name:
             (content, obj) = gen_Novaseq_lane_data(process)
             check_index_distance(obj, log)
             if os.path.exists("/srv/mfs/samplesheets/novaseq/{}".format(thisyear)):
