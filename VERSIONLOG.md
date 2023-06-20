@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230615.1
+Put generated ONT samplesheets on ngi-nas-ns instead of mfs.
+
 ## 20230613.1
 Rework zika_utils.format_worklist() split transfers logic to prevent the post-split volume from ending up as less than what is allowed by the instrument.
 
