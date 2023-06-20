@@ -15,10 +15,44 @@ Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 def main(lims, args):
     process = Process(lims, id=args.pid)
 
-    if (
-        process.parent_processes()[0].type.name
-        == "Load to Flowcell (NovaSeq 6000 v2.0)"
-    ):
+    if "NovaSeqXPlus Run" in process.type.name:
+
+        # Fetch Flowcell ID
+        FCID = process.parent_processes()[0].output_containers()[0].name
+
+        for outart in process.all_outputs():
+            if outart.type == "ResultFile" and outart.name == "Run Info":
+                try:
+                    lims.upload_new_file(
+                        outart,
+                        max(
+                            glob.glob(
+                                "/srv/mfs/NovaSeqXPlus_data/*{}/RunInfo.xml".format(
+                                    FCID
+                                )
+                            ),
+                            key=os.path.getctime,
+                        ),
+                    )
+                except:
+                    raise RuntimeError("No RunInfo.xml Found!")
+            elif outart.type == "ResultFile" and outart.name == "Run Parameters":
+                try:
+                    lims.upload_new_file(
+                        outart,
+                        max(
+                            glob.glob(
+                                "/srv/mfs/NovaSeqXPlus_data/*{}/RunParameters.xml".format(
+                                    FCID
+                                )
+                            ),
+                            key=os.path.getctime,
+                        ),
+                    )
+                except:
+                    raise RuntimeError("No RunParameters.xml Found!")
+
+    else:
         # Copy Read and index parameter from the step "Load to Flowcell (NovaSeq 6000 v2.0)"
         UDF_to_copy = ["Read 1 Cycles", "Read 2 Cycles", "Index Read 1", "Index Read 2"]
         for i in UDF_to_copy:
@@ -50,43 +84,6 @@ def main(lims, args):
                         max(
                             glob.glob(
                                 "/srv/mfs/NovaSeq_data/*{}/RunParameters.xml".format(
-                                    FCID
-                                )
-                            ),
-                            key=os.path.getctime,
-                        ),
-                    )
-                except:
-                    raise RuntimeError("No RunParameters.xml Found!")
-
-    elif "NovaSeqXPlus Run" in process.type.name:
-
-        # Fetch Flowcell ID
-        FCID = process.parent_processes()[0].output_containers()[0].name
-
-        for outart in process.all_outputs():
-            if outart.type == "ResultFile" and outart.name == "Run Info":
-                try:
-                    lims.upload_new_file(
-                        outart,
-                        max(
-                            glob.glob(
-                                "/srv/mfs/NovaSeqXPlus_data/*{}/RunInfo.xml".format(
-                                    FCID
-                                )
-                            ),
-                            key=os.path.getctime,
-                        ),
-                    )
-                except:
-                    raise RuntimeError("No RunInfo.xml Found!")
-            elif outart.type == "ResultFile" and outart.name == "Run Parameters":
-                try:
-                    lims.upload_new_file(
-                        outart,
-                        max(
-                            glob.glob(
-                                "/srv/mfs/NovaSeqXPlus_data/*{}/RunParameters.xml".format(
                                     FCID
                                 )
                             ),
