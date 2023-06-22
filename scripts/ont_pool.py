@@ -4,7 +4,7 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 from zika_utils import fetch_sample_data
-from utils import formula
+from epp_utils import formula
 from numpy import minimum
 from tabulate import tabulate
 from datetime import datetime as dt

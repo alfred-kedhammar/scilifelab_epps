@@ -15,7 +15,7 @@ from genologics.config import BASEURI,USERNAME,PASSWORD
 
 from genologics.entities import Process
 from scilifelab_epps.epp import EppLogger
-from utils.formula import ng_ul_to_nM
+from epp_utils.formula import ng_ul_to_nM
 import logging
 import sys
 

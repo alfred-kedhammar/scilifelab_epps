@@ -10,7 +10,7 @@ from tabulate import tabulate
 from ont_send_reloading_info_to_db import parse_run
 import pandas as pd
 import sys
-from utils import udf_tools
+from epp_utils import udf_tools
 
 
 DESC = """

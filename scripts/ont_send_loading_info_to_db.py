@@ -11,7 +11,7 @@ import pandas as pd
 from io import StringIO
 from datetime import datetime as dt
 import re
-from utils import udf_tools
+from epp_utils import udf_tools
 from ont_generate_samplesheet import make_samplesheet
 import os
 
