@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230622.1
+Bugfix for deviation 173. Differentiate metadata paths for Illumina instruments.
+
 ## 20230615.1
 Put generated ONT samplesheets on ngi-nas-ns instead of mfs.
 
