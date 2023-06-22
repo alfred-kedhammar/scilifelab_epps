@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230622.1
+Bugfix for deviation 173. Differentiate metadata paths for Illumina instruments.
+
 ## 20230529.1
 Assign step (accidentally omitted from PR #150) to RN config.
 
