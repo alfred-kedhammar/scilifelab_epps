@@ -502,13 +502,17 @@ def set_sample_values(demux_process, parser_struct, process_stats):
 def write_demuxfile(process_stats, demux_id):
     """Creates demux_{FCID}.csv and attaches it to process"""
     #Includes windows drive letter support
-    datafolder = "{}_data".format(process_stats["Instrument"])
+
+    metadata_dir_name = (
+        "ngi-nas-ns" if process_stats["Instrument"] == "NovaSeqXPlus" else "mfs"
+    )
+    instrument_dir_name = "{}_data".format(process_stats["Instrument"])
 
     lanebc_path = os.path.join(
         os.sep,
         "srv",
-        "ngi-nas-ns",
-        datafolder,
+        metadata_dir_name,
+        instrument_dir_name,
         process_stats["Run ID"],
         "laneBarcode.html",
     )
