@@ -10,7 +10,6 @@ import zika_utils
 import pandas as pd
 import sys
 import numpy as np
-import sys
 
 
 def pool(
@@ -136,7 +135,7 @@ def pool(
                 # Find target parameters, amount and conentration will be either in ng and ng/ul or fmol and nM
                 target_pool_vol = df_pool.target_vol.unique()[0]
                 if udfs["target_conc"] == "Pool Conc. (nM)":
-                    target_pool_conc = df_pool.target_conc[0]
+                    target_pool_conc = df_pool.target_conc.values[0]
                     target_amt_taken = target_pool_conc * target_pool_vol / len(df_pool)
                     amt_unit = "fmol"
                     conc_unit = "nM"

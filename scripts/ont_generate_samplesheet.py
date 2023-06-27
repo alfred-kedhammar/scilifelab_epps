@@ -71,7 +71,9 @@ def main(lims, args):
             file_name = make_samplesheet_default(currentStep)
 
         upload_file(file_name, currentStep, lims)
-        shutil.move(file_name, f"/srv/mfs/samplesheets/nanopore/{dt.now().year}/")
+        shutil.move(
+            file_name, f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/"
+        )
 
     except AssertionError as e:
         sys.stderr.write(str(e))

@@ -1,5 +1,17 @@
 # Scilifelab_epps Version Log
 
+## 20230622.1
+Bugfix for deviation 173. Differentiate metadata paths for Illumina instruments.
+
+## 20230615.1
+Put generated ONT samplesheets on ngi-nas-ns instead of mfs.
+
+## 20230613.1
+Rework zika_utils.format_worklist() split transfers logic to prevent the post-split volume from ending up as less than what is allowed by the instrument.
+
+## 20230602.1
+Rename utils module to epp_utils to avoid name collision with native Python module and fix bug causing fatal error for Zika pooling.
+
 ## 20230529.1
 Assign step (accidentally omitted from PR #150) to RN config.
 
