@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230628.1
+Implement ONT samplesheet generation for MinION QC.
+
 ## 20230622.1
 Bugfix for deviation 173. Differentiate metadata paths for Illumina instruments.
 
