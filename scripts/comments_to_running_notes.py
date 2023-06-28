@@ -8,15 +8,8 @@ from argparse import ArgumentParser
 from genologics.entities import *
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
-from scilifelab_epps.epp import attach_file, EppLogger
-
-import datetime
-import logging
-import os
-import sys
-import json
-
 from write_notes_to_couchdb import write_note_to_couch
+import datetime
 
 
 def categorization(process_name):
@@ -94,6 +87,7 @@ def categorization(process_name):
         "Load to Flowcell (NextSeq v1.0)": "",
         "mRNA Purification, Fragmentation & cDNA synthesis (TruSeq RNA) 4.0": "Workset",
         "MinElute Purification": "",
+        "MinION QC": "Workset",
         "MiSeq Run (MiSeq) 4.0": "Flowcell",
         "NeoPrep Library QC v1.0": "Workset",
         "ONT Adapter ligation v2.0": "Workset",
