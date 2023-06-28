@@ -156,12 +156,11 @@ def make_samplesheet_default(currentStep):
 def make_samplesheet_for_qc(currentStep):
     timestamp = dt.now().strftime("%y%m%d")
 
-    # Start by differentiating file outputs from measurements outputs
     measurements = []
     files = []
 
+    # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
     sample_pattern = re.compile("P\d{5}_\d{3,4}")
-
     for art in currentStep.all_outputs():
         if re.search(sample_pattern, art.name):
             measurements.append(art)
