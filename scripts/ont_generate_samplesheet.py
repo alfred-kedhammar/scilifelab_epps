@@ -11,6 +11,8 @@ import re
 import sys
 import shutil
 from datetime import datetime as dt
+from epp_utils import udf_tools
+from epp_utils.formula import well_name2num_96plate as well2num
 
 DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot "ONT sample sheet".
 Used to generate MinKNOW samplesheets.
@@ -187,33 +189,26 @@ def make_samplesheet_for_qc(currentStep):
             if art_tuple[0]["uri"].id == pool.id
         ]
 
-        # Assert barcode is correctly formatted
-        ont_barcodes_in_pool = set()
-        for art in pool_samples:
-            try:
-                barcode_field = art.udf["Nanopore Barcode"]
-            except:
-                barcode_field = None
+        # Assert ONT barcode wells are correctly populated
 
-            if barcode_field:
-                try:
-                    int_barcode_field = int(barcode_field)
-                    assert int_barcode_field in list(range(1, 97))
-                except:
-                    raise AssertionError(
-                        f"Nanopore barcodes must be either left empty or set to 1-96. Sample {art.name} in pool {pool.name} has invalid nanopore barcode '{barcode_field}'."
-                    )
-            else:
-                pass
-
-            ont_barcodes_in_pool.add(barcode_field)
+        barcode_wells_in_pool = [
+            udf_tools.fetch(art, "ONT Barcode Well", on_fail=None)
+            for art in pool_samples
+        ]
 
         assert (
-            len(ont_barcodes_in_pool) == 1
-        ), f"The same Nanopore Barcode must be set for all samples within the same Illumina pool, not the case for pool {pool.name}"
+            len(set(barcode_wells_in_pool)) == 1
+        ), f"All ONT barcodes must be the same within a pool, not the case for pool {pool.name}"
+        barcode_well = barcode_wells_in_pool[0]
 
-        # Excise the number of the ONT barcode of the Illumina pool
-        ont_barcode = ont_barcodes_in_pool.pop()
+        # Assert well looks like a well, e.g. "A:11", "G4", "C:1"
+        barcode_well_pattern = re.compile("^[A-H]:?([1-9]$|(1[0-2])$)")
+        assert re.match(
+            barcode_well_pattern, barcode_well
+        ), f"The 'ONT Barcode Well' entry '{barcode_well}' in pool {pool.name} doesn't look like a plate well."
+        if barcode_well not in well2num:
+            barcode_well = barcode_well[0] + ":" + barcode_well[2:]
+        barcode_int = well2num[barcode_well]
 
         row = {
             "position_id": "None",
@@ -229,9 +224,9 @@ def make_samplesheet_for_qc(currentStep):
             "kit": get_kit_string(currentStep),
         }
 
-        if ont_barcode:
+        if barcode_well:
             row["alias"] = strip_characters(pool.name)
-            row["barcode"] = "barcode" + ont_barcode
+            row["barcode"] = "barcode" + str(barcode_int).zfill(2)
 
         rows.append(row)
 
