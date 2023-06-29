@@ -71,15 +71,16 @@ def main(lims, args):
         if "MinION QC" in currentStep.type.name:
 
             minknow_samplesheet_file = minknow_samplesheet_for_qc(currentStep)
-            upload_file(
-                minknow_samplesheet_file, "Anglerfish sample sheet", currentStep, lims
-            )
+            upload_file(minknow_samplesheet_file, "ONT sample sheet", currentStep, lims)
             shutil.move(
                 minknow_samplesheet_file,
                 f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/",
             )
 
             anglerfish_samplesheet_file = anglerfish_samplesheet(currentStep)
+            upload_file(
+                minknow_samplesheet_file, "Anglerfish sample sheet", currentStep, lims
+            )
             shutil.move(
                 anglerfish_samplesheet_file,
                 f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/",  # TODO create new dir specifically for Anglerfish sample sheets?
@@ -166,7 +167,7 @@ def minknow_samplesheet_default(currentStep):
         len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
     ), "All rows must have different flow cell positions and IDs"
 
-    file_name = write_csv(
+    file_name = write_minknow_csv(
         df,
         f"ONT_samplesheet_{df.experiment_id.unique()[0]}_{timestamp}.csv",
     )
@@ -204,7 +205,6 @@ def minknow_samplesheet_for_qc(currentStep):
         ]
 
         # Assert ONT barcode wells are correctly populated
-
         barcode_wells_in_pool = [
             udf_tools.fetch(art, "ONT Barcode Well", on_fail=None)
             for art in pool_samples
@@ -221,7 +221,7 @@ def minknow_samplesheet_for_qc(currentStep):
             barcode_well_pattern, barcode_well
         ), f"The 'ONT Barcode Well' entry '{barcode_well}' in pool {pool.name} doesn't look like a plate well."
         if barcode_well not in well2num:
-            barcode_well = barcode_well[0] + ":" + barcode_well[2:]
+            barcode_well = barcode_well[0] + ":" + barcode_well[1:]
         barcode_int = well2num[barcode_well]
 
         row = {
@@ -255,7 +255,7 @@ def minknow_samplesheet_for_qc(currentStep):
             currentStep.all_inputs()
         ), "Nanopore barcodes are shared between Illumina pools"
 
-    file_name = write_csv(
+    file_name = write_minknow_csv(
         df,
         f"ONT_samplesheet_{df.experiment_id.unique()[0]}_{timestamp}.csv",
     )
