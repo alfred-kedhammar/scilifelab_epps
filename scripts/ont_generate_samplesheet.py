@@ -79,7 +79,10 @@ def main(lims, args):
 
             anglerfish_samplesheet_file = anglerfish_samplesheet(currentStep)
             upload_file(
-                minknow_samplesheet_file, "Anglerfish sample sheet", currentStep, lims
+                anglerfish_samplesheet_file,
+                "Anglerfish sample sheet",
+                currentStep,
+                lims,
             )
             shutil.move(
                 anglerfish_samplesheet_file,
