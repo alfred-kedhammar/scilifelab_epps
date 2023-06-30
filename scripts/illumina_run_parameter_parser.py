@@ -53,7 +53,11 @@ def fetch_rundir(fc_id, run_type):
         data_dir = 'NovaSeq_data'
     elif run_type == "NovaSeqXPlus":
         data_dir = "NovaSeqXPlus_data"
-    run_dir_path = os.path.join(os.sep,"srv","mfs",data_dir,"*{}".format(fc_id))
+
+    metadata_dir = "ngi-nas-ns" if run_type == "NovaSeqXPlus" else "mfs"
+    run_dir_path = os.path.join(
+        os.sep, "srv", metadata_dir, data_dir, "*{}".format(fc_id)
+    )
 
     if len(glob.glob(run_dir_path)) == 1:
         run_dir = glob.glob(run_dir_path)[0]
@@ -351,35 +355,41 @@ def lims_for_NovaSeqXPlus(process, run_dir):
             process.udf["Flow Cell ID"] = consumable["SerialNumber"]
             process.udf["Flow Cell Part Number"] = consumable["PartNumber"]
             process.udf["Flow Cell Lot Number"] = consumable["LotNumber"]
-            process.udf["Flow Cell Expiration Date"] = consumable["ExpirationDate"][
-                0:10
-            ]
+            process.udf["Flow Cell Expiration Date"] = datetime.strptime(
+                consumable["ExpirationDate"][0:10], "%Y-%m-%d"
+            ).date()
 
         elif consumable["Type"] == "Reagent":
             process.udf["Reagent Serial Barcode"] = consumable["SerialNumber"]
             process.udf["Reagent Part Number"] = consumable["PartNumber"]
             process.udf["Reagent Lot Number"] = consumable["LotNumber"]
-            process.udf["Reagent Expiration Date"] = consumable["ExpirationDate"][0:10]
+            process.udf["Reagent Expiration Date"] = datetime.strptime(
+                consumable["ExpirationDate"][0:10], "%Y-%m-%d"
+            ).date()
 
         elif consumable["Type"] == "Buffer":
             process.udf["Buffer Serial Barcode"] = consumable["SerialNumber"]
             process.udf["Buffer Part Number"] = consumable["PartNumber"]
             process.udf["Buffer Lot Number"] = consumable["LotNumber"]
-            process.udf["Buffer Expiration Date"] = consumable["ExpirationDate"][0:10]
+            process.udf["Buffer Expiration Date"] = datetime.strptime(
+                consumable["ExpirationDate"][0:10], "%Y-%m-%d"
+            ).date()
 
         elif consumable["Type"] == "SampleTube":
             process.udf["SampleTube Serial Barcode"] = consumable["SerialNumber"]
             process.udf["SampleTube Part Number"] = consumable["PartNumber"]
             process.udf["SampleTube Lot Number"] = consumable["LotNumber"]
-            process.udf["SampleTube Expiration Date"] = consumable["ExpirationDate"][
-                0:10
-            ]
+            process.udf["SampleTube Expiration Date"] = datetime.strptime(
+                consumable["ExpirationDate"][0:10], "%Y-%m-%d"
+            ).date()
 
         elif consumable["Type"] == "Lyo":
             process.udf["Lyo Serial Barcode"] = consumable["SerialNumber"]
             process.udf["Lyo Part Number"] = consumable["PartNumber"]
             process.udf["Lyo Lot Number"] = consumable["LotNumber"]
-            process.udf["Lyo Expiration Date"] = consumable["ExpirationDate"][0:10]
+            process.udf["Lyo Expiration Date"] = datetime.strptime(
+                consumable["ExpirationDate"][0:10], "%Y-%m-%d"
+            ).date()
 
     # Put in LIMS
     process.put()
