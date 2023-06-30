@@ -86,7 +86,7 @@ def main(lims, args):
             )
             shutil.move(
                 anglerfish_samplesheet_file,
-                f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/",  # TODO create new dir specifically for Anglerfish sample sheets?
+                f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/",
             )
 
         else:
