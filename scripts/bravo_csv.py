@@ -765,9 +765,26 @@ def main(lims, args):
     if currentStep.type.name in ['Library Pooling (HiSeq X) 1.0']:
         check_barcode_collision(currentStep)
         prepooling(currentStep, lims)
-    elif currentStep.type.name in ['Pre-Pooling (MiSeq) 4.0', 'Pre-Pooling (Illumina SBS) 4.0', 'Library Pooling (RAD-seq) v1.0', 'Library Pooling (TruSeq Small RNA) 1.0', 'Pre-Pooling (NovaSeq) v2.0', 'Pre-Pooling (NextSeq) v1.0', 'Pre-Pooling']:
+    elif currentStep.type.name in [
+        "Pre-Pooling (MiSeq) 4.0",
+        "Pre-Pooling (Illumina SBS) 4.0",
+        "Library Pooling (RAD-seq) v1.0",
+        "Library Pooling (TruSeq Small RNA) 1.0",
+        "Pre-Pooling (NovaSeq) v2.0",
+        "Pre-Pooling (NextSeq) v1.0",
+        "Pre-Pooling",
+        "Pre-Pooling (NovaSeqXPlus) v1.0",
+    ]:
         prepooling(currentStep, lims)
-    elif currentStep.type.name in ['Library Normalization (HiSeq X) 1.0', 'Library Normalization (Illumina SBS) 4.0', 'Library Normalization (MiSeq) 4.0', 'Library Normalization (NovaSeq) v2.0', 'Library Normalization (NextSeq) v1.0', 'Library Normalization']:
+    elif currentStep.type.name in [
+        "Library Normalization (HiSeq X) 1.0",
+        "Library Normalization (Illumina SBS) 4.0",
+        "Library Normalization (MiSeq) 4.0",
+        "Library Normalization (NovaSeq) v2.0",
+        "Library Normalization (NextSeq) v1.0",
+        "Library Normalization,",
+        "Library Normalization (NovaSeqXPlus) v1.0",
+    ]:
         normalization(currentStep)
     elif currentStep.type.name == 'Library Pooling (RAD-seq) 1.0':
         default_bravo(lims, currentStep, False)
@@ -775,7 +792,10 @@ def main(lims, args):
         dilution(currentStep)
     elif currentStep.type.name == 'Sample Dilution Before QC':
         sample_dilution_before_QC(currentStep)
-    elif currentStep.type.name in ['qPCR QC (Library Validation) 4.0', 'qPCR QC (Dilution Validation) 4.0']:
+    elif currentStep.type.name in [
+        "qPCR QC (Library Validation) 4.0",
+        "qPCR QC (Dilution Validation) 4.0",
+    ]:
         setup_qpcr(currentStep, lims)
     else:
         default_bravo(lims, currentStep)
