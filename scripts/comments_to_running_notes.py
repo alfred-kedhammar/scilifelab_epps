@@ -109,6 +109,7 @@ def categorization(process_name):
         "Pre-Pooling (MiSeq) 4.0": "",
         "Pre-Pooling (NextSeq) v1.0": "",
         "Pre-Pooling (NovaSeq) v2.0": "",
+        "Pre-Pooling (NovaSeqXPlus) v1.0": "",
         "Project Summary 1.3": "",
         "PromethION Sequencing": "",
         "Proximity Ligation": "",
