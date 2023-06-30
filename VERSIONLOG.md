@@ -1,7 +1,10 @@
 # Scilifelab_epps Version Log
 
-## 20230630.1
+## 20230630.2
 Implement ONT and Anglerfish samplesheet generation for MinION QC.
+
+## 20230630.1
+Config updates and minor fixes from live testing the NovaSeqXPlus sequencing protocol on dummy samples on LIMS Prod.
 
 ## 20230622.1
 Bugfix for deviation 173. Differentiate metadata paths for Illumina instruments.

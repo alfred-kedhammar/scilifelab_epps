@@ -27,7 +27,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/mfs/NovaSeqXPlus_data/*{}/RunInfo.xml".format(
+                                "/srv/ngi-nas-ns/NovaSeqXPlus_data/*{}/RunInfo.xml".format(
                                     FCID
                                 )
                             ),
@@ -42,7 +42,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/mfs/NovaSeqXPlus_data/*{}/RunParameters.xml".format(
+                                "/srv/ngi-nas-ns/NovaSeqXPlus_data/*{}/RunParameters.xml".format(
                                     FCID
                                 )
                             ),
