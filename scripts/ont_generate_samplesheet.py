@@ -11,11 +11,14 @@ import re
 import sys
 import shutil
 from datetime import datetime as dt
+from epp_utils import udf_tools
+from epp_utils.formula import well_name2num_96plate as well2num
 
-DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot "ONT sample sheet".
-Used to generate MinKNOW samplesheets.
+DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot(s) "ONT sample sheet" (and optionally "Anglerfish sample sheet").
+Used to generate MinKNOW (and Anglerfish) samplesheets.
 """
 
+timestamp = dt.now().strftime("%y%m%d")
 
 def main(lims, args):
     """
@@ -23,9 +26,10 @@ def main(lims, args):
 
     flow_cell_id                e.g. PAM96489
     position_id                 [1-3A-G] for PromethION, else None
-    sample_id                   - For single samples:       e.g. P12345_101,
-                                - For pools:                e.g. P12345_lims-pool-id
-                                - For multi-project pools:  lims-pool-id
+    sample_id                   - For single samples:       <sample-id>
+                                - For pools:                <proj-id>_<lims-pool-id>
+                                - For multi-project pools:  <lims-pool-id>
+                                - For Illumina QC           QC_<timestamp>_<operator>
     experiment_id               lims-step-id
     flow_cell_product_code      e.g. FLO-MIN106D
     kit                         Product codes separated by spaces, e.g. SQK-LSK109 EXP-NBD196
@@ -64,18 +68,41 @@ def main(lims, args):
     try:
         currentStep = Process(lims, id=args.pid)
 
-        file_name = make_samplesheet(currentStep)
-        upload_file(file_name, currentStep, lims)
-        shutil.move(
-            file_name, f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/"
-        )
+        if "MinION QC" in currentStep.type.name:
+
+            minknow_samplesheet_file = minknow_samplesheet_for_qc(currentStep)
+            upload_file(minknow_samplesheet_file, "ONT sample sheet", currentStep, lims)
+            shutil.move(
+                minknow_samplesheet_file,
+                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/",
+            )
+
+            anglerfish_samplesheet_file = anglerfish_samplesheet(currentStep)
+            upload_file(
+                anglerfish_samplesheet_file,
+                "Anglerfish sample sheet",
+                currentStep,
+                lims,
+            )
+            shutil.move(
+                anglerfish_samplesheet_file,
+                f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/",
+            )
+
+        else:
+            minknow_samplesheet_file = minknow_samplesheet_default(currentStep)
+            upload_file(minknow_samplesheet_file, "ONT sample sheet", currentStep, lims)
+            shutil.move(
+                minknow_samplesheet_file,
+                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/",
+            )
 
     except AssertionError as e:
         sys.stderr.write(str(e))
         sys.exit(2)
 
 
-def make_samplesheet(currentStep):
+def minknow_samplesheet_default(currentStep):
     arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
     arts.sort(key=lambda art: art.id)
 
@@ -143,22 +170,191 @@ def make_samplesheet(currentStep):
         len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
     ), "All rows must have different flow cell positions and IDs"
 
-    file_name = write_csv(df)
+    file_name = write_minknow_csv(
+        df,
+        f"ONT_samplesheet_{df.experiment_id.unique()[0]}_{timestamp}.csv",
+    )
 
     return file_name
 
 
-def upload_file(file_name, currentStep, lims):
+def minknow_samplesheet_for_qc(currentStep):
+    measurements = []
+
+    # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
+    sample_pattern = re.compile("P\d{5}_\d{3,4}")
+    for art in currentStep.all_outputs():
+        if re.search(sample_pattern, art.name):
+            measurements.append(art)
+
+    # Build an input output map objects omitting the files
+    art_tuples = []
+    for art_tuple in currentStep.input_output_maps:
+        if art_tuple[1]["uri"].id in [m.id for m in measurements]:
+            art_tuples.append(art_tuple)
+        else:
+            pass
+
+    rows = []
+
+    # Iterate through the input Illumina pools one by one
+    for pool in currentStep.all_inputs():
+
+        # Find all outputs belonging to the current Illumina pool
+        pool_samples = [
+            art_tuple[1]["uri"]
+            for art_tuple in art_tuples
+            if art_tuple[0]["uri"].id == pool.id
+        ]
+
+        # Assert ONT barcode wells are correctly populated
+        barcode_wells_in_pool = [
+            udf_tools.fetch(art, "ONT Barcode Well", on_fail=None)
+            for art in pool_samples
+        ]
+
+        assert (
+            len(set(barcode_wells_in_pool)) == 1
+        ), f"All ONT barcodes must be the same within a pool, not the case for pool {pool.name}"
+        barcode_well = barcode_wells_in_pool[0]
+
+        # Assert well looks like a well, e.g. "A:11", "G4", "C:1"
+        barcode_well_pattern = re.compile("^[A-H]:?([1-9]$|(1[0-2])$)")
+        assert re.match(
+            barcode_well_pattern, barcode_well
+        ), f"The 'ONT Barcode Well' entry '{barcode_well}' in pool {pool.name} doesn't look like a plate well."
+        if barcode_well not in well2num:
+            barcode_well = barcode_well[0] + ":" + barcode_well[1:]
+        barcode_int = well2num[barcode_well]
+
+        row = {
+            "position_id": "None",
+            "flow_cell_id": currentStep.udf["ONT flow cell ID"],
+            "sample_id": f"QC_{timestamp}_{currentStep.technician.name.replace(' ', '')}",
+            "experiment_id": f"{currentStep.id}",
+            "flow_cell_product_code": currentStep.udf["ONT flow cell type"].split(" ")[
+                0
+            ],
+            "flow_cell_type": currentStep.udf["ONT flow cell type"]
+            .split(" ")[1]
+            .strip("()"),
+            "kit": get_kit_string(currentStep),
+        }
+
+        if barcode_well:
+            row["alias"] = strip_characters(pool.name)
+            row["barcode"] = "barcode" + str(barcode_int).zfill(2)
+
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+
+    if "barcode" in df.columns:
+        assert all(
+            df.barcode.notna()
+        ), "Nanopore barcodes must be specified for either ALL samples, or NONE."
+
+        assert len(df.barcode.unique()) == len(
+            currentStep.all_inputs()
+        ), "Nanopore barcodes are shared between Illumina pools"
+
+    file_name = write_minknow_csv(
+        df,
+        f"ONT_samplesheet_{df.experiment_id.unique()[0]}_{timestamp}.csv",
+    )
+    return file_name
+
+
+def anglerfish_samplesheet(currentStep):
+
+    measurements = []
+
+    # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
+    sample_pattern = re.compile("P\d{5}_\d{3,4}")
+    for art in currentStep.all_outputs():
+        if re.search(sample_pattern, art.name):
+            measurements.append(art)
+
+    ont_barcode_bools = [
+        udf_tools.fetch(art, "ONT Barcode Well", on_fail=None) != None
+        for art in measurements
+    ]
+
+    if all(ont_barcode_bools):
+        ont_barcodes = True
+    elif not any(ont_barcode_bools):
+        ont_barcodes = False
+    else:
+        raise AssertionError(
+            "ONT barcodes must be present either for all samples or for none."
+        )
+
+    rows = []
+
+    # Iterate through the samples
+    for sample in measurements:
+
+        if ont_barcodes:
+
+            barcode_well = udf_tools.fetch(sample, "ONT Barcode Well")
+
+            if barcode_well not in well2num:
+                barcode_well = barcode_well[0] + ":" + barcode_well[1:]
+            barcode_int = well2num[barcode_well]
+
+            fastq_path = f"./fastq_pass/barcode{str(barcode_int).zfill(2)}/*.fastq.gz"  # Assuming the Anglerfish working dir is the ONT run dir TODO
+
+        elif not ont_barcodes:
+            fastq_path = f"./fastq_pass/*.fastq.gz"
+
+        assert (
+            len(sample.reagent_labels) == 1
+        ), f"Multiple reagent labels found for sample {sample.name}"
+
+        index_pattern = re.compile("[ACTG]{4,}-?[ACTG]{4,}")
+        index_search = re.search(index_pattern, sample.reagent_labels[0])
+
+        assert index_search, f"No reagent labels found for samples {sample.name}"
+
+        index = index_search.group()
+
+        # For now, only support truseq and truseq_dual adaptors TODO
+        if "-" in index:
+            adaptors = "truseq_dual"
+        else:
+            adaptors = "truseq"
+
+        row = {
+            "sample_name": sample.name,
+            "adaptors": adaptors,
+            "index": index,
+            "fastq_path": fastq_path,
+        }
+
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    df.sort_values(by="sample_name", inplace=True)
+
+    file_name = f"Anglerfish_samplesheet_{currentStep.id}_{timestamp}.csv"
+    df.to_csv(
+        file_name,
+        header=False,
+        index=False,
+    )
+
+    return file_name
+
+
+def upload_file(file_name, file_slot, currentStep, lims):
     for out in currentStep.all_outputs():
-        if out.name == "ONT sample sheet":
+        if out.name == file_slot:
             for f in out.files:
                 lims.request_session.delete(f.uri)
             lims.upload_new_file(out, file_name)
 
 
-def write_csv(df):
-    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
-    file_name = f"ONT_samplesheet_{df.experiment_id.unique()[0]}_{timestamp}.csv"
+def write_minknow_csv(df, file_name):
 
     columns = [
         "flow_cell_id",
@@ -252,4 +448,8 @@ if __name__ == "__main__":
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
-    main(lims, args)
+    try:
+        main(lims, args)
+    except BaseException as e:
+        sys.stderr.write(str(e))
+        sys.exit(2)
