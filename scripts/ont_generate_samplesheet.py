@@ -10,6 +10,7 @@ import pandas as pd
 import re
 import sys
 import shutil
+import os
 from datetime import datetime as dt
 from epp_utils import udf_tools
 from epp_utils.formula import well_name2num_96plate as well2num
@@ -18,7 +19,7 @@ DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot(s) "ONT samp
 Used to generate MinKNOW (and Anglerfish) samplesheets.
 """
 
-timestamp = dt.now().strftime("%y%m%d")
+timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
 def main(lims, args):
     """
@@ -71,11 +72,17 @@ def main(lims, args):
         if "MinION QC" in currentStep.type.name:
 
             minknow_samplesheet_file = minknow_samplesheet_for_qc(currentStep)
-            upload_file(minknow_samplesheet_file, "ONT sample sheet", currentStep, lims)
-            shutil.move(
+            upload_file(
                 minknow_samplesheet_file,
-                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/",
+                "ONT sample sheet",
+                currentStep,
+                lims,
             )
+            shutil.copyfile(
+                minknow_samplesheet_file,
+                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
+            )
+            os.remove(minknow_samplesheet_file)
 
             anglerfish_samplesheet_file = anglerfish_samplesheet(currentStep)
             upload_file(
@@ -84,18 +91,20 @@ def main(lims, args):
                 currentStep,
                 lims,
             )
-            shutil.move(
+            shutil.copyfile(
                 anglerfish_samplesheet_file,
-                f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/",
+                f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/{anglerfish_samplesheet_file}",
             )
+            os.remove(anglerfish_samplesheet_file)
 
         else:
             minknow_samplesheet_file = minknow_samplesheet_default(currentStep)
             upload_file(minknow_samplesheet_file, "ONT sample sheet", currentStep, lims)
-            shutil.move(
+            shutil.copyfile(
                 minknow_samplesheet_file,
-                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/",
+                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
             )
+            os.remove(minknow_samplesheet_file)
 
     except AssertionError as e:
         sys.stderr.write(str(e))
@@ -172,7 +181,7 @@ def minknow_samplesheet_default(currentStep):
 
     file_name = write_minknow_csv(
         df,
-        f"ONT_samplesheet_{df.experiment_id.unique()[0]}_{timestamp}.csv",
+        f"{currentStep.id}_ONT_samplesheet_{timestamp}_{currentStep.technician.name.replace(' ','')}.csv",
     )
 
     return file_name
