@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230711.1
+Fix unwarranted error message when moving files to external storage by using a different shutil function. Likely issue with Python <3.8.
+
 ## 20230630.2
 Implement ONT and Anglerfish samplesheet generation for MinION QC.
 
