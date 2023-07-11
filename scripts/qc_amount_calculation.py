@@ -83,15 +83,13 @@ def calculate_fmol_AND_ng(art, result_udf):
 
         if result_udf == "Amount (ng)":
             supplemented_udf = "Amount (fmol)"
-            supplemented_amount = formula.ng_to_fmol(result_amount, size)
+            supplemented_amount = round(formula.ng_to_fmol(result_amount, size), 2)
         elif result_udf == "Amount (fmol)":
             supplemented_udf = "Amount (ng)"
-            supplemented_amount = formula.fmol_to_ng(result_amount, size)
+            supplemented_amount = round(formula.fmol_to_ng(result_amount, size), 2)
 
         if udf_tools.put(art, supplemented_udf, supplemented_amount, on_fail=None):
-            logging.info(
-                f"Artifact {art.id} ({result_udf}: {result_amount}) was supplemented --> ({supplemented_udf}: {supplemented_amount})"
-            )
+            logging.info(f"Updated {supplemented_udf} to {supplemented_amount}.")
 
 
 def check_udf_is_defined(artifacts, udf):
