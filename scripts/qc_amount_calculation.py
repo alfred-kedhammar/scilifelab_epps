@@ -16,10 +16,12 @@ from genologics.config import BASEURI,USERNAME,PASSWORD
 from genologics.entities import Process
 from scilifelab_epps.epp import EppLogger
 
+from epp_utils import formula, udf_tools
+
 import logging
 import sys
 
-def apply_calculations(lims, artifacts, udf1, op, udf2, unit_amount_map, epp_logger, process):
+def apply_calculations(artifacts, udf1, op, udf2, unit_amount_map, process):
     """For each result file of the process: if its corresponding inart has the udf
     'Dilution Fold', the result_udf: 'Amount (xx)' is calculated as
 
@@ -63,9 +65,34 @@ def apply_calculations(lims, artifacts, udf1, op, udf2, unit_amount_map, epp_log
         if artifact.udf['Conc. Units'] == 'pM':
             prod = eval('{0}{1}{2}'.format(prod, op, 1/1000))
         artifact.udf[result_udf] = prod
+
         artifact.put()
-        logging.info('Updated {0} to {1}.'.format(result_udf,
-                                                 artifact.udf[result_udf]))
+
+        logging.info("Updated {0} to {1}.".format(result_udf, artifact.udf[result_udf]))
+        calculate_fmol_AND_ng(artifact, result_udf)
+
+
+def calculate_fmol_AND_ng(art, result_udf):
+    """Use ng <--> fmol conversion to populate both 'Amount (ng)' and 'Amount (fmol)' if possible."""
+
+    size_udf = "Size (bp)"
+
+    if udf_tools.is_filled(art, result_udf) and udf_tools.is_filled(art, size_udf):
+        result_amount = art.udf[result_udf]
+        size = art.udf[size_udf]
+
+        if result_udf == "Amount (ng)":
+            supplemented_udf = "Amount (fmol)"
+            supplemented_amount = formula.ng_to_fmol(result_amount, size)
+        elif result_udf == "Amount (fmol)":
+            supplemented_udf = "Amount (ng)"
+            supplemented_amount = formula.fmol_to_ng(result_amount, size)
+
+        if udf_tools.put(art, supplemented_udf, supplemented_amount, on_fail=None):
+            logging.info(
+                f"Artifact {art.id} ({result_udf}: {result_amount}) was supplemented --> ({supplemented_udf}: {supplemented_amount})"
+            )
+
 
 def check_udf_is_defined(artifacts, udf):
     """ Filter and Warn if udf is not defined for any of artifacts. """
@@ -123,8 +150,9 @@ def main(lims,args,epp_logger):
     correct_artifacts, wrong_value = check_udf_has_value(correct_artifacts, udf_check, unit_amount_map)
 
     if correct_artifacts:
-        apply_calculations(lims, correct_artifacts, udf_factor1, '*',
-                           udf_factor2, unit_amount_map, epp_logger, p)
+        apply_calculations(
+            correct_artifacts, udf_factor1, "*", udf_factor2, unit_amount_map, p
+        )
 
     d = {'ca': len(correct_artifacts),
          'ia': len(wrong_factor1)+ len(wrong_factor2) + len(wrong_value)}
