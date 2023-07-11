@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230711.1
+When calculating amounts in QC, populate both "Amount (ng)" and "Amount (fmol)", if possible. Useful for LIMSing nanopore samples.
+
 ## 20230630.2
 Implement ONT and Anglerfish samplesheet generation for MinION QC.
 
