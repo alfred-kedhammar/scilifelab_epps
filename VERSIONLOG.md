@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230712.1
+Fix fatal error for ONT EPP by updating names of module resource.
+
 ## 20230711.2
 Fix unwarranted error message when moving files to external storage by using a different shutil function. Likely issue with Python <3.8.
 
