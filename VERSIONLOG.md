@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230712.1
+Fix fatal error for ONT EPP by updating names of module resource.
+
 ## 20230630.2
 Implement ONT and Anglerfish samplesheet generation for MinION QC.
 

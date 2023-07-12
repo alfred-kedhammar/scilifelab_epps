@@ -12,7 +12,7 @@ from io import StringIO
 from datetime import datetime as dt
 import re
 from epp_utils import udf_tools
-from ont_generate_samplesheet import make_samplesheet
+from ont_generate_samplesheet import minknow_samplesheet_default
 import os
 
 DESC = """ Script for EPP "ont_send_loading_info_to_db".
@@ -120,7 +120,7 @@ def match_to_db_using_samplesheet(lims, args):
         raise AssertionError("No samplesheet found.")
 
     # Check step samplesheet is up-to-date with step UDFs
-    new_ss_path = make_samplesheet(currentStep)
+    new_ss_path = minknow_samplesheet_default(currentStep)
     new_ss_contents = open(new_ss_path, "r").read()
     os.remove(new_ss_path)
     assert (
