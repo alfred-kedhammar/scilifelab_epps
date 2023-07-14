@@ -243,6 +243,10 @@ def minknow_samplesheet_for_qc(currentStep):
             if barcode_well not in well2num:
                 barcode_well = barcode_well[0] + ":" + barcode_well[1:]
             barcode_int = well2num[barcode_well]
+        else:
+            assert (
+                currentStep.udf.get("ONT expansion kit") == "None"
+            ), "ONT Barcodes have not been assigned."
 
         row = {
             "position_id": "None",
