@@ -78,10 +78,11 @@ def main(lims, args):
                 currentStep,
                 lims,
             )
-            shutil.move(
+            shutil.copyfile(
                 minknow_samplesheet_file,
                 f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
             )
+            os.remove(minknow_samplesheet_file)
 
             anglerfish_samplesheet_file = anglerfish_samplesheet(currentStep)
             upload_file(
@@ -90,10 +91,11 @@ def main(lims, args):
                 currentStep,
                 lims,
             )
-            shutil.move(
+            shutil.copyfile(
                 anglerfish_samplesheet_file,
                 f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/{anglerfish_samplesheet_file}",
             )
+            os.remove(anglerfish_samplesheet_file)
 
         else:
             minknow_samplesheet_file = minknow_samplesheet_default(currentStep)
