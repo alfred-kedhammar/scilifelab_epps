@@ -229,12 +229,24 @@ def minknow_samplesheet_for_qc(currentStep):
 
         # Assert well looks like a well, e.g. "A:11", "G4", "C:1"
         barcode_well_pattern = re.compile("^[A-H]:?([1-9]$|(1[0-2])$)")
-        assert re.match(
-            barcode_well_pattern, barcode_well
-        ), f"The 'ONT Barcode Well' entry '{barcode_well}' in pool {pool.name} doesn't look like a plate well."
-        if barcode_well not in well2num:
-            barcode_well = barcode_well[0] + ":" + barcode_well[1:]
-        barcode_int = well2num[barcode_well]
+
+        if barcode_well:
+
+            assert (
+                currentStep.udf.get("ONT expansion kit") != "None"
+            ), "ONT Barcodes have been assigned, but no 'ONT expansion kit' is specified."
+
+            assert re.match(
+                barcode_well_pattern, barcode_well
+            ), f"The 'ONT Barcode Well' entry '{barcode_well}' in pool {pool.name} doesn't look like a plate well."
+
+            if barcode_well not in well2num:
+                barcode_well = barcode_well[0] + ":" + barcode_well[1:]
+            barcode_int = well2num[barcode_well]
+        else:
+            assert (
+                currentStep.udf.get("ONT expansion kit") == "None"
+            ), "ONT Barcodes have not been assigned."
 
         row = {
             "position_id": "None",

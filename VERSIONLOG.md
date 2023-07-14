@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230714.1
+Accomodate Anglerfish samplesheet generation w/o any ONT barcodes.
+
 ## 20230712.1
 Fix fatal error for ONT EPP by updating names of module resource.
 
