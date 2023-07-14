@@ -78,11 +78,10 @@ def main(lims, args):
                 currentStep,
                 lims,
             )
-            shutil.copyfile(
+            shutil.move(
                 minknow_samplesheet_file,
                 f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
             )
-            os.remove(minknow_samplesheet_file)
 
             anglerfish_samplesheet_file = anglerfish_samplesheet(currentStep)
             upload_file(
@@ -91,11 +90,10 @@ def main(lims, args):
                 currentStep,
                 lims,
             )
-            shutil.copyfile(
+            shutil.move(
                 anglerfish_samplesheet_file,
                 f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/{anglerfish_samplesheet_file}",
             )
-            os.remove(anglerfish_samplesheet_file)
 
         else:
             minknow_samplesheet_file = minknow_samplesheet_default(currentStep)
@@ -229,12 +227,15 @@ def minknow_samplesheet_for_qc(currentStep):
 
         # Assert well looks like a well, e.g. "A:11", "G4", "C:1"
         barcode_well_pattern = re.compile("^[A-H]:?([1-9]$|(1[0-2])$)")
-        assert re.match(
-            barcode_well_pattern, barcode_well
-        ), f"The 'ONT Barcode Well' entry '{barcode_well}' in pool {pool.name} doesn't look like a plate well."
-        if barcode_well not in well2num:
-            barcode_well = barcode_well[0] + ":" + barcode_well[1:]
-        barcode_int = well2num[barcode_well]
+
+        if barcode_well:
+            assert re.match(
+                barcode_well_pattern, barcode_well
+            ), f"The 'ONT Barcode Well' entry '{barcode_well}' in pool {pool.name} doesn't look like a plate well."
+
+            if barcode_well not in well2num:
+                barcode_well = barcode_well[0] + ":" + barcode_well[1:]
+            barcode_int = well2num[barcode_well]
 
         row = {
             "position_id": "None",
