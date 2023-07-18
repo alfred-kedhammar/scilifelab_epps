@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230718.2
+Add NovaSeqXPlus in sequencing step list for readscount
+
 ## 20230718.1
 Add function to verify sample name format in index_distance_checker
 
