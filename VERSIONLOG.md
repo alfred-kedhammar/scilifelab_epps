@@ -1,5 +1,47 @@
 # Scilifelab_epps Version Log
 
+## 20230714.1
+Accomodate Anglerfish samplesheet generation w/o any ONT barcodes.
+
+## 20230712.1
+Fix fatal error for ONT EPP by updating names of module resource.
+
+## 20230711.2
+Fix unwarranted error message when moving files to external storage by using a different shutil function. Likely issue with Python <3.8.
+
+## 20230711.1
+When calculating amounts in QC, populate both "Amount (ng)" and "Amount (fmol)", if possible. Useful for LIMSing nanopore samples.
+
+## 20230630.2
+Implement ONT and Anglerfish samplesheet generation for MinION QC.
+
+## 20230630.1
+Config updates and minor fixes from live testing the NovaSeqXPlus sequencing protocol on dummy samples on LIMS Prod.
+
+## 20230622.1
+Bugfix for deviation 173. Differentiate metadata paths for Illumina instruments.
+
+## 20230615.1
+Put generated ONT samplesheets on ngi-nas-ns instead of mfs.
+
+## 20230613.1
+Rework zika_utils.format_worklist() split transfers logic to prevent the post-split volume from ending up as less than what is allowed by the instrument.
+
+## 20230602.1
+Rename utils module to epp_utils to avoid name collision with native Python module and fix bug causing fatal error for Zika pooling.
+
+## 20230529.1
+Assign step (accidentally omitted from PR #150) to RN config.
+
+## 20230525.1
+Live troubleshooting of ONT EPPs upon deployment of new workflow to LIMS prod.
+
+## 20230329.1
+Improve modularity and readability of ONT EPP script names and contents. Also implement changes requested during live testing.
+
+## 20230313.1
+Deploy validation 23_02_zika_codebase_revamp to replace accredited codebase for pooling using Mosquito X1.
+
 ## 20230306.2
 Update control lists and fetch run recipe from project for samplesheet generator
 

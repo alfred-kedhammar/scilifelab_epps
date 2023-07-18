@@ -35,6 +35,8 @@ def fetch_fc(process):
             sys.exit(2)
     elif process.parent_processes()[0].type.name == 'Load to Flowcell (NovaSeq 6000 v2.0)':
         fc_id = process.parent_processes()[0].output_containers()[0].name
+    elif "Load to Flowcell (NovaSeqXPlus)" in process.parent_processes()[0].type.name:
+        fc_id = process.parent_processes()[0].output_containers()[0].name
     else:
         sys.stderr.write("No associated parent step can be found.")
         sys.exit(2)
@@ -49,7 +51,14 @@ def fetch_rundir(fc_id, run_type):
         data_dir = 'miseq_data'
     elif run_type == 'novaseq':
         data_dir = 'NovaSeq_data'
-    run_dir_path = os.path.join(os.sep,"srv","mfs",data_dir,"*{}".format(fc_id))
+    elif run_type == "NovaSeqXPlus":
+        data_dir = "NovaSeqXPlus_data"
+
+    metadata_dir = "ngi-nas-ns" if run_type == "NovaSeqXPlus" else "mfs"
+    run_dir_path = os.path.join(
+        os.sep, "srv", metadata_dir, data_dir, "*{}".format(fc_id)
+    )
+
     if len(glob.glob(run_dir_path)) == 1:
         run_dir = glob.glob(run_dir_path)[0]
     elif len(glob.glob(run_dir_path)) == 0:
@@ -68,7 +77,7 @@ def parse_run(run_dir):
     elif os.path.exists("{}/runParameters.xml".format(run_dir)):
         RunParametersParserObj = RunParametersParser("{}/runParameters.xml".format(run_dir))
     else:
-        sys.stderr.write("No RunParameters.xml found for FC {}".format(fc_id))
+        sys.stderr.write("No RunParameters.xml found in path {}".format(run_dir))
         sys.exit(2)
     return runParserObj, RunParametersParserObj
 
@@ -316,16 +325,92 @@ def lims_for_novaseq(process, run_dir):
     set_run_stats_in_lims(process, run_stats_summary)
 
 
+def lims_for_NovaSeqXPlus(process, run_dir):
+    # Parse run
+    runParserObj, RunParametersParserObj = parse_run(run_dir)
+
+    # Subset parsed data
+    runParameters = RunParametersParserObj.data["RunParameters"]
+    consumables = runParameters["ConsumableInfo"]["ConsumableInfo"]
+    reads = runParameters["PlannedReads"]["Read"]
+
+    # Set values for LIMS UDFs
+    process.udf["Run ID"] = runParameters["RunId"]
+    process.udf["Output Folder"] = runParameters["OutputFolder"]
+
+    for read in reads:
+        if read["ReadName"] == "Read1":
+            process.udf["Read 1 Cycles"] = int(read["Cycles"])
+        elif read["ReadName"] == "Index1":
+            process.udf["Index Read 1"] = int(read["Cycles"])
+        elif read["ReadName"] == "Index2":
+            process.udf["Index Read 2"] = int(read["Cycles"])
+        elif read["ReadName"] == "Read2":
+            process.udf["Read 2 Cycles"] = int(read["Cycles"])
+
+    for consumable in consumables:
+        if consumable["Type"] == "FlowCell":
+            process.udf["Flow Cell Mode"] = consumable["Mode"]
+
+            process.udf["Flow Cell ID"] = consumable["SerialNumber"]
+            process.udf["Flow Cell Part Number"] = consumable["PartNumber"]
+            process.udf["Flow Cell Lot Number"] = consumable["LotNumber"]
+            process.udf["Flow Cell Expiration Date"] = datetime.strptime(
+                consumable["ExpirationDate"][0:10], "%Y-%m-%d"
+            ).date()
+
+        elif consumable["Type"] == "Reagent":
+            process.udf["Reagent Serial Barcode"] = consumable["SerialNumber"]
+            process.udf["Reagent Part Number"] = consumable["PartNumber"]
+            process.udf["Reagent Lot Number"] = consumable["LotNumber"]
+            process.udf["Reagent Expiration Date"] = datetime.strptime(
+                consumable["ExpirationDate"][0:10], "%Y-%m-%d"
+            ).date()
+
+        elif consumable["Type"] == "Buffer":
+            process.udf["Buffer Serial Barcode"] = consumable["SerialNumber"]
+            process.udf["Buffer Part Number"] = consumable["PartNumber"]
+            process.udf["Buffer Lot Number"] = consumable["LotNumber"]
+            process.udf["Buffer Expiration Date"] = datetime.strptime(
+                consumable["ExpirationDate"][0:10], "%Y-%m-%d"
+            ).date()
+
+        elif consumable["Type"] == "SampleTube":
+            process.udf["SampleTube Serial Barcode"] = consumable["SerialNumber"]
+            process.udf["SampleTube Part Number"] = consumable["PartNumber"]
+            process.udf["SampleTube Lot Number"] = consumable["LotNumber"]
+            process.udf["SampleTube Expiration Date"] = datetime.strptime(
+                consumable["ExpirationDate"][0:10], "%Y-%m-%d"
+            ).date()
+
+        elif consumable["Type"] == "Lyo":
+            process.udf["Lyo Serial Barcode"] = consumable["SerialNumber"]
+            process.udf["Lyo Part Number"] = consumable["PartNumber"]
+            process.udf["Lyo Lot Number"] = consumable["LotNumber"]
+            process.udf["Lyo Expiration Date"] = datetime.strptime(
+                consumable["ExpirationDate"][0:10], "%Y-%m-%d"
+            ).date()
+
+    # Put in LIMS
+    process.put()
+
+    # Set run stats parsed from InterOp to measurement UDFs
+    run_stats_summary = parse_illumina_interop(run_dir)
+    set_run_stats_in_lims(process, run_stats_summary)
+
+
 def main(lims, args):
 
     process = Process(lims, id=args.pid)
 
-    if process.type.name == 'Illumina Sequencing (NextSeq) v1.0':
-        run_type =  'nextseq'
-    elif process.type.name == 'MiSeq Run (MiSeq) 4.0':
-        run_type = 'miseq'
-    elif process.type.name == 'AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)':
-        run_type = 'novaseq'
+    if process.type.name == "Illumina Sequencing (NextSeq) v1.0":
+        run_type = "nextseq"
+    elif process.type.name == "MiSeq Run (MiSeq) 4.0":
+        run_type = "miseq"
+    elif "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)" in process.type.name:
+        run_type = "novaseq"
+    elif "NovaSeqXPlus Run" in process.type.name:
+        run_type = "NovaSeqXPlus"
 
     # Fetch FC ID
     fc_id = fetch_fc(process)
@@ -340,6 +425,8 @@ def main(lims, args):
         lims_for_miseq(process, run_dir)
     elif run_type == 'novaseq':
         lims_for_novaseq(process, run_dir)
+    elif run_type == "NovaSeqXPlus":
+        lims_for_NovaSeqXPlus(process, run_dir)
 
 
 if __name__ == "__main__":

@@ -54,8 +54,21 @@ def my_distance(idx1, idx2):
 
 
 def gen_Novaseq_lane_data(pro):
-    data=[]
-    header_ar = ["FCID","Lane","Sample_ID","Sample_Name","Sample_Ref","index","index2","Description","Control","Recipe","Operator","Sample_Project"]
+    data = []
+    header_ar = [
+        "FCID",
+        "Lane",
+        "Sample_ID",
+        "Sample_Name",
+        "Sample_Ref",
+        "index",
+        "index2",
+        "Description",
+        "Control",
+        "Recipe",
+        "Operator",
+        "Sample_Project",
+    ]
     for out in pro.all_outputs():
         if  out.type == "Analyte":
             for sample in out.samples:
@@ -106,6 +119,103 @@ def gen_Novaseq_lane_data(pro):
     content = df.to_csv(index=False)
 
     return (content, data)
+
+
+def gen_NovaSeqXPlus_lane_data(pro):
+    data = []
+    header_ar = [
+        "FCID",
+        "Lane",
+        "Sample_ID",
+        "Sample_Name",
+        "Sample_Ref",
+        "index",
+        "index2",
+        "Description",
+        "Control",
+        "Recipe",
+        "Operator",
+        "Sample_Project",
+    ]
+    for out in pro.all_outputs():
+        if out.type == "Analyte":
+            for sample in out.samples:
+                sample_idxs = set()
+                find_barcode(sample_idxs, sample, pro)
+                for idxs in sample_idxs:
+                    sp_obj = {}
+                    sp_obj["lane"] = out.location[1].split(":")[0].replace(",", "")
+                    if NGISAMPLE_PAT.findall(sample.name):
+                        sp_obj["sid"] = "Sample_{}".format(sample.name).replace(",", "")
+                        sp_obj["sn"] = sample.name.replace(",", "")
+                        sp_obj["pj"] = sample.project.name.replace(".", "__").replace(
+                            ",", ""
+                        )
+                        sp_obj["ref"] = sample.project.udf.get(
+                            "Reference genome", ""
+                        ).replace(",", "")
+                        seq_setup = sample.project.udf.get("Sequencing setup", "")
+                        if SEQSETUP_PAT.findall(seq_setup):
+                            sp_obj["rc"] = "{}-{}".format(
+                                seq_setup.split("-")[0], seq_setup.split("-")[3]
+                            )
+                        else:
+                            sp_obj["rc"] = "0-0"
+                    else:
+                        sp_obj["sid"] = (
+                            "Sample_{}".format(sample.name)
+                            .replace("(", "")
+                            .replace(")", "")
+                            .replace(".", "")
+                            .replace(" ", "_")
+                        )
+                        sp_obj["sn"] = (
+                            sample.name.replace("(", "")
+                            .replace(")", "")
+                            .replace(".", "")
+                            .replace(" ", "_")
+                        )
+                        sp_obj["pj"] = "Control"
+                        sp_obj["ref"] = "Control"
+                        sp_obj["rc"] = "0-0"
+                    sp_obj["ct"] = "N"
+                    sp_obj["op"] = pro.technician.name.replace(" ", "_").replace(
+                        ",", ""
+                    )
+                    sp_obj["fc"] = out.location[0].name.replace(",", "")
+                    sp_obj["sw"] = out.location[1].replace(",", "")
+                    sp_obj["idx1"] = idxs[0].replace(",", "").upper()
+                    if idxs[1]:
+                        sp_obj["idx2"] = idxs[1].replace(",", "").upper()
+                    else:
+                        sp_obj["idx2"] = ""
+                    data.append(sp_obj)
+    header = "{}\n".format(",".join(header_ar))
+    str_data = ""
+    for line in sorted(data, key=lambda x: x["lane"]):
+        l_data = [
+            line["fc"],
+            line["lane"],
+            line["sn"],
+            line["sn"],
+            line["ref"],
+            line["idx1"],
+            line["idx2"],
+            line["pj"],
+            line["ct"],
+            line["rc"],
+            line["op"],
+            line["pj"],
+        ]
+        str_data = str_data + ",".join(l_data) + "\n"
+
+    content = "{}{}".format(header, str_data)
+    df = pd.read_csv(StringIO(content))
+    df = df.sort_values(["Lane", "Sample_ID"])
+    content = df.to_csv(index=False)
+
+    return (content, data)
+
 
 def gen_Miseq_header(pro):
     project_name=pro.all_inputs()[0].samples[0].project.name
@@ -413,7 +523,7 @@ def main(lims, args):
     else:
         process = Process(lims, id=args.pid)
 
-        if process.type.name == 'Load to Flowcell (NovaSeq 6000 v2.0)':
+        if "Load to Flowcell (NovaSeq 6000 v2.0)" == process.type.name:
             (content, obj) = gen_Novaseq_lane_data(process)
             check_index_distance(obj, log)
             if os.path.exists("/srv/mfs/samplesheets/novaseq/{}".format(thisyear)):
@@ -423,7 +533,24 @@ def main(lims, args):
                 except Exception as e:
                     log.append(str(e))
 
-        elif process.type.name == 'Denature, Dilute and Load Sample (MiSeq) 4.0':
+        elif "Load to Flowcell (NovaSeqXPlus)" in process.type.name:
+            (content, obj) = gen_NovaSeqXPlus_lane_data(process)
+            check_index_distance(obj, log)
+            if os.path.exists(
+                "/srv/ngi-nas-ns/samplesheets/NovaSeqXPlus/{}".format(thisyear)
+            ):
+                try:
+                    with open(
+                        "/srv/ngi-nas-ns/samplesheets/NovaSeqXPlus/{}/{}.csv".format(
+                            thisyear, obj[0]["fc"]
+                        ),
+                        "w",
+                    ) as sf:
+                        sf.write(content)
+                except Exception as e:
+                    log.append(str(e))
+
+        elif process.type.name == "Denature, Dilute and Load Sample (MiSeq) 4.0":
             header = gen_Miseq_header(process)
             reads = gen_Miseq_reads(process)
             settings = gen_Miseq_settings(process)

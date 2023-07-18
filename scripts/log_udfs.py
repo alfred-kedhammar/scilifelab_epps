@@ -7,9 +7,10 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 from datetime import datetime as dt
 from tabulate import tabulate
-from send_ont_flowcell_info_to_statusdb import parse_fc
+from ont_send_reloading_info_to_db import parse_run
 import pandas as pd
 import sys
+from epp_utils import udf_tools
 
 
 DESC = """
@@ -20,60 +21,55 @@ Step-specific input assertions may be added where indicated.
 
 
 def main(lims, args):
-
     try:
-
         currentStep = Process(lims, id=args.pid)
+        udfs_to_log = args.udfs
 
         timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
         # Collect last log file, if there is one
         file_art = [op for op in currentStep.all_outputs() if op.name == "Field log"][0]
         if file_art.files:
-            file_bytes = lims.get_file_contents(uri = file_art.files[0].uri).read()
+            file_bytes = lims.get_file_contents(uri=file_art.files[0].uri).read()
             file_str = file_bytes.decode("utf-8")
         else:
             file_str = None
-                    
-        # Parse outputs and their UDFs
-        outputs = [output for output in currentStep.all_outputs() if output.type == "Analyte"]
 
-        # Collect all populated UDFs
-        output_udfs = []
-        for output in outputs:
-            for udf_tuple in output.udf.items():
-                if udf_tuple[0] not in output_udfs:
-                    output_udfs.append(udf_tuple[0])
+        # Parse outputs and their UDFs
+        if udf_tools.no_outputs(currentStep):
+            arts = [art for art in currentStep.all_inputs() if art.type == "Analyte"]
+        else:
+            arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
 
         # Step-specific assertions
-        if 'ONT Sequencing and Reloading' in currentStep.type.name:
-            for art_tuple in [art_tuple for art_tuple in currentStep.input_output_maps if art_tuple[1]["uri"].type == "Analyte"]:
-                parse_fc(art_tuple)
+        if "ONT Sequencing and Reloading" in currentStep.type.name:
+            for art in currentStep.all_inputs():
+                parse_run(art)
 
         # Start building log dataframe
         rows = []
-        for output in outputs:
+        for art in arts:
             row = {}
-            row["Sample"] = output.name
-            for udf in output_udfs:
+            row["Sample"] = art.name
+            for udf in udfs_to_log:
                 try:
-                    row[udf] = output.udf[udf]
+                    row[udf] = art.udf[udf]
                 except KeyError:
                     row[udf] = None
 
             rows.append(row)
 
         df = pd.DataFrame(rows).set_index("Sample")
+        df.sort_index(inplace=True)
 
         new_log_name = f"UDF_log_{currentStep.id}_{timestamp}.txt"
         with open(new_log_name, "w") as f:
-            
             # Write previous file contents
             if file_str:
                 f.write(file_str)
 
             # Write new file contents
-            f.write(timestamp+"\n")
+            f.write(timestamp + "\n")
             f.write(tabulate(df, headers="keys"))
             f.write("\n\n")
 
@@ -90,8 +86,10 @@ def main(lims, args):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid',
-                        help='Lims id for current Process')
+    parser.add_argument("--pid", help="Lims id for current Process")
+    parser.add_argument(
+        "--udfs", metavar="U", type=str, nargs="+", help="UDFs to log, as strings"
+    )
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
