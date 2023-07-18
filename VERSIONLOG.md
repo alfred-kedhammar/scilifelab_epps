@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230718.1
+Add function to verify sample name format in index_distance_checker
+
 ## 20230714.1
 Accomodate Anglerfish samplesheet generation w/o any ONT barcodes.
 

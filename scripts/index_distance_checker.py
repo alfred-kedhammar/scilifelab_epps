@@ -122,6 +122,7 @@ def my_distance(idx_a, idx_b):
 
 def prepare_index_table(process):
     data=[]
+    message = []
     for out in process.all_outputs():
         if out.type == "Analyte":
             pool_name = out.name
@@ -130,6 +131,8 @@ def prepare_index_table(process):
             for sample in out.samples:
                 submitted_container_name = ''
                 submitted_pool_well = ''
+                if not NGISAMPLE_PAT.findall(sample.name):
+                    message.append("SAMPLE NAME WARNING: Bad sample name format {}".format(sample.name))
                 if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
                     submitted_container_name = sample.artifact.container.name.split('-')[0]
                     try:
@@ -193,7 +196,7 @@ def prepare_index_table(process):
                     sp_obj['idx1'] = ''
                     sp_obj['idx2'] = ''
                     data.append(sp_obj)
-    return data
+    return data, message
 
 
 def find_barcode(sample_idxs, sample, process):
@@ -234,9 +237,9 @@ def find_barcode(sample_idxs, sample, process):
 
 def main(lims, pid):
     process = Process(lims, id = pid)
-    data = prepare_index_table(process)
+    data, message = prepare_index_table(process)
     if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
-        message = verify_indexes(data)
+        message += verify_indexes(data)
         message += verify_placement(data)
     else:
         message = check_index_distance(data)
