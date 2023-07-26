@@ -125,6 +125,7 @@ def prepare_index_table(process):
     message = []
     for out in process.all_outputs():
         if out.type == "Analyte":
+            proj_id = out.samples[0].project.id
             pool_name = out.name
             step_container_name = out.container.name
             step_pool_well = out.location[1]
@@ -133,6 +134,9 @@ def prepare_index_table(process):
                 submitted_pool_well = ''
                 if not NGISAMPLE_PAT.findall(sample.name):
                     message.append("SAMPLE NAME WARNING: Bad sample name format {}".format(sample.name))
+                else:
+                    if sample.name.split('_')[0] != proj_id:
+                        message.append("SAMPLE NAME WARNING: Sample name {} does not match project ID {}".format(sample.name, proj_id))
                 if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
                     submitted_container_name = sample.artifact.container.name.split('-')[0]
                     try:
