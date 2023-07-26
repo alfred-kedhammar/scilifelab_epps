@@ -1,5 +1,11 @@
 # Scilifelab_epps Version Log
 
+## 20230726.2
+Refactor index_distance_checker
+
+## 20230726.1
+Add function to verify if sample name matches project id in index_distance_checker
+
 ## 20230718.2
 Add NovaSeqXPlus in sequencing step list for readscount
 
