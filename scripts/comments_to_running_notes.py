@@ -98,6 +98,7 @@ def categorization(process_name):
         "ONT Pooling v2.0": "Workset",
         "ONT Process Started Runs": "Workset",
         "ONT Sequencing and Reloading v3.1": "Workset",
+        "ONT Start Sequencing v2.0": "Workset",
         "Pre-Pooling": "",
         "Pre-Pooling (Illumina SBS) 4.0": "",
         "Pre-Pooling (MiSeq) 4.0": "",
