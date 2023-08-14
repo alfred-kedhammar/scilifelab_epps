@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230814.1
+Enable "ONT Start Sequencing v2.0" for running notes script.
+
 ## 20230714.1
 Accomodate Anglerfish samplesheet generation w/o any ONT barcodes.
 
