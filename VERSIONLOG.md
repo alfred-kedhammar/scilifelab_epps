@@ -3,6 +3,18 @@
 ## 20230814.1
 Enable "ONT Start Sequencing v2.0" for running notes script.
 
+## 20230726.2
+Refactor index_distance_checker
+
+## 20230726.1
+Add function to verify if sample name matches project id in index_distance_checker
+
+## 20230718.2
+Add NovaSeqXPlus in sequencing step list for readscount
+
+## 20230718.1
+Add function to verify sample name format in index_distance_checker
+
 ## 20230714.1
 Accomodate Anglerfish samplesheet generation w/o any ONT barcodes.
 

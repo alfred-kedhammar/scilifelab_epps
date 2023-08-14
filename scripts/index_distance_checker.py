@@ -78,6 +78,19 @@ def verify_placement(data):
                 message.append("PLACEMENT WARNING: Sample {} in pool {} is placed in well {} which is different than the submitted well {}".format(sample.get('sn', ''), p, sample.get('step_pool_well', ''), sample.get('submitted_pool_well', '')))
     return message
 
+def verify_samplename(data):
+    message = []
+    pools = set([x['pool'] for x in data])
+    for p in sorted(pools):
+        subset = [i for i in data if i['pool'] == p]
+        subset = sorted(subset, key=lambda d: d['sn'])
+        for sample in subset:
+            if not NGISAMPLE_PAT.findall(sample.get('sn', '')):
+                message.append("SAMPLE NAME WARNING: Bad sample name format {}".format(sample.get('sn', '')))
+            else:
+                if sample.get('sn', '').split('_')[0] != sample.get('proj_id', ''):
+                    message.append("SAMPLE NAME WARNING: Sample name {} does not match project ID {}".format(sample.get('sn', ''), sample.get('proj_id', '')))
+    return message
 
 def check_index_distance(data):
     message = []
@@ -122,12 +135,14 @@ def my_distance(idx_a, idx_b):
 
 def prepare_index_table(process):
     data=[]
+    message = []
     for out in process.all_outputs():
         if out.type == "Analyte":
             pool_name = out.name
             step_container_name = out.container.name
             step_pool_well = out.location[1]
             for sample in out.samples:
+                proj_id = sample.project.id
                 submitted_container_name = ''
                 submitted_pool_well = ''
                 if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
@@ -149,12 +164,14 @@ def prepare_index_table(process):
                         sp_obj['submitted_pool_well'] = submitted_pool_well
                         if idxs[0] == 'NoIndex':
                             sp_obj['pool'] = pool_name
+                            sp_obj['proj_id'] = proj_id
                             sp_obj['sn'] = sample.name.replace(',','')
                             sp_obj['idx1'] = ''
                             sp_obj['idx2'] = ''
                             data.append(sp_obj)
                         elif TENX_DUAL_PAT.findall(idxs[0]):
                             sp_obj['pool'] = pool_name
+                            sp_obj['proj_id'] = proj_id
                             sp_obj['sn'] = sample.name.replace(',','')
                             sp_obj['idx1'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][0].replace(',','')
                             sp_obj['idx2'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][1].replace(',','')
@@ -163,6 +180,7 @@ def prepare_index_table(process):
                             for tenXidx in Chromium_10X_indexes[TENX_SINGLE_PAT.findall(idxs[0])[0]]:
                                 sp_obj_sub = {}
                                 sp_obj_sub['pool'] = pool_name
+                                sp_obj_sub['proj_id'] = proj_id
                                 sp_obj_sub['sn'] = sample.name.replace(',','')
                                 sp_obj_sub['idx1'] = tenXidx.replace(',','')
                                 sp_obj_sub['idx2'] = ''
@@ -172,12 +190,14 @@ def prepare_index_table(process):
                                 for i5_idx in SMARTSEQ3_indexes[idxs[0]][1]:
                                     sp_obj_sub = {}
                                     sp_obj_sub['pool'] = pool_name
+                                    sp_obj_sub['proj_id'] = proj_id
                                     sp_obj_sub['sn'] = sample.name.replace(',','')
                                     sp_obj_sub['idx1'] = i7_idx
                                     sp_obj_sub['idx2'] = i5_idx
                                     data.append(sp_obj_sub)
                         else:
                             sp_obj['pool'] = pool_name
+                            sp_obj['proj_id'] = proj_id
                             sp_obj['sn'] = sample.name.replace(',','')
                             sp_obj['idx1'] = idxs[0].replace(',','') if idxs[0] else ''
                             sp_obj['idx2'] = idxs[1].replace(',','') if idxs[1] else ''
@@ -189,11 +209,12 @@ def prepare_index_table(process):
                     sp_obj['submitted_container_name'] = submitted_container_name
                     sp_obj['submitted_pool_well'] = submitted_pool_well
                     sp_obj['pool'] = pool_name
+                    sp_obj['proj_id'] = proj_id
                     sp_obj['sn'] = sample.name.replace(',','')
                     sp_obj['idx1'] = ''
                     sp_obj['idx2'] = ''
                     data.append(sp_obj)
-    return data
+    return data, message
 
 
 def find_barcode(sample_idxs, sample, process):
@@ -234,10 +255,11 @@ def find_barcode(sample_idxs, sample, process):
 
 def main(lims, pid):
     process = Process(lims, id = pid)
-    data = prepare_index_table(process)
+    data, message = prepare_index_table(process)
     if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
-        message = verify_indexes(data)
         message += verify_placement(data)
+        message += verify_indexes(data)
+        message += verify_samplename(data)
     else:
         message = check_index_distance(data)
     if message:
