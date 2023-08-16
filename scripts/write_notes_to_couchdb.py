@@ -6,12 +6,13 @@ import yaml
 import couchdb
 import smtplib
 import os
+import sys
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import datetime
 import markdown
 
-def write_note_to_couch(pid, timestamp, note, lims):
+def write_note_to_couch(pid, timestamp, note, lims, notes_db = 'old'):
     configf = '~/.statusdb_cred.yaml'
     with open(os.path.expanduser(configf)) as config_file:
         config = yaml.safe_load(config_file)
@@ -27,53 +28,68 @@ def write_note_to_couch(pid, timestamp, note, lims):
         email_responsible('Connection failed from {} to {}'.format(lims, config['statusdb'].get('url')), 'genomics-bioinfo@scilifelab.se')
         email_responsible('Running note save for {} failed on LIMS! Please contact {} to resolve the issue!'.format(pid, 'genomics-bioinfo@scilifelab.se'), note['email'])
 
-    proj_db = couch['projects']
-    v = proj_db.view('project/project_id')
-    if len(v[pid]) == 0:
-        msg = 'Project {} does not exist in {} when syncing from {}\n '.format(pid, config['statusdb'].get('url'), lims)
-        for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
-            email_responsible(msg, user_email)
+    saved = False
+    if notes_db == 'new':
+        notes_db = couch['running_notes']
+        if not notes_db.get(note['_id']):
+            notes_db.save(note)
+            if notes_db.get(note['_id']):
+                saved = True
+            else:
+                msg = 'Running note save failed from {} to {} for {}'.format(lims, config['statusdb'].get('url'), pid)
+                for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
+                    email_responsible(msg, user_email)
     else:
-        for row in v[pid]:
-            doc_id = row.value
-        doc = proj_db.get(doc_id)
-        running_notes = doc['details'].get('running_notes', '{}')
-        running_notes = json.loads(running_notes)
-
-        running_notes.update({timestamp: note})
-        doc['details']['running_notes'] = json.dumps(running_notes)
-        proj_db.save(doc)
-        #check if it was saved
-        doc = proj_db.get(doc_id)
-        if doc['details']['running_notes'] != json.dumps(running_notes):
-            msg = 'Running note save failed from {} to {} for {}'.format(lims, config['statusdb'].get('url'), pid)
+        proj_db = couch['projects']
+        v = proj_db.view('project/project_id')
+        if len(v[pid]) == 0:
+            msg = 'Project {} does not exist in {} when syncing from {}\n '.format(pid, config['statusdb'].get('url'), lims)
             for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
                 email_responsible(msg, user_email)
         else:
-            time_in_format = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f').strftime("%a %b %d %Y, %I:%M:%S %p")
-            subject = '[LIMS] Running Note:{}, {}'.format(pid, doc['project_name'])
-            proj_coord_name = doc['details'].get('project_coordinator','').lower()
-            trans_table = proj_coord_name.maketrans('áéíóú', 'aeiou')
-            proj_coord_name_trans = proj_coord_name.translate(trans_table)
-            proj_coord = '.'.join(proj_coord_name_trans.split()) + '@scilifelab.se'
-            text = 'A note has been created from LIMS in the project {}, {}! The note is as follows\n\
-            >{} - {}{}\
-            >{}'.format(pid, doc['project_name'], note['user'], time_in_format, note.get('category'), note)
+            for row in v[pid]:
+                doc_id = row.value
+            doc = proj_db.get(doc_id)
+            running_notes = doc['details'].get('running_notes', '{}')
+            running_notes = json.loads(running_notes)
 
-            html = '<html>\
-            <body>\
-            <p> \
-            A note has been created from LIMS in the project {}, {}! The note is as follows</p>\
-            <blockquote>\
-            <div class="panel panel-default" style="border: 1px solid #e4e0e0; border-radius: 4px;">\
-            <div class="panel-heading" style="background-color: #f5f5f5; padding: 10px 15px;">\
-                <a href="#">{}</a> - <span>{}</span> <span>{}</span>\
-            </div>\
-            <div class="panel-body" style="padding: 15px;">\
-                <p>{}</p>\
-            </div></div></blockquote></body></html>'.format(pid, doc['project_name'], note['user'],
-                                    time_in_format, note.get('category'), markdown.markdown(note.get('note')))
-            email_responsible(text, proj_coord, error=False, subject=subject, html=html)
+            running_notes.update({timestamp: note})
+            doc['details']['running_notes'] = json.dumps(running_notes)
+            proj_db.save(doc)
+            #check if it was saved
+            doc = proj_db.get(doc_id)
+            if doc['details']['running_notes'] != json.dumps(running_notes):
+                msg = 'Running note save failed from {} to {} for {}'.format(lims, config['statusdb'].get('url'), pid)
+                for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
+                    email_responsible(msg, user_email)
+            else:
+                saved = True
+            
+            if saved:
+                time_in_format = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f').strftime("%a %b %d %Y, %I:%M:%S %p")
+                subject = '[LIMS] Running Note:{}, {}'.format(pid, doc['project_name'])
+                proj_coord_name = doc['details'].get('project_coordinator','').lower()
+                trans_table = proj_coord_name.maketrans('áéíóú', 'aeiou')
+                proj_coord_name_trans = proj_coord_name.translate(trans_table)
+                proj_coord = '.'.join(proj_coord_name_trans.split()) + '@scilifelab.se'
+                text = 'A note has been created from LIMS in the project {}, {}! The note is as follows\n\
+                >{} - {}{}\
+                >{}'.format(pid, doc['project_name'], note['user'], time_in_format, note.get('category'), note)
+
+                html = '<html>\
+                <body>\
+                <p> \
+                A note has been created from LIMS in the project {}, {}! The note is as follows</p>\
+                <blockquote>\
+                <div class="panel panel-default" style="border: 1px solid #e4e0e0; border-radius: 4px;">\
+                <div class="panel-heading" style="background-color: #f5f5f5; padding: 10px 15px;">\
+                    <a href="#">{}</a> - <span>{}</span> <span>{}</span>\
+                </div>\
+                <div class="panel-body" style="padding: 15px;">\
+                    <p>{}</p>\
+                </div></div></blockquote></body></html>'.format(pid, doc['project_name'], note['user'],
+                                        time_in_format, note.get('category'), markdown.markdown(note.get('note')))
+                email_responsible(text, proj_coord, error=False, subject=subject, html=html)
 
 def email_responsible(message, resp_email, error=True, subject=None, html=None):
     if error:
