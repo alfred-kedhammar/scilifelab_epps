@@ -159,7 +159,7 @@ def main(lims, args):
     pro = Process(lims, id=args.pid)
     if "Comments" in pro.udf and pro.udf["Comments"] is not "":
         if isinstance(pro.udf["Comments"], str):
-                comments = pro.udf["Comments"]
+            comments = pro.udf["Comments"]
         else:
             comments = pro.udf["Comments"].encode("utf-8")
         note = "Comment from {0} ({1}) : \n{2}".format(
