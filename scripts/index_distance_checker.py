@@ -142,7 +142,10 @@ def prepare_index_table(process):
             step_container_name = out.container.name
             step_pool_well = out.location[1]
             for sample in out.samples:
-                proj_id = sample.project.id
+                try:
+                    proj_id = sample.project.id
+                except AttributeError:
+                    proj_id = 'P0000'
                 submitted_container_name = ''
                 submitted_pool_well = ''
                 if process.type.name == 'Library Pooling (Finished Libraries) 4.0':
