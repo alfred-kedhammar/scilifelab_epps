@@ -176,17 +176,17 @@ def main(lims, args):
         noteobj["email"] = pro.technician.email
         notes_db = 'old'
          #Temp for move to new run notes db
-        if 'ONT' in pro.type.name:
-            key = datetime.datetime.now(datetime.timezone.utc)
-            noteobj['categories'] = [categorization(pro.type.name)]
-            noteobj['note_type'] = 'project'
-            noteobj['parent'] = pro.id
-            noteobj['created_at_utc'] = created_time.isoformat()
-            noteobj['updated_at_utc'] = created_time.isoformat()
-            notes_db = 'new'
-        else:
-            key = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-            noteobj["category"] = categorization(pro.type.name)
+        # if 'ONT' in pro.type.name:
+        #     key = datetime.datetime.now(datetime.timezone.utc)
+        #     noteobj['categories'] = [categorization(pro.type.name)]
+        #     noteobj['note_type'] = 'project'
+        #     noteobj['parent'] = pro.id
+        #     noteobj['created_at_utc'] = key.isoformat()
+        #     noteobj['updated_at_utc'] = key.isoformat()
+        #     notes_db = 'new'
+        # else:
+        key = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        noteobj["category"] = categorization(pro.type.name)
 
         # find the correct projects.
         samples = set()
@@ -199,9 +199,9 @@ def main(lims, args):
                 projects.add(sam.project)
 
         for proj in projects:
-            if notes_db =='new':
-                noteobj['projects'] = [proj.id]
-                noteobj['_id'] = f'{proj.id}:{datetime.datetime.timestamp(key)}'
+            #if notes_db =='new':
+            #    noteobj['projects'] = [proj.id]
+            #    noteobj['_id'] = f'{proj.id}:{datetime.datetime.timestamp(key)}'
             write_note_to_couch(proj.id, key, noteobj, lims.get_uri(), notes_db)
 
 

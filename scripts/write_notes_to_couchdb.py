@@ -30,10 +30,10 @@ def write_note_to_couch(pid, timestamp, note, lims, notes_db = 'old'):
 
     saved = False
     if notes_db == 'new':
-        notes_db = couch['running_notes']
-        if not notes_db.get(note['_id']):
-            notes_db.save(note)
-            if notes_db.get(note['_id']):
+        run_notes_db = couch['running_notes']
+        if not run_notes_db.get(note['_id']):
+            run_notes_db.save(note)
+            if run_notes_db.get(note['_id']):
                 saved = True
             else:
                 msg = 'Running note save failed from {} to {} for {}'.format(lims, config['statusdb'].get('url'), pid)
