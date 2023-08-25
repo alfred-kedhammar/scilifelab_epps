@@ -5,24 +5,14 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 import xml.etree.ElementTree as ET
 from epp_utils import udf_tools
+from scilifelab_epps.epp import get_well_number
+import sys
 
 DESC = """This script parses the Agilent BioAnalyzer XML report. 
 
 It is written to replace the current Illumina-supplied script consisting of compiled 
 Java which as of 2023-08-25 does not serve it's purpose. 
 """
-
-
-def well_name2num(well_name: str) -> int:
-    """Translate well names (e.g. C:1, A:12) to column-wise integers."""
-
-    letter2num = {}
-    for i, l in zip(range(0,8), "ABCDEFGH"):
-        letter2num[l] = i
-
-    row_letter, col_num = well_name.split(":")
-    well_num = letter2num[row_letter] + int(col_num)
-    return well_num
 
 
 def main(lims, args):
@@ -50,7 +40,7 @@ def main(lims, args):
     for measurement in measurements:
 
         # Find the corresponding well number
-        well_num = well_name2num(measurement.location[1])
+        well_num = get_well_number(measurement.location[1])
 
         # Isolate the XML sample nest w. the same well as the measurement
         matching_wells = [e for e in samples_node if int(e.find('WellNumber').text.strip()) == well_num]
