@@ -7,11 +7,13 @@ import xml.etree.ElementTree as ET
 from epp_utils import udf_tools
 from scilifelab_epps.epp import get_well_number
 import sys
+from datetime import datetime as dt
+import os
 
 DESC = """This script parses the Agilent BioAnalyzer XML report. 
 
 It is written to replace the current Illumina-supplied script consisting of compiled 
-Java which as of 2023-08-25 does not serve it's purpose. 
+Java which does not as of 2023-08-25 populate the measurement UDFs of interest.
 """
 
 
@@ -40,7 +42,13 @@ def main(lims, args):
     for measurement in measurements:
 
         # Find the corresponding well number
-        well_num = get_well_number(measurement)
+        try:
+            well_num = get_well_number(measurement)
+        except:
+            log.append(
+                f"ERROR: Could not determine the well number of {measurement.name}, skipping."
+            )
+            continue
 
         # Isolate the XML sample nest w. the same well as the measurement
         matching_wells = [e for e in samples_node if int(e.find('WellNumber').text.strip()) == well_num]
@@ -84,6 +92,25 @@ def main(lims, args):
                 )
 
         log.append(f"Successfully pulled metrics for measurment {measurement.name}.")
+
+    # Write log
+    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+    log_filename = (
+        "_".join(["parse_bioanalyzer_xml_log", currentStep.id, timestamp]) + ".txt"
+    )
+    with open(log_filename, "w") as logContext:
+        logContext.write("\n".join(log))
+
+    # Upload log
+    for out in currentStep.all_outputs():
+        if out.name == "Bioanalyzer XML Parsing Log File":
+
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, log_filename)
+
+            # Clean up
+            os.remove(log_filename)
 
 
 def get_ba_output_file(currentStep, log):
