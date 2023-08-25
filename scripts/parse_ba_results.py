@@ -75,10 +75,14 @@ def main(lims, args):
 
             xml_nest, return_type = results_to_grab[udf_name]
 
-            result = return_type(results_node.find(f".//{xml_nest}").text.strip())
+            result = results_node.find(f".//{xml_nest}").text.strip()
+            if return_type == int:
+                result = int(round(float(result), 0))
+            elif return_type == float:
+                result = float(result)
 
             try:
-                # For concentrations given in pg/ul, convert to ng/ul
+                # For concentrations (given in pg/ul), convert to ng/ul
                 if udf_name == "Concentration":
                     result = result / 1000
                     udf_tools.put(measurement, "Conc. Units", "ng/ul")
