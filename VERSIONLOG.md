@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230825.1
+Implement script parse_ba_results.py.
+
 ## 20230821.1
 Fix bug that control has no project id in index checker 
 
