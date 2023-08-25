@@ -40,7 +40,7 @@ def main(lims, args):
     for measurement in measurements:
 
         # Find the corresponding well number
-        well_num = get_well_number(measurement.location[1])
+        well_num = get_well_number(measurement)
 
         # Isolate the XML sample nest w. the same well as the measurement
         matching_wells = [e for e in samples_node if int(e.find('WellNumber').text.strip()) == well_num]
