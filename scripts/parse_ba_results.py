@@ -4,6 +4,7 @@ from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process
 import xml.etree.ElementTree as ET
+from epp_utils import udf_tools
 
 DESC = """This script parses the Agilent BioAnalyzer XML report. 
 
@@ -13,6 +14,7 @@ Java which as of 2023-08-25 does not serve it's purpose.
 
 
 def well_name2num(well_name: str) -> int:
+    """Translate well names (e.g. C:1, A:12) to column-wise integers."""
 
     letter2num = {}
     for i, l in zip(range(0,8), "ABCDEFGH"):
@@ -27,35 +29,71 @@ def main(lims, args):
     currentStep = Process(lims, id=args.pid)
     log = []
 
-    # Set up an XML tree
+    # Set up an XML tree from the BioAnalyser output file
     tree = ET.fromstring(get_ba_output_file(currentStep, log))
     samples_node = tree.find('.//Samples')
 
     # Grab the output measurements, i.e. output artifacts with a defined location
     measurements = [art for art in currentStep.all_outputs() if art.location[1]]
 
+    # Define which LIMS UDFs should be populated with which XML metric
+    results_to_grab = {
+        # {LIMS UDF: (XML name, type)}
+        "Min Size (bp)": ("StartBasePair", int),
+        "Max Size (bp)": ("EndBasePair", int),
+        "Concentration": ("RegionConcentration", float),
+        "Size (bp)": ("AverageSize", int),
+        "Ratio (%)": ("PercentTotal", float),
+    }
+
+    # Iterate over output measurements and gather the results
     for measurement in measurements:
+
+        # Find the corresponding well number
         well_num = well_name2num(measurement.location[1])
 
         # Isolate the XML sample nest w. the same well as the measurement
         matching_wells = [e for e in samples_node if int(e.find('WellNumber').text.strip()) == well_num]
-        assert len(matching_wells) == 1
-        sample_node = matching_wells[0]
+        try:
+            assert len(matching_wells) == 1
+            sample_node = matching_wells[0]
+        except:
+            log.append(
+                f"ERROR: The measurement {measurement.name} was not found in the .xml file, skipping."
+            )
+            continue
 
-        # Get the xml measurements
+        # Get the xml smear metrics
+        try:
+            results_node = sample_node.find(".//RegionsMolecularResults")
+        except:
+            log.append(
+                f"ERROR: No smear region was found for {measurement.name} in the .xml file, skipping."
+            )
+            continue
+
+        # Grab the target results from the xml smear metrics
+        for udf_name in results_to_grab:
+
+            xml_nest, return_type = results_to_grab[udf_name]
+
+            result = return_type(results_node.find(f".//{xml_nest}").text.strip())
+
+            try:
+                # For concentrations given in pg/ul, convert to ng/ul
+                if udf_name == "Concentration":
+                    result = result / 1000
+                    udf_tools.put(measurement, "Conc. Units", "ng/ul")
+
+                udf_tools.put(measurement, udf_name, result)
 
 
-    
-    # Useful
-    results_node = tree.find('.//RegionsMolecularResults')
+            except AssertionError:
+                log.append(
+                    f"ERROR: Could not assign UDF {udf_name} of measurement {measurement.name}, skipping."
+                )
 
-
-    sample_names = [s.text.strip() for s in samples_node.findall("./Sample/Name")]
-
-    for sample_name in sample_names:
-
-    
-
+        log.append(f"Successfully pulled metrics for measurment {measurement.name}.")
 
 
 def get_ba_output_file(currentStep, log):
