@@ -65,10 +65,18 @@ def get_data(csv_content, log):
     conc_index=6
     conc_unit=7
     for row in pf:
-        if 'Test Name' in row:
+        if 'Test Name' in row or 'Sample Name' in row:
             #this is the header row
-            sample_index=row.index('Test Name')
-            conc_index=row.index('Original sample conc.')
+            if 'Test Name' in row:
+                sample_index=row.index('Test Name')
+            else:
+                sample_index=row.index('Sample Name')
+            if 'Original sample conc.' in row:
+                conc_index=row.index('Original sample conc.')
+            elif 'Original Sample Conc.' in row:
+                conc_index=row.index('Original Sample Conc.')
+            else:
+                log.append("Cannot locate columns for conc and unit.")
             unit_index=conc_index+1
             read=True
         elif(read and row[sample_index]):
