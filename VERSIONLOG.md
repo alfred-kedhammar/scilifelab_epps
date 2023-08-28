@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230828.2
+Update Qubit EPP scripts to handle FLEX file format
+
 ## 20230828.1
 Use the longer read for demux threshold
 
