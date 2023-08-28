@@ -90,7 +90,7 @@ def get_process_stats(demux_process):
         except Exception as e:
             problem_handler("exit", "No flowcell version set in sequencing step: {}".format(str(e)))
         proc_stats["Instrument"] = "NovaSeq"
-        proc_stats["Read Length"] = seq_process.udf["Read 1 Cycles"]
+        proc_stats["Read Length"] = max(seq_process.udf["Read 1 Cycles"], seq_process.udf["Read 2 Cycles"]) if seq_process.udf.get("Read 2 Cycles") else seq_process.udf["Read 1 Cycles"]
         proc_stats["Paired"] = True if seq_process.udf.get("Read 2 Cycles") else False
 
     elif "NovaSeqXPlus Run" in seq_process.type.name:
@@ -101,7 +101,7 @@ def get_process_stats(demux_process):
                 "exit", "No flowcell version set in sequencing step: {}".format(str(e))
             )
         proc_stats["Instrument"] = "NovaSeqXPlus"
-        proc_stats["Read Length"] = seq_process.udf["Read 1 Cycles"]
+        proc_stats["Read Length"] = max(seq_process.udf["Read 1 Cycles"], seq_process.udf["Read 2 Cycles"]) if seq_process.udf.get("Read 2 Cycles") else seq_process.udf["Read 1 Cycles"]
         proc_stats["Paired"] = True if seq_process.udf.get("Read 2 Cycles") else False
 
     elif "Illumina Sequencing (NextSeq) v1.0" == seq_process.type.name:
@@ -110,7 +110,7 @@ def get_process_stats(demux_process):
         except Exception as e:
             problem_handler("exit", "No run type set in sequencing step: {}".format(str(e)))
         proc_stats["Instrument"] = "NextSeq"
-        proc_stats["Read Length"] = seq_process.udf["Read 1 Cycles"]
+        proc_stats["Read Length"] = max(seq_process.udf["Read 1 Cycles"], seq_process.udf["Read 2 Cycles"]) if seq_process.udf.get("Read 2 Cycles") else seq_process.udf["Read 1 Cycles"]
         proc_stats["Paired"] = True if seq_process.udf.get("Read 2 Cycles") else False
 
     else:
@@ -128,9 +128,9 @@ def get_process_stats(demux_process):
 
     #Assignment to make usage more explicit
     try:
-        proc_stats["Read Length"] = proc_stats["Read Length"] if proc_stats.get("Read Length", None) else proc_stats["Read 1 Cycles"]
+        proc_stats["Read Length"] = proc_stats["Read Length"] if proc_stats.get("Read Length", None) else max(proc_stats["Read 1 Cycles"], proc_stats["Read 2 Cycles"])
     except Exception as e:
-        problem_handler("exit", "Read 1 Cycles not found. Unable to read Read Length: {}".format(str(e)))
+        problem_handler("exit", "Read Cycles not found. Unable to read Read Length: {}".format(str(e)))
 
     logger.info("Read length set to {}".format(proc_stats["Read Length"]))
     return proc_stats

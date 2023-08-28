@@ -1,7 +1,10 @@
 # Scilifelab_epps Version Log
 
+## 20230828.1
+Use the longer read for demux threshold
+
 ## 20230821.1
-Fix bug that control has no project id in index checker 
+Fix bug that control has no project id in index checker
 
 ## 20230814.1
 Enable "ONT Start Sequencing v2.0" for running notes script.
