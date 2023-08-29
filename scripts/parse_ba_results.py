@@ -122,10 +122,8 @@ def main(lims, args):
             os.remove(log_filename)
 
             if errors:
-                sys.stderr.write(
-                    "Some samples were skipped, please check the Log file\n"
-                )
-                sys.exit(2)
+                sys.stderr.write("Some samples were skipped, please check the Log file")
+                sys.exit()
 
 
 def get_ba_output_file(currentStep, log):
