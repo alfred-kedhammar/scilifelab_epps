@@ -99,6 +99,7 @@ def main(lims, args):
                     f"ERROR: Could not assign UDF {udf_name} of measurement {measurement.name}, skipping."
                 )
                 errors = True
+                continue
 
         log.append(f"Successfully pulled metrics for measurment {measurement.name}.")
 
