@@ -20,6 +20,7 @@ Java which does not as of 2023-08-25 populate the measurement UDFs of interest.
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
     log = []
+    errors = False
 
     # Set up an XML tree from the BioAnalyser output file
     tree = ET.fromstring(get_ba_output_file(currentStep, log))
@@ -48,6 +49,7 @@ def main(lims, args):
             log.append(
                 f"ERROR: Could not determine the well number of {measurement.name}, skipping."
             )
+            errors = True
             continue
 
         # Isolate the XML sample nest w. the same well as the measurement
@@ -59,6 +61,7 @@ def main(lims, args):
             log.append(
                 f"ERROR: The measurement {measurement.name} was not found in the .xml file, skipping."
             )
+            errors = True
             continue
 
         # Get the xml smear metrics
@@ -68,6 +71,7 @@ def main(lims, args):
             log.append(
                 f"ERROR: No smear region was found for {measurement.name} in the .xml file, skipping."
             )
+            errors = True
             continue
 
         # Grab the target results from the xml smear metrics
@@ -94,6 +98,7 @@ def main(lims, args):
                 log.append(
                     f"ERROR: Could not assign UDF {udf_name} of measurement {measurement.name}, skipping."
                 )
+                errors = True
 
         log.append(f"Successfully pulled metrics for measurment {measurement.name}.")
 
@@ -115,6 +120,12 @@ def main(lims, args):
 
             # Clean up
             os.remove(log_filename)
+
+            if errors:
+                sys.stderr.write(
+                    "Some samples were skipped, please check the Log file\n"
+                )
+                sys.exit(2)
 
 
 def get_ba_output_file(currentStep, log):
