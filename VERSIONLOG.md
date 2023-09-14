@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230914.1
+Replace mfs with ngi-nas-ns
+
 ## 20230828.2
 Update Qubit EPP scripts to handle FLEX file format
 

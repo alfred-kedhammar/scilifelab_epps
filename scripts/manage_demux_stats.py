@@ -504,7 +504,7 @@ def write_demuxfile(process_stats, demux_id):
     #Includes windows drive letter support
 
     metadata_dir_name = (
-        "ngi-nas-ns" if process_stats["Instrument"] == "NovaSeqXPlus" else "mfs"
+        "ngi-nas-ns"
     )
     instrument_dir_name = "{}_data".format(process_stats["Instrument"])
 

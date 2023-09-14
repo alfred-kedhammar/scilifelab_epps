@@ -526,9 +526,9 @@ def main(lims, args):
         if "Load to Flowcell (NovaSeq 6000 v2.0)" == process.type.name:
             (content, obj) = gen_Novaseq_lane_data(process)
             check_index_distance(obj, log)
-            if os.path.exists("/srv/mfs/samplesheets/novaseq/{}".format(thisyear)):
+            if os.path.exists("/srv/ngi-nas-ns/samplesheets/novaseq/{}".format(thisyear)):
                 try:
-                    with open("/srv/mfs/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
+                    with open("/srv/ngi-nas-ns/samplesheets/novaseq/{}/{}.csv".format(thisyear, obj[0]['fc']), 'w') as sf:
                         sf.write(content)
                 except Exception as e:
                     log.append(str(e))
@@ -562,9 +562,9 @@ def main(lims, args):
             (content, obj) = gen_Nextseq_lane_data(process)
             check_index_distance(obj, log)
             nextseq_fc = process.udf['Flowcell Series Number'] if process.udf['Flowcell Series Number'] else obj[0]['fc']
-            if os.path.exists("/srv/mfs/samplesheets/nextseq/{}".format(thisyear)):
+            if os.path.exists("/srv/ngi-nas-ns/samplesheets/nextseq/{}".format(thisyear)):
                 try:
-                    with open("/srv/mfs/samplesheets/nextseq/{}/{}.csv".format(thisyear, nextseq_fc), 'w') as sf:
+                    with open("/srv/ngi-nas-ns/samplesheets/nextseq/{}/{}.csv".format(thisyear, nextseq_fc), 'w') as sf:
                         sf.write(content)
                 except Exception as e:
                     log.append(str(e))
@@ -573,9 +573,9 @@ def main(lims, args):
             content = gen_MinION_QC_data(process)
             run_type = 'QC' if process.type.name == 'MinION QC' else 'DELIVERY'
             fc_name = run_type + "_" + process.udf['Nanopore Kit'] + "_" + process.udf['Flowcell ID'].upper() + "_" + "Samplesheet" + "_" + process.id
-            if os.path.exists("/srv/mfs/samplesheets/nanopore/{}".format(thisyear)):
+            if os.path.exists("/srv/ngi-nas-ns/samplesheets/nanopore/{}".format(thisyear)):
                 try:
-                    with open("/srv/mfs/samplesheets/nanopore/{}/{}.csv".format(thisyear, fc_name), 'w') as sf:
+                    with open("/srv/ngi-nas-ns/samplesheets/nanopore/{}/{}.csv".format(thisyear, fc_name), 'w') as sf:
                         sf.write(content)
                 except Exception as e:
                     log.append(str(e))

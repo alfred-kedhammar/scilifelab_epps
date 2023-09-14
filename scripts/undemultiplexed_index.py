@@ -20,8 +20,8 @@ system and then does the following
 
 Reads from:
     --files--
-    Demultiplex_Stats.htm                           in mfs file system
-    Undemultiplexed_stats.metrics                   in mfs file system
+    Demultiplex_Stats.htm                           in ngi-nas-ns file system
+    Undemultiplexed_stats.metrics                   in ngi-nas-ns file system
 
 Logging:
     The script outputs a regular log file with regular execution information.
@@ -143,7 +143,7 @@ class RunQC():
             data_folder = 'hiseq_data'
             path_id = cont_name
         try:
-            self.file_path = glob.glob(("/srv/mfs/{0}/*{1}/Unaligned/"
+            self.file_path = glob.glob(("/srv/ngi-nas-ns/{0}/*{1}/Unaligned/"
                            "Basecall_Stats_*/".format(data_folder, path_id)))[0]
         except:
             sys.exit("Failed to get file path")
