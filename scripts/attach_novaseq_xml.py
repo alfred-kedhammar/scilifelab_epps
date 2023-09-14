@@ -70,7 +70,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/mfs/NovaSeq_data/*{}/RunInfo.xml".format(FCID)
+                                "/srv/ngi-nas-ns/NovaSeq_data/*{}/RunInfo.xml".format(FCID)
                             ),
                             key=os.path.getctime,
                         ),
@@ -83,7 +83,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/mfs/NovaSeq_data/*{}/RunParameters.xml".format(
+                                "/srv/ngi-nas-ns/NovaSeq_data/*{}/RunParameters.xml".format(
                                     FCID
                                 )
                             ),

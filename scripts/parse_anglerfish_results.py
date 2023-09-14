@@ -42,11 +42,11 @@ def get_anglerfish_output_file(lims, process):
                 content = lims.get_file_contents(id=fid).readlines()
             except:
                 # Second try fetching the Anglerfish result file from the storage server
-                if os.path.exists("/srv/mfs/nanopore_results/anglerfish/{}".format(thisyear)):
+                if os.path.exists("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}".format(thisyear)):
                     try:
-                        with open("/srv/mfs/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id), 'r') as asf:
+                        with open("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id), 'r') as asf:
                             content = asf.readlines()
-                        lims.upload_new_file(outart,max(glob.glob("/srv/mfs/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id)),key=os.path.getctime))
+                        lims.upload_new_file(outart,max(glob.glob("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id)),key=os.path.getctime))
                     except:
                         raise RuntimeError("No Anglerfish output file available")
                 else:
