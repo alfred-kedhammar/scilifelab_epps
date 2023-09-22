@@ -36,7 +36,7 @@ def write_note_to_couch(pid, timestamp, note, lims):
             for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
                 email_responsible(msg, user_email)
         else:
-            time_in_format = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f').strftime("%a %b %d %Y, %I:%M:%S %p")
+            time_in_format = datetime.datetime.strftime(timestamp, "%a %b %d %Y, %I:%M:%S %p")
             proj_db = couch['projects']
             v = proj_db.view('project/project_id')
             for row in v[pid]:
