@@ -94,11 +94,11 @@ def categorization(process_name):
         "ONT Adapter ligation v2.0": "Workset",
         "ONT Barcoding": "Workset",
         "ONT End-Prep v2.0": "Workset",
-        "ONT Finish Sequencing v2.1": "Workset",
+        "ONT Finish Sequencing v2.1": "Flowcell",
         "ONT Pooling v2.0": "Workset",
-        "ONT Process Started Runs": "Workset",
-        "ONT Sequencing and Reloading v3.1": "Workset",
-        "ONT Start Sequencing v2.0": "Workset",
+        "ONT Process Started Runs": "Flowcell",
+        "ONT Sequencing and Reloading v3.1": "Flowcell",
+        "ONT Start Sequencing v2.0": "Flowcell",
         "Pre-Pooling": "",
         "Pre-Pooling (Illumina SBS) 4.0": "",
         "Pre-Pooling (MiSeq) 4.0": "",
@@ -158,8 +158,6 @@ def main(lims, args):
     noteobj = {}
     pro = Process(lims, id=args.pid)
     if "Comments" in pro.udf and pro.udf["Comments"] is not "":
-        key = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        noteobj[key] = {}
         if isinstance(pro.udf["Comments"], str):
             comments = pro.udf["Comments"]
         else:
@@ -171,12 +169,17 @@ def main(lims, args):
             ),
             comments,
         )
-        noteobj[key]["note"] = note
-        noteobj[key]["user"] = "{0} {1}".format(
+        noteobj["note"] = note
+        noteobj["user"] = "{0} {1}".format(
             pro.technician.first_name, pro.technician.last_name
         )
-        noteobj[key]["email"] = pro.technician.email
-        noteobj[key]["category"] = categorization(pro.type.name)
+        noteobj["email"] = pro.technician.email
+        key = datetime.datetime.now(datetime.timezone.utc)
+        noteobj['categories'] = [categorization(pro.type.name)]
+        noteobj['note_type'] = 'project'
+        noteobj['parent'] = pro.id
+        noteobj['created_at_utc'] = key.isoformat()
+        noteobj['updated_at_utc'] = key.isoformat()
 
         # find the correct projects.
         samples = set()
@@ -189,8 +192,9 @@ def main(lims, args):
                 projects.add(sam.project)
 
         for proj in projects:
-            for key in noteobj:
-                write_note_to_couch(proj.id, key, noteobj[key], lims.get_uri())
+            noteobj['projects'] = [proj.id]
+            noteobj['_id'] = f'{proj.id}:{datetime.datetime.timestamp(key)}'
+            write_note_to_couch(proj.id, key, noteobj, lims.get_uri())
 
 
 if __name__ == "__main__":
