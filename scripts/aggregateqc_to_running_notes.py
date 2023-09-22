@@ -191,9 +191,25 @@ def main(lims, args):
     summary = make_summary(lims, pro, sample_table, library)
 
     # Write summary to couch
+    DATE_FORMATS = [ "%Y-%m-%d %H:%M:%S",  "%Y-%m-%d %H:%M:%S.%f"]
     for proj, noteobj in summary.items():
         for k, v in noteobj.items():
-            write_note_to_couch(proj, k, v, lims.get_uri())
+            for date_format in DATE_FORMATS:
+                try:
+                    key = datetime.datetime.strptime(k, date_format).astimezone(datetime.timezone.utc)   
+                except ValueError:
+                    pass
+                else:
+                    break
+            category = v.pop('category')
+            v['categories'] = list(map(str.strip, category.split(',')))
+            v['note_type'] = 'project'
+            v['parent'] = proj
+            v['created_at_utc'] = key.isoformat()
+            v['updated_at_utc'] = key.isoformat()
+            v['projects'] = [proj]
+            v['_id'] = f'{proj}:{datetime.datetime.timestamp(key)}'
+            write_note_to_couch(proj, key, v, lims.get_uri())
 
 
 if __name__=="__main__":
