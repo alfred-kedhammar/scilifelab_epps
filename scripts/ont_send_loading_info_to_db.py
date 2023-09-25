@@ -69,7 +69,6 @@ def match_to_db_using_run_id(lims, args):
                 "step_name": currentStep.type.name,
                 "pid": currentStep.id,
                 "timestamp": timestamp,
-                "qc": art.udf["ONT flow cell QC pore count"],
                 "load_fmol": art.udf["ONT flow cell loading amount (fmol)"],
             }
 
