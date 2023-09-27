@@ -6,7 +6,7 @@ from genologics.lims import Lims
 from genologics.config import BASEURI,USERNAME,PASSWORD
 from scilifelab_epps.epp import attach_file, EppLogger
 from genologics.entities import Process, Project
-from datetime import datetime
+import datetime
 
 import json
 import sys

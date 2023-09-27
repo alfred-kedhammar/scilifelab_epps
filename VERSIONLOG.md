@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230927.1
+Fix bug with datatime in make_running_note_from_workset
+
 ## 20230925.1
 Bugfix ONT process started runs
 
