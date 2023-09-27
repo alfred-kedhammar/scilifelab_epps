@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230925.1
+Bugfix ONT process started runs
+
 ## 20230914.1
 Replace mfs with ngi-nas-ns
 

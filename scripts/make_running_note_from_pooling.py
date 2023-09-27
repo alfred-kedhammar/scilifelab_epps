@@ -41,7 +41,7 @@ def main(lims, args):
         except:
             pass
 
-    now=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+    key = datetime.datetime.now(datetime.timezone.utc)
     for pid in datamap:
         pj=Project(lims, id=pid)
         if len(datamap[pid]) > 1:
@@ -49,8 +49,18 @@ def main(lims, args):
         else:
             rnt="{0} sample planned for {1}".format(len(datamap[pid]), wsname)
 
-        running_note = {"note": rnt, "user": username, "email": user_email, "category": "Workset"}
-        write_note_to_couch(pid, now, running_note, lims.get_uri())
+        running_note = {}
+        running_note["note"] = rnt
+        running_note["user"] = username
+        running_note["email"] = user_email
+        running_note['categories'] = ["Workset"]
+        running_note['note_type'] = 'project'
+        running_note['parent'] = pid
+        running_note['created_at_utc'] = key.isoformat()
+        running_note['updated_at_utc'] = key.isoformat()
+        running_note['projects'] = [pid]
+        running_note['_id'] = f'{pid}:{datetime.datetime.timestamp(key)}'
+        write_note_to_couch(pid, key, running_note, lims.get_uri())
         log.append("Updated project {0} : {1}, {2} samples in this workset".format(pid,pj.name, len(datamap[pid])))
 
 
