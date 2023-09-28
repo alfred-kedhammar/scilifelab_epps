@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230928.1
+Fix couchdb conflict error with running notes
+
 ## 20230927.1
 Fix bug with datatime in make_running_note_from_workset
 
