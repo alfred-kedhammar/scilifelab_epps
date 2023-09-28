@@ -177,7 +177,6 @@ def main(lims, args):
         key = datetime.datetime.now(datetime.timezone.utc)
         noteobj['categories'] = [categorization(pro.type.name)]
         noteobj['note_type'] = 'project'
-        noteobj['parent'] = pro.id
         noteobj['created_at_utc'] = key.isoformat()
         noteobj['updated_at_utc'] = key.isoformat()
 
@@ -193,6 +192,7 @@ def main(lims, args):
 
         for proj in projects:
             noteobj['projects'] = [proj.id]
+            noteobj['parent'] = proj.id
             noteobj['_id'] = f'{proj.id}:{datetime.datetime.timestamp(key)}'
             write_note_to_couch(proj.id, key, noteobj, lims.get_uri())
 
