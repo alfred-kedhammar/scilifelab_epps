@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20230928.2
+Fix parent in running notes in comments_to_running_notes
+
 ## 20230928.1
 Fix couchdb conflict error with running notes
 
