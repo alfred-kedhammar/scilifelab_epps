@@ -247,11 +247,11 @@ def prepooling(currentStep, lims):
     log = []
 
     if zika_utils.verify_step(
-        currentStep, 
+        currentStep,
         targets = [('', 'Library Pooling (RAD-seq) v1.0')]
     ):
         zika_methods.pool(
-            currentStep=currentStep, 
+            currentStep=currentStep,
             lims=lims,
             udfs = {
                 "target_amt": "Amount taken (ng)",
@@ -265,13 +265,13 @@ def prepooling(currentStep, lims):
 
     elif currentStep.instrument.name == "Zika":
         zika_methods.pool(
-            currentStep=currentStep, 
+            currentStep=currentStep,
             lims=lims,
             udfs = {
-                "target_amt": None, 
+                "target_amt": None,
                 "target_vol": "Final Volume (uL)",
                 "target_conc": "Pool Conc. (nM)",
-                "final_amt": None, 
+                "final_amt": None,
                 "final_vol": "Final Volume (uL)",
                 "final_conc": "Pool Conc. (nM)"
             }
@@ -352,7 +352,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         ]
         ):
         zika_methods.norm(
-            currentStep=currentStep, 
+            currentStep=currentStep,
             lims=lims,
             udfs = {
                 "target_amt": "Target Amount (ng)",
@@ -360,7 +360,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                 "target_conc": None,
                 "final_amt": "Amount taken (ng)",
                 "final_vol": "Total Volume (uL)",
-                "final_conc": None 
+                "final_conc": None
             }
         )
     elif zika_utils.verify_step(
@@ -368,8 +368,8 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         targets = [("Amplicon", "Setup Workset/Plate")]
         ):
         zika_methods.norm(
-            currentStep=currentStep, 
-            lims=lims, 
+            currentStep=currentStep,
+            lims=lims,
             # Use lower minimum pipetting volume and customer metrics
             zika_min_vol=0.1,
             use_customer_metrics=True,
@@ -382,7 +382,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                 "final_conc": None
             }
         )
-    
+
     elif currentStep.instrument.name == "Zika":
         sys.stderr.write("Zika is not enabled for the current workflow/step")
         sys.exit(2)
@@ -806,10 +806,7 @@ def calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj):
     for stage in art_tuple[0]['uri'].workflow_stages_and_statuses:
         if stage[1] == 'IN_PROGRESS':
             art_workflows.append(stage[0].workflow.name)
-    no_depletion_flag = False
     project = art_tuple[0]['uri'].samples[0].project
-    if project and ('no depletion' in project.udf.get('Library construction method', '') or 'No depletion' in project.udf.get('Library prep option', '')):
-        no_depletion_flag = True
     try:
         # not handling different units yet. Might be needed at some point.
         assert art_tuple[0]['uri'].udf['Conc. Units'] in ["ng/ul", "ng/uL"]
@@ -853,34 +850,22 @@ def calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj):
         # Case with very low pipetting volume due to high sample conc:
         elif volume < MIN_WARNING_VOLUME:
             # When the volume is lower than the MIN_WARNING_VOLUME, set volume to MIN_WARNING_VOLUME, and expand the final dilution volume
-            # But not apply to the no-depletion RNA protocol
-            if not no_depletion_flag:
-                final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_ng)/float(final_volume))
-                amount_taken = MIN_WARNING_VOLUME*conc
+            final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_ng)/float(final_volume))
+            amount_taken = MIN_WARNING_VOLUME*conc
 
-                if final_volume > MAX_WARNING_VOLUME:
-                    max_volume_warning = 'NOTE! Total dilution volume higher than {}!'.format(MAX_WARNING_VOLUME)
+            if final_volume > MAX_WARNING_VOLUME:
+                max_volume_warning = 'NOTE! Total dilution volume higher than {}!'.format(MAX_WARNING_VOLUME)
 
-                logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. CSV adjusted by taking {4}uL sample which is {5}ng and diluting in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                                                                                                                        art_tuple[0]['uri'].location[0].name,
-                                                                                                                                                                                                        art_tuple[0]['uri'].location[1],
-                                                                                                                                                                                                        "{0:.2f}".format(volume),
-                                                                                                                                                                                                        MIN_WARNING_VOLUME,
-                                                                                                                                                                                                        "{0:.2f}".format(amount_taken),
-                                                                                                                                                                                                        "{0:.2f}".format(final_volume),
-                                                                                                                                                                                                        max_volume_warning))
-                volume = MIN_WARNING_VOLUME
-                target_amount = amount_taken/final_volume*total_volume
-            else:
-                amount_taken = target_amount = volume * conc
-                logContext.write("WARN : Sample {0} located {1} {2} has a LOW pippetting volume: {3}. Take {4}uL sample which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                                                                                                      art_tuple[0]['uri'].location[0].name,
-                                                                                                                                                                                      art_tuple[0]['uri'].location[1],
-                                                                                                                                                                                      "{0:.2f}".format(volume),
-                                                                                                                                                                                      "{0:.2f}".format(volume),
-                                                                                                                                                                                      "{0:.2f}".format(amount_taken),
-                                                                                                                                                                                      "{0:.2f}".format(final_volume),
-                                                                                                                                                                                      max_volume_warning))
+            logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. CSV adjusted by taking {4}uL sample which is {5}ng and diluting in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
+                                                                                                                                                                                                          art_tuple[0]['uri'].location[0].name,
+                                                                                                                                                                                                          art_tuple[0]['uri'].location[1],
+                                                                                                                                                                                                          "{0:.2f}".format(volume),
+                                                                                                                                                                                                          MIN_WARNING_VOLUME,
+                                                                                                                                                                                                          "{0:.2f}".format(amount_taken),
+                                                                                                                                                                                                          "{0:.2f}".format(final_volume),
+                                                                                                                                                                                                          max_volume_warning))
+            volume = MIN_WARNING_VOLUME
+            target_amount = amount_taken/final_volume*total_volume
             checkTheLog[0] = True
         elif volume > org_vol or volume > final_volume:
             # check against the "original sample volume" and the "total dilution volume"

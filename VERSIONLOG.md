@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20231009.1
+Remove special rule for no-depletion in bravo_csv
+
 ## 20230928.2
 Fix parent in running notes in comments_to_running_notes
 
