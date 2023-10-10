@@ -70,21 +70,24 @@ def main(lims, args):
     try:
         currentStep = Process(lims, id=args.pid)
 
+        minknow_samplesheet_file = (
+            minknow_samplesheet_for_qc(currentStep)
+            if "MinION QC" in currentStep.type.name
+            else minknow_samplesheet_default(currentStep)
+        )
+        upload_file(
+            minknow_samplesheet_file,
+            "ONT sample sheet",
+            currentStep,
+            lims,
+        )
+        shutil.copyfile(
+            minknow_samplesheet_file,
+            f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
+        )
+        os.remove(minknow_samplesheet_file)
+
         if "MinION QC" in currentStep.type.name:
-
-            minknow_samplesheet_file = minknow_samplesheet_for_qc(currentStep)
-            upload_file(
-                minknow_samplesheet_file,
-                "ONT sample sheet",
-                currentStep,
-                lims,
-            )
-            shutil.copyfile(
-                minknow_samplesheet_file,
-                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
-            )
-            os.remove(minknow_samplesheet_file)
-
             anglerfish_samplesheet_file = anglerfish_samplesheet(currentStep)
             upload_file(
                 anglerfish_samplesheet_file,
@@ -97,15 +100,6 @@ def main(lims, args):
                 f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/{anglerfish_samplesheet_file}",
             )
             os.remove(anglerfish_samplesheet_file)
-
-        else:
-            minknow_samplesheet_file = minknow_samplesheet_default(currentStep)
-            upload_file(minknow_samplesheet_file, "ONT sample sheet", currentStep, lims)
-            shutil.copyfile(
-                minknow_samplesheet_file,
-                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
-            )
-            os.remove(minknow_samplesheet_file)
 
     except AssertionError as e:
         sys.stderr.write(str(e))
