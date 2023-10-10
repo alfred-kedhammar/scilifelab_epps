@@ -329,16 +329,19 @@ def anglerfish_samplesheet(currentStep):
         elif not ont_barcodes:
             fastq_path = f"./fastq_pass/*.fastq.gz"
 
-        index_seq, adaptors_name = get_index_info(sample)
+        index_seq_list, adaptors_name = get_index_info(sample)
 
-        row = {
-            "sample_name": sample.name,
-            "adaptors": adaptors_name,
-            "index": index_seq,
-            "fastq_path": fastq_path,
-        }
+        # For multi-index samples, append multiple rows
+        for index_seq in index_seq_list:
 
-        rows.append(row)
+            row = {
+                "sample_name": sample.name,
+                "adaptors": adaptors_name,
+                "index": index_seq,
+                "fastq_path": fastq_path,
+            }
+
+            rows.append(row)
 
     df = pd.DataFrame(rows)
     df.sort_values(by="sample_name", inplace=True)
@@ -354,8 +357,13 @@ def anglerfish_samplesheet(currentStep):
 
 
 def get_index_info(sample):
-    """Takes measurement object and attempts to find the sequence of the
-    index and the name of the adaptors as recognized by Anglerfish.
+    """
+    Input: LIMS API measurement object
+
+    Output: tuple(
+        List of indexes (either i7 or i7-i5),
+        The name of the adaptors as defined in Anglerfish config
+        )
     """
 
     index_seq = None
@@ -401,6 +409,8 @@ def get_index_info(sample):
     # Return
 
     if index_seq:
+        if type(index_seq) != list:
+            index_seq = [index_seq]
         return index_seq, adaptors_name
 
     else:
