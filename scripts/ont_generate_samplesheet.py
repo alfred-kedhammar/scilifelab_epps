@@ -504,12 +504,13 @@ def strip_characters(input_string):
 
 def get_kit_string(currentStep):
     """Combine prep kit and expansion kit UDFs (if any) into space-separated string"""
-    kit_string = currentStep.udf.get("ONT prep kit")
+    prep_kit = currentStep.udf.get("ONT prep kit")
+    expansion_kit = currentStep.udf.get("ONT expansion kit")
 
-    if currentStep.udf.get("ONT expansion kit") != "None":
-        kit_string += f" {currentStep.udf.get('ONT expansion kit')}"
+    if expansion_kit != "None":
+        prep_kit += f" {expansion_kit.replace('.','-')}"
 
-    return kit_string
+    return prep_kit
 
 
 if __name__ == "__main__":
