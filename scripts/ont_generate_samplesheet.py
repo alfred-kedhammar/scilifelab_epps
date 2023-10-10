@@ -14,6 +14,7 @@ import os
 from datetime import datetime as dt
 from epp_utils import udf_tools
 from epp_utils.formula import well_name2num_96plate as well2num
+from data.Chromium_10X_indexes import Chromium_10X_indexes as idxs_10x
 
 DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot(s) "ONT sample sheet" (and optionally "Anglerfish sample sheet").
 Used to generate MinKNOW (and Anglerfish) samplesheets.
@@ -328,27 +329,12 @@ def anglerfish_samplesheet(currentStep):
         elif not ont_barcodes:
             fastq_path = f"./fastq_pass/*.fastq.gz"
 
-        assert (
-            len(sample.reagent_labels) == 1
-        ), f"Multiple reagent labels found for sample {sample.name}"
-
-        index_pattern = re.compile("[ACTG]{4,}-?[ACTG]{4,}")
-        index_search = re.search(index_pattern, sample.reagent_labels[0])
-
-        assert index_search, f"No reagent labels found for samples {sample.name}"
-
-        index = index_search.group()
-
-        # For now, only support truseq and truseq_dual adaptors TODO
-        if "-" in index:
-            adaptors = "truseq_dual"
-        else:
-            adaptors = "truseq"
+        index_seq, adaptors_name = get_index_info(sample)
 
         row = {
             "sample_name": sample.name,
-            "adaptors": adaptors,
-            "index": index,
+            "adaptors": adaptors_name,
+            "index": index_seq,
             "fastq_path": fastq_path,
         }
 
@@ -365,6 +351,60 @@ def anglerfish_samplesheet(currentStep):
     )
 
     return file_name
+
+
+def get_index_info(sample):
+    """Takes measurement object and attempts to find the sequence of the
+    index and the name of the adaptors as recognized by Anglerfish.
+    """
+
+    index_seq = None
+
+    assert (
+        len(sample.reagent_labels) == 1
+    ), f"Multiple reagent labels found for sample {sample.name}"
+
+    label = sample.reagent_labels[0]
+
+    index_pattern = re.compile("[ACTG]{4,}-?[ACTG]{4,}")
+
+    ### Get the index sequence ####
+
+    # 1) Look for idx sequence contained directly in .reagent_labels attribute
+    index_search = re.search(index_pattern, label)
+
+    if index_search:
+        index_seq = index_search.group()
+
+    else:
+        # 2) Look for idx among 10X idxs
+        if label in idxs_10x:
+            idx_10x_list = idxs_10x[label]
+
+            if len(idx_10x_list) == 2:
+                # Return i7-i5
+                index_seq = "-".join(idx_10x_list)
+            elif len(idx_10x_list) == 4:
+                # Return list of combination i7 idxs
+                index_seq = idx_10x_list
+            else:
+                raise AssertionError("Unrecognized format of 10X index.")
+
+    ### Get the name of the adaptors ###
+
+    # For now, only support truseq and truseq_dual adaptors TODO
+    if "-" in index_seq:
+        adaptors_name = "truseq_dual"
+    else:
+        adaptors_name = "truseq"
+
+    # Return
+
+    if index_seq:
+        return index_seq, adaptors_name
+
+    else:
+        assert index_search, f"No index information found for sample {sample.name}"
 
 
 def upload_file(file_name, file_slot, currentStep, lims):
