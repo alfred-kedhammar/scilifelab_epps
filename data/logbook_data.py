@@ -206,6 +206,9 @@ lims_process_record = {
         "lims_instrument": {"dest_file": "PCR"},
         "udf_Instrument Used": {"dest_file": "Bravo", "details": ["Processname"]},
     },
+    "Illumina DNA PCR-free Library Construction": {
+        "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]}
+    },
     "Intermediate QC": {
         "lims_instrument": {
             "dest_file": "Qubit",
