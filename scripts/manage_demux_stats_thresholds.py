@@ -177,7 +177,7 @@ class Thresholds():
                 self.exp_lane_clust = 2000e6
         elif self.instrument == "NovaSeqXPlus":
             if self.chemistry == "10B":
-                self.exp_lane_clust = 1250e6
+                self.exp_lane_clust = 1000e6
         elif self.instrument == "NextSeq":
             if self.chemistry == "NextSeq Mid":
                 self.exp_lane_clust = 25e6

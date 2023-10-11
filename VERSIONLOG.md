@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20231011.2
+Change lane yield threshold for NovaSeqXPlus 10B
+
 ## 20231011.1
 Change lane yield threshold for NextSeq P3
 
