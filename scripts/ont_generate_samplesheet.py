@@ -14,6 +14,7 @@ import os
 from datetime import datetime as dt
 from epp_utils import udf_tools
 from epp_utils.formula import well_name2num_96plate as well2num
+from data.Chromium_10X_indexes import Chromium_10X_indexes as idxs_10x
 
 DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot(s) "ONT sample sheet" (and optionally "Anglerfish sample sheet").
 Used to generate MinKNOW (and Anglerfish) samplesheets.
@@ -69,21 +70,24 @@ def main(lims, args):
     try:
         currentStep = Process(lims, id=args.pid)
 
+        minknow_samplesheet_file = (
+            minknow_samplesheet_for_qc(currentStep)
+            if "MinION QC" in currentStep.type.name
+            else minknow_samplesheet_default(currentStep)
+        )
+        upload_file(
+            minknow_samplesheet_file,
+            "ONT sample sheet",
+            currentStep,
+            lims,
+        )
+        shutil.copyfile(
+            minknow_samplesheet_file,
+            f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
+        )
+        os.remove(minknow_samplesheet_file)
+
         if "MinION QC" in currentStep.type.name:
-
-            minknow_samplesheet_file = minknow_samplesheet_for_qc(currentStep)
-            upload_file(
-                minknow_samplesheet_file,
-                "ONT sample sheet",
-                currentStep,
-                lims,
-            )
-            shutil.copyfile(
-                minknow_samplesheet_file,
-                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
-            )
-            os.remove(minknow_samplesheet_file)
-
             anglerfish_samplesheet_file = anglerfish_samplesheet(currentStep)
             upload_file(
                 anglerfish_samplesheet_file,
@@ -97,18 +101,9 @@ def main(lims, args):
             )
             os.remove(anglerfish_samplesheet_file)
 
-        else:
-            minknow_samplesheet_file = minknow_samplesheet_default(currentStep)
-            upload_file(minknow_samplesheet_file, "ONT sample sheet", currentStep, lims)
-            shutil.copyfile(
-                minknow_samplesheet_file,
-                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
-            )
-            os.remove(minknow_samplesheet_file)
-
     except AssertionError as e:
         sys.stderr.write(str(e))
-        sys.exit(2)
+        sys.exit()
 
 
 def minknow_samplesheet_default(currentStep):
@@ -328,31 +323,19 @@ def anglerfish_samplesheet(currentStep):
         elif not ont_barcodes:
             fastq_path = f"./fastq_pass/*.fastq.gz"
 
-        assert (
-            len(sample.reagent_labels) == 1
-        ), f"Multiple reagent labels found for sample {sample.name}"
+        index_seq_list, adaptors_name = get_index_info(sample)
 
-        index_pattern = re.compile("[ACTG]{4,}-?[ACTG]{4,}")
-        index_search = re.search(index_pattern, sample.reagent_labels[0])
+        # For multi-index samples, append multiple rows
+        for index_seq in index_seq_list:
 
-        assert index_search, f"No reagent labels found for samples {sample.name}"
+            row = {
+                "sample_name": sample.name,
+                "adaptors": adaptors_name,
+                "index": index_seq,
+                "fastq_path": fastq_path,
+            }
 
-        index = index_search.group()
-
-        # For now, only support truseq and truseq_dual adaptors TODO
-        if "-" in index:
-            adaptors = "truseq_dual"
-        else:
-            adaptors = "truseq"
-
-        row = {
-            "sample_name": sample.name,
-            "adaptors": adaptors,
-            "index": index,
-            "fastq_path": fastq_path,
-        }
-
-        rows.append(row)
+            rows.append(row)
 
     df = pd.DataFrame(rows)
     df.sort_values(by="sample_name", inplace=True)
@@ -365,6 +348,67 @@ def anglerfish_samplesheet(currentStep):
     )
 
     return file_name
+
+
+def get_index_info(sample):
+    """
+    Input: LIMS API measurement object
+
+    Output: tuple(
+        List of indexes (either i7 or i7-i5),
+        The name of the adaptors as defined in Anglerfish config
+        )
+    """
+
+    index_seq = None
+
+    assert (
+        len(sample.reagent_labels) == 1
+    ), f"Multiple reagent labels found for sample {sample.name}"
+
+    label = sample.reagent_labels[0]
+
+    index_pattern = re.compile("[ACTG]{4,}-?[ACTG]{4,}")
+
+    ### Get the index sequence ####
+
+    # 1) Look for idx sequence contained directly in .reagent_labels attribute
+    index_search = re.search(index_pattern, label)
+
+    if index_search:
+        index_seq = index_search.group()
+
+    else:
+        # 2) Look for idx among 10X idxs
+        if label in idxs_10x:
+            idx_10x_list = idxs_10x[label]
+
+            if len(idx_10x_list) == 2:
+                # Return i7-i5
+                index_seq = "-".join(idx_10x_list)
+            elif len(idx_10x_list) == 4:
+                # Return list of combination i7 idxs
+                index_seq = idx_10x_list
+            else:
+                raise AssertionError("Unrecognized format of 10X index.")
+
+    ### Get the name of the adaptors ###
+
+    # For now, only support truseq and truseq_dual adaptors TODO
+    if "-" in index_seq:
+        adaptors_name = "truseq_dual"
+    else:
+        adaptors_name = "truseq"
+
+    # Return
+
+    if index_seq:
+        if type(index_seq) != list:
+            index_seq = [index_seq]
+        return index_seq, adaptors_name
+
+    else:
+        assert index_search, f"No index information found for sample {sample.name}"
 
 
 def upload_file(file_name, file_slot, currentStep, lims):
@@ -454,12 +498,13 @@ def strip_characters(input_string):
 
 def get_kit_string(currentStep):
     """Combine prep kit and expansion kit UDFs (if any) into space-separated string"""
-    kit_string = currentStep.udf.get("ONT prep kit")
+    prep_kit = currentStep.udf.get("ONT prep kit")
+    expansion_kit = currentStep.udf.get("ONT expansion kit")
 
-    if currentStep.udf.get("ONT expansion kit") != "None":
-        kit_string += f" {currentStep.udf.get('ONT expansion kit')}"
+    if expansion_kit != "None":
+        prep_kit += f" {expansion_kit.replace('.','-')}"
 
-    return kit_string
+    return prep_kit
 
 
 if __name__ == "__main__":
@@ -473,4 +518,4 @@ if __name__ == "__main__":
         main(lims, args)
     except BaseException as e:
         sys.stderr.write(str(e))
-        sys.exit(2)
+        sys.exit()
