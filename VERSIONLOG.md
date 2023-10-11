@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20231011.4
+Add support for Illumina DNA PCR-free protocol
+
 ## 20231011.3
 Update Anglerfish SS generation to accomodate 10X indices.
 

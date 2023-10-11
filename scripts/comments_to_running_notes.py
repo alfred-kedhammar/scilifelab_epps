@@ -66,6 +66,7 @@ def categorization(process_name):
         "HT-End repair, A-tailing and adapter ligation (TruSeq RNA) 4.0": "Workset",
         "HiC Intermediate QC": "",
         "Hybridize Library  (SS XT) 4.0": "",
+        "Illumina DNA PCR-free Library Construction": "Workset",
         "Illumina Sequencing (HiSeq X) 1.0": "Flowcell",
         "Illumina Sequencing (Illumina SBS) 4.0": "Flowcell",
         "Illumina Sequencing (NextSeq) v1.0": "Flowcell",
