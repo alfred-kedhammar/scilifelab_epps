@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20231011.1
+Change lane yield threshold for NextSeq P3
+
 ## 20231009.1
 Remove special rule for no-depletion in bravo_csv
 
