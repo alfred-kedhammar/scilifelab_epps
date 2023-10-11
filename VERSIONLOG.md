@@ -1,7 +1,13 @@
 # Scilifelab_epps Version Log
 
-## 20231011.1
+## 20231011.3
 Update Anglerfish SS generation to accomodate 10X indices.
+
+## 20231011.2
+Change lane yield threshold for NovaSeqXPlus 10B
+
+## 20231011.1
+Change lane yield threshold for NextSeq P3
 
 ## 20231009.1
 Remove special rule for no-depletion in bravo_csv
