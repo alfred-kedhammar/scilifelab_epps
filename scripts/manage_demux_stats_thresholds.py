@@ -188,7 +188,7 @@ class Thresholds():
             elif self.chemistry == "NextSeq 2000 P2":
                 self.exp_lane_clust = 400e6
             elif self.chemistry == "NextSeq 2000 P3":
-                self.exp_lane_clust = 1100e6
+                self.exp_lane_clust = 550e6
         else:
             self.problem_handler("exit", "HiSeqX runs should always be paired but script has detected otherwise. Something has gone terribly wrong.")
         if not self.exp_lane_clust:
