@@ -49,8 +49,6 @@ def get_process_stats(demux_process):
     """Fetches overarching process info"""
     seq_processes = {
         "MiSeq Run (MiSeq) 4.0",
-        "Illumina Sequencing (Illumina SBS) 4.0",
-        "Illumina Sequencing (HiSeq X) 1.0",
         "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
         "Illumina Sequencing (NextSeq) v1.0",
         "NovaSeqXPlus Run v1.0",
@@ -72,17 +70,8 @@ def get_process_stats(demux_process):
         else:
             proc_stats["Chemistry"] = seq_process.udf["Run Type"]
         proc_stats["Instrument"] = "miseq"
-
-    elif "Illumina Sequencing (Illumina SBS) 4.0" == seq_process.type.name:
-        try:
-            proc_stats["Chemistry"] = seq_process.udf["Flow Cell Version"]
-        except Exception as e:
-            problem_handler("exit", "No flowcell version set in sequencing step: {}".format(str(e)))
-        proc_stats["Instrument"] = "hiseq"
-
-    elif "Illumina Sequencing (HiSeq X) 1.0" == seq_process.type.name:
-        proc_stats["Chemistry"] ="HiSeqX v2.5"
-        proc_stats["Instrument"] = "HiSeq_X"
+        proc_stats["Read Length"] = max(seq_process.udf["Read 1 Cycles"], seq_process.udf["Read 2 Cycles"]) if seq_process.udf.get("Read 2 Cycles") else seq_process.udf["Read 1 Cycles"]
+        proc_stats["Paired"] = True if seq_process.udf.get("Read 2 Cycles") else False
 
     elif "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)" == seq_process.type.name:
         try:
@@ -208,8 +197,6 @@ def set_sample_values(demux_process, parser_struct, process_stats):
     try:
         seq_processes = {
             "MiSeq Run (MiSeq) 4.0",
-            "Illumina Sequencing (Illumina SBS) 4.0",
-            "Illumina Sequencing (HiSeq X) 1.0",
             "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
             "Illumina Sequencing (NextSeq) v1.0",
             "NovaSeqXPlus Run v1.0",

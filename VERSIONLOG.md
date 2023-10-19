@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20231019.1
+Remove HiSeq and HiSeqX from demux EPP scripts
+
 ## 20231011.4
 Add support for Illumina DNA PCR-free protocol
 
