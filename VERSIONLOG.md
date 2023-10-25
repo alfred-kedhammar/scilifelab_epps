@@ -1,5 +1,11 @@
 # Scilifelab_epps Version Log
 
+## 20231025.2
+Refactor UDF names for library prep amount
+
+## 20231025.1
+Remove obsoleted EPP scripts
+
 ## 20231019.1
 Remove HiSeq and HiSeqX from demux EPP scripts
 
