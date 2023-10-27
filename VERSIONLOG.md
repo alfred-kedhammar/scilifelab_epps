@@ -1,5 +1,23 @@
 # Scilifelab_epps Version Log
 
+## 20231019.1
+Remove HiSeq and HiSeqX from demux EPP scripts
+
+## 20231011.4
+Add support for Illumina DNA PCR-free protocol
+
+## 20231011.3
+Update Anglerfish SS generation to accomodate 10X indices.
+
+## 20231011.2
+Change lane yield threshold for NovaSeqXPlus 10B
+
+## 20231011.1
+Change lane yield threshold for NextSeq P3
+
+## 20231009.1
+Remove special rule for no-depletion in bravo_csv
+
 ## 20230928.2
 Fix parent in running notes in comments_to_running_notes
 

@@ -1,5 +1,25 @@
-# A full list of 10x chromium indexes
-# Note that the i5 index of dual indexes is based on llumina Reverse Strand Sequencing Workflow (Workflow B)
+"""A full dictionary of 10X chromium indexes.
+
+The dictionary adheres to the following format:
+
+{
+    # Dual index
+    <idx_name> : [ <i7>, <i5> ],
+    # Single index mixture
+    <idx_name> : [ <i7_1>, <i7_2>, <i7_3>, <i7_4> ]
+}
+
+NOTES:
+
+- The i5 index of dual indexes is based on llumina Reverse Strand Sequencing Workflow (Workflow B)
+
+- Adapter sequences can vary between 10X methods. E.g. some use truseq, some use nextera and some use both.
+    Dual Index Plate TT Set A - contains Illumina TruSeq Read 1 and TruSeq Read 2 sequences.
+    Dual Index Plate NT Set A - contains Illumina Nextera Read 1 and TruSeq Read 2 sequences.
+    Dual Index Plate NN Set A - contains Illumina Nextera Read 1 and Nextera Read 2 sequences.
+
+"""
+
 Chromium_10X_indexes = {
     "SI-GA-A1": ["GGTTTACT", "CTAAACGG", "TCGGCGTC", "AACCGTAA"],
     "SI-GA-A2": ["TTTCATGA", "ACGTCCCT", "CGCATGTG", "GAAGGAAC"],
