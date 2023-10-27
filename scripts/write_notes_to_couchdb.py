@@ -77,7 +77,6 @@ def email_responsible(message, resp_email, error=True, subject=None, html=None):
     else:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
-        msg['To'] = resp_email
 
 
         msg.attach(MIMEText(message, 'plain'))
