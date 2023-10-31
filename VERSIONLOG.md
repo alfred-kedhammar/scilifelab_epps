@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20231031.1
+Change Tecan instrument into UDF for logbook
+
 ## 20231025.2
 Refactor UDF names for library prep amount
 
