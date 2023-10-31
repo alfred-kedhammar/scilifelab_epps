@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231031.1
+
+Improve logging for Zika normalization and improve docs for Zika utils func.
+
 ## 20231027.1
 
 Fix bug with multiple Tos breaking sendmail

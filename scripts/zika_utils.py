@@ -15,7 +15,7 @@ import numpy as np
 from datetime import datetime as dt
 import sys
 from epp_utils.udf_tools import fetch_last
-
+from genologics import Process
 
 def verify_step(currentStep, targets=None):
     """
@@ -103,20 +103,20 @@ def assert_udfs(currentStep):
         sys.exit(2)
 
 
-def fetch_sample_data(currentStep, to_fetch):
+def fetch_sample_data(currentStep: Process, to_fetch: dict) -> pd.DataFrame:
     """
     Given a LIMS step and a dictionary detailing which info to fetch, this function
     will go through all analyte input/output tuples of the step (or previous steps)
-    and try to fetch the relevant information to return a Pandas dataframe where the
-    input/output tuples are the rows and the items of the input dicts determine the
-    columns.
+    and try to fetch the relevant information in a Pandas dataframe.
+
+    In the dictionary "to_fetch":
+    - Dict keys will be the column names in the returned df
+    - Dict items are either...
+       1) an expression to be evaulated to fetch the info
+       2) the name of a UDF to fetch recursively
 
     Examples of dictionary contents:
-
     to_fetch = {
-
-        # Dict keys will be the headers of the returned df
-
         "vol"   : "art_tuple[0]['uri'].udf['Final Volume (uL)']",       # Eval string
         "conc"  : "art_tuple[0]['uri'].udf['Final Concentration']",     # Eval string
         "size"  : 'Size (bp)'                                           # UDF name, to fetch recursively
@@ -131,21 +131,21 @@ def fetch_sample_data(currentStep, to_fetch):
     ]
 
     # Fetch all target data
-    list_of_dicts = []
+    rows = []
     for art_tuple in art_tuples:
-        dict = {}
-        for header, target_info in to_fetch.items():
-            if "art_tuple" in target_info:
+        row = {}
+        for col_name, udf_query in to_fetch.items():
+            if "art_tuple" in udf_query:
                 try:
-                    dict[header] = eval(target_info)
+                    row[col_name] = eval(udf_query)
                 except KeyError:
-                    dict[header] = None
+                    row[col_name] = None
             else:
-                dict[header] = fetch_last(currentStep, art_tuple, target_info)
-        list_of_dicts.append(dict)
+                row[col_name] = fetch_last(currentStep, art_tuple, udf_query)
+        rows.append(row)
 
-    # Compile to dataframe
-    df = pd.DataFrame(list_of_dicts)
+    # Transform to dataframe
+    df = pd.DataFrame(rows)
 
     return df
 
