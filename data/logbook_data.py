@@ -49,21 +49,21 @@ lims_process_record = {
     },
     "Automated Quant-iT QC (DNA) 4.0": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},
-        "default": {
+        "udf_Spectrometry": {
             "dest_file": "Tecan",
             "details": ["Assay type", "Lot no: Quant-iT reagent kit"],
         },
     },
     "Automated Quant-iT QC (Library Validation) 4.0": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},
-        "default": {
+        "udf_Spectrometry": {
             "dest_file": "Tecan",
             "details": ["Assay type", "Lot no: Quant-iT reagent kit"],
         },
     },
     "Automated Quant-iT QC (RNA) 4.0": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},
-        "default": {
+        "udf_Spectrometry": {
             "dest_file": "Tecan",
             "details": ["Assay type", "Lot no: Quant-iT reagent kit"],
         },

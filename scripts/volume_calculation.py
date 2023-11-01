@@ -66,41 +66,41 @@ def calculate_volume_limsapi(process, use_total_lysate):
             if output.udf.get("Volume to take (uL)"):
                 del output.udf["Volume to take (uL)"]
                 output.put()
-            if output.udf.get("Amount taken (ng)"):
-                if input.udf["Amount (ng)"] >= output.udf["Amount taken (ng)"]:
+            if output.udf.get("Amount for prep (ng)"):
+                if input.udf["Amount (ng)"] >= output.udf["Amount for prep (ng)"]:
                     if use_total_lysate:
                         output.udf["Volume to take (uL)"] = (
-                            output.udf["Amount taken (ng)"]
+                            output.udf["Amount for prep (ng)"]
                             * 58.5
                             / input.udf["Amount (ng)"]
                         )
                         log.append(
-                            "Use formula: Amount taken (ng) x 58.5 / Total lysate (ng). Volume to take (uL) for sample {} is {}.".format(
+                            "Use formula: Amount for prep (ng) x 58.5 / Total lysate (ng). Volume to take (uL) for sample {} is {}.".format(
                                 output.name, round(output.udf["Volume to take (uL)"], 2)
                             )
                         )
                     else:
                         factor = factors[input.udf["Conc. Units"].lower()]
                         output.udf["Volume to take (uL)"] = (
-                            output.udf["Amount taken (ng)"]
+                            output.udf["Amount for prep (ng)"]
                             / input.udf["Concentration"]
                             * factor
                         )
                         log.append(
-                            "Use formula: Amount taken (ng) / Concentration (ng/ul). Volume to take (uL) for sample {} is {}.".format(
+                            "Use formula: Amount for prep (ng) / Concentration (ng/ul). Volume to take (uL) for sample {} is {}.".format(
                                 output.name, round(output.udf["Volume to take (uL)"], 2)
                             )
                         )
                     output.put()
                 else:
                     error_messages.append(
-                        "ERROR: Amount taken (ng) is higher than Total Amount (ng) for sample {}.".format(
+                        "ERROR: Amount for prep (ng) is higher than Total Amount (ng) for sample {}.".format(
                             output.name
                         )
                     )
             else:
                 error_messages.append(
-                    "ERROR: Amount taken (ng) not defined for sample {}.".format(
+                    "ERROR: Amount for prep (ng) not defined for sample {}.".format(
                         output.name
                     )
                 )
@@ -163,11 +163,11 @@ def calculate_volume_postgres(process):
                     "ERROR: No measurement found for sample {}.".format(output.name)
                 )
             # Calculation
-            if output.udf.get("Amount taken (ng)"):
+            if output.udf.get("Amount for prep (ng)"):
                 if conc and conc_unit.lower() in factors.keys():
                     factor = factors[conc_unit.lower()]
                     output.udf["Volume to take (uL)"] = (
-                        output.udf["Amount taken (ng)"] / conc * factor
+                        output.udf["Amount for prep (ng)"] / conc * factor
                     )
                     log.append(
                         "Volume to take (uL) for sample {} is {}.".format(
@@ -183,7 +183,7 @@ def calculate_volume_postgres(process):
                     )
             else:
                 error_messages.append(
-                    "ERROR: Amount taken (ng) not defined for sample {}.".format(
+                    "ERROR: Amount for prep (ng) not defined for sample {}.".format(
                         output.name
                     )
                 )
