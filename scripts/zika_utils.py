@@ -72,37 +72,6 @@ class CheckLog(Exception):
         sys.stderr.write("ERROR: Check log for more info.")
         sys.exit(2)
 
-
-def fetch_output_udfs(currentStep):
-    outputs = [
-        output for output in currentStep.all_outputs() if output.type == "Analyte"
-    ]
-    return currentStep.all_outputs
-
-
-def assert_udfs(currentStep):
-    conc_or_amount_udfs = ["Target Amount (ng)", "Pool Conc. (nM)"]
-    vol_udfs = ["Final Volume (uL)", "Target Total Volume (uL)"]
-
-    outputs = [
-        output for output in currentStep.all_outputs() if output.type == "Analyte"
-    ]
-
-    try:
-        for output in outputs:
-            output_udfs = [kv[0] for kv in output.udf.items()]
-            assert any([vol_udf in output_udfs for vol_udf in vol_udfs]) and any(
-                [
-                    conc_or_amount_udf in output_udfs
-                    for conc_or_amount_udf in conc_or_amount_udfs
-                ]
-            ), "All samples / pools need to have a specified output volume and concentration / amount"
-
-    except AssertionError as e:
-        sys.stderr.write(str(e))
-        sys.exit(2)
-
-
 def fetch_sample_data(currentStep, to_fetch):
     """
     Given a LIMS step and a dictionary detailing which info to fetch, this function

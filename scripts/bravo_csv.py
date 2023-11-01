@@ -255,7 +255,7 @@ def prepooling(currentStep, lims):
             lims=lims,
             udfs = {
                 "target_amt": "Amount taken (ng)",
-                "target_vol": "Final Volume (uL)",
+                "target_vol": "Total Volume (uL)",
                 "target_conc": None,
                 "final_amt": "Amount taken (ng)",
                 "final_vol": "Final Volume (uL)",
@@ -355,10 +355,10 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             currentStep=currentStep,
             lims=lims,
             udfs = {
-                "target_amt": "Target Amount (ng)",
-                "target_vol": "Target Total Volume (uL)",
+                "target_amt": "Amount for prep (ng)",
+                "target_vol": "Total Volume (uL)",
                 "target_conc": None,
-                "final_amt": "Amount taken (ng)",
+                "final_amt": "Amount taken from plate (ng)",
                 "final_vol": "Total Volume (uL)",
                 "final_conc": None
             }
@@ -374,10 +374,10 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             zika_min_vol=0.1,
             use_customer_metrics=True,
             udfs = {
-                "target_amt": "Target Amount (ng)",
-                "target_vol": "Target Total Volume (uL)",
+                "target_amt": "Amount for prep (ng)",
+                "target_vol": "Total Volume (uL)",
                 "target_conc": None,
-                "final_amt": "Amount taken (ng)",
+                "final_amt": "Amount taken from plate (ng)",
                 "final_vol": "Total Volume (uL)",
                 "final_conc": None
             }
@@ -388,7 +388,6 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         sys.exit(2)
 
     else:
-        wfs_with_vol_adj = ['SMARTer Pico RNA', 'QIAseq miRNA', 'Amplicon']
         checkTheLog = [False]
         dest_plate = []
         with open("bravo.csv", "w") as csvContext:
@@ -404,27 +403,20 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                         dest_fc_name = art_tuple[1]['uri'].location[0].name
                         dest_plate.append(dest_fc_name)
                         if with_total_vol:
-                            if art_tuple[1]['uri'].udf.get("Total Volume (uL)") or art_tuple[1]['uri'].udf.get("Target Total Volume (uL)"):
-                                art_workflows, volume, final_volume, amount_taken, total_volume, target_amount = calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj)
-                                # Update Amount taken (ng) and Total Volume (uL) in LIMS
-                                if not (set(wfs_with_vol_adj) & set(art_workflows)):
-                                    if not any(x == '#ERROR#' for x in [volume, final_volume, amount_taken]):
-                                        art_tuple[1]['uri'].udf['Amount taken (ng)'] = float(amount_taken)
-                                        art_tuple[1]['uri'].udf['Total Volume (uL)'] = float(final_volume)
-                                        art_tuple[1]["uri"].put()
-                                else:
-                                    if not any(x == '#ERROR#' for x in [volume, final_volume, amount_taken, total_volume, target_amount]):
-                                        art_tuple[1]['uri'].udf['Amount taken (ng)'] = float(amount_taken)
-                                        art_tuple[1]['uri'].udf['Total Volume (uL)'] = float(final_volume)
-                                        art_tuple[1]['uri'].udf['Target Amount (ng)'] = float(target_amount)
-                                        art_tuple[1]['uri'].udf['Target Total Volume (uL)'] = float(total_volume)
-                                        art_tuple[1]["uri"].put()
+                            if art_tuple[1]['uri'].udf.get("Total Volume (uL)"):
+                                art_workflows, volume, final_volume, amount_for_prep, amount_taken_from_plate, total_volume = calc_vol(art_tuple, logContext, checkTheLog)
+                                # Update Amount for prep (ng), Total Volume (uL) and Amount taken from plate (ng) in LIMS
+                                if not any(x == '#ERROR#' for x in [volume, final_volume, amount_for_prep, amount_taken_from_plate, total_volume]):
+                                    art_tuple[1]['uri'].udf['Amount for prep (ng)'] = float(amount_for_prep)
+                                    art_tuple[1]['uri'].udf['Total Volume (uL)'] = float(final_volume)
+                                    art_tuple[1]['uri'].udf['Amount taken from plate (ng)'] = float(amount_taken_from_plate)
+                                    art_tuple[1]["uri"].put()
                                 csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
                             else:
                                 logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
                                 checkTheLog[0] = True
                         else:
-                            art_workflows, volume, final_volume, amount_taken, total_volume, target_amount = calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj)
+                            art_workflows, volume, final_volume, amount_for_prep, amount_taken_from_plate, total_volume = calc_vol(art_tuple, logContext, checkTheLog)
                             csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
 
         df = pd.read_csv("bravo.csv", header=None)
@@ -762,12 +754,8 @@ def sample_dilution_before_QC(currentStep):
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
 
-    if currentStep.type.name in ['Library Pooling (HiSeq X) 1.0']:
-        check_barcode_collision(currentStep)
-        prepooling(currentStep, lims)
-    elif currentStep.type.name in [
+    if currentStep.type.name in [
         "Pre-Pooling (MiSeq) 4.0",
-        "Pre-Pooling (Illumina SBS) 4.0",
         "Library Pooling (RAD-seq) v1.0",
         "Library Pooling (TruSeq Small RNA) 1.0",
         "Pre-Pooling (NovaSeq) v2.0",
@@ -777,8 +765,6 @@ def main(lims, args):
     ]:
         prepooling(currentStep, lims)
     elif currentStep.type.name in [
-        "Library Normalization (HiSeq X) 1.0",
-        "Library Normalization (Illumina SBS) 4.0",
         "Library Normalization (MiSeq) 4.0",
         "Library Normalization (NovaSeq) v2.0",
         "Library Normalization (NextSeq) v1.0",
@@ -801,7 +787,8 @@ def main(lims, args):
         default_bravo(lims, currentStep)
 
 
-def calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj):
+def calc_vol(art_tuple, logContext, checkTheLog):
+    # Fetch workflow name
     art_workflows = []
     for stage in art_tuple[0]['uri'].workflow_stages_and_statuses:
         if stage[1] == 'IN_PROGRESS':
@@ -811,12 +798,8 @@ def calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj):
         # not handling different units yet. Might be needed at some point.
         assert art_tuple[0]['uri'].udf['Conc. Units'] in ["ng/ul", "ng/uL"]
 
-        if not (set(wfs_with_vol_adj) & set(art_workflows)):
-            amount_ng = target_amount = art_tuple[1]['uri'].udf.get('Amount taken (ng)', 0)
-            final_volume = total_volume = art_tuple[1]['uri'].udf.get('Total Volume (uL)', 0)
-        else:
-            amount_ng = target_amount = art_tuple[1]['uri'].udf.get('Target Amount (ng)', 0)
-            final_volume = total_volume = art_tuple[1]['uri'].udf.get('Target Total Volume (uL)', 0)
+        amount_for_prep = amount_taken_from_plate = art_tuple[1]['uri'].udf.get('Amount for prep (ng)', 0)
+        total_volume = final_volume = art_tuple[1]['uri'].udf.get('Total Volume (uL)', 0)
 
         max_volume_warning = ''
         if final_volume > MAX_WARNING_VOLUME:
@@ -832,26 +815,26 @@ def calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj):
         except AttributeError:
             conc = art_tuple[0]['uri'].udf['Concentration']
             org_vol = art_tuple[0]['uri'].udf['Volume (ul)']
-        volume = float(amount_ng) / float(conc)
+        volume = float(amount_for_prep) / float(conc)
 
         # Case with very low sample volume: take everything or what is needed. Reset amount values and keep the target dilution volume
         if org_vol < MIN_WARNING_VOLUME:
             volume = min(org_vol, volume)
-            amount_taken = target_amount = volume * conc
+            amount_for_prep = amount_taken_from_plate = volume * conc
             logContext.write("WARN : Sample {0} located {1} {2} has a LOW original volume : {3}. Take {4}uL sample which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                                                                                                  art_tuple[0]['uri'].location[0].name,
                                                                                                                                                                                  art_tuple[0]['uri'].location[1],
                                                                                                                                                                                  "{0:.2f}".format(org_vol),
                                                                                                                                                                                  "{0:.2f}".format(volume),
-                                                                                                                                                                                 "{0:.2f}".format(amount_taken),
+                                                                                                                                                                                 "{0:.2f}".format(amount_taken_from_plate),
                                                                                                                                                                                  "{0:.2f}".format(final_volume),
                                                                                                                                                                                  max_volume_warning))
             checkTheLog[0] = True
         # Case with very low pipetting volume due to high sample conc:
         elif volume < MIN_WARNING_VOLUME:
             # When the volume is lower than the MIN_WARNING_VOLUME, set volume to MIN_WARNING_VOLUME, and expand the final dilution volume
-            final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_ng)/float(final_volume))
-            amount_taken = MIN_WARNING_VOLUME*conc
+            final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_for_prep)/float(total_volume))
+            amount_taken_from_plate = MIN_WARNING_VOLUME*conc
 
             if final_volume > MAX_WARNING_VOLUME:
                 max_volume_warning = 'NOTE! Total dilution volume higher than {}!'.format(MAX_WARNING_VOLUME)
@@ -861,23 +844,23 @@ def calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj):
                                                                                                                                                                                                           art_tuple[0]['uri'].location[1],
                                                                                                                                                                                                           "{0:.2f}".format(volume),
                                                                                                                                                                                                           MIN_WARNING_VOLUME,
-                                                                                                                                                                                                          "{0:.2f}".format(amount_taken),
+                                                                                                                                                                                                          "{0:.2f}".format(amount_taken_from_plate),
                                                                                                                                                                                                           "{0:.2f}".format(final_volume),
                                                                                                                                                                                                           max_volume_warning))
             volume = MIN_WARNING_VOLUME
-            target_amount = amount_taken/final_volume*total_volume
             checkTheLog[0] = True
+        # Case that insufficient material is available
         elif volume > org_vol or volume > final_volume:
             # check against the "original sample volume" and the "total dilution volume"
             new_volume = min(org_vol, final_volume)
-            amount_taken = target_amount = new_volume * conc
+            amount_for_prep = amount_taken_from_plate = new_volume * conc
             if org_vol <= final_volume:
                 logContext.write("WARN : Sample {0} located {1} {2} has a HIGHER volume than the original: {3}uL over {4}uL. Take original volume: {4}uL which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                                                                                                                                                              art_tuple[0]['uri'].location[0].name,
                                                                                                                                                                                                                              art_tuple[0]['uri'].location[1],
                                                                                                                                                                                                                              "{0:.2f}".format(volume),
                                                                                                                                                                                                                              "{0:.2f}".format(org_vol),
-                                                                                                                                                                                                                             "{0:.2f}".format(amount_taken),
+                                                                                                                                                                                                                             "{0:.2f}".format(amount_taken_from_plate),
                                                                                                                                                                                                                              "{0:.2f}".format(final_volume),
                                                                                                                                                                                                                              max_volume_warning))
             else:
@@ -886,23 +869,23 @@ def calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj):
                                                                                                                                                                                   art_tuple[0]['uri'].location[1],
                                                                                                                                                                                   "{0:.2f}".format(volume),
                                                                                                                                                                                   "{0:.2f}".format(final_volume),
-                                                                                                                                                                                  "{0:.2f}".format(amount_taken),
+                                                                                                                                                                                  "{0:.2f}".format(amount_taken_from_plate),
                                                                                                                                                                                   max_volume_warning))
             volume = new_volume
             checkTheLog[0] = False
         elif max_volume_warning:
-            amount_taken = target_amount = volume * conc
+            amount_for_prep = amount_taken_from_plate = volume * conc
             logContext.write("WARN : Sample {0} located {1} {2}: {3}\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                art_tuple[0]['uri'].location[0].name,
                                                                                art_tuple[0]['uri'].location[1],
                                                                                max_volume_warning))
         else:
-            amount_taken = target_amount = volume * conc
+            amount_for_prep = amount_taken_from_plate = volume * conc
             logContext.write("INFO : Sample {0} located {1} {2} looks okay.\n".format(art_tuple[1]['uri'].samples[0].name,
                                                                                       art_tuple[0]['uri'].location[0].name,
                                                                                       art_tuple[0]['uri'].location[1]))
 
-        return (art_workflows, "{0:.2f}".format(volume), "{0:.2f}".format(final_volume), "{0:.2f}".format(amount_taken), "{0:.2f}".format(total_volume), "{0:.2f}".format(target_amount))
+        return (art_workflows, "{0:.2f}".format(volume), "{0:.2f}".format(final_volume), "{0:.2f}".format(amount_for_prep), "{0:.2f}".format(amount_taken_from_plate), "{0:.2f}".format(total_volume))
     except KeyError as e:
         logContext.write("ERROR : The input artifact is lacking a field : {0}\n".format(e))
         checkTheLog[0] = True
@@ -915,17 +898,6 @@ def calc_vol(art_tuple, logContext, checkTheLog, wfs_with_vol_adj):
     # this allows to still write the file. Won't be readable though
     return (art_workflows, "#ERROR#", "#ERROR#", "#ERROR#", "#ERROR#", "#ERROR#")
 
-def check_barcode_collision(step):
-    for output in step.all_outputs():
-        barcodes=[]
-        if output.type == "Analyte":
-            for io in step.input_output_maps:
-                if io[1]['limsid'] == output.id:
-                    barcode=find_barcode(io[0]['uri'])
-                    if barcode not in barcodes:
-                        barcodes.append(find_barcode(io[0]['uri']))
-                    else:
-                        raise Exception("Similar barcodes {0} in pool {}".format(barcode, output.id))
 
 def find_barcode(artifact):
         if len(artifact.samples) == 1 and artifact.reagent_labels:

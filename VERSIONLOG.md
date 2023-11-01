@@ -1,8 +1,20 @@
 # Scilifelab_epps Version Log
 
+## 20231031.1
+
+Change Tecan instrument into UDF for logbook
+
 ## 20231027.1
 
 Fix bug with multiple Tos breaking sendmail
+
+## 20231025.2
+
+Refactor UDF names for library prep amount
+
+## 20231025.1
+
+Remove obsoleted EPP scripts
 
 ## 20231019.1
 
