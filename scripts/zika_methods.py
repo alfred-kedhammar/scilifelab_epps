@@ -521,7 +521,7 @@ def norm(
                         tot_vol = r.min_transfer_amt / r.target_conc
                     else:
                         tot_vol = well_max_vol
-                    log.append(f"INFO: Expanding total volume to {tot_vol} ul")
+                    log.append(f"INFO: Expanding total volume to {round(tot_vol,1)} ul")
                     sample_vol = zika_min_vol
                     buffer_vol = tot_vol - sample_vol
 
@@ -531,14 +531,16 @@ def norm(
                     tot_vol = r.target_vol
                     buffer_vol = tot_vol - sample_vol
 
-            # Finalize calculations
+            # Adress cases where buffer volume is lower than the minimum transfer amount
             if 0 < buffer_vol < zika_min_vol:
                 log.append(
-                    f"WARNING: Required buffer volume is less than minimum transfer volume {zika_min_vol} ul"
+                    f"WARNING: Required buffer volume ({round(buffer_vol,1)} ul) is less than minimum transfer volume {zika_min_vol} ul"
                 )
-                log.append("INFO: Omitting buffer")
+                log.append(f"INFO: Omitting buffer")
+                tot_vol -= buffer_vol
                 buffer_vol = 0
-                sample_vol = tot_vol
+
+            # Finalize calculations
             final_amt = sample_vol * r.conc
             final_conc = final_amt / tot_vol
             final_conc_frac = final_conc / r.target_conc
