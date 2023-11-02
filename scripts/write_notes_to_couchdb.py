@@ -6,6 +6,7 @@ import yaml
 import couchdb
 import smtplib
 import os
+import sys
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import datetime
@@ -27,30 +28,22 @@ def write_note_to_couch(pid, timestamp, note, lims):
         email_responsible('Connection failed from {} to {}'.format(lims, config['statusdb'].get('url')), 'genomics-bioinfo@scilifelab.se')
         email_responsible('Running note save for {} failed on LIMS! Please contact {} to resolve the issue!'.format(pid, 'genomics-bioinfo@scilifelab.se'), note['email'])
 
-    proj_db = couch['projects']
-    v = proj_db.view('project/project_id')
-    if len(v[pid]) == 0:
-        msg = 'Project {} does not exist in {} when syncing from {}\n '.format(pid, config['statusdb'].get('url'), lims)
-        for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
-            email_responsible(msg, user_email)
-    else:
-        for row in v[pid]:
-            doc_id = row.value
-        doc = proj_db.get(doc_id)
-        running_notes = doc['details'].get('running_notes', '{}')
-        running_notes = json.loads(running_notes)
-
-        running_notes.update({timestamp: note})
-        doc['details']['running_notes'] = json.dumps(running_notes)
-        proj_db.save(doc)
-        #check if it was saved
-        doc = proj_db.get(doc_id)
-        if doc['details']['running_notes'] != json.dumps(running_notes):
+    run_notes_db = couch['running_notes']
+    if not run_notes_db.get(note['_id']):
+        if '_rev' in note.keys():
+            del note['_rev']
+        run_notes_db.save(note)
+        if not run_notes_db.get(note['_id']):
             msg = 'Running note save failed from {} to {} for {}'.format(lims, config['statusdb'].get('url'), pid)
             for user_email in ['genomics-bioinfo@scilifelab.se', note['email']]:
                 email_responsible(msg, user_email)
         else:
-            time_in_format = datetime.datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f').strftime("%a %b %d %Y, %I:%M:%S %p")
+            time_in_format = datetime.datetime.strftime(timestamp, "%a %b %d %Y, %I:%M:%S %p")
+            proj_db = couch['projects']
+            v = proj_db.view('project/project_id')
+            for row in v[pid]:
+                doc_id = row.value
+            doc = proj_db.get(doc_id)
             subject = '[LIMS] Running Note:{}, {}'.format(pid, doc['project_name'])
             proj_coord_name = doc['details'].get('project_coordinator','').lower()
             trans_table = proj_coord_name.maketrans('áéíóú', 'aeiou')
@@ -72,7 +65,7 @@ def write_note_to_couch(pid, timestamp, note, lims):
             <div class="panel-body" style="padding: 15px;">\
                 <p>{}</p>\
             </div></div></blockquote></body></html>'.format(pid, doc['project_name'], note['user'],
-                                    time_in_format, note.get('category'), markdown.markdown(note.get('note')))
+                                    time_in_format, ', '.join(note.get('categories')), markdown.markdown(note.get('note')))
             email_responsible(text, proj_coord, error=False, subject=subject, html=html)
 
 def email_responsible(message, resp_email, error=True, subject=None, html=None):
@@ -84,7 +77,6 @@ def email_responsible(message, resp_email, error=True, subject=None, html=None):
     else:
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
-        msg['To'] = resp_email
 
 
         msg.attach(MIMEText(message, 'plain'))

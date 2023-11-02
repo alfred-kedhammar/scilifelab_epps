@@ -14,8 +14,6 @@ class Thresholds():
         # Checks that only supported values are entered
         self.valid_instruments = [
             "miseq",
-            "hiseq",
-            "HiSeq_X",
             "NovaSeq",
             "NextSeq",
             "NovaSeqXPlus",
@@ -25,12 +23,6 @@ class Thresholds():
             "Version3",
             "Version2",
             "Version2Nano",
-            "HiSeq Rapid Flow Cell v1",
-            "HiSeq Rapid Flow Cell v2",
-            "TruSeq Rapid Flow Cell v2",
-            "TruSeq Rapid Flow Cell v3",
-            "HiSeq Flow Cell v4",
-            "HiSeqX v2.5",
             "SP",
             "S1",
             "S2",
@@ -67,7 +59,7 @@ class Thresholds():
         else:
             self.undet_indexes_perc = 10
 
-    """Q30 values are derived from governing document 1244:4"""
+    """Q30 values are derived from governing document 1618"""
     def set_Q30(self):
         if self.instrument == "miseq":
             if self.read_length >= 250:
@@ -78,32 +70,6 @@ class Thresholds():
                 self.Q30 = 75
             elif self.read_length < 100:
                 self.Q30 = 80
-        elif self.instrument == "hiseq":
-            #Rapid run flowcell
-            if self.chemistry in ["HiSeq Rapid Flow Cell v1","HiSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v1"] :
-                if self.read_length >= 150:
-                    self.Q30 = 75
-                elif self.read_length >= 100:
-                    self.Q30 = 80
-                elif self.read_length < 100:
-                    self.Q30 = 85
-            #v3
-            elif self.chemistry == "HiSeq Flow Cell v3":
-                if self.read_length >= 100 and self.paired:
-                    self.Q30 = 80
-                elif self.read_length >= 50 and self.paired:
-                    self.Q30 = 85
-            #v4
-            elif self.chemistry == "HiSeq Flow Cell v4":
-                if self.read_length >= 125 and self.paired:
-                    self.Q30 = 80
-                elif self.read_length >= 50:
-                    self.Q30 = 85
-
-        elif self.instrument == "HiSeq_X":
-            if self.chemistry == "HiSeqX v2.5":
-                if self.read_length >= 150 and self.paired:
-                    self.Q30 = 75
 
         elif self.instrument == "NovaSeq":
             if self.read_length >= 150:
@@ -130,7 +96,7 @@ class Thresholds():
                 self.Q30 = 85
 
         if not self.Q30:
-            self.problem_handler("exit", "No predefined Q30 threshold (see doc 1244). Instrument: {}, Chemistry: {}, Read Length: {}".\
+            self.problem_handler("exit", "No predefined Q30 threshold (see doc 1618). Instrument: {}, Chemistry: {}, Read Length: {}".\
                                  format(self.instrument, self.chemistry, self.read_length))
 
     def set_exp_lane_clust(self):
@@ -147,25 +113,6 @@ class Thresholds():
                     self.exp_lane_clust = 18e6
                 else:
                     self.exp_lane_clust = 10e6
-        elif self.instrument == "hiseq":
-            #Rapid run flowcell
-            if self.chemistry in ["HiSeq Rapid Flow Cell v1","HiSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v2", "TruSeq Rapid Flow Cell v1"] :
-                self.exp_lane_clust = 114e6
-            #v3
-            elif self.chemistry == "HiSeq Flow Cell v3":
-                self.exp_lane_clust = 143e6
-            # v4
-            elif self.chemistry == "HiSeq Flow Cell v4":
-                self.exp_lane_clust = 188e6
-        elif self.instrument == "HiSeq_X":
-            #HiSeqX runs are always paired!
-            if self.paired:
-                #X v2.5 (common)
-                if self.chemistry == "HiSeqX v2.5":
-                    self.exp_lane_clust = 320e6
-                #X v2.0 (rare)
-                elif self.chemistry == "HiSeqX v2.0":
-                    self.exp_lane_clust = 305e6
         elif self.instrument == "NovaSeq":
             if self.chemistry == "SP":
                 self.exp_lane_clust = 325e6
@@ -177,7 +124,7 @@ class Thresholds():
                 self.exp_lane_clust = 2000e6
         elif self.instrument == "NovaSeqXPlus":
             if self.chemistry == "10B":
-                self.exp_lane_clust = 1250e6
+                self.exp_lane_clust = 1000e6
         elif self.instrument == "NextSeq":
             if self.chemistry == "NextSeq Mid":
                 self.exp_lane_clust = 25e6
@@ -188,9 +135,9 @@ class Thresholds():
             elif self.chemistry == "NextSeq 2000 P2":
                 self.exp_lane_clust = 400e6
             elif self.chemistry == "NextSeq 2000 P3":
-                self.exp_lane_clust = 1100e6
+                self.exp_lane_clust = 550e6
         else:
-            self.problem_handler("exit", "HiSeqX runs should always be paired but script has detected otherwise. Something has gone terribly wrong.")
+            self.problem_handler("exit", "Unknown run type!")
         if not self.exp_lane_clust:
             self.problem_handler("exit", "No predefined clusters per lane threshold. Instrument: {}, Chemistry: {}, Read Length: {}".\
                                  format(self.instrument, self.chemistry, self.read_length))

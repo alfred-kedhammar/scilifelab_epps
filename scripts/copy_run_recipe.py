@@ -30,7 +30,7 @@ def main(lims, args):
                 raise RuntimeError("Cannot access the run recipe file.")
             break
 
-    with open("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/{}".format(file_name), 'w') as sf:
+    with open("/srv/ngi-nas-ns/NovaSeq_data/gls_recipe_novaseq/{}".format(file_name), 'w') as sf:
         sf.write(content)
 
 if __name__ == "__main__":

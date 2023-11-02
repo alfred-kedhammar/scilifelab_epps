@@ -45,7 +45,7 @@ class QualityFilter():
 
     def read_QF_file(self):
         """ QF file is read from the file msf system. Path hard coded."""
-        file_path = ("/srv/mfs/QF/{0}/{1}.csv".format(self.project_name, self.flowcell_id))
+        file_path = ("/srv/ngi-nas-ns/QF/{0}/{1}.csv".format(self.project_name, self.flowcell_id))
         of = open(file_path ,'r')
         self.source_file = [row for row in csv.reader(of.read().splitlines())]
         of.close()

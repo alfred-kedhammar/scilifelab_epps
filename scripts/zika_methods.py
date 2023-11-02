@@ -13,7 +13,7 @@ import numpy as np
 
 
 def pool(
-    currentStep=None, 
+    currentStep=None,
     lims=None,
     # Volume constraints
     zika_min_vol=0.5,           # 0.5 lowest validated, 0.1 lowest possible
@@ -32,8 +32,8 @@ def pool(
     }
     ):
     """
-    Pool samples. 
-    
+    Pool samples.
+
     Input UDFs:
     - The target amount taken per sample (ng) OR target pool concentration (nM)
     - The target final pool volume (ul)
@@ -42,7 +42,7 @@ def pool(
     1) The inputs are translated to the desired pool concentration and volume.
     2) The desired pool concentration and volume is translated to the target transfer amount for each sample.
     3) The minimum and maximum transferrable amounts are calculated for each sample based on the Zika minimum transfer volume and the accessible sample volume
-    
+
     Cases:
 
     - If a sample has very low or negligible concentration
@@ -58,7 +58,7 @@ def pool(
                 If this causes volume overflow
                     --> The worklist will not be generated
             - If a sample does not have enough accessible volume to reach the target representation in the pool
-                --> Let it be under-represented      
+                --> Let it be under-represented
 
     """
 
@@ -94,7 +94,7 @@ def pool(
             "dst_id"            :       "art_tuple[1]['uri'].location[0].id",
             "dst_well"          :       "art_tuple[1]['uri'].location[1]"
         }
-       
+
         for k, v in udfs.items():
             if v:
                 to_fetch[k] = f"art_tuple[1]['uri'].udf['{v}']"
@@ -126,7 +126,7 @@ def pool(
         errors = False
         for pool in pools:
             try:
-                
+
                 # === PREPARE CALCULATION INPUTS ===
 
                 # Subset data to current pool
@@ -139,7 +139,7 @@ def pool(
                     target_amt_taken = target_pool_conc * target_pool_vol / len(df_pool)
                     amt_unit = "fmol"
                     conc_unit = "nM"
-                elif udfs["target_amt"] == 'Amount taken (ng)':
+                elif udfs["target_amt"] == 'Amount for prep (ng)':
                     target_amt_taken = df_pool.target_amt.unique()[0]
                     target_pool_conc = target_amt_taken * len(df_pool) / target_pool_vol
                     amt_unit = "ng"
@@ -182,7 +182,7 @@ def pool(
 
                     lowest_common_amount = max(df_pool.min_amount)
                     highest_common_amount = min(df_pool.max_amount)
-                    
+
                     # Calculate pool limits given samples
                     pool_min_amt = lowest_common_amount  * len(df_pool)
                     pool_min_sample_vol = sum(lowest_common_amount / df_pool.conc)
@@ -194,10 +194,10 @@ def pool(
                         pool_max_sample_amt = highest_common_amount * len(df_pool) * well_max_vol / pool_max_sample_vol
                     pool_min_conc = pool_min_amt / well_max_vol
                     pool_max_conc = pool_min_amt / pool_min_sample_vol # also equals pool_max_amt / pool_max_sample_vol because amt / vol proportions are the same between samples
-                    
+
                     # Ensure that pool will not overflow
                     if pool_min_sample_vol > well_max_vol:
-                        
+
                         log.append(f"\nERROR: Overflow in {pool.name}. Decrease number of samples or dilute highly concentrated outliers")
                         log.append(f"Highest concentrated sample: {highest_conc_sample.sample_name} at {round(highest_conc_sample.conc,2)} {conc_unit}")
                         log.append(f"Pooling cannot be normalized to less than {round(pool_min_sample_vol,1)} ul")
@@ -265,19 +265,19 @@ def pool(
 
                     # Ensure that pool will not overflow
                     if pool_real_min_sample_vol > well_max_vol:
-                        
+
                         log.append(f"\nERROR: Overflow in {pool.name}. Decrease number of samples or dilute highly concentrated outliers")
                         log.append(f"Highest concentrated sample: {highest_conc_sample.sample_name} at {round(highest_conc_sample.conc,2)} {conc_unit}")
                         log.append(f"Pooling cannot be normalized to less than {round(pool_real_min_sample_vol,1)} ul")
 
                         errors = True
                         raise zika_utils.VolumeOverflow
-            
+
                     log.append(f"\nWill try to create a pool that is as even as possible. Accounting for sample depletion, a pool can be created with the following parameter ranges: ")
                     log.append(f" - Target amount per sample {round(target_transfer_amt,2)}")
                     log.append(f" - Pool volume {round(pool_real_min_sample_vol,1)}-{round(well_max_vol,1)} ul")
                     log.append(f" - Pool concentration {round(pool_real_min_conc,2)}-{round(pool_real_max_conc,2)} {conc_unit}")
-                    
+
                     # Nudge conc, if necessary
                     # Use the flawed target parameters for comparison and ignore sample depletion
                     if target_pool_conc > pool_real_max_conc:
@@ -289,7 +289,7 @@ def pool(
 
                     # No volume expansion is allowed, so pool volume is set to the minimum, given the conc
                     pool_vol = pool_real_min_sample_vol
-            
+
             except zika_utils.VolumeOverflow:
                 continue
 
@@ -309,7 +309,7 @@ def pool(
             if round(target_pool_vol,1) != round(pool_vol,1):
                 log.append(f" - WARNING: Target pool volume is adjusted from {round(target_pool_vol,1)} --> {round(pool_vol,1)} ul")
             if round(target_pool_conc,2) == round(pool_conc,2) and round(target_pool_vol,1) == round(pool_vol,1):
-                log.append("Pooling OK")        
+                log.append("Pooling OK")
             if round(target_transfer_amt,2) != round(target_amt_taken,2):
                 log.append(f" - INFO: Amount taken per sample is adjusted from {round(target_amt_taken,2)} --> {round(target_transfer_amt,2)} {amt_unit}")
 
@@ -317,7 +317,7 @@ def pool(
             total_sample_vol = sum(df_pool["transfer_vol"])
             buffer_vol = pool_vol - total_sample_vol if pool_vol - total_sample_vol > zika_min_vol else 0
             buffer_vols[pool.name] = buffer_vol
-            log.append(f"\nThe final pool volume is {round(pool_vol,1)} ul ({round(total_sample_vol,1)} ul sample + {round(buffer_vol,1)} ul buffer)")         
+            log.append(f"\nThe final pool volume is {round(pool_vol,1)} ul ({round(total_sample_vol,1)} ul sample + {round(buffer_vol,1)} ul buffer)")
 
             # === REPORT DEVIATING SAMPLES ===
 
@@ -338,9 +338,9 @@ def pool(
                 pool.udf["Pool Conc. (nM)"] = float(round(pool_conc,2))
             elif amt_unit == "ng":
                 if even_pool_is_possible:
-                    pool.udf["Amount taken (ng)"] = float(round(df_pool["transfer_amt"].unique()[0], 2))
+                    pool.udf["Amount for prep (ng)"] = float(round(df_pool["transfer_amt"].unique()[0], 2))
                 else:
-                    pool.udf["Amount taken (ng)"] = float(round(target_transfer_amt, 2))
+                    pool.udf["Amount for prep (ng)"] = float(round(target_transfer_amt, 2))
             pool.put()
 
         # Get filenames and upload log if errors
@@ -348,7 +348,7 @@ def pool(
         if errors:
             raise zika_utils.CheckLog(log, log_filename, lims, currentStep)
 
-        # Format worklist 
+        # Format worklist
         df_formatted = zika_utils.format_worklist(df_wl.copy(), deck)
 
         # Comments to attach to the worklist header
@@ -357,7 +357,7 @@ def pool(
         for pool in pools:
             if buffer_vols[pool.name] > 0:
                 comments.append(f"Add {round(buffer_vols[pool.name],1)} ul buffer to pool {pool.name} (well {pool.location[1]})")
-        
+
         # Write the output files
         zika_utils.write_worklist(
             df=df_formatted.copy(),
@@ -385,7 +385,7 @@ def pool(
 
 def norm(
     # LIMS info
-    currentStep=None, 
+    currentStep=None,
     lims=None,
     # Dilution strategy
     volume_expansion=True,          # For samples that are too concentrated, increase target volume to obtain correct conc
@@ -421,7 +421,7 @@ def norm(
     try:
 
         # Write log header
-        
+
         log = []
         for e in [
             f"LIMS process {currentStep.id}\n"
@@ -436,7 +436,7 @@ def norm(
             log.append(e)
 
         # Fetch sample data
-        
+
         to_fetch = {
             # Input sample
             "sample_name"   : "art_tuple[0]['uri'].name",
@@ -576,7 +576,7 @@ def norm(
         wl_comments.append(f"This worklist will enact normalization of {len(df)} samples. For detailed parameters see the worklist log")
 
         # Write files
-        
+
         wl_filename, log_filename = zika_utils.get_filenames(method_name = "norm", pid = currentStep.id)
 
         zika_utils.write_worklist(

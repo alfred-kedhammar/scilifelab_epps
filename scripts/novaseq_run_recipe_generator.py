@@ -73,9 +73,9 @@ def main(lims, args):
     }
 
     # Write json file
-    if os.path.exists("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/"):
+    if os.path.exists("/srv/ngi-nas-ns/NovaSeq_data/gls_recipe_novaseq/"):
         try:
-            with open("/srv/mfs/NovaSeq_data/gls_recipe_novaseq/{}.json".format(fc_name), 'w') as sf:
+            with open("/srv/ngi-nas-ns/NovaSeq_data/gls_recipe_novaseq/{}.json".format(fc_name), 'w') as sf:
                 json.dump(output,sf,separators=(',',':'))
         except Exception as e:
             log.append(str(e))

@@ -49,21 +49,21 @@ lims_process_record = {
     },
     "Automated Quant-iT QC (DNA) 4.0": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},
-        "default": {
+        "udf_Spectrometry": {
             "dest_file": "Tecan",
             "details": ["Assay type", "Lot no: Quant-iT reagent kit"],
         },
     },
     "Automated Quant-iT QC (Library Validation) 4.0": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},
-        "default": {
+        "udf_Spectrometry": {
             "dest_file": "Tecan",
             "details": ["Assay type", "Lot no: Quant-iT reagent kit"],
         },
     },
     "Automated Quant-iT QC (RNA) 4.0": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},
-        "default": {
+        "udf_Spectrometry": {
             "dest_file": "Tecan",
             "details": ["Assay type", "Lot no: Quant-iT reagent kit"],
         },
@@ -205,6 +205,9 @@ lims_process_record = {
     "Hybridize Library  (SS XT) 4.0": {
         "lims_instrument": {"dest_file": "PCR"},
         "udf_Instrument Used": {"dest_file": "Bravo", "details": ["Processname"]},
+    },
+    "Illumina DNA PCR-free Library Construction": {
+        "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]}
     },
     "Intermediate QC": {
         "lims_instrument": {

@@ -38,7 +38,7 @@ class AppQC():
 
     def get_app_QC_file(self):
         """ App QC file is read from the file msf system. Path hard coded."""
-        file_path = ("/srv/mfs/app_QC/{0}.json".format(self.project_name))
+        file_path = ("/srv/ngi-nas-ns/app_QC/{0}.json".format(self.project_name))
         json_data = open(file_path).read()
         self.app_QC = json.loads(json_data)
 
