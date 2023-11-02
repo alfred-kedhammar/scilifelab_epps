@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20231102.1
+Implement script parse_ba_results.py.
+
 ## 20231031.1
 
 Change Tecan instrument into UDF for logbook

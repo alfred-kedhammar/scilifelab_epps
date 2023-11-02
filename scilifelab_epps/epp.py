@@ -19,6 +19,7 @@ from genologics.config import MAIN_LOG
 from logging.handlers import RotatingFileHandler
 from time import strftime, localtime
 import csv
+from genologics.entities import Artifact
 
 def attach_file(src,resource):
     """Attach file at src to given resource
@@ -390,4 +391,31 @@ class CopyField(object):
             return False
 
 
+def get_well_number(art: Artifact) -> int:
+    """Convert well names (e.g. 'A:1', 'H:12') to column-wise well numbers."""
 
+    # Ensure container well names match classical convention
+    assert (
+        art.container.type.y_dimension["is_alpha"] == True
+        and art.container.type.y_dimension["offset"] == 0
+        and art.container.type.x_dimension["is_alpha"] == False
+        and art.container.type.x_dimension["offset"] == 1
+    ), "Can't convert well name --> well number for invalid container"
+
+    # Get dimensions of artifact container
+    n_rows = art.container.type.y_dimension["size"]
+
+    # Get simple dict translating letters to numbers
+    letter2num = {}
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    for i, l in zip(range(1, len(alphabet) + 1), alphabet):
+        letter2num[l] = i
+
+    well_name = art.location[1]
+    row_letter, col_num = well_name.split(":")
+
+    row_n = letter2num[row_letter]
+
+    well_num = (int(col_num) - 1) * n_rows + row_n
+
+    return well_num
