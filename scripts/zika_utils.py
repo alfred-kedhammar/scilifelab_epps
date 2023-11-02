@@ -15,7 +15,7 @@ import numpy as np
 from datetime import datetime as dt
 import sys
 from epp_utils.udf_tools import fetch_last
-from genologics import Process
+from genologics.entities import Process
 
 def verify_step(currentStep, targets=None):
     """
