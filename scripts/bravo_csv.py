@@ -355,10 +355,10 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             currentStep=currentStep,
             lims=lims,
             udfs = {
-                "target_amt": "Target Amount (ng)",
-                "target_vol": "Target Total Volume (uL)",
+                "target_amt": "Amount for prep (ng)",
+                "target_vol": "Total Volume (uL)",
                 "target_conc": None,
-                "final_amt": "Amount taken (ng)",
+                "final_amt": "Amount taken from plate (ng)",
                 "final_vol": "Total Volume (uL)",
                 "final_conc": None
             }
@@ -374,10 +374,10 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             zika_min_vol=0.1,
             use_customer_metrics=True,
             udfs = {
-                "target_amt": "Target Amount (ng)",
-                "target_vol": "Target Total Volume (uL)",
+                "target_amt": "Amount for prep (ng)",
+                "target_vol": "Total Volume (uL)",
                 "target_conc": None,
-                "final_amt": "Amount taken (ng)",
+                "final_amt": "Amount taken from plate (ng)",
                 "final_vol": "Total Volume (uL)",
                 "final_conc": None
             }
