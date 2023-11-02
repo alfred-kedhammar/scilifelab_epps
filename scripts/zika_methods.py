@@ -10,6 +10,7 @@ import zika_utils
 import pandas as pd
 import sys
 import numpy as np
+from epp_utils.udf_tools import is_filled
 
 
 def pool(
@@ -435,6 +436,20 @@ def norm(
         ]:
             log.append(e)
 
+        # Import output artifacts
+        outputs = {
+            art.name: art for art in currentStep.all_outputs() if art.type == "Analyte"
+        }
+
+        # Assert required UDFs are populated in step
+        for output_name, output in outputs.items():
+            assert is_filled(
+                output, udfs["target_amt"]
+            ), f"UDF '{udfs['target_amt']}' missing for {output.name}"
+            assert is_filled(
+                output, udfs["target_vol"]
+            ), f"UDF '{udfs['target_vol']}' missing for {output.name}"
+
         # Fetch sample data
 
         to_fetch = {
@@ -486,8 +501,6 @@ def norm(
         df["target_conc"] = df.target_amt / df.target_vol
         df["min_transfer_amt"] = np.minimum(df.vol, zika_min_vol) * df.conc
         df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
-
-        outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
 
         # Iterate across samples
         d = {"sample_vol": [], "buffer_vol": [], "tot_vol": [], "sample_amt": [], "final_conc": []}
