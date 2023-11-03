@@ -6,7 +6,7 @@ This module contains methods for normalization and pooling on the Mosquito Zika 
 Written by Alfred Kedhammar
 """
 
-import zika_utils
+from scripts import zika_utils
 import pandas as pd
 import sys
 import numpy as np
@@ -512,7 +512,10 @@ def norm(
 
             # 1) Not enough sample --> Conc below target
             if round(r.max_transfer_amt,2) < round(r.target_amt,2):
-                log.append("WARNING: Sample is depleted")
+                if r.conc < r.target_conc:
+                    log.append("WARNING: Sample concentration is less than target concentration")
+                if r.vol < r.target_vol:
+                    log.append("WARNING: Sample is depleted")
                 sample_vol = min(r.vol, r.target_vol)
                 log.append(f"INFO: Using maximum sample live volume {sample_vol} ul")
                 tot_vol = r.target_vol
