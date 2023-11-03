@@ -6,7 +6,7 @@ This module contains methods for normalization and pooling on the Mosquito Zika 
 Written by Alfred Kedhammar
 """
 
-from scripts import zika_utils
+import zika_utils
 import pandas as pd
 import sys
 import numpy as np
