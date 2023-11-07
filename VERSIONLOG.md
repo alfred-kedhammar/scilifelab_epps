@@ -1,10 +1,15 @@
 # Scilifelab_epps Version Log
 
+## 20231106.1
+
+Fix error for RAD-seq prep pooling.
+
 ## 20231102.1
 
 Improve logging for Zika normalization and improve docs for Zika utils func.
 
 ## 20231102.1
+
 Implement script parse_ba_results.py.
 
 ## 20231031.1
