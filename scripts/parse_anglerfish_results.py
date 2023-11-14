@@ -1,39 +1,26 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-
-DESC = """
-Python script for parsing output file from Anglerfish
-And copy data in correspoding step in Clarity LIMS
-Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
-"""
-
 import os
 import sys
-import logging
-import numpy as np
-import codecs
+import pandas as pd
 import re
 import glob
 
 from datetime import datetime
 from argparse import ArgumentParser
-from requests import HTTPError
 from genologics.lims import Lims
 from genologics.config import BASEURI,USERNAME,PASSWORD
 from genologics.entities import Process
-from scilifelab_epps.epp import EppLogger
-from scilifelab_epps.epp import ReadResultFiles
-from scilifelab_epps.epp import set_field
 
 NGITENXSAMPLE_PAT = re.compile("P[0-9]+_[0-9]+_[0-9]+")
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
-# Get file
+
 def get_anglerfish_output_file(lims, process):
+
     thisyear=datetime.now().year
     content = None
-    flowcell_id = process.udf['Flowcell ID'].upper()
+    flowcell_id = process.udf['ONT flow cell ID'].upper()
+    
     for outart in process.all_outputs():
         # First try fetching the Anglerfish result file from the uploaded file in LIMS
         if outart.type == 'ResultFile' and outart.name == 'Anglerfish Result File':
@@ -42,13 +29,12 @@ def get_anglerfish_output_file(lims, process):
                 content = lims.get_file_contents(id=fid).readlines()
             except:
                 # Second try fetching the Anglerfish result file from the storage server
-                if os.path.exists("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}".format(thisyear)):
-                    try:
-                        with open("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id), 'r') as asf:
-                            content = asf.readlines()
-                        lims.upload_new_file(outart,max(glob.glob("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id)),key=os.path.getctime))
-                    except:
-                        raise RuntimeError("No Anglerfish output file available")
+                try:
+                    with open("/srv/ngi-nas-ns/minion_data/qc/anglerfish_stats_{}.txt".format(thisyear, flowcell_id), 'r') as asf:
+                        content = asf.readlines()
+                    lims.upload_new_file(outart,max(glob.glob("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id)),key=os.path.getctime))
+                except:
+                    raise RuntimeError("No Anglerfish output file available")
                 else:
                     raise RuntimeError("Cannot access the folder for Anglerfish output file")
             break
@@ -56,7 +42,7 @@ def get_anglerfish_output_file(lims, process):
         content = [x.decode('utf-8') for x in content]
     return content
 
-# Parse file content
+
 def get_data(content, log):
     read=False
     raw_data={}
@@ -100,49 +86,27 @@ def get_data(content, log):
 
     return results
 
-def parse_anglerfish_results(lims, process):
-    #samples missing from the qubit csv file
-    missing_samples = []
-    #strings returned to the EPP user
+
+def main(lims, process):
+
+    # Instantiate log file
     log = []
+
     # Get file contents by parsing lims artifacts
     file_content = get_anglerfish_output_file(lims, process)
-    #parse the Anglerfish output
+
+    # Parse the Anglerfish output
     data = get_data(file_content, log)
-
-    # Fill values in LIMS
-    for out in process.all_outputs():
-        if NGISAMPLE_PAT.findall(out.name):
-            if data.get(out.name):
-                out.udf['# Reads'] = data[out.name]
-                out.put()
-                set_field(out)
-            else:
-                missing_samples.append(out.name)
-
-    if missing_samples:
-        log.append('Sample {} missing in the Anglerfish Result File.'.format(missing_samples))
-
-    print(''.join(log), file=sys.stderr)
-
-def main(lims, pid, epp_logger):
-
-    process = Process(lims,id = pid)
-    parse_anglerfish_results(lims, process)
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description=DESC)
+    
+    parser = ArgumentParser()
     parser.add_argument('--pid', default = '24-594126', dest = 'pid',
                         help='Lims id for current Process')
-    parser.add_argument('--log', dest = 'log',
-                        help=('File name for standard log file, '
-                              'for runtime information and problems.'))
-
     args = parser.parse_args()
 
     lims = Lims(BASEURI,USERNAME,PASSWORD)
     lims.check_version()
 
-    with EppLogger(log_file=args.log, lims=lims, prepend=True) as epp_logger:
-        main(lims, args.pid, epp_logger)
+    main(lims, args.pid)
