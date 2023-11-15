@@ -15,18 +15,23 @@ NGITENXSAMPLE_PAT = re.compile("P[0-9]+_[0-9]+_[0-9]+")
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
 
-def get_anglerfish_output_file(lims, process):
+
+def get_anglerfish_output_file(lims, currentStep):
+
+    log = []
 
     content = None
-    flowcell_id = process.udf['ONT flow cell ID'].upper()
-    anglerfish_file_slot = [outart for outart in process.all_outputs() if outart.name == "Anglerfish Result File"]
+    flowcell_id = currentStep.udf['ONT flow cell ID'].upper().strip()
+    anglerfish_file_slot = [outart for outart in currentStep.all_outputs() if outart.name == "Anglerfish Result File"][0]
+    assert anglerfish_file_slot
 
     # Try to load file from LIMS
     try:
         fid = anglerfish_file_slot.files[0].id
         content = lims.get_file_contents(id=fid).readlines()
+        log.append("Step already has an uploaded 'Anglerfish Result File', using it.")
     except:
-        # Try fetching the Anglerfish result file from the run metadata
+        log.append("No 'Anglerfish Result File' detected in the step, trying to fetch it from ngi-nas-ns.")
         try:
             run_glob = max(glob.glob(f"/srv/ngi-nas-ns/minion_data/qc/*{flowcell_id}*"),key=os.path.getctime)
             if len(run_glob) == 0:
@@ -43,7 +48,7 @@ def get_anglerfish_output_file(lims, process):
                 else:
                     anglerfish_run_stats_path = anglerfish_run_stats_glob[0]
             
-            
+
 
 
             if len(anglerfish_file_glob) > 0:
