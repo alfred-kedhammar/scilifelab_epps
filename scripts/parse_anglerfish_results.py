@@ -17,29 +17,45 @@ NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
 def get_anglerfish_output_file(lims, process):
 
-    thisyear=datetime.now().year
     content = None
     flowcell_id = process.udf['ONT flow cell ID'].upper()
-    
-    for outart in process.all_outputs():
-        # First try fetching the Anglerfish result file from the uploaded file in LIMS
-        if outart.type == 'ResultFile' and outart.name == 'Anglerfish Result File':
-            try:
-                fid = outart.files[0].id
-                content = lims.get_file_contents(id=fid).readlines()
-            except:
-                # Second try fetching the Anglerfish result file from the storage server
-                try:
-                    with open("/srv/ngi-nas-ns/minion_data/qc/anglerfish_stats_{}.txt".format(thisyear, flowcell_id), 'r') as asf:
-                        content = asf.readlines()
-                    lims.upload_new_file(outart,max(glob.glob("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id)),key=os.path.getctime))
-                except:
-                    raise RuntimeError("No Anglerfish output file available")
+    anglerfish_file_slot = [outart for outart in process.all_outputs() if outart.name == "Anglerfish Result File"]
+
+    # Try to load file from LIMS
+    try:
+        fid = anglerfish_file_slot.files[0].id
+        content = lims.get_file_contents(id=fid).readlines()
+    except:
+        # Try fetching the Anglerfish result file from the run metadata
+        try:
+            run_glob = max(glob.glob(f"/srv/ngi-nas-ns/minion_data/qc/*{flowcell_id}*"),key=os.path.getctime)
+            if len(run_glob) == 0:
+                raise AssertionError # TODO
+            elif len(run_glob) > 1:
+                raise AssertionError # TODO
+            else:
+                run_path = run_glob[0]
+                anglerfish_run_stats_glob = glob.glob(f"{run_path}/*anglerfish*/anglerfish_stats.txt")
+                if len(anglerfish_run_stats_glob) == 0:
+                    raise AssertionError # TODO
+                elif len(anglerfish_run_stats_glob) > 1:
+                    raise AssertionError # TODO
                 else:
-                    raise RuntimeError("Cannot access the folder for Anglerfish output file")
-            break
+                    anglerfish_run_stats_path = anglerfish_run_stats_glob[0]
+            
+            
+
+
+            if len(anglerfish_file_glob) > 0:
+                lims.upload_new_file(anglerfish_file_slot, anglerfish_file_glob[0])
+            else:
+                raise RuntimeError("No Anglerfish output file available")
+        except:
+            raise RuntimeError("Cannot access the folder for Anglerfish output file")
+
     if isinstance(content[0], bytes):
         content = [x.decode('utf-8') for x in content]
+
     return content
 
 
