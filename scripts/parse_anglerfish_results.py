@@ -100,8 +100,16 @@ def get_data(content: list, log: list):
     return df
 
 
-def fill_udfs(df):
-    pass
+def fill_udfs(currentStep: Process, df: pd.DataFrame):
+    
+    samples = [output for output in currentStep.all_outputs() if output.type == "Analyte" and output.name in list(df["sample_name"])]
+
+    udfs_to_columns = {
+
+    }
+
+    for sample in samples:
+
 
 
 def main(lims: Lims, process: Process):
