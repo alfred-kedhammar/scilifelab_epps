@@ -7,6 +7,8 @@ from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
 from genologics.entities import Process, Artifact
+from epp_utils.udf_tools import put, fetch
+from epp_utils import formula
 
 
 def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
@@ -16,7 +18,6 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
         for outart in currentStep.all_outputs()
         if outart.name == "Anglerfish Result File"
     ][0]
-    assert anglerfish_file_slot
 
     # Try to load file from LIMS
     if anglerfish_file_slot.files:
@@ -74,6 +75,7 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
 
 
 def get_data(content: list, log: list):
+    
     data = []
     header = None
 
@@ -120,19 +122,80 @@ def get_data(content: list, log: list):
     return df
 
 
-def fill_udfs(currentStep: Process, df: pd.DataFrame):
-    samples = [
-        output
-        for output in currentStep.all_outputs()
-        if output.type == "Analyte" and output.name in list(df["sample_name"])
+def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
+
+    # Dictate which LIMS UDF corresponds to which column in the dataframe
+    udfs_to_cols = {
+        "# Reads": "#reads",
+        "Avg. Read Length": "mean_read_len",
+        "Std. Read Length": "std_read_len",
+        "Representation Within Run (%)": "repr_total_pc",
+        "Representation Within Barcode (%)": "repr_within_barcode_pc",
+    }
+
+    # Get Illumina pools
+    illumina_pools = [
+        input_art
+        for input_art in currentStep.all_inputs()
+        if input_art.type == "Analyte"
     ]
 
-    udfs_to_columns = {}
+    for illumina_pool in illumina_pools:
 
-    for sample in samples:
-        pass
+        try:
+            # Get Illumina samples in the current pool
+            illumina_samples = [
+                output
+                for output in currentStep.all_outputs()
+                if output.type == "ResultFile"
+                and output.input_artifact_list()[0].name == illumina_pool.name
+                and output.name in list(df["sample_name"])
+            ]
 
-    return None
+            for illumina_sample in illumina_samples:
+
+                try:
+                    # Translate the ONT barcode well to the barcode string used by Anglerfish
+                    barcode_well: str = fetch(illumina_sample, "ONT Barcode Well")
+                    # Add colon if not present
+                    if not ":" in barcode_well:
+                        barcode_well = f"{barcode_well[0]}:{barcode_well[1:]}"
+                    # Get the number corresponding to the well (column-wise)
+                    barcode_num_str = str(formula.well_name2num_96plate[barcode_well])
+                    # Pad barcode number with leading zero if necessary
+                    if len(barcode_num_str) < 2:
+                        barcode_num_str = f"0{barcode_num_str}"
+                    barcode_name = f"barcode{barcode_num_str}"
+
+                    # Find the dataframe row matching the LIMS output artifact
+                    df_barcode = df[df["ont_barcode"] == barcode_name]
+                    df_match = df_barcode[
+                        df_barcode["sample_name"] == illumina_sample.name
+                    ]
+                    assert (
+                        len(df_match) == 1
+                    ), f"Multiple entries matching both Illumina sample name {illumina_sample.name} and ONT barcode {barcode_str} was found in the dataframe."
+                        
+                    # Start putting UDFs
+                    for udf, col in udfs_to_cols.items():
+                        try:
+                            value = float(df_match[col].values[0])
+                            put(
+                                illumina_sample,
+                                udf,
+                                value,
+                            )
+                        except:
+                            log.append(f"ERROR: Could not assign UDF '{udf}' value '{value}' for sample {illumina_sample.name}")
+                            continue
+
+                except:
+                    log.append(f"ERROR: Could not process sample {illumina_sample.name}")
+                    continue
+
+        except:
+            log.append(f"ERROR: Could not process pool {illumina_pool.name}")
+            continue
 
 
 def main(lims: Lims, process: Process):
@@ -143,10 +206,16 @@ def main(lims: Lims, process: Process):
     file_content: list = get_anglerfish_output_file(lims, process, log)
 
     # Parse the Anglerfish output
-    df = get_data(file_content, log)
+    df: pd.DataFrame = get_data(file_content, log)
 
     # Populate sample fields with Anglerfish results
     fill_udfs(df)
+
+    # Add sample comments
+    # TODO
+
+    # Upload log
+    # TODO
 
 
 if __name__ == "__main__":
