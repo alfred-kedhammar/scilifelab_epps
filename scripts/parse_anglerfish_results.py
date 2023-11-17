@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import glob
 
+from datetime import datetime as dt
 from argparse import ArgumentParser
 from genologics.lims import Lims
 from genologics.config import BASEURI, USERNAME, PASSWORD
@@ -21,7 +22,12 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
 
     # Try to load file from LIMS
     if anglerfish_file_slot.files:
-        log.append("'Anglerfish Result File' detected in the step, loading it directly")
+        loaded_file_name = anglerfish_file_slot.files[0].original_location.split("/")[
+            -1
+        ]
+        log.append(
+            f"Anglerfish Result File '{loaded_file_name}' detected in the step, loading it directly"
+        )
         bytes_content = lims.get_file_contents(
             id=anglerfish_file_slot.files[0].id
         ).readlines()
@@ -75,7 +81,6 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
 
 
 def get_data(content: list, log: list):
-    
     data = []
     header = None
 
@@ -123,7 +128,6 @@ def get_data(content: list, log: list):
 
 
 def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
-
     # Dictate which LIMS UDF corresponds to which column in the dataframe
     udfs_to_cols = {
         "# Reads": "#reads",
@@ -141,7 +145,6 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
     ]
 
     for illumina_pool in illumina_pools:
-
         try:
             # Get Illumina samples in the current pool
             illumina_samples = [
@@ -153,7 +156,6 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
             ]
 
             for illumina_sample in illumina_samples:
-
                 try:
                     # Translate the ONT barcode well to the barcode string used by Anglerfish
                     barcode_well: str = fetch(illumina_sample, "ONT Barcode Well")
@@ -174,8 +176,8 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
                     ]
                     assert (
                         len(df_match) == 1
-                    ), f"Multiple entries matching both Illumina sample name {illumina_sample.name} and ONT barcode {barcode_str} was found in the dataframe."
-                        
+                    ), f"Multiple entries matching both Illumina sample name {illumina_sample.name} and ONT barcode {barcode_name} was found in the dataframe."
+
                     # Start putting UDFs
                     for udf, col in udfs_to_cols.items():
                         try:
@@ -186,11 +188,15 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
                                 value,
                             )
                         except:
-                            log.append(f"ERROR: Could not assign UDF '{udf}' value '{value}' for sample {illumina_sample.name}")
+                            log.append(
+                                f"ERROR: Could not assign UDF '{udf}' value '{value}' for sample {illumina_sample.name}"
+                            )
                             continue
 
                 except:
-                    log.append(f"ERROR: Could not process sample {illumina_sample.name}")
+                    log.append(
+                        f"ERROR: Could not process sample {illumina_sample.name}"
+                    )
                     continue
 
         except:
@@ -198,12 +204,34 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
             continue
 
 
-def main(lims: Lims, process: Process):
+def write_log(log, currentStep):
+    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+    log_filename = f"parse_anglerfish_results_log_{currentStep.id}_{timestamp}_{currentStep.technician.name.replace(' ','')}"
+    with open(log_filename, "w") as logContext:
+        logContext.write("\n".join(log))
+    return log_filename
+
+
+def upload_log(currentStep, lims, log_filename):
+    log_file_slot = [
+        slot
+        for slot in currentStep.all_outputs()
+        if slot.name == "Parse Anglerfish Results Log"
+    ][0]
+    for f in log_file_slot.files:
+        lims.request_session.delete(f.uri)
+    lims.upload_new_file(log_file_slot, log_filename)
+
+    # Remove originally written file
+    os.remove(log_filename)
+
+
+def main(lims: Lims, currentStep: Process):
     # Instantiate log file
     log = []
 
     # Get file contents
-    file_content: list = get_anglerfish_output_file(lims, process, log)
+    file_content: list = get_anglerfish_output_file(lims, currentStep, log)
 
     # Parse the Anglerfish output
     df: pd.DataFrame = get_data(file_content, log)
@@ -214,8 +242,11 @@ def main(lims: Lims, process: Process):
     # Add sample comments
     # TODO
 
+    # Write log
+    log_filename = write_log(log, currentStep)
+
     # Upload log
-    # TODO
+    upload_log(currentStep, lims, log_filename)
 
 
 if __name__ == "__main__":
@@ -228,4 +259,6 @@ if __name__ == "__main__":
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
 
-    main(lims, args.pid)
+    currentStep = Process(lims, id=args.pid)
+
+    main(lims, currentStep)
