@@ -118,6 +118,7 @@ def get_data(content: list, log: list):
     # Add additional metrics
     df["repr_total_pc"] = df["#reads"] / df["#reads"].sum() * 100
     df["repr_within_barcode_pc"] = df.apply(
+        # Sample reads divided by sum of all sample reads w. the same barcode
         lambda row: row["#reads"]
         / df[df["ont_barcode"] == row["ont_barcode"]]["#reads"].sum()
         * 100,
