@@ -41,6 +41,7 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
 
         # Find latest run
         run_query = f"/srv/ngi-nas-ns/minion_data/qc/*{flowcell_id}*"
+        log.append(f"Looking for path {run_query}")
         run_glob = glob.glob(run_query)
         assert (
             len(run_glob) != 0
@@ -51,7 +52,7 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
                 f"WARNING: Multiple runs with flowcell ID {flowcell_id} detected:\n{runs_list}"
             )
         latest_run_path = max(run_glob, key=os.path.getctime)
-        log.append(f"INFO: Using run {latest_run_path}")
+        log.append(f"Using latest run {latest_run_path}")
 
         # Find latest Anglerfish results of run
         anglerfish_results_query = (
@@ -69,7 +70,7 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
         latest_anglerfish_results_path = max(
             anglerfish_results_glob, key=os.path.getctime
         )
-        log.append(f"INFO: Using Anglerfish results {latest_anglerfish_results_path}")
+        log.append(f"Using latest Anglerfish results {latest_anglerfish_results_path}")
 
         # Upload results to LIMS
         lims.upload_new_file(anglerfish_file_slot, latest_anglerfish_results_path)
