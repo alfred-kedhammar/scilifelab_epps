@@ -4,6 +4,10 @@
 
 Fix change in flowcell mode name that is related with control software upgrade
 
+## 20231117.1
+
+Re-write EPP for parsing Anglerfish results.
+
 ## 20231106.1
 
 Fix error for RAD-seq prep pooling.
