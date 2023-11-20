@@ -239,7 +239,7 @@ def main(lims: Lims, currentStep: Process):
     df: pd.DataFrame = get_data(file_content, log)
 
     # Populate sample fields with Anglerfish results
-    fill_udfs(df)
+    fill_udfs(currentStep, df, log)
 
     # Add sample comments
     # TODO
