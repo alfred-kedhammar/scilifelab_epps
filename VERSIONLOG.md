@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231120.1
+
+Fix change in flowcell mode name that is related with control software upgrade
+
 ## 20231117.1
 
 Re-write EPP for parsing Anglerfish results.

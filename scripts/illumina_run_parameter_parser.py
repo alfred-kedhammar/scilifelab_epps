@@ -350,7 +350,7 @@ def lims_for_NovaSeqXPlus(process, run_dir):
 
     for consumable in consumables:
         if consumable["Type"] == "FlowCell":
-            process.udf["Flow Cell Mode"] = consumable["Mode"]
+            process.udf["Flow Cell Mode"] = consumable["Name"] if consumable.get("Name", "") else consumable["Mode"]
 
             process.udf["Flow Cell ID"] = consumable["SerialNumber"]
             process.udf["Flow Cell Part Number"] = consumable["PartNumber"]
