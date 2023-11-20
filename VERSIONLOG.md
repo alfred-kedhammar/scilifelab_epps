@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231120.1
+
+Fix change in flowcell mode name that is related with control software upgrade
+
 ## 20231106.1
 
 Fix error for RAD-seq prep pooling.
