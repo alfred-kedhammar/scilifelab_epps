@@ -254,10 +254,10 @@ def prepooling(currentStep, lims):
             currentStep=currentStep,
             lims=lims,
             udfs = {
-                "target_amt": "Amount taken (ng)",
-                "target_vol": "Total Volume (uL)",
+                "target_amt": "Amount for prep (ng)",
+                "target_vol": "Final Volume (uL)",
                 "target_conc": None,
-                "final_amt": "Amount taken (ng)",
+                "final_amt": "Amount for prep (ng)",
                 "final_vol": "Final Volume (uL)",
                 "final_conc": None
             }

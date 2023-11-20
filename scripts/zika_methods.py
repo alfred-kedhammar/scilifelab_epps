@@ -10,6 +10,7 @@ import zika_utils
 import pandas as pd
 import sys
 import numpy as np
+from epp_utils.udf_tools import is_filled
 
 
 def pool(
@@ -435,6 +436,20 @@ def norm(
         ]:
             log.append(e)
 
+        # Import output artifacts
+        outputs = {
+            art.name: art for art in currentStep.all_outputs() if art.type == "Analyte"
+        }
+
+        # Assert required UDFs are populated in step
+        for output_name, output in outputs.items():
+            assert is_filled(
+                output, udfs["target_amt"]
+            ), f"UDF '{udfs['target_amt']}' missing for {output.name}"
+            assert is_filled(
+                output, udfs["target_vol"]
+            ), f"UDF '{udfs['target_vol']}' missing for {output.name}"
+
         # Fetch sample data
 
         to_fetch = {
@@ -487,8 +502,6 @@ def norm(
         df["min_transfer_amt"] = np.minimum(df.vol, zika_min_vol) * df.conc
         df["max_transfer_amt"] = np.minimum(df.vol, df.target_vol) * df.conc
 
-        outputs = {art.name : art for art in currentStep.all_outputs() if art.type == "Analyte"}
-
         # Iterate across samples
         d = {"sample_vol": [], "buffer_vol": [], "tot_vol": [], "sample_amt": [], "final_conc": []}
         for i, r in df.iterrows():
@@ -499,8 +512,12 @@ def norm(
 
             # 1) Not enough sample --> Conc below target
             if round(r.max_transfer_amt,2) < round(r.target_amt,2):
-
+                if r.conc < r.target_conc:
+                    log.append("WARNING: Sample concentration is less than target concentration")
+                if r.vol < r.target_vol:
+                    log.append("WARNING: Sample is depleted")
                 sample_vol = min(r.vol, r.target_vol)
+                log.append(f"INFO: Using maximum sample live volume {sample_vol} ul")
                 tot_vol = r.target_vol
                 buffer_vol = tot_vol - sample_vol
 
@@ -513,32 +530,40 @@ def norm(
 
             # 3) Sample too concentrated -> Increase final volume if possible
             elif round(r.min_transfer_amt,2) > round(r.target_amt,2):
+                log.append("WARNING: Sample is too concentrated")
 
                 if volume_expansion:
                     if r.min_transfer_amt / r.target_conc <= well_max_vol:
                         tot_vol = r.min_transfer_amt / r.target_conc
                     else:
                         tot_vol = well_max_vol
+                    log.append(f"INFO: Expanding total volume to {round(tot_vol,1)} ul")
                     sample_vol = zika_min_vol
                     buffer_vol = tot_vol - sample_vol
-                    log.append(f"INFO: Applying volume expansion")
 
                 else:
+                    log.append(f"INFO: Using minimum sample volume {zika_min_vol} ul")
                     sample_vol = zika_min_vol
                     tot_vol = r.target_vol
                     buffer_vol = tot_vol - sample_vol
 
-            # Finalize calculations
-            if buffer_vol < zika_min_vol:
+            # Adress cases where buffer volume is lower than the minimum transfer amount
+            if 0 < buffer_vol < zika_min_vol:
+                log.append(
+                    f"WARNING: Required buffer volume ({round(buffer_vol,1)} ul) is less than minimum transfer volume {zika_min_vol} ul"
+                )
+                log.append(f"INFO: Omitting buffer")
+                tot_vol -= buffer_vol
                 buffer_vol = 0
-                sample_vol = tot_vol
+
+            # Finalize calculations
             final_amt = sample_vol * r.conc
             final_conc = final_amt / tot_vol
             final_conc_frac = final_conc / r.target_conc
             if round(final_conc_frac, 2) > 1:
-                log.append("WARNING: Sample is too concentrated")
+                log.append("WARNING: Final concentration is above target")
             elif round(final_conc_frac, 2) < 1:
-                log.append("WARNING: Sample is depleted")
+                log.append("WARNING: Final concentration is below target")
             log.append(f"--> Diluting {round(sample_vol,1)} ul ({round(final_amt,2)} {amt_unit}) to {round(tot_vol,1)} ul ({round(final_conc,2)} {conc_unit}, {round(final_conc_frac*100,1)}% of target)")
 
             # Append calculation results to dict
