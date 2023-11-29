@@ -11,7 +11,7 @@ jobs:
       - name: Set up Python v3.6.2
         uses: actions/setup-python@v3
         with:
-          python-version: "3.6.2"
+          python-version: "3.6"
 
       - name: Install dependenciess
         run: |
