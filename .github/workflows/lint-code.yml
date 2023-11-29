@@ -1,0 +1,31 @@
+name: lint-code
+run-name: Linting code for ${{ github.actor }}
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python v3.6.2
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.6.2"
+
+      - name: Install dependenciess
+        run: |
+          python -m pip install --upgrade pip
+          pip install autoflake pyupgrade isort ruff mypy
+
+      - name: autoflake --> Check for unused variables and imports
+
+      - name: pyupgrade --> Check for syntax to modernize
+
+      - name: isort --> Check for best-practice sorting of imports
+
+      - name: ruff --> Check code formatting
+        run: ruff check .
+
+      - name: mypy --> Static type checking
+
