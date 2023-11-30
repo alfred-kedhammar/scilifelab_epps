@@ -1,12 +1,12 @@
 name: lint-code
-run-name: Linting code for ${{ github.actor }}
 on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
