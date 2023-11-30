@@ -1,4 +1,5 @@
 import json
+from typing import Union
 
 from genologics.entities import Artifact, Process
 from requests.exceptions import HTTPError
@@ -78,7 +79,7 @@ def get_art_tuples(currentStep: Process) -> list:
 
 
 def fetch_from_tuple(
-    art_tuple: tuple, target_udfs: str or list, on_fail=AssertionError()
+    art_tuple: tuple, target_udfs: Union[str, list], on_fail=AssertionError()
 ):
     """Try to fetch UDF based on input/output tuple of step that is missing either input or output artifacts,
     optionally without causing fatar error.
@@ -104,7 +105,7 @@ def fetch_from_tuple(
         return on_fail
 
 
-def fetch(art: Artifact, target_udfs: str or list, on_fail=AssertionError()):
+def fetch(art: Artifact, target_udfs: Union[str, list], on_fail=AssertionError()):
     """Try to fetch UDF from artifact, optionally without causing fatar error.
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
@@ -132,7 +133,7 @@ def list_udfs(art: Artifact) -> list:
 def fetch_last(
     currentStep: Process,
     art_tuple: tuple,
-    target_udfs: str or list,
+    target_udfs: Union[str, list],
     use_current=True,
     print_history=False,
     on_fail=AssertionError(),

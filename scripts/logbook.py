@@ -10,13 +10,12 @@ Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 import argparse
 import datetime
 import os
-from argparse import ArgumentParser
 
 import httplib2
 from apiclient import discovery
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import *
-from genologics.lims import *
+from genologics.entities import Process
+from genologics.lims import Lims
 from oauth2client import client, tools
 from oauth2client.file import Storage
 
@@ -167,7 +166,7 @@ def main(lims, pid, epp_logger):
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description=DESC)
+    parser = argparse.ArgumentParser(description=DESC)
     parser.add_argument(
         "--pid", default="24-38458", dest="pid", help="Lims id for current Process"
     )

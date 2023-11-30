@@ -2,8 +2,8 @@
 from argparse import ArgumentParser
 
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import *
-from genologics.lims import *
+from genologics.entities import Process
+from genologics.lims import Lims
 
 
 def main(lims, args):

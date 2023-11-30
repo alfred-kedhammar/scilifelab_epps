@@ -12,10 +12,11 @@ import sys
 from argparse import ArgumentParser
 
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import *
-from genologics.lims import *
+from genologics.entities import Process
+from genologics.lims import Lims
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 from data.logbook_data import GDoc_logbook, lims_process_record
 from scilifelab_epps.epp import EppLogger

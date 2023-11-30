@@ -231,7 +231,7 @@ def upload_log(currentStep, lims, log_filename):
 
 def main(lims: Lims, currentStep: Process):
     # Instantiate log file
-    log = []
+    log: list = []
 
     # Get file contents
     file_content: list = get_anglerfish_output_file(lims, currentStep, log)

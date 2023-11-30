@@ -3,12 +3,6 @@
 import json
 import re
 import sys
-
-try:
-    from io import StringIO
-except ImportError:
-    pass
-
 from argparse import ArgumentParser
 
 from genologics.config import BASEURI, PASSWORD, USERNAME

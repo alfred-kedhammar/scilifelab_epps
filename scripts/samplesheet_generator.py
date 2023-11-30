@@ -3,17 +3,11 @@
 import os
 import re
 import sys
-
-import pandas as pd
-
-try:
-    from io import StringIO
-except ImportError:
-    from StringIO import StringIO
-
 from argparse import ArgumentParser
 from datetime import datetime
+from io import StringIO
 
+import pandas as pd
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
