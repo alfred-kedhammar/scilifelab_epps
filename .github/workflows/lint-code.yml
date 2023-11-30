@@ -63,6 +63,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install mypy
       - name: mypy --> Install stubs
-        run: mypy --install-types
+        run: mypy --install-types .
       - name: mypy --> Static type checking
         run: mypy --ignore-missing-imports --follow-imports=skip --exclude build . 
