@@ -176,7 +176,6 @@ def optimize_volumes(samples, final_vol, limit_vol=2):
     # Create a list we can sort to get the min/max values:
     l = [(s["conc"] * s["vol"], s["conc"], s["vol"]) for s in samples]
     # Find the min/max values by sorting on the different values:
-    min_conc = sorted(l, key=lambda x: x[1])[0][1]  # unused
     max_conc = sorted(l, key=lambda x: x[1])[-1][1]
     min_vol = sorted(l, key=lambda x: x[2])[0][2]
     # The volume of the input with lowest amount:
@@ -659,7 +658,6 @@ def dilution(currentStep):
                                 >= MIN_WARNING_VOLUME
                             ):
                                 final_conc = min_required_conc
-                                step = 0.25
                                 while (
                                     final_conc
                                     <= max_conc_for_dilution
@@ -1121,7 +1119,6 @@ def calc_vol(art_tuple, logContext, checkTheLog):
     for stage in art_tuple[0]["uri"].workflow_stages_and_statuses:
         if stage[1] == "IN_PROGRESS":
             art_workflows.append(stage[0].workflow.name)
-    project = art_tuple[0]["uri"].samples[0].project
     try:
         # not handling different units yet. Might be needed at some point.
         assert art_tuple[0]["uri"].udf["Conc. Units"] in ["ng/ul", "ng/uL"]
