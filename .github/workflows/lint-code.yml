@@ -18,24 +18,28 @@ jobs:
           pip install isort ruff mypy
 
   ruff-check:
+    runs-on: ubuntu-latest
     needs: setup
     steps:
       - name: ruff --> Check for style violations
         run: ruff check .
 
   isort-check:
+    runs-on: ubuntu-latest
     needs: setup
     steps:
       - name: isort --> Check for best-practice sorting of imports
         run: isort .
 
   ruff-format:
+    runs-on: ubuntu-latest
     needs: setup
     steps:
       - name: ruff --> Check code formatting
         run: ruff format --check .
 
   mypy-check:
+    runs-on: ubuntu-latest
     needs: setup
     steps:
       - name: mypy --> Static type checking
