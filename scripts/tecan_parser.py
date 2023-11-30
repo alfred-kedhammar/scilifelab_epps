@@ -4,7 +4,7 @@ import sys
 from argparse import ArgumentParser
 
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import *
+from genologics.entities import Process
 from genologics.lims import Lims
 
 DESC = """EPP used to parse csv files from the Tecan plate reader

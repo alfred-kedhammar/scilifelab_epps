@@ -29,7 +29,6 @@ def main(lims, args):
             log.append(str(e))
 
     # Fetch required run step UDFs
-    run_mode = process.udf.get("Run Mode", "")
     sample_loading_type = (
         "NovaSeqXp"
         if process.udf.get("Loading Workflow Type") == "NovaSeq Xp"

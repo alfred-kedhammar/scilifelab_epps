@@ -150,12 +150,10 @@ def calculate_volume_postgres(process):
             cursor.execute(query.format(input.id))
             query_output = cursor.fetchall()
             if len(query_output) == 1:
-                sample_id = query_output[0][1]
                 conc = query_output[0][2]
                 conc_unit = query_output[0][3]
             # When there are more than 1 query results found, use the latest values
             elif len(query_output) > 1:
-                sample_id = max(query_output, key=lambda tup: tup[0])[1]
                 conc = max(query_output, key=lambda tup: tup[0])[2]
                 conc_unit = max(query_output, key=lambda tup: tup[0])[3]
             # No concentration could be found

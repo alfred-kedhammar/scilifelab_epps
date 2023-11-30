@@ -647,11 +647,6 @@ def gen_MinION_QC_data(pro):
     data = []
     for out in pro.all_outputs():
         if NGISAMPLE_PAT.findall(out.name):
-            nanopore_barcode_name = (
-                out.udf["Nanopore Barcode"].split("_")[0]
-                if out.udf["Nanopore Barcode"] != "None"
-                else ""
-            )
             nanopore_barcode_seq = (
                 out.udf["Nanopore Barcode"].split("_")[1]
                 if out.udf["Nanopore Barcode"] != "None"

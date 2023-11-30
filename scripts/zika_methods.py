@@ -299,16 +299,7 @@ def pool(
                         "The above samples will be depleted and under-represented in the final pool."
                     )
 
-                    # Calculate pool limits...
-                    # --> Assuming all samples can meet the target common amount (they can't)
-                    pool_flawed_min_amt = target_transfer_amt * len(df_pool)
-                    pool_flawed_min_sample_vol = sum(target_transfer_amt / df_pool.conc)
-                    pool_flawed_max_conc = (
-                        pool_flawed_min_amt / pool_flawed_min_sample_vol
-                    )
-                    pool_flawed_min_conc = pool_flawed_min_amt / well_max_vol
-
-                    # --> Taking into account sample depletion
+                    # Calculate pool limits taking into account sample depletion
                     pool_real_min_amt = sum(
                         np.minimum(target_transfer_amt, df_pool.max_amount)
                     )

@@ -425,7 +425,6 @@ class LaneQC:
             qc_logg = "Index yield - expected index: {0}".format(self.reads_threshold)
             print(qc_logg, file=self.qc_log_file)
         else:
-            exp_samp_clust = np.true_divide(self.exp_lane_clust, self.nr_lane_samps)
             self.reads_threshold = int(self.exp_samp_clust * 0.5)
             qc_logg = (
                 "Index yield - expected index: {0}. Value based on nr of "

@@ -292,7 +292,7 @@ def anglerfish_samplesheet(currentStep):
             measurements.append(art)
 
     ont_barcode_bools = [
-        udf_tools.fetch(art, "ONT Barcode Well", on_fail=None) != None
+        udf_tools.fetch(art, "ONT Barcode Well", on_fail=None) is not None
         for art in measurements
     ]
 
@@ -400,7 +400,7 @@ def get_index_info(sample):
     # Return
 
     if index_seq:
-        if type(index_seq) != list:
+        if not isinstance(index_seq, list):
             index_seq = [index_seq]
         return index_seq, adaptors_name
 

@@ -26,7 +26,6 @@ def multiply_with_dilution_factor(pro, aggregate):
     for art in artifacts:
         # Only do calculation when concentration value exists
         try:
-            org_conc = art.udf["Concentration"]
             try:
                 # Multipy concentraion with dilution fold,and update dilution fold to 1 to avoid error due to multiple operations
                 dilution_fold = art.udf["Dilution Fold"]

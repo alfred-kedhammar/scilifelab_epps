@@ -9,7 +9,7 @@ import os
 from argparse import ArgumentParser
 
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import *
+from genologics.entities import Process
 from genologics.lims import Lims
 
 from scilifelab_epps.epp import EppLogger, attach_file
@@ -172,7 +172,6 @@ def sumreads(sample, summary):
 
     # grab the sequencing process associated
     # find the correct input
-    inputart = None
     try:
         for inart in base_art.parent_process.all_inputs():
             if sample.name in [s.name for s in inart.samples]:
