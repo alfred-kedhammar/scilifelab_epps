@@ -8,7 +8,7 @@ import datetime
 from argparse import ArgumentParser
 
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import *
+from genologics.entities import Process
 from genologics.lims import Lims
 from write_notes_to_couchdb import write_note_to_couch
 
@@ -155,8 +155,6 @@ def categorization(process_name):
 
 
 def main(lims, args):
-    comment = False
-
     noteobj = {}
     pro = Process(lims, id=args.pid)
     if "Comments" in pro.udf and pro.udf["Comments"] != "":

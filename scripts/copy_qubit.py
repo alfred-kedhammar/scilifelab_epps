@@ -60,7 +60,6 @@ def get_data(csv_content, log):
     # defaults
     sample_index = 2
     conc_index = 6
-    conc_unit = 7
     for row in pf:
         if "Test Name" in row or "Sample Name" in row:
             # this is the header row

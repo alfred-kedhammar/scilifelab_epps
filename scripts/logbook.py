@@ -94,7 +94,7 @@ def write_record(content, dest_file):
     request = service.spreadsheets().batchUpdate(
         spreadsheetId=spreadsheetId, body=batch_update_spreadsheet_request_body
     )
-    response = request.execute()
+    request.execute()
 
     # Fill in values
     rangeName = "".join(
@@ -111,7 +111,8 @@ def write_record(content, dest_file):
     values = [content]
     data = [{"range": rangeName, "majorDimension": "ROWS", "values": values}]
     body = {"valueInputOption": "USER_ENTERED", "data": data}
-    result = (
+
+    (
         service.spreadsheets()
         .values()
         .batchUpdate(spreadsheetId=spreadsheetId, body=body)
