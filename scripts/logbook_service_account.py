@@ -16,6 +16,7 @@ from genologics.entities import Process
 from genologics.lims import Lims
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 from data.logbook_data import GDoc_logbook, lims_process_record
 from scilifelab_epps.epp import EppLogger
@@ -73,7 +74,7 @@ def write_record(content, dest_file):
         spreadsheetId=spreadsheetId, body=batch_update_spreadsheet_request_body
     )
     try:
-        response = request.execute()
+        request.execute()
     except HttpError:
         sys.exit("Service account has no editing access to the logbook")
 
@@ -93,7 +94,7 @@ def write_record(content, dest_file):
     data = [{"range": rangeName, "majorDimension": "ROWS", "values": values}]
     body = {"valueInputOption": "USER_ENTERED", "data": data}
     try:
-        result = (
+        (
             service.spreadsheets()
             .values()
             .batchUpdate(spreadsheetId=spreadsheetId, body=body)
