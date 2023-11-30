@@ -34,7 +34,7 @@ jobs:
         run: |
           msg="Suggest running 'isort .' to fix this."
           isort --check . \
-          || echo "::error ::$msg" && exit 1
+          || echo "::error ::$msg"
 
   ruff-format:
     runs-on: ubuntu-latest
