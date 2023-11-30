@@ -16,19 +16,16 @@ jobs:
       - name: Install dependenciess
         run: |
           python -m pip install --upgrade pip
-          pip install autoflake pyupgrade isort ruff mypy
+          pip install isort ruff mypy
 
-      - name: autoflake --> Check for unused variables and imports
-        run: echo pass
-
-      - name: pyupgrade --> Check for syntax to modernize
-        run: echo pass
-
-      - name: isort --> Check for best-practice sorting of imports
-        run: echo pass
-
-      - name: ruff --> Check code formatting
+      - name: ruff --> Check for style violations
         run: ruff check .
 
+      - name: isort --> Check for best-practice sorting of imports
+        run: isort .
+
+      - name: ruff --> Check code formatting
+        run: ruff format --check .
+
       - name: mypy --> Static type checking
-        run: echo pass
+        run: mypy --ignore-missing-imports --follow-imports=skip --exclude build .
