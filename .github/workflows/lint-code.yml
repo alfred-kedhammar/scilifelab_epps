@@ -32,7 +32,7 @@ jobs:
           pip install isort
       - name: isort --> Check for best-practice sorting of imports
         run: |
-          msg="test"
+          msg="Suggest running 'isort .' to fix this."
           isort --check . \
           || echo "::error ::$msg" && exit 1
 
