@@ -9,7 +9,7 @@ import sys
 from argparse import ArgumentParser
 
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import *
+from genologics.entities import Process, Project
 from genologics.lims import Lims
 from write_notes_to_couchdb import write_note_to_couch
 
