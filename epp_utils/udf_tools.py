@@ -43,7 +43,7 @@ def no_outputs(currentStep: Process) -> bool:
     art_tuples = get_art_tuples(currentStep)
 
     if art_tuples:
-        none_outputs = [t[1] == None for t in art_tuples]
+        none_outputs = [t[1] is None for t in art_tuples]
 
         if all(none_outputs):
             return True
@@ -87,7 +87,7 @@ def fetch_from_tuple(
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
 
-    if type(target_udfs) == str:
+    if isinstance(target_udfs, str):
         target_udfs = [target_udfs]
 
     for target_udf in target_udfs:
@@ -111,7 +111,7 @@ def fetch(art: Artifact, target_udfs: Union[str, list], on_fail=AssertionError()
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
 
-    if type(target_udfs) == str:
+    if isinstance(target_udfs, str):
         target_udfs = [target_udfs]
 
     for target_udf in target_udfs:
@@ -146,7 +146,7 @@ def fetch_last(
     """
 
     # Convert to list, to enable iteration
-    if type(target_udfs) == str:
+    if isinstance(target_udfs, str):
         target_udfs = [target_udfs]
 
     history = []
@@ -163,7 +163,7 @@ def fetch_last(
         except:
             output_art = None
 
-        if len(history) == 1 and use_current != True:
+        if len(history) == 1 and use_current is not True:
             # If we are in the original step and "use_current" is false, skip
             pass
         else:
@@ -178,7 +178,7 @@ def fetch_last(
 
                 for target_udf in target_udfs:
                     if target_udf in list_udfs(output_art):
-                        if print_history == True:
+                        if print_history is True:
                             return output_art.udf[target_udf], json.dumps(
                                 history, indent=2
                             )
@@ -202,7 +202,7 @@ def fetch_last(
                 )
                 for target_udf in target_udfs:
                     if target_udf in list_udfs(input_art):
-                        if print_history == True:
+                        if print_history is True:
                             return input_art.udf[target_udf], json.dumps(
                                 history, indent=2
                             )
@@ -239,10 +239,10 @@ def fetch_last(
 
         except:
             if issubclass(type(on_fail), BaseException):
-                if print_history == True:
+                if print_history is True:
                     print(json.dumps(history, indent=2))
                 raise on_fail
             else:
-                if print_history == True:
+                if print_history is True:
                     print(json.dumps(history, indent=2))
                 return on_fail
