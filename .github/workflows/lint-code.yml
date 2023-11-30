@@ -19,40 +19,24 @@ jobs:
 
   ruff-check:
     needs: setup
-    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
       - name: ruff --> Check for style violations
         run: ruff check .
 
   isort-check:
     needs: setup
-    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
       - name: isort --> Check for best-practice sorting of imports
         run: isort .
 
   ruff-format:
     needs: setup
-    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
       - name: ruff --> Check code formatting
         run: ruff format --check .
 
   mypy-check:
     needs: setup
-    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
       - name: mypy --> Static type checking
         run: mypy --ignore-missing-imports --follow-imports=skip --exclude build .
