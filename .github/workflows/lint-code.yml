@@ -32,9 +32,9 @@ jobs:
           pip install isort
       - name: isort --> Check for best-practice sorting of imports
         run: |
-          msg="Suggest running 'isort .' to fix this."
+          msg="Suggested fix: run 'isort .' on this repo."
           isort --check . \
-          || echo "::error ::$msg"
+          || echo "::error ::$msg" && exit 1
 
   ruff-format:
     runs-on: ubuntu-latest
@@ -50,7 +50,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install ruff
       - name: ruff --> Check code formatting
-        run: ruff format --check .
+        run: |
+          msg="Suggested fix: run 'ruff format .' on this repo."
+          ruff format --check . \
+          || echo "::error ::$msg" && exit 1
 
   mypy-check:
     runs-on: ubuntu-latest
@@ -66,4 +69,4 @@ jobs:
           python -m pip install --upgrade pip
           pip install mypy
       - name: mypy --> Static type checking
-        run: mypy --ignore-missing-imports --follow-imports=skip --exclude build .
+        run: mypy --ignore-missing-imports --follow-imports=skip --exclude build . 
