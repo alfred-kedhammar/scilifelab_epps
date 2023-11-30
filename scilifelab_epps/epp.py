@@ -48,11 +48,11 @@ class NotUniqueError(ValueError):
     pass
 
 
-def unique_check(l, msg):
+def unique_check(to_check, msg):
     "Check that l is of length 1, otherwise raise error, with msg appended"
-    if len(l) == 0:
+    if len(to_check) == 0:
         raise EmptyError("No item found for {0}".format(msg))
-    elif len(l) != 1:
+    elif len(to_check) != 1:
         raise NotUniqueError("Multiple items found for {0}".format(msg))
 
 
@@ -295,7 +295,7 @@ class ReadResultFiles:
         error_message = ""
         duplicated_lines = []
         exeptions = ["Sample", "Fail", ""]
-        if type(first_header) is not list:
+        if not isinstance(first_header, list):
             if first_header:
                 first_header = [first_header]
             else:
@@ -441,9 +441,9 @@ def get_well_number(art: Artifact) -> int:
 
     # Ensure container well names match classical convention
     assert (
-        art.container.type.y_dimension["is_alpha"] == True
+        art.container.type.y_dimension["is_alpha"] is True
         and art.container.type.y_dimension["offset"] == 0
-        and art.container.type.x_dimension["is_alpha"] == False
+        and art.container.type.x_dimension["is_alpha"] is False
         and art.container.type.x_dimension["offset"] == 1
     ), "Can't convert well name --> well number for invalid container"
 
@@ -453,8 +453,8 @@ def get_well_number(art: Artifact) -> int:
     # Get simple dict translating letters to numbers
     letter2num = {}
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    for i, l in zip(range(1, len(alphabet) + 1), alphabet):
-        letter2num[l] = i
+    for i, letter in zip(range(1, len(alphabet) + 1), alphabet):
+        letter2num[letter] = i
 
     well_name = art.location[1]
     row_letter, col_num = well_name.split(":")
