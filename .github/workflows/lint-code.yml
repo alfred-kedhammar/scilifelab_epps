@@ -32,8 +32,9 @@ jobs:
           pip install isort
       - name: isort --> Check for best-practice sorting of imports
         run: |
+          msg="test"
           isort --check . \
-          || echo "::error ::$?" && exit 1
+          || echo "::error ::$msg" && exit 1
 
   ruff-format:
     runs-on: ubuntu-latest
