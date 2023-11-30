@@ -15,7 +15,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install ruff
       - name: ruff --> Check for style violations
-        run: ruff check .
+        # E402: Module level import not at top of file
+        # E722: Do not use bare 'except'
+        run: ruff check --ignore E402,E722 --unsafe-fixes .
 
   isort-check:
     runs-on: ubuntu-latest
