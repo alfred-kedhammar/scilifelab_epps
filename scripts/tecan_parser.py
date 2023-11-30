@@ -7,7 +7,6 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import *
 from genologics.lims import Lims
 
-
 DESC = """EPP used to parse csv files from the Tecan plate reader
 Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """

@@ -6,7 +6,6 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
-
 DESC = """EPP used to create csv files to drive the fragment analyzer"""
 
 

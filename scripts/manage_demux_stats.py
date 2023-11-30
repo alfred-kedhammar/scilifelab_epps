@@ -17,14 +17,12 @@ import os
 import re
 import sys
 from argparse import ArgumentParser
-
 # Standard packages
 from shutil import move
 
 import flowcell_parser.classes as classes
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
-
 # Fetched from SciLife repos
 from genologics.lims import Lims
 from manage_demux_stats_thresholds import Thresholds

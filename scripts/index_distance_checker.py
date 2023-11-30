@@ -4,7 +4,6 @@ import json
 import re
 import sys
 
-
 try:
     from io import StringIO
 except ImportError:

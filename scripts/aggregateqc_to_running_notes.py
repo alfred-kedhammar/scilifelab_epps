@@ -13,7 +13,6 @@ from genologics.entities import *
 from genologics.lims import Lims
 from write_notes_to_couchdb import write_note_to_couch
 
-
 QC_criteria_json = (
     "/opt/gls/clarity/users/glsai/repos/scilifelab_epps/data/QC_criteria.json"
 )
