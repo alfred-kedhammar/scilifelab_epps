@@ -32,8 +32,7 @@ jobs:
           pip install isort
       - name: isort --> Check for best-practice sorting of imports
         run: |
-        msg="Please run 'isort .' on this repo."
-        isort --check . || echo "::error ::$msg" && exit 1
+        isort --check . || echo "::error ::Please run 'isort .' on this repo." && exit 1
 
   ruff-format:
     runs-on: ubuntu-latest
