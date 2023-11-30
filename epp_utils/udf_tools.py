@@ -1,7 +1,7 @@
-from requests.exceptions import HTTPError
-from genologics.entities import Artifact, Process
 import json
 
+from genologics.entities import Artifact, Process
+from requests.exceptions import HTTPError
 
 DESC = """This is a submodule for defining reuasble functions to handle artifact
 UDFs in in the Genonolics Clarity LIMS API.
@@ -19,7 +19,7 @@ def put(art: Artifact, target_udf: str, val, on_fail=AssertionError()):
         art.put()
         return True
 
-    except HTTPError as e:
+    except HTTPError:
         del art.udf[target_udf]
         if issubclass(type(on_fail), BaseException):
             raise on_fail

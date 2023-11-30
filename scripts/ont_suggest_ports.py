@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
 from __future__ import division
+
 import re
 import sys
-from ont_send_reloading_info_to_db import get_ONT_db
 from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process
 
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+from ont_send_reloading_info_to_db import get_ONT_db
 
 DESC = """ Script for EPP "Suggest PromethION ports".
 Use StatusDB to find the least used ports and populate the positions UDFs with them.

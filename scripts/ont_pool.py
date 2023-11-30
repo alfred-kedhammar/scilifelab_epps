@@ -1,14 +1,17 @@
 from __future__ import division
+
+import sys
 from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
+from datetime import datetime as dt
+
+from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
-from zika_utils import fetch_sample_data
-from epp_utils import formula
+from genologics.lims import Lims
 from numpy import minimum
 from tabulate import tabulate
-from datetime import datetime as dt
-import sys
+from zika_utils import fetch_sample_data
+
+from epp_utils import formula
 
 DESC = """
 EPP "ONT pooling", file slot "ONT pooling log".

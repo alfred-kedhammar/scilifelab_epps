@@ -10,12 +10,15 @@ applications of the instrument.
 Written by Alfred Kedhammar
 """
 
-import pandas as pd
-import numpy as np
-from datetime import datetime as dt
 import sys
-from epp_utils.udf_tools import fetch_last
+from datetime import datetime as dt
+
+import numpy as np
+import pandas as pd
 from genologics.entities import Process
+
+from epp_utils.udf_tools import fetch_last
+
 
 def verify_step(currentStep, targets=None):
     """
@@ -164,10 +167,8 @@ def format_worklist(df, deck):
 
     # Iterate across rows
     for idx, row in df.iterrows():
-
         # If transfer volume of current row exceeds max
         if row.transfer_vol > max_vol:
-
             # We need to split the row across multiple sub-transfers. Make new df to add the sub-transfers to.
             transfers_to_add = pd.DataFrame(columns=df.columns)
 
@@ -433,7 +434,7 @@ def write_worklist(df, deck, wl_filename, comments=None, max_transfers_per_tip=1
             else:
                 raise AssertionError("No transfer type defined")
 
-        wl.write(f"COMMENT, Done")
+        wl.write("COMMENT, Done")
 
 
 def get_deck_comment(deck):

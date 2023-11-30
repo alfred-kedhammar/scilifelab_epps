@@ -2,14 +2,15 @@
 
 import os
 import sys
-import yaml
-import psycopg2
 from argparse import ArgumentParser
-from datetime import datetime
-from scilifelab_epps.epp import attach_file
-from genologics.lims import Lims
+
+import psycopg2
+import yaml
+from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
-from genologics.config import BASEURI, USERNAME, PASSWORD
+from genologics.lims import Lims
+
+from scilifelab_epps.epp import attach_file
 
 DESC = """EPP for calculating volume for the OmniC protocol
 Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden

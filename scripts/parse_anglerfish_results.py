@@ -1,15 +1,16 @@
 #!/usr/bin/env python
-import os
-import pandas as pd
 import glob
-
-from datetime import datetime as dt
+import os
 from argparse import ArgumentParser
+from datetime import datetime as dt
+
+import pandas as pd
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Artifact, Process
 from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process, Artifact
-from epp_utils.udf_tools import put, fetch
+
 from epp_utils import formula
+from epp_utils.udf_tools import fetch, put
 
 
 def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
@@ -162,7 +163,7 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
                     # Translate the ONT barcode well to the barcode string used by Anglerfish
                     barcode_well: str = fetch(illumina_sample, "ONT Barcode Well")
                     # Add colon if not present
-                    if not ":" in barcode_well:
+                    if ":" not in barcode_well:
                         barcode_well = f"{barcode_well[0]}:{barcode_well[1:]}"
                     # Get the number corresponding to the well (column-wise)
                     barcode_num_str = str(formula.well_name2num_96plate[barcode_well])

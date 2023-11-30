@@ -4,12 +4,13 @@ DESC = """EPP script to copy the "Comments" field to the projects running notes 
 
 Denis Moreno, Science for Life Laboratory, Stockholm, Sweden
 """
+import datetime
 from argparse import ArgumentParser
+
+from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import *
 from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
 from write_notes_to_couchdb import write_note_to_couch
-import datetime
 
 
 def categorization(process_name):
@@ -158,7 +159,7 @@ def main(lims, args):
 
     noteobj = {}
     pro = Process(lims, id=args.pid)
-    if "Comments" in pro.udf and pro.udf["Comments"] is not "":
+    if "Comments" in pro.udf and pro.udf["Comments"] != "":
         if isinstance(pro.udf["Comments"], str):
             comments = pro.udf["Comments"]
         else:
@@ -176,10 +177,10 @@ def main(lims, args):
         )
         noteobj["email"] = pro.technician.email
         key = datetime.datetime.now(datetime.timezone.utc)
-        noteobj['categories'] = [categorization(pro.type.name)]
-        noteobj['note_type'] = 'project'
-        noteobj['created_at_utc'] = key.isoformat()
-        noteobj['updated_at_utc'] = key.isoformat()
+        noteobj["categories"] = [categorization(pro.type.name)]
+        noteobj["note_type"] = "project"
+        noteobj["created_at_utc"] = key.isoformat()
+        noteobj["updated_at_utc"] = key.isoformat()
 
         # find the correct projects.
         samples = set()
@@ -192,9 +193,9 @@ def main(lims, args):
                 projects.add(sam.project)
 
         for proj in projects:
-            noteobj['projects'] = [proj.id]
-            noteobj['parent'] = proj.id
-            noteobj['_id'] = f'{proj.id}:{datetime.datetime.timestamp(key)}'
+            noteobj["projects"] = [proj.id]
+            noteobj["parent"] = proj.id
+            noteobj["_id"] = f"{proj.id}:{datetime.datetime.timestamp(key)}"
             write_note_to_couch(proj.id, key, noteobj, lims.get_uri())
 
 

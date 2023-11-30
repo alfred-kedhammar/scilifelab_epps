@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+
 DESC = """EPP script for Quant-iT mesurements to set QC flaggs and
 intensity check based on concentrations, Fluorescence intensity.
 
@@ -44,27 +45,28 @@ Logging:
 
 Written by Maya Brandi
 """
-import os
 import sys
-import logging
-import numpy as np
-
 from argparse import ArgumentParser
-from requests import HTTPError
-from genologics.lims import Lims
-from genologics.config import BASEURI,USERNAME,PASSWORD
-from genologics.entities import Process
-from scilifelab_epps.epp import EppLogger
-from scilifelab_epps.epp import set_field
-from scilifelab_epps.epp import ReadResultFiles
 
-class QuantitQC():
+import numpy as np
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+
+from scilifelab_epps.epp import EppLogger, set_field
+
+
+class QuantitQC:
     def __init__(self, process):
         self.result_files = process.result_files()
         self.udfs = dict(list(process.udf.items()))
-        self.required_udfs = set(["Allowed %CV of duplicates",
-            "Saturation threshold of fluorescence intensity",
-            "Minimum required concentration (ng/ul)"])
+        self.required_udfs = set(
+            [
+                "Allowed %CV of duplicates",
+                "Saturation threshold of fluorescence intensity",
+                "Minimum required concentration (ng/ul)",
+            ]
+        )
         self.abstract = []
         self.missing_udfs = []
         self.hig_CV_fract = 0
@@ -84,35 +86,37 @@ class QuantitQC():
 
         if fint_1 or fint_2:
             qc_flag = "PASSED"
-            if (fint_1 is not None and fint_1 >= treshold) or (fint_2 is not None and fint_2 >= treshold):
+            if (fint_1 is not None and fint_1 >= treshold) or (
+                fint_2 is not None and fint_2 >= treshold
+            ):
                 result_file.udf["Intensity check"] = "Saturated"
                 qc_flag = "FAILED"
-                self.saturated +=1
+                self.saturated += 1
             else:
                 result_file.udf["Intensity check"] = "OK"
                 if fint_1 and fint_2:
                     std = np.std([fint_1, fint_2])
                     mean = np.mean([fint_1, fint_2])
-                    procent_CV = np.true_divide(std,mean)
+                    procent_CV = np.true_divide(std, mean)
                     result_file.udf["%CV"] = procent_CV
                     if procent_CV >= allowed_dupl:
                         qc_flag = "FAILED"
-                        self.hig_CV_fract +=1
+                        self.hig_CV_fract += 1
             return qc_flag
         else:
-            self.flour_int_missing +=1
+            self.flour_int_missing += 1
             return None
 
     def concentration_QC(self, result_file, result_file_udfs):
         min_conc = self.udfs["Minimum required concentration (ng/ul)"]
-        if 'Concentration' in result_file_udfs:
-            if result_file_udfs['Concentration'] < min_conc:
-                self.low_conc +=1
+        if "Concentration" in result_file_udfs:
+            if result_file_udfs["Concentration"] < min_conc:
+                self.low_conc += 1
                 return "FAILED"
             else:
                 return "PASSED"
         else:
-            self.conc_missing +=1
+            self.conc_missing += 1
             return None
 
     def assign_QC_flag(self):
@@ -123,49 +127,65 @@ class QuantitQC():
                 QC_sat = self.saturation_QC(result_file, result_file_udfs)
                 if QC_conc and QC_sat:
                     QC = QC_conc if QC_conc == QC_sat else "FAILED"
-                    self.no_failed +=1 if QC == "FAILED" else 0
+                    self.no_failed += 1 if QC == "FAILED" else 0
                     result_file.qc_flag = QC
                     set_field(result_file)
         else:
-            self.missing_udfs = ', '.join(list(self.required_udfs))
+            self.missing_udfs = ", ".join(list(self.required_udfs))
+
 
 def main(lims, pid, epp_logger):
-    process = Process(lims,id = pid)
+    process = Process(lims, id=pid)
     QiT = QuantitQC(process)
     QiT.assign_QC_flag()
     if QiT.flour_int_missing:
-        QiT.abstract.append("Fluorescence intensity is missing for {0} "
-                                       "samples.".format(QiT.flour_int_missing))
+        QiT.abstract.append(
+            "Fluorescence intensity is missing for {0} " "samples.".format(
+                QiT.flour_int_missing
+            )
+        )
     if QiT.missing_udfs:
-        QiT.abstract.append("Could not set QC flags. Some of the following "
-             "required udfs seems to be missing: {0}.".format(QiT.missing_udfs))
+        QiT.abstract.append(
+            "Could not set QC flags. Some of the following "
+            "required udfs seems to be missing: {0}.".format(QiT.missing_udfs)
+        )
     else:
-        QiT.abstract.append("{0} out of {1} samples failed "
-                       "QC.".format(QiT.no_failed, len(process.result_files())))
+        QiT.abstract.append(
+            "{0} out of {1} samples failed " "QC.".format(
+                QiT.no_failed, len(process.result_files())
+            )
+        )
     if QiT.saturated:
-        QiT.abstract.append("{0} samples had saturated fluorescence "
-                                             "intensity.".format(QiT.saturated))
+        QiT.abstract.append(
+            "{0} samples had saturated fluorescence " "intensity.".format(QiT.saturated)
+        )
     if QiT.hig_CV_fract:
         QiT.abstract.append("{0} samples had high %CV.".format(QiT.hig_CV_fract))
     if QiT.low_conc:
-        QiT.abstract.append("{0} samples had low concentration.".format(
-                                                                  QiT.low_conc))
+        QiT.abstract.append("{0} samples had low concentration.".format(QiT.low_conc))
     if QiT.conc_missing:
-        QiT.abstract.append("Concentration is missing for {0} "
-                                     "sample(s).".format(QiT.conc_missing))
+        QiT.abstract.append(
+            "Concentration is missing for {0} " "sample(s).".format(QiT.conc_missing)
+        )
     QiT.abstract = list(set(QiT.abstract))
-    print(' '.join(QiT.abstract), file=sys.stderr)
+    print(" ".join(QiT.abstract), file=sys.stderr)
+
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid', default = None , dest = 'pid',
-                        help='Lims id for current Process')
-    parser.add_argument('--log', dest = 'log',
-                        help=('File name for standard log file, '
-                              'for runtime information and problems.'))
+    parser.add_argument(
+        "--pid", default=None, dest="pid", help="Lims id for current Process"
+    )
+    parser.add_argument(
+        "--log",
+        dest="log",
+        help=(
+            "File name for standard log file, " "for runtime information and problems."
+        ),
+    )
 
     args = parser.parse_args()
-    lims = Lims(BASEURI,USERNAME,PASSWORD)
+    lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
 
     with EppLogger(log_file=args.log, lims=lims, prepend=True) as epp_logger:

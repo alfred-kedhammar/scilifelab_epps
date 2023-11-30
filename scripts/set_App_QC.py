@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+
 DESC = """This EPP script reads Application QC files from file
 system and sets the qc values for each sample. Allso a a easy to read App QC
 file is generated with more information about the application specific qc that
@@ -10,21 +11,19 @@ Logging:
 
 Written by Maya Brandi (14-10-14)
 """
-import os
-import sys
-import logging
-import glob
 import csv
 import json
-
+import sys
 from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process
-from scilifelab_epps.epp import EppLogger
-from scilifelab_epps.epp import set_field
 
-class AppQC():
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+
+from scilifelab_epps.epp import EppLogger, set_field
+
+
+class AppQC:
     def __init__(self, process):
         self.app_QC = {}
         self.project_name = process.all_outputs()[0].samples[0].project.name
@@ -37,8 +36,8 @@ class AppQC():
         self.QF_from_file = {}
 
     def get_app_QC_file(self):
-        """ App QC file is read from the file msf system. Path hard coded."""
-        file_path = ("/srv/ngi-nas-ns/app_QC/{0}.json".format(self.project_name))
+        """App QC file is read from the file msf system. Path hard coded."""
+        file_path = "/srv/ngi-nas-ns/app_QC/{0}.json".format(self.project_name)
         json_data = open(file_path).read()
         self.app_QC = json.loads(json_data)
 
@@ -46,9 +45,9 @@ class AppQC():
         """populates the target file App QC udf"""
         for samp_name, target_file in self.target_files.items():
             if samp_name in self.app_QC.keys():
-                qc_passed = str(self.app_QC[samp_name]['automated_qc']['qc_passed'])
+                qc_passed = str(self.app_QC[samp_name]["automated_qc"]["qc_passed"])
                 sample = target_file.samples[0]
-                sample.udf['App QC'] = qc_passed
+                sample.udf["App QC"] = qc_passed
                 set_field(sample)
                 self.nr_samps_updat += 1
             else:
@@ -56,32 +55,38 @@ class AppQC():
 
     def make_App_QC_file(self, app_qc_file):
         """Formates a easy to read App QC file."""
-        keys= ['sample', 'qc_passed', 'qc_reason']
+        keys = ["sample", "qc_passed", "qc_reason"]
         list2csv = []
         for samp, info in self.app_QC.items():
-            d = info['automated_qc']
-            d['sample'] = samp
+            d = info["automated_qc"]
+            d["sample"] = samp
             list2csv.append(d)
-        app_qc_file = app_qc_file + '.csv'
-        test_file = open(app_qc_file,'wb')
-        dict_writer = csv.DictWriter(test_file, keys, dialect = 'excel')
+        app_qc_file = app_qc_file + ".csv"
+        test_file = open(app_qc_file, "wb")
+        dict_writer = csv.DictWriter(test_file, keys, dialect="excel")
         dict_writer.writer.writerow(keys)
         dict_writer.writerows(list2csv)
         test_file.close()
 
     def logging(self):
         """Collects and prints logging info."""
-        self.abstract.append("qc-flaggs uploaded for {0} out of {1} samples."
-                                        "See App_QC_file for details.".format(
-                                        self.nr_samps_updat, self.nr_samps_tot))
+        self.abstract.append(
+            "qc-flaggs uploaded for {0} out of {1} samples."
+            "See App_QC_file for details.".format(
+                self.nr_samps_updat, self.nr_samps_tot
+            )
+        )
         if self.missing_samps:
-            self.abstract.append("The following samples are missing in "
-                                                    "App_QC_file: {0}.".format(
-                                                ', '.join(self.missing_samps)))
-        print(' '.join(self.abstract), file=sys.stderr)
+            self.abstract.append(
+                "The following samples are missing in " "App_QC_file: {0}.".format(
+                    ", ".join(self.missing_samps)
+                )
+            )
+        print(" ".join(self.abstract), file=sys.stderr)
+
 
 def main(lims, pid, epp_logger, App_QC_file):
-    process = Process(lims, id = pid)
+    process = Process(lims, id=pid)
     AQC = AppQC(process)
     AQC.get_app_QC_file()
     AQC.set_result_file_udfs()
@@ -91,13 +96,17 @@ def main(lims, pid, epp_logger, App_QC_file):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid', default = None , dest = 'pid',
-                        help='Lims id for current Process')
-    parser.add_argument('--log', dest = 'log',
-                        help=('File name for standard log file, '
-                              'for runtime information and problems.'))
-    parser.add_argument('--file', dest = 'file',
-                        help=('File path to new App_QC file'))
+    parser.add_argument(
+        "--pid", default=None, dest="pid", help="Lims id for current Process"
+    )
+    parser.add_argument(
+        "--log",
+        dest="log",
+        help=(
+            "File name for standard log file, " "for runtime information and problems."
+        ),
+    )
+    parser.add_argument("--file", dest="file", help=("File path to new App_QC file"))
     args = parser.parse_args()
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()

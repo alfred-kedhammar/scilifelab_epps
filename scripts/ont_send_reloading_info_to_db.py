@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
 from __future__ import division
-from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process
-from datetime import datetime as dt
-import re
+
 import os
+import re
+import sys
+from argparse import ArgumentParser
+from datetime import datetime as dt
+
 import couchdb
 import yaml
-import sys
-
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
 
 DESC = """ Script for EPP "Send ONT flowcell info to StatusDB".
 Used to record the washing and reloading of ONT flow cells.

@@ -1,14 +1,17 @@
 from __future__ import division
-from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process
+
+import os
+import sys
 import xml.etree.ElementTree as ET
+from argparse import ArgumentParser
+from datetime import datetime as dt
+
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+
 from epp_utils import udf_tools
 from scilifelab_epps.epp import get_well_number
-import sys
-from datetime import datetime as dt
-import os
 
 DESC = """This script parses the Agilent BioAnalyzer XML report. 
 
@@ -24,7 +27,7 @@ def main(lims, args):
 
     # Set up an XML tree from the BioAnalyser output file
     tree = ET.fromstring(get_ba_output_file(currentStep, log))
-    samples_node = tree.find('.//Samples')
+    samples_node = tree.find(".//Samples")
 
     # Grab the output measurements, i.e. output artifacts with a defined location
     measurements = [art for art in currentStep.all_outputs() if art.location[1]]
@@ -41,7 +44,6 @@ def main(lims, args):
 
     # Iterate over output measurements and gather the results
     for measurement in measurements:
-
         # Find the corresponding well number
         try:
             well_num = get_well_number(measurement)
@@ -53,7 +55,11 @@ def main(lims, args):
             continue
 
         # Isolate the XML sample nest w. the same well as the measurement
-        matching_wells = [e for e in samples_node if int(e.find('WellNumber').text.strip()) == well_num]
+        matching_wells = [
+            e
+            for e in samples_node
+            if int(e.find("WellNumber").text.strip()) == well_num
+        ]
         try:
             assert len(matching_wells) == 1
             sample_node = matching_wells[0]
@@ -76,7 +82,6 @@ def main(lims, args):
 
         # Grab the target results from the xml smear metrics
         for udf_name in results_to_grab:
-
             xml_nest, return_type = results_to_grab[udf_name]
 
             result = results_node.find(f".//{xml_nest}").text.strip()
@@ -92,7 +97,6 @@ def main(lims, args):
                     udf_tools.put(measurement, "Conc. Units", "ng/ul")
 
                 udf_tools.put(measurement, udf_name, result)
-
 
             except AssertionError:
                 log.append(
@@ -114,7 +118,6 @@ def main(lims, args):
     # Upload log
     for out in currentStep.all_outputs():
         if out.name == "Bioanalyzer XML Parsing Log File":
-
             for f in out.files:
                 lims.request_session.delete(f.uri)
             lims.upload_new_file(out, log_filename)
@@ -131,14 +134,17 @@ def get_ba_output_file(currentStep, log):
     content = None
     for outart in currentStep.all_outputs():
         # Try fetching the BA result file from the uploaded file in LIMS
-        if outart.type == 'ResultFile' and outart.name == 'Bioanalyzer XML Result File (required)':
+        if (
+            outart.type == "ResultFile"
+            and outart.name == "Bioanalyzer XML Result File (required)"
+        ):
             try:
                 fid = outart.files[0].id
                 content = lims.get_file_contents(id=fid)
                 if isinstance(content, bytes):
-                    content = content.decode('utf-8')
+                    content = content.decode("utf-8")
             except:
-                log.append('No BioAnalyzer .xml file found')
+                log.append("No BioAnalyzer .xml file found")
             break
     return content
 
