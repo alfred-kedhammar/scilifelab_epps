@@ -2,27 +2,25 @@
 repos:
   -   repo: local
       hooks:
+
       -   id: ruff-check
           name: ruff --> Check for style violations
           entry: ruff check --ignore E402,E722,E741 --unsafe-fixes .
           language: system
           types: [python]
-  -   repo: local
-      hooks:
+
       -   id: isort-check
           name: isort --> Check for best-practice sorting of imports
           entry: isort --check .
           language: system
           types: [python]
-  -   repo: local
-      hooks:
+
       -   id: ruff-format
           name: ruff --> Check code formatting
           entry: ruff format --check .
           language: system
           types: [python]
-  -   repo: local
-      hooks:
+
       -   id: mypy-check
           name: mypy --> Static type checking
           entry: mypy --ignore-missing-imports --follow-imports=skip --exclude build .
