@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231201.1
+
+Change MiSeq samplesheet to new version
+
 ## 20231120.1
 
 Fix change in flowcell mode name that is related with control software upgrade
