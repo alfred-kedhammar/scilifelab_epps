@@ -1,3 +1,10 @@
 genologics
 markdown
 tabulate
+numpy
+pandas
+ruff
+mypy
+pyupgrade
+isort
+pre-commit
