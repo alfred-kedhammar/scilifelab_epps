@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """EPP script for updating #Reads and %Q30 for quality filtered reads.
 The script reads the new values from a csv file "Quality Filter" that first
@@ -45,10 +44,10 @@ class QualityFilter:
 
     def read_QF_file(self):
         """QF file is read from the file msf system. Path hard coded."""
-        file_path = "/srv/ngi-nas-ns/QF/{0}/{1}.csv".format(
+        file_path = "/srv/ngi-nas-ns/QF/{}/{}.csv".format(
             self.project_name, self.flowcell_id
         )
-        of = open(file_path, "r")
+        of = open(file_path)
         self.source_file = [row for row in csv.reader(of.read().splitlines())]
         of.close()
 
@@ -65,14 +64,14 @@ class QualityFilter:
                 self._set_udfs(samp_name, target_file, lane)
             if self.nr_samps_updat:
                 self.abstract_ext.append(
-                    "LANE {0} with {1} samples." "".format(
+                    "LANE {} with {} samples." "".format(
                         lane, str(len(set(self.nr_samps_updat)))
                     )
                 )
             if self.missing_samps:
                 self.abstract_ext.append(
                     "The following samples are missing in Quality "
-                    "Filter file: {0}.".format(", ".join(self.missing_samps))
+                    "Filter file: {}.".format(", ".join(self.missing_samps))
                 )
         self._logging()
 

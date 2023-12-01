@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """EPP script to copy user defined field 'Reference Genome' from project
 level to submitted sample level for the input artifacts of given process,
@@ -27,7 +26,7 @@ from genologics.lims import Lims
 from scilifelab_epps.epp import EppLogger
 
 
-class Session(object):
+class Session:
     def __init__(self, process, udf, d_udf):
         self.process = process
         self.s_udf = udf  # Source udf
@@ -41,7 +40,7 @@ class Session(object):
 
     def log_before_change(self, project, sample):
         logging.info(
-            ("Copying from project with id: {0} to sample with " " id: {1}").format(
+            ("Copying from project with id: {} to sample with " " id: {}").format(
                 project.id, sample.id
             )
         )
@@ -87,7 +86,7 @@ def check_udf_is_defined(projects, udf):
         else:
             logging.warning(
                 (
-                    "Found project with id {0} with {1} " "undefined/blank, exiting"
+                    "Found project with id {} with {} " "undefined/blank, exiting"
                 ).format(project.id, udf)
             )
             incorrect_projects.append(project)
@@ -108,7 +107,7 @@ def filter_samples(artifacts, projects):
         else:
             logging.warning(
                 (
-                    "Filtered out sample {0} belonging to project {1} "
+                    "Filtered out sample {} belonging to project {} "
                     "without udf defined"
                 ).format(sample.name, sample.project.name)
             )
@@ -132,7 +131,7 @@ def main(lims, args, epp_logger):
     if len(incorrect_udf) == 0:
         warning = "no projects"
     else:
-        warning = "WARNING: skipped {0} project(s)".format(len(incorrect_udf))
+        warning = "WARNING: skipped {} project(s)".format(len(incorrect_udf))
 
     d = {"cs": len(correct_samples), "warning": warning}
 

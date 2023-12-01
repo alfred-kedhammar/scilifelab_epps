@@ -15,7 +15,7 @@ SMARTSEQ3_indexes_json = (
     "/opt/gls/clarity/users/glsai/repos/scilifelab_epps/data/SMARTSEQ3_indexes.json"
 )
 
-with open(SMARTSEQ3_indexes_json, "r") as file:
+with open(SMARTSEQ3_indexes_json) as file:
     SMARTSEQ3_indexes = json.loads(file.read())
 
 DESC = """EPP used to check index distance in library pool
@@ -32,7 +32,7 @@ NGISAMPLE_PAT = re.compile("P[0-9]+_[0-9]+")
 
 def verify_indexes(data):
     message = []
-    pools = set([x["pool"] for x in data])
+    pools = {x["pool"] for x in data}
     for p in sorted(pools):
         subset = [i for i in data if i["pool"] == p]
         subset = sorted(subset, key=lambda d: d["sn"])
@@ -75,7 +75,7 @@ def verify_indexes(data):
 
 def verify_placement(data):
     message = []
-    pools = set([x["pool"] for x in data])
+    pools = {x["pool"] for x in data}
     for p in sorted(pools):
         subset = [i for i in data if i["pool"] == p]
         subset = sorted(subset, key=lambda d: d["sn"])
@@ -107,7 +107,7 @@ def verify_placement(data):
 
 def verify_samplename(data):
     message = []
-    pools = set([x["pool"] for x in data])
+    pools = {x["pool"] for x in data}
     for p in sorted(pools):
         subset = [i for i in data if i["pool"] == p]
         subset = sorted(subset, key=lambda d: d["sn"])
@@ -130,7 +130,7 @@ def verify_samplename(data):
 
 def check_index_distance(data):
     message = []
-    pools = set([x["pool"] for x in data])
+    pools = {x["pool"] for x in data}
     for p in sorted(pools):
         subset = [i for i in data if i["pool"] == p]
         if len(subset) == 1:

@@ -440,7 +440,7 @@ def write_worklist(df, deck, wl_filename, comments=None, max_transfers_per_tip=1
 def get_deck_comment(deck):
     """Convert the plate:position 'decktionary' into a worklist comment"""
 
-    pos2plate = dict([(pos, plate) for plate, pos in deck.items()])
+    pos2plate = {pos: plate for plate, pos in deck.items()}
 
     l = [
         pos2plate[i].replace(",", "") if i in pos2plate else "[Empty]"

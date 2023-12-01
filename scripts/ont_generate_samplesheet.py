@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import division
 
 import os
 import re
@@ -189,7 +188,7 @@ def minknow_samplesheet_for_qc(currentStep):
     measurements = []
 
     # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
-    sample_pattern = re.compile("P\d{5}_\d{3,4}")
+    sample_pattern = re.compile(r"P\d{5}_\d{3,4}")
     for art in currentStep.all_outputs():
         if re.search(sample_pattern, art.name):
             measurements.append(art)
@@ -286,7 +285,7 @@ def anglerfish_samplesheet(currentStep):
     measurements = []
 
     # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
-    sample_pattern = re.compile("P\d{5}_\d{3,4}")
+    sample_pattern = re.compile(r"P\d{5}_\d{3,4}")
     for art in currentStep.all_outputs():
         if re.search(sample_pattern, art.name):
             measurements.append(art)
@@ -453,7 +452,7 @@ def get_minknow_sample_id(art):
     Multi project pool      PAAAAA_101, PBBBBB_101  34-567890   34-567890
     """
 
-    sample_id_pattern = re.compile("(P\d{5})_(\d+)")
+    sample_id_pattern = re.compile(r"(P\d{5})_(\d+)")
 
     # Single sample
     if len(art.samples) == 1:

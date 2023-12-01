@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """This EPP script reads demultiplex end undemultiplexed yields from file
 system and then does the following
@@ -150,11 +149,9 @@ class RunQC:
             path_id = cont_name
         try:
             self.file_path = glob.glob(
-                (
-                    "/srv/ngi-nas-ns/{0}/*{1}/Unaligned/" "Basecall_Stats_*/".format(
+                    "/srv/ngi-nas-ns/{}/*{}/Unaligned/" "Basecall_Stats_*/".format(
                         data_folder, path_id
                     )
-                )
             )[0]
         except:
             sys.exit("Failed to get file path")
@@ -165,26 +162,26 @@ class RunQC:
         try:
             fp_dem = self.file_path + "Demultiplex_Stats.htm"
             self.dem_stat = FRMP.parse_demultiplex_stats_htm(fp_dem)
-            logging.info("Parsed file {0}".format(fp_dem))
+            logging.info("Parsed file {}".format(fp_dem))
         except:
             sys.exit("Failed to find or parse Demultiplex_Stats.htm.")
         try:
             fp_und = self.file_path + "Undemultiplexed_stats.metrics"
             self.undem_stat = FRMP.parse_undemultiplexed_barcode_metrics(fp_und)
-            logging.info("Parsed file {0}".format(fp_und))
+            logging.info("Parsed file {}".format(fp_und))
         except:
             sys.exit("Failed to find or parse Undemultiplexed_stats.metrics")
 
     def _get_threshold_Q30(self):
         if "Threshold for % bases >= Q30" in self.user_def_tresh:
             self.Q30_treshold = self.user_def_tresh["Threshold for % bases >= Q30"]
-            qc_logg = "THRESHOLD FOR %Q30 was set by user to {0}.".format(
+            qc_logg = "THRESHOLD FOR %Q30 was set by user to {}.".format(
                 self.Q30_treshold
             )
             print(qc_logg, file=self.qc_log_file)
         else:
             warning = (
-                "Un recognized read length: {0}. Report this to "
+                "Un recognized read length: {}. Report this to "
                 "developers! set Threshold for % bases >= Q30 if you want to "
                 "run bcl conversion and demultiplexing anyway.".format(self.read_length)
             )
@@ -211,8 +208,8 @@ class RunQC:
                 else:
                     sys.exit(warning)
             qc_logg = (
-                "THRESHOLD FOR %Q30 was set to {0}. Value based on read"
-                " length: {1}, and run type {2}.".format(
+                "THRESHOLD FOR %Q30 was set to {}. Value based on read"
+                " length: {}, and run type {}.".format(
                     Q30_threshold, self.read_length, self.run_type
                 )
             )
@@ -250,14 +247,14 @@ class RunQC:
             warn = "WARNING: "
             if self.high_index_yield:
                 self.high_index_yield = ", ".join(list(set(self.high_index_yield)))
-                warn = "{0} High yield of unexpected index on lane(s): {1} ." "".format(
+                warn = "{} High yield of unexpected index on lane(s): {} ." "".format(
                     warn, self.high_index_yield
                 )
             if self.high_lane_yield:
                 self.high_lane_yield = ", ".join(list(set(self.high_lane_yield)))
                 warn = (
-                    "{0} High total yield of unexpected index on lane(s): "
-                    "{1}.".format(warn, self.high_lane_yield)
+                    "{} High total yield of unexpected index on lane(s): "
+                    "{}.".format(warn, self.high_lane_yield)
                 )
             warn = warn + "Please check the Metrics file!"
             self.abstract.insert(0, warn)
@@ -284,14 +281,14 @@ class RunQC:
                 lane = pool.location[1][0]
             for row in self.dem_stat["Barcode_lane_statistics"]:
                 if row["Lane"] == lane:
-                    row_dict = dict([(x, row[x]) for x in keys if x in row])
+                    row_dict = {x: row[x] for x in keys if x in row}
                     row_dict["Index name"] = ""
                     toCSV.append(row_dict)
             if lane in list(self.undem_stat.keys()):
                 undet_per_lane = self.undem_stat[lane]["undemultiplexed_barcodes"]
                 nr_undet = len(undet_per_lane["count"])
                 for row in range(nr_undet):
-                    row_dict = dict([(x, "") for x in keys])
+                    row_dict = {x: "" for x in keys}
                     row_dict["# Reads"] = undet_per_lane["count"][row]
                     row_dict["Index"] = undet_per_lane["sequence"][row]
                     row_dict["Index name"] = undet_per_lane["index_name"][row]
@@ -316,14 +313,14 @@ class RunQC:
     def logging(self):
         """Collects and prints logging info."""
         self.abstract.append(
-            "INFO: QC-data found and QC-flags uploaded for {0}"
-            " out of {1} analytes.".format(
+            "INFO: QC-data found and QC-flags uploaded for {}"
+            " out of {} analytes.".format(
                 self.nr_lane_samps_updat, self.nr_lane_samps_tot
             )
         )
         if self.QC_fail:
             self.abstract.append(
-                "Failed to make qc for samples: {0}".format(
+                "Failed to make qc for samples: {}".format(
                     ", ".join(list(set(self.QC_fail)))
                 )
             )
@@ -380,7 +377,7 @@ class LaneQC:
     def set_and_log_tresholds(self):
         """Generating tresholds and writing the tresholds to log file."""
         print("", file=self.qc_log_file)
-        print("TRESHOLDS - LANE {0}:".format(self.lane), file=self.qc_log_file)
+        print("TRESHOLDS - LANE {}:".format(self.lane), file=self.qc_log_file)
         self._get_exp_lane_and_ind_clust()
         self._set_reads_threshold()
         self._set_tresh_un_exp_lane()
@@ -410,7 +407,7 @@ class LaneQC:
             self.exp_lane_clust = 250000000
         else:
             sys.exit(
-                "Unrecognized run type: {0}. Report to developer! Set "
+                "Unrecognized run type: {}. Report to developer! Set "
                 "Threshold for # Reads if you want to run bcl conversion "
                 "and demultiplexing again".format(self.run_type)
             )
@@ -422,13 +419,13 @@ class LaneQC:
 
         if "Threshold for # Reads" in self.user_def_tresh:
             self.reads_threshold = self.user_def_tresh["Threshold for # Reads"]
-            qc_logg = "Index yield - expected index: {0}".format(self.reads_threshold)
+            qc_logg = "Index yield - expected index: {}".format(self.reads_threshold)
             print(qc_logg, file=self.qc_log_file)
         else:
             self.reads_threshold = int(self.exp_samp_clust * 0.5)
             qc_logg = (
-                "Index yield - expected index: {0}. Value based on nr of "
-                "sampels in the lane: {1}, and run type {2}.".format(
+                "Index yield - expected index: {}. Value based on nr of "
+                "sampels in the lane: {}, and run type {}.".format(
                     self.reads_threshold, self.nr_lane_samps, self.run_type
                 )
             )
@@ -444,8 +441,8 @@ class LaneQC:
         else:
             self.un_exp_lane = int(self.exp_lane_clust * 0.1)
         qc_logg = (
-            "Lane yield - un expected index: {0}. Value based on run "
-            "type {1}, and run setings: {2}".format(
+            "Lane yield - un expected index: {}. Value based on run "
+            "type {}, and run setings: {}".format(
                 self.un_exp_lane,
                 self.run_type,
                 "Single End" if self.single else "Paired End",
@@ -462,7 +459,7 @@ class LaneQC:
                 "Threshold for Undemultiplexed Index Yield"
             ]
             qc_logg = (
-                "Index yield - un expected index: {0}. Value set by user." "".format(
+                "Index yield - un expected index: {}. Value set by user." "".format(
                     self.thres_un_exp_ind
                 )
             )
@@ -470,7 +467,7 @@ class LaneQC:
         else:
             self.thres_un_exp_ind = int(self.exp_samp_clust * 0.1)
             qc_logg = (
-                "Index yield - un expected index: {0}. Value set to 10% "
+                "Index yield - un expected index: {}. Value set to 10% "
                 "of expected index yield".format(self.thres_un_exp_ind)
             )
             print(qc_logg, file=self.qc_log_file)

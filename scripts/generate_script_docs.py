@@ -27,7 +27,7 @@ def help_doc_rst(script, file_path):
         "with the --help flag::\n\n"
     ).format(script, "-" * len(script))
 
-    return header + "{0}\n\n".format(indent(stdout))
+    return header + "{}\n\n".format(indent(stdout))
 
 
 if __name__ == "__main__":

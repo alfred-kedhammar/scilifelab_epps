@@ -39,7 +39,7 @@ def main(lims, args):
 
     with open("frag_an_driver.csv", "w") as f:
         for line in driver:
-            f.write("{0},{1},{2}\n".format(line[0], line[1], line[2]))
+            f.write("{},{},{}\n".format(line[0], line[1], line[2]))
 
     lims.upload_new_file(driver_file_out, "frag_an_driver.csv")
 

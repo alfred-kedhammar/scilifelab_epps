@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import division
 
 import re
 import sys
@@ -32,7 +31,7 @@ def main(lims, args):
                 ports[c + r] = 0
 
         pattern = re.compile(
-            "/\d{8}_\d{4}_([1-8][A-H])_"
+            r"/\d{8}_\d{4}_([1-8][A-H])_"
         )  # Matches start of run name, capturing position as a group
 
         # Count port usage

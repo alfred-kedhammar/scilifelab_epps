@@ -100,19 +100,19 @@ def attach_xml(process, run_dir):
         if outart.type == "ResultFile" and outart.name == "Run Info":
             try:
                 lims.upload_new_file(outart, "{}/RunInfo.xml".format(run_dir))
-            except IOError:
+            except OSError:
                 try:
                     lims.upload_new_file(outart, "{}/runInfo.xml".format(run_dir))
-                except IOError:
+                except OSError:
                     sys.stderr.write("No RunInfo.xml found")
                     sys.exit(2)
         elif outart.type == "ResultFile" and outart.name == "Run Parameters":
             try:
                 lims.upload_new_file(outart, "{}/RunParameters.xml".format(run_dir))
-            except IOError:
+            except OSError:
                 try:
                     lims.upload_new_file(outart, "{}/runParameters.xml".format(run_dir))
-                except IOError:
+                except OSError:
                     sys.stderr.write("No RunParameters.xml found")
                     sys.exit(2)
 

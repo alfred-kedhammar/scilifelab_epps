@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """This EPP script reads Application QC files from file
 system and sets the qc values for each sample. Allso a a easy to read App QC
@@ -27,7 +26,7 @@ class AppQC:
     def __init__(self, process):
         self.app_QC = {}
         self.project_name = process.all_outputs()[0].samples[0].project.name
-        self.target_files = dict((r.samples[0].name, r) for r in process.all_outputs())
+        self.target_files = {r.samples[0].name: r for r in process.all_outputs()}
         self.missing_samps = []
         self.nr_samps_updat = 0
         self.abstract = []
@@ -37,7 +36,7 @@ class AppQC:
 
     def get_app_QC_file(self):
         """App QC file is read from the file msf system. Path hard coded."""
-        file_path = "/srv/ngi-nas-ns/app_QC/{0}.json".format(self.project_name)
+        file_path = "/srv/ngi-nas-ns/app_QC/{}.json".format(self.project_name)
         json_data = open(file_path).read()
         self.app_QC = json.loads(json_data)
 
@@ -71,14 +70,14 @@ class AppQC:
     def logging(self):
         """Collects and prints logging info."""
         self.abstract.append(
-            "qc-flaggs uploaded for {0} out of {1} samples."
+            "qc-flaggs uploaded for {} out of {} samples."
             "See App_QC_file for details.".format(
                 self.nr_samps_updat, self.nr_samps_tot
             )
         )
         if self.missing_samps:
             self.abstract.append(
-                "The following samples are missing in " "App_QC_file: {0}.".format(
+                "The following samples are missing in " "App_QC_file: {}.".format(
                     ", ".join(self.missing_samps)
                 )
             )

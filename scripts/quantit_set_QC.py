@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """EPP script for Quant-iT mesurements to set QC flaggs and
 intensity check based on concentrations, Fluorescence intensity.
@@ -60,13 +59,11 @@ class QuantitQC:
     def __init__(self, process):
         self.result_files = process.result_files()
         self.udfs = dict(list(process.udf.items()))
-        self.required_udfs = set(
-            [
+        self.required_udfs = {
                 "Allowed %CV of duplicates",
                 "Saturation threshold of fluorescence intensity",
                 "Minimum required concentration (ng/ul)",
-            ]
-        )
+        }
         self.abstract = []
         self.missing_udfs = []
         self.hig_CV_fract = 0
@@ -140,32 +137,32 @@ def main(lims, pid, epp_logger):
     QiT.assign_QC_flag()
     if QiT.flour_int_missing:
         QiT.abstract.append(
-            "Fluorescence intensity is missing for {0} " "samples.".format(
+            "Fluorescence intensity is missing for {} " "samples.".format(
                 QiT.flour_int_missing
             )
         )
     if QiT.missing_udfs:
         QiT.abstract.append(
             "Could not set QC flags. Some of the following "
-            "required udfs seems to be missing: {0}.".format(QiT.missing_udfs)
+            "required udfs seems to be missing: {}.".format(QiT.missing_udfs)
         )
     else:
         QiT.abstract.append(
-            "{0} out of {1} samples failed " "QC.".format(
+            "{} out of {} samples failed " "QC.".format(
                 QiT.no_failed, len(process.result_files())
             )
         )
     if QiT.saturated:
         QiT.abstract.append(
-            "{0} samples had saturated fluorescence " "intensity.".format(QiT.saturated)
+            "{} samples had saturated fluorescence " "intensity.".format(QiT.saturated)
         )
     if QiT.hig_CV_fract:
-        QiT.abstract.append("{0} samples had high %CV.".format(QiT.hig_CV_fract))
+        QiT.abstract.append("{} samples had high %CV.".format(QiT.hig_CV_fract))
     if QiT.low_conc:
-        QiT.abstract.append("{0} samples had low concentration.".format(QiT.low_conc))
+        QiT.abstract.append("{} samples had low concentration.".format(QiT.low_conc))
     if QiT.conc_missing:
         QiT.abstract.append(
-            "Concentration is missing for {0} " "sample(s).".format(QiT.conc_missing)
+            "Concentration is missing for {} " "sample(s).".format(QiT.conc_missing)
         )
     QiT.abstract = list(set(QiT.abstract))
     print(" ".join(QiT.abstract), file=sys.stderr)

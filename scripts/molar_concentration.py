@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """EPP script to calculate molar concentration given the
 weight concentration, in Clarity LIMS. Before updating the artifacts,
@@ -24,7 +23,7 @@ from scilifelab_epps.epp import EppLogger
 def apply_calculations(lims, artifacts, conc_udf, size_udf, unit_udf, epp_logger):
     for artifact in artifacts:
         logging.info(
-            ("Updating: Artifact id: {0}, " "Concentration: {1}, Size: {2}, ").format(
+            ("Updating: Artifact id: {}, " "Concentration: {}, Size: {}, ").format(
                 artifact.id, artifact.udf[conc_udf], artifact.udf[size_udf]
             )
         )
@@ -33,7 +32,7 @@ def apply_calculations(lims, artifacts, conc_udf, size_udf, unit_udf, epp_logger
         )
         artifact.udf[unit_udf] = "nM"
         artifact.put()
-        logging.info("Updated {0} to {1}.".format(conc_udf, artifact.udf[conc_udf]))
+        logging.info("Updated {} to {}.".format(conc_udf, artifact.udf[conc_udf]))
 
 
 def check_udf_is_defined(artifacts, udf):
@@ -46,7 +45,7 @@ def check_udf_is_defined(artifacts, udf):
         else:
             logging.warning(
                 (
-                    "Found artifact for sample {0} with {1} "
+                    "Found artifact for sample {} with {} "
                     "undefined/blank, skipping"
                 ).format(artifact.samples[0].name, udf)
             )
@@ -64,7 +63,7 @@ def check_udf_has_value(artifacts, udf, value):
         elif udf in artifact.udf:
             incorrect_artifacts.append(artifact)
             logging.warning(
-                ("Filtered out artifact for sample: {0}" ", due to wrong {1}").format(
+                ("Filtered out artifact for sample: {}" ", due to wrong {}").format(
                     artifact.samples[0].name, udf
                 )
             )
@@ -72,8 +71,8 @@ def check_udf_has_value(artifacts, udf, value):
             incorrect_artifacts.append(artifact)
             logging.warning(
                 (
-                    "Filtered out artifact for sample: {0}"
-                    ", due to undefined/blank {1}"
+                    "Filtered out artifact for sample: {}"
+                    ", due to undefined/blank {}"
                 ).format(artifact.samples[0].name, udf)
             )
 

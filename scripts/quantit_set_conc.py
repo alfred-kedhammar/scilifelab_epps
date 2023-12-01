@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """EPP script for Quant-iT measurements to calculate concentrations and
 load input artifact-udfs and output file-udfs of the process with concentration
@@ -96,7 +95,7 @@ class QuantitConc:
         )
         standards_dict = {}
         for k, v in standards_file_formated.items():
-            cond1 = set(["Sample", "End RFU"]).issubset(v)
+            cond1 = {"Sample", "End RFU"}.issubset(v)
             cond2 = v["Sample"].split()[0] == "Standard"
             if cond1 and cond2:
                 standard = int(v["Sample"].split()[1])
@@ -108,7 +107,7 @@ class QuantitConc:
         "Supposed concentrations of standards" * "Standard volume" / "Standard
         dilution" Supposed concentrations of standards are different between
         Quant-iT BR assays and Quant-iT HS assays."""
-        requiered_udfs = set(["Standard volume", "Assay type", "Standard dilution"])
+        requiered_udfs = {"Standard volume", "Assay type", "Standard dilution"}
         supp_conc_stds = {
             "RNA BR": [0, 5, 10, 20, 40, 60, 80, 100],
             "DNA BR": [0, 5, 10, 20, 40, 60, 80, 100],
@@ -185,7 +184,7 @@ class QuantitConc:
         """Concentrations are calculated based on the linear regression
         parametersand copied to the "Concentration"-udf of the target_file. The
         "Conc. Units"-udf is set to "ng/ul"""
-        requiered_udfs = set(["Sample volume", "Standard dilution", "WS volume"])
+        requiered_udfs = {"Sample volume", "Standard dilution", "WS volume"}
         if requiered_udfs.issubset(list(self.udfs.keys())) and self.model:
             conc = np.true_divide(
                 (
@@ -206,7 +205,7 @@ class QuantitConc:
 
 def main(lims, pid, epp_logger):
     process = Process(lims, id=pid)
-    target_files = dict((r.samples[0].name, r) for r in process.result_files())
+    target_files = {r.samples[0].name: r for r in process.result_files()}
     file_handler = ReadResultFiles(process)
     QiT = QuantitConc(process, file_handler)
     QiT.fit_model()
@@ -214,30 +213,30 @@ def main(lims, pid, epp_logger):
     if QiT.model and "Linearity of standards" in list(QiT.udfs.keys()):
         R2 = QiT.model[0]
         if R2 >= QiT.udfs["Linearity of standards"]:
-            QiT.abstract.insert(0, "R2 = {0}. Standards OK.".format(R2))
+            QiT.abstract.insert(0, "R2 = {}. Standards OK.".format(R2))
             if QiT.result_files:
                 for sample, target_file in target_files.items():
                     rel_fluor_int = QiT.get_and_set_fluor_int(target_file)
                     QiT.calc_and_set_conc(target_file, rel_fluor_int)
                 QiT.abstract.append(
-                    "Concentrations uploaded for {0} " "samples.".format(QiT.no_samps)
+                    "Concentrations uploaded for {} " "samples.".format(QiT.no_samps)
                 )
             else:
                 QiT.abstract.append("Upload input file(s) for samples.")
         else:
             QiT.abstract.insert(
-                0, "R2 = {0}. Problem with standards! Redo " "measurement!".format(R2)
+                0, "R2 = {}. Problem with standards! Redo " "measurement!".format(R2)
             )
     else:
         QiT.missing_udfs.append("Linearity of standards")
     if QiT.missing_samps:
         QiT.abstract.append(
             "The following samples are missing in Quant-iT "
-            "result File 1 or 2: {0}.".format(", ".join(QiT.missing_samps))
+            "result File 1 or 2: {}.".format(", ".join(QiT.missing_samps))
         )
     if QiT.missing_udfs:
         QiT.abstract.append(
-            "Are all of the following udfs set? : {0}".format(
+            "Are all of the following udfs set? : {}".format(
                 ", ".join(QiT.missing_udfs)
             )
         )

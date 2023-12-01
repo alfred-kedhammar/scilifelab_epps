@@ -43,7 +43,7 @@ def main(lims, args, logger):
             sample.udf["Total Reads (M)"] = total_reads
             output_artifact.udf["Set Total Reads"] = total_reads
             logging.info(
-                "Total reads is {0} for sample {1}".format(
+                "Total reads is {} for sample {}".format(
                     sample.udf["Total Reads (M)"], sample.name
                 )
             )
@@ -66,7 +66,7 @@ def main(lims, args, logger):
             except KeyError as e:
                 print(e)
                 logging.warning(
-                    "No reads minimum found, cannot set the status auto flag for sample {0}".format(
+                    "No reads minimum found, cannot set the status auto flag for sample {}".format(
                         sample.name
                     )
                 )
@@ -77,7 +77,7 @@ def main(lims, args, logger):
             output_artifact.put()
         elif (output_artifact.type == "Analyte") and len(output_artifact.samples) != 1:
             logging.error(
-                "Found {0} samples for the ouput analyte {1}, that should not happen".format(
+                "Found {} samples for the ouput analyte {}, that should not happen".format(
                     len(output_artifact.samples()), output_artifact.id
                 )
             )
@@ -98,12 +98,12 @@ def main(lims, args, logger):
             totfc = len(summary[sample])
             totlanes = 0
             for fc in summary[sample]:
-                view.append("{0}:{1}".format(fc, "|".join(summary[sample][fc])))
+                view.append("{}:{}".format(fc, "|".join(summary[sample][fc])))
                 totlanes += len(summary[sample][fc])
-            f.write("{0},{1},{2},{3}\n".format(sample, totfc, totlanes, ";".join(view)))
+            f.write("{},{},{},{}\n".format(sample, totfc, totlanes, ";".join(view)))
     try:
         attach_file(os.path.join(os.getcwd(), "AggregationLog.csv"), logart)
-        logging.info("updated {0} samples with {1} errors".format(samplenb, errnb))
+        logging.info("updated {} samples with {} errors".format(samplenb, errnb))
     except AttributeError:
         # happens if the log artifact does not exist, if the step has been started before the configuration changes
         logging.info("Could not upload the log file")
@@ -111,7 +111,7 @@ def main(lims, args, logger):
 
 def demnumber(sample):
     """Returns the number of distinct demultiplexing processes tagged with "Include reads" for a given sample"""
-    expectedName = "{0} (FASTQ reads)".format(sample.name)
+    expectedName = "{} (FASTQ reads)".format(sample.name)
     dem = set()
     arts = lims.get_artifacts(
         sample_name=sample.name,
@@ -127,7 +127,7 @@ def demnumber(sample):
 def sumreads(sample, summary):
     if sample.name not in summary:
         summary[sample.name] = {}
-    expectedName = "{0} (FASTQ reads)".format(sample.name)
+    expectedName = "{} (FASTQ reads)".format(sample.name)
     arts = lims.get_artifacts(
         sample_name=sample.name,
         process_type=list(DEMULTIPLEX.values()),
@@ -145,7 +145,7 @@ def sumreads(sample, summary):
                 orig = getParentInputs(a)
                 for o in orig:
                     if sample in o.samples:
-                        fc = "{0}:{1}".format(
+                        fc = "{}:{}".format(
                             o.location[0].name, o.location[1].split(":")[0]
                         )
                         if fc not in fclanel:
@@ -181,7 +181,7 @@ def sumreads(sample, summary):
                     )[0]
                 except TypeError:
                     logging.error(
-                        "Did not manage to get sequencing process for artifact {0}".format(
+                        "Did not manage to get sequencing process for artifact {}".format(
                             inart.id
                         )
                     )
@@ -196,7 +196,7 @@ def sumreads(sample, summary):
         print(e)
         # base_art is still None because no arts were found
         logging.info(
-            "No demultiplexing processes found for sample {0}".format(sample.name)
+            "No demultiplexing processes found for sample {}".format(sample.name)
         )
 
     # total is displayed as millions

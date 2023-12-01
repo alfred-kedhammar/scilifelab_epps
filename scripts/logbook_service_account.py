@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import print_function
 
 DESC = """EPP script for automatically logging the record of instrument use
 into the electronic logbooks in Google Doc.
@@ -121,7 +119,7 @@ def main(lims, pid, epp_logger):
     log = []
     time = datetime.datetime.now().strftime("%Y-%m-%d")
     log.append(time)
-    user = "{0} {1}".format(pro.technician.first_name, pro.technician.last_name)
+    user = "{} {}".format(pro.technician.first_name, pro.technician.last_name)
     log.append(user)
     log_tmp = log[:]
     record = lims_process_record[pro.type.name]

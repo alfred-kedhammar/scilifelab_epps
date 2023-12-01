@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 DESC = """EPP script to summarize aggregate QC results to the projects running notes
 Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """
@@ -17,7 +16,7 @@ QC_criteria_json = (
     "/opt/gls/clarity/users/glsai/repos/scilifelab_epps/data/QC_criteria.json"
 )
 
-with open(QC_criteria_json, "r") as file:
+with open(QC_criteria_json) as file:
     QC_criteria = json.loads(file.read())
 
 
@@ -202,7 +201,7 @@ def make_summary(lims, process, sample_table, library):
         passed_sample_number = len(
             [i for i in qc_flag_by_container if i[1] == "PASSED"]
         )
-        containers = list(set(i[0] for i in qc_flag_by_container))
+        containers = list({i[0] for i in qc_flag_by_container})
         comments += (
             "**Overall QC summary: {}/{} samples passed QC in container {}**.\n".format(
                 passed_sample_number, total_sample_number, ",".join(sorted(containers))
@@ -244,15 +243,15 @@ def make_summary(lims, process, sample_table, library):
         noteobj = {}
         key = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
         noteobj[key] = {}
-        note = "Summary from {0} ({1}) : \n{2}".format(
+        note = "Summary from {} ({}) : \n{}".format(
             process.type.name,
-            "[LIMS]({0}/clarity/work-details/{1})".format(
+            "[LIMS]({}/clarity/work-details/{})".format(
                 BASEURI, process.id.split("-")[1]
             ),
             comments,
         )
         noteobj[key]["note"] = note
-        noteobj[key]["user"] = "{0} {1}".format(
+        noteobj[key]["user"] = "{} {}".format(
             process.technician.first_name, process.technician.last_name
         )
         noteobj[key]["email"] = process.technician.email

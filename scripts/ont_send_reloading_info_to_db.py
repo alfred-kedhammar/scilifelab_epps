@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import division
 
 import os
 import re
@@ -126,7 +125,7 @@ def parse_run(art):
         ), "All reload UDFs within a row must have the same number of comma-separated values"
 
         assert check_csv_udf_list(
-            "^\d{1,3}:\d{2}$", fc["reload_times"]
+            r"^\d{1,3}:\d{2}$", fc["reload_times"]
         ), "Reload run times must be formatted as comma-separated h:mm"
         check_times_list(fc["reload_times"])
         assert check_csv_udf_list(

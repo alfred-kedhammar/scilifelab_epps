@@ -19,11 +19,11 @@ def main(lims, args):
     log = []
     datamap = {}
     wsname = None
-    username = "{0} {1}".format(p.technician.first_name, p.technician.last_name)
+    username = "{} {}".format(p.technician.first_name, p.technician.last_name)
     user_email = p.technician.email
     for art in p.all_inputs():
         if len(art.samples) != 1:
-            log.append("Warning : artifact {0} has more than one sample".format(art.id))
+            log.append("Warning : artifact {} has more than one sample".format(art.id))
         for sample in art.samples:
             # take care of lamda DNA
             if sample.project:
@@ -43,9 +43,9 @@ def main(lims, args):
     for pid in datamap:
         pj = Project(lims, id=pid)
         if len(datamap[pid]) > 1:
-            rnt = "{0} samples planned for {1}".format(len(datamap[pid]), wsname)
+            rnt = "{} samples planned for {}".format(len(datamap[pid]), wsname)
         else:
-            rnt = "{0} sample planned for {1}".format(len(datamap[pid]), wsname)
+            rnt = "{} sample planned for {}".format(len(datamap[pid]), wsname)
 
         running_note = {}
         running_note["note"] = rnt
@@ -60,7 +60,7 @@ def main(lims, args):
         running_note["_id"] = f"{pid}:{datetime.datetime.timestamp(key)}"
         write_note_to_couch(pid, key, running_note, lims.get_uri())
         log.append(
-            "Updated project {0} : {1}, {2} samples in this workset".format(
+            "Updated project {} : {}, {} samples in this workset".format(
                 pid, pj.name, len(datamap[pid])
             )
         )
@@ -73,7 +73,7 @@ def main(lims, args):
             attach_file(os.path.join(os.getcwd(), "EPP_Notes.log"), out)
 
     sys.stderr.write(
-        "Updated {0} projects successfully".format(len(list(datamap.keys())))
+        "Updated {} projects successfully".format(len(list(datamap.keys())))
     )
 
 

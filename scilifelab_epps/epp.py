@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 """Contains useful and reusable code for EPP scripts.
 
 Classes, methods and exceptions.
@@ -51,19 +49,19 @@ class NotUniqueError(ValueError):
 def unique_check(to_check, msg):
     "Check that l is of length 1, otherwise raise error, with msg appended"
     if len(to_check) == 0:
-        raise EmptyError("No item found for {0}".format(msg))
+        raise EmptyError("No item found for {}".format(msg))
     elif len(to_check) != 1:
-        raise NotUniqueError("Multiple items found for {0}".format(msg))
+        raise NotUniqueError("Multiple items found for {}".format(msg))
 
 
 def set_field(element):
     try:
         element.put()
     except (TypeError, HTTPError) as e:
-        logging.warning("Error while updating element: {0}".format(e))
+        logging.warning("Error while updating element: {}".format(e))
 
 
-class EppLogger(object):
+class EppLogger:
 
     """Context manager for logging module useful for EPP script execution.
 
@@ -82,17 +80,17 @@ class EppLogger(object):
     PACKAGE = "genologics"
 
     def __enter__(self):
-        logging.info("Executing file: {0}".format(sys.argv[0]))
-        logging.info("with parameters: {0}".format(sys.argv[1:]))
+        logging.info("Executing file: {}".format(sys.argv[0]))
+        logging.info("with parameters: {}".format(sys.argv[1:]))
         try:
             logging.info(
-                "Version of {0}: ".format(self.PACKAGE)
+                "Version of {}: ".format(self.PACKAGE)
                 + pkg_resources.require(self.PACKAGE)[0].version
             )
         except DistributionNotFound as e:
             logging.error(e)
             logging.error(
-                ("Make sure you have the {0} " "package installed").format(self.PACKAGE)
+                ("Make sure you have the {} " "package installed").format(self.PACKAGE)
             )
             sys.exit(-1)
         return self
@@ -188,21 +186,21 @@ class EppLogger(object):
                         f.write("=" * 80 + "\n")
             except HTTPError:  # Probably no artifact found, skip prepending
                 print(
-                    ("No log file artifact found " "for id: {0}").format(log_file_name),
+                    ("No log file artifact found " "for id: {}").format(log_file_name),
                     file=sys.stderr,
                 )
-            except IOError as e:  # Probably some path was wrong in copy
+            except OSError as e:  # Probably some path was wrong in copy
                 print(
                     (
                         "Log could not be prepended, "
-                        "make sure {0} and {1} are "
+                        "make sure {} and {} are "
                         "proper paths."
                     ).format(log_path, log_file_name),
                     file=sys.stderr,
                 )
                 raise e
 
-    class StreamToLogger(object):
+    class StreamToLogger:
         """Fake file-like stream object that redirects writes to a logger
         instance.
 
@@ -251,7 +249,7 @@ class ReadResultFiles:
         for outart in outarts:
             file_path = self.get_file_path(outart)
             if file_path:
-                of = open(file_path, "r")
+                of = open(file_path)
                 file_ext = file_path.split(".")[-1]
                 if file_ext == "csv":
                     pf = [row for row in csv.reader(of.read().splitlines())]
@@ -324,11 +322,11 @@ class ReadResultFiles:
                 keys = line
         if duplicated_lines:
             error_message = (
-                "Row names {0} occurs more than once in file {1}. "
+                "Row names {} occurs more than once in file {}. "
                 "Fix the file to continue. "
             ).format(",".join(duplicated_lines), name)
         if not file_info:
-            error_message = error_message + "Could not format parsed file {0}.".format(
+            error_message = error_message + "Could not format parsed file {}.".format(
                 name
             )
         if error_message:
@@ -337,7 +335,7 @@ class ReadResultFiles:
         return file_info
 
 
-class CopyField(object):
+class CopyField:
     """Class to copy any filed (or udf) from any lims element to any
     udf on any other lims element
 
@@ -384,7 +382,7 @@ class CopyField(object):
             elt.put()
             return True
         except (TypeError, HTTPError) as e:
-            print("Error while updating element: {0}".format(e), file=sys.stderr)
+            print("Error while updating element: {}".format(e), file=sys.stderr)
             sys.exit(-1)
             return False
 
@@ -408,7 +406,7 @@ class CopyField(object):
             )
 
         logging.info(
-            ("Copying from element with id: {0} to element with " " id: {1}").format(
+            ("Copying from element with id: {} to element with " " id: {}").format(
                 self.s_elt.id, self.d_elt.id
             )
         )

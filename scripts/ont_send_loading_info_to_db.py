@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import division
 
 import os
 import re
@@ -123,7 +122,7 @@ def match_to_db_using_samplesheet(lims, args):
 
     # Check step samplesheet is up-to-date with step UDFs
     new_ss_path = minknow_samplesheet_default(currentStep)
-    new_ss_contents = open(new_ss_path, "r").read()
+    new_ss_contents = open(new_ss_path).read()
     os.remove(new_ss_path)
     assert (
         samplesheet.read() == new_ss_contents

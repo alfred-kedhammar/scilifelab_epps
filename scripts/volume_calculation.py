@@ -25,7 +25,7 @@ factors = {
     "mg/ml": 0.001,
 }
 
-with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml", "r") as f:
+with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml") as f:
     config = yaml.safe_load(f)
 
 

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import print_function
 
 DESC = """EPP script to copy 'concentration' and 'concentration unit' for each
 sample sample in the 'Qubit Result File' to the 'Concentration' and 'Conc. Units'
@@ -80,7 +78,7 @@ def get_data(csv_content, log):
             if row[sample_index] in data:
                 # Sample is duplicated, drop the key
                 log.append(
-                    "sample {0} has two rows in the Qubit CSV file. Please check the file manually.".format(
+                    "sample {} has two rows in the Qubit CSV file. Please check the file manually.".format(
                         row[sample_index]
                     )
                 )
@@ -167,19 +165,19 @@ def get_qbit_csv_data(process):
             missing_samples += 1
     if low_conc:
         log.append(
-            "{0}/{1} samples have low concentration.".format(
+            "{}/{} samples have low concentration.".format(
                 low_conc, len(process.result_files())
             )
         )
     if missing_samples:
         log.append(
-            "{0}/{1} samples are missing in the Qubit Result File.".format(
+            "{}/{} samples are missing in the Qubit Result File.".format(
                 missing_samples, len(process.result_files())
             )
         )
     if bad_format:
         log.append(
-            "There are {0} badly formatted samples in Qubit Result File. Please fix these to get proper results.".format(
+            "There are {} badly formatted samples in Qubit Result File. Please fix these to get proper results.".format(
                 bad_format
             )
         )

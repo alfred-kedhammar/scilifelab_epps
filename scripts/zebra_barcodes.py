@@ -181,12 +181,12 @@ def main(args, lims, epp_logger):
     if args.container_id:
         cs = p.output_containers()
         for c in cs:
-            logging.info("Constructing barcode for container {0}.".format(c.id))
+            logging.info("Constructing barcode for container {}.".format(c.id))
             lines += makeContainerBarcode(c.id, copies=1)
     if args.container_name:
         cs = p.output_containers()
         for c in cs:
-            logging.info("Constructing name label for container {0}.".format(c.id))
+            logging.info("Constructing name label for container {}.".format(c.id))
             lines += makeContainerNameBarcode(c.name, copies=1)
     if args.operator_and_date:
         op = p.technician.name
@@ -243,8 +243,8 @@ def main(args, lims, epp_logger):
         sp.stdin.write(str("\n".join(lines)))
         logging.info("lp command is called for printing.")
         stdout, stderr = sp.communicate()  # Will wait for sp to finish
-        logging.info("lp stdout: {0}".format(stdout))
-        logging.info("lp stderr: {0}".format(stderr))
+        logging.info("lp stdout: {}".format(stdout))
+        logging.info("lp stderr: {}".format(stderr))
         logging.info("lp command finished")
         sp.stdin.close()
 

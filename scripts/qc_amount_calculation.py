@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """EPP script to calculate amount in ng from concentration and volume
 udf:s in Clarity LIMS. The script checks that the 'Volume (ul)' and
@@ -53,9 +52,9 @@ def apply_calculations(artifacts, udf1, op, udf2, unit_amount_map, process):
 
         logging.info(
             (
-                "Updating: Artifact id: {0}, "
-                "result_udf: {1}, udf1: {2}, "
-                "operator: {3}, udf2: {4}"
+                "Updating: Artifact id: {}, "
+                "result_udf: {}, udf1: {}, "
+                "operator: {}, udf2: {}"
             ).format(
                 artifact.id,
                 artifact.udf.get(result_udf, 0),
@@ -64,16 +63,16 @@ def apply_calculations(artifacts, udf1, op, udf2, unit_amount_map, process):
                 udf2_value,
             )
         )
-        prod = eval("{0}{1}{2}".format(artifact.udf[udf1], op, udf2_value))
+        prod = eval("{}{}{}".format(artifact.udf[udf1], op, udf2_value))
         if dil_fold:
-            prod = eval("{0}{1}{2}".format(prod, op, dil_fold))
+            prod = eval("{}{}{}".format(prod, op, dil_fold))
         if artifact.udf["Conc. Units"] == "pM":
-            prod = eval("{0}{1}{2}".format(prod, op, 1 / 1000))
+            prod = eval("{}{}{}".format(prod, op, 1 / 1000))
         artifact.udf[result_udf] = prod
 
         artifact.put()
 
-        logging.info("Updated {0} to {1}.".format(result_udf, artifact.udf[result_udf]))
+        logging.info("Updated {} to {}.".format(result_udf, artifact.udf[result_udf]))
         calculate_fmol_AND_ng(artifact, result_udf)
 
 
@@ -107,7 +106,7 @@ def check_udf_is_defined(artifacts, udf):
         else:
             logging.warning(
                 (
-                    "Found artifact for sample {0} with {1} "
+                    "Found artifact for sample {} with {} "
                     "undefined/blank, skipping"
                 ).format(artifact.samples[0].name, udf)
             )
@@ -125,7 +124,7 @@ def check_udf_has_value(artifacts, udf, value):
         elif udf in artifact.udf:
             incorrect_artifacts.append(artifact)
             logging.warning(
-                ("Filtered out artifact for sample: {0}" ", due to wrong {1}").format(
+                ("Filtered out artifact for sample: {}" ", due to wrong {}").format(
                     artifact.samples[0].name, udf
                 )
             )
@@ -133,8 +132,8 @@ def check_udf_has_value(artifacts, udf, value):
             incorrect_artifacts.append(artifact)
             logging.warning(
                 (
-                    "Filtered out artifact for sample: {0}"
-                    ", due to undefined/blank {1}"
+                    "Filtered out artifact for sample: {}"
+                    ", due to undefined/blank {}"
                 ).format(artifact.samples[0].name, udf)
             )
 

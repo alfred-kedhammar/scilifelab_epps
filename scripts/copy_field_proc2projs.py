@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """EPP script to copy user defined field from any process to associated
 project/projects in Clarity LIMS. If the specifyed process handles many artifacts

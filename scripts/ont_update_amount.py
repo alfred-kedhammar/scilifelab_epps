@@ -1,5 +1,3 @@
-from __future__ import division
-
 import sys
 from argparse import ArgumentParser
 from datetime import datetime as dt

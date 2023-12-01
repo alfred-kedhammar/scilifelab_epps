@@ -77,7 +77,7 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
         lims.upload_new_file(anglerfish_file_slot, latest_anglerfish_results_path)
 
         # Load file
-        content = open(latest_anglerfish_results_path, "r").readlines()
+        content = open(latest_anglerfish_results_path).readlines()
 
     return content
 

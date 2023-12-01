@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import print_function
 
 DESC = """
 Python script for parsing output file from Caliper
@@ -20,7 +18,7 @@ from genologics.lims import Lims
 from scilifelab_epps.epp import EppLogger, set_field
 
 NGISAMPLE_PAT = re.compile("P[0-9]+_[0-9]+")
-CALIPER_PAT = re.compile("CaliperGX \([D|R]NA\) (.*)")
+CALIPER_PAT = re.compile(r"CaliperGX \([D|R]NA\) (.*)")
 SAMPLENAME_PAT = re.compile("[A-H][1-9][0-2]?_(.*)_[0-9]+-[0-9]+_([0-9]+-[0-9]+)*")
 DV200_PAT = re.compile("Region[[0-9]+-[0-9]+] % of Total Area")
 
@@ -126,7 +124,7 @@ def parse_caliper_results(process):
                             and v[target_column] != ""
                         ):
                             out.udf[item[0]] = float(
-                                re.sub("\[|\]", "", v[target_column])
+                                re.sub(r"\[|\]", "", v[target_column])
                             )
                         else:
                             log.append(

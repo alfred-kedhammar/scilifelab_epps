@@ -1,5 +1,3 @@
-from __future__ import division
-
 import sys
 from argparse import ArgumentParser
 from datetime import datetime as dt
@@ -63,7 +61,7 @@ def main(lims, args):
             # Get molar proportions between samples within pool
             df_pool["prop_nM"] = df_pool.conc_nM / sum(df_pool.conc_nM)
             df_pool["prop_nM_inv"] = (1 / df_pool["prop_nM"]) / sum(
-                (1 / df_pool["prop_nM"])
+                1 / df_pool["prop_nM"]
             )
 
             # If amount is specified, use for calculations and ignore target vol

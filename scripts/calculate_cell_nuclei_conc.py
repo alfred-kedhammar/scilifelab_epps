@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """EPP script to calculating cell/nuclei concentration
 by dividing cell/nuclei count by volume and correcting by % viability.

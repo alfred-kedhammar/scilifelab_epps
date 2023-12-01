@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 DESC = """EPP script to copy user defined fields from analyte level to
 submitted sample level in Clarity LIMS. Can be executed in the background
@@ -64,7 +63,7 @@ def main(lims, args, epp_logger):
                     incorrect_artifacts = incorrect_artifacts + 1
                     logging.warning(
                         (
-                            "Found artifact for sample {0} with {1} "
+                            "Found artifact for sample {} with {} "
                             "undefined/blank, exiting"
                         ).format(artifact.samples[0].name, source_udf)
                     )
@@ -72,7 +71,7 @@ def main(lims, args, epp_logger):
     if incorrect_artifacts == 0:
         warning = "no artifacts"
     else:
-        warning = "WARNING: skipped {0} udfs(s)".format(incorrect_artifacts)
+        warning = "WARNING: skipped {} udfs(s)".format(incorrect_artifacts)
     d = {
         "ua": no_updated,
         "ca": correct_artifacts,

@@ -26,7 +26,7 @@ SEQSETUP_PAT = re.compile("[0-9]+-[0-9A-z]+-[0-9A-z]+-[0-9]+")
 
 
 def check_index_distance(data, log):
-    lanes = set([x["lane"] for x in data])
+    lanes = {x["lane"] for x in data}
     for l in lanes:
         indexes = [
             x.get("idx1", "") + x.get("idx2", "") for x in data if x["lane"] == l
@@ -689,8 +689,8 @@ def gen_MinION_QC_data(pro):
                 sp_obj["idx"] = ""
                 data.append(sp_obj)
             # Case of index sequences between brackets
-            elif re.findall("\((.*?)\)", idxs):
-                idxs = re.findall("\((.*?)\)", idxs)[0]
+            elif re.findall(r"\((.*?)\)", idxs):
+                idxs = re.findall(r"\((.*?)\)", idxs)[0]
                 if "-" not in idxs:
                     sp_obj["idxt"] = "truseq"
                     sp_obj["idx"] = idxs

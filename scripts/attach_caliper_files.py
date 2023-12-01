@@ -76,13 +76,13 @@ def main(lims, args, epp_logger):
 
         if len(fns) == 0:
             logging.warning(
-                "No image file found for artifact with id {0}".format(i_a.id)
+                "No image file found for artifact with id {}".format(i_a.id)
             )
             artifact_missing_file.append(i_a)
         elif len(fns) > 1:
             logging.warning(
                 (
-                    "Multiple image files found for artifact with id {0}, "
+                    "Multiple image files found for artifact with id {}, "
                     "please attach files manually"
                 ).format(i_a.id)
             )
@@ -91,29 +91,29 @@ def main(lims, args, epp_logger):
             fn = fns[0]
             found_files.append(fn)
             logging.info(
-                "Found image file {0} for artifact with id {1}".format(fn, i_a.id)
+                "Found image file {} for artifact with id {}".format(fn, i_a.id)
             )
             fp = os.path.join(args.path, fn)
 
             # Attach file to the LIMS
             location = attach_file(fp, o_a)
-            logging.debug("Moving {0} to {1}".format(fp, location))
+            logging.debug("Moving {} to {}".format(fp, location))
 
     warning = ""
     if len(artifact_missing_file):
-        warning = "Did not find any file for {0} artifact(s). ".format(
+        warning = "Did not find any file for {} artifact(s). ".format(
             len(artifact_missing_file)
         )
 
     if len(artifact_multiple_file):
-        warning += "Found multiple files for {0} artifact(s), none of these were uploaded.".format(
+        warning += "Found multiple files for {} artifact(s), none of these were uploaded.".format(
             len(artifact_multiple_file)
         )
 
     if warning:
         warning = "Warning: " + warning
 
-    abstract = "Uploaded {0} file(s). {1}".format(len(found_files), warning)
+    abstract = "Uploaded {} file(s). {}".format(len(found_files), warning)
     print(abstract, file=sys.stderr)  # stderr will be logged and printed in GUI
 
 
