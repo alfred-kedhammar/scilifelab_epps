@@ -149,9 +149,9 @@ class RunQC:
             path_id = cont_name
         try:
             self.file_path = glob.glob(
-                    "/srv/ngi-nas-ns/{}/*{}/Unaligned/" "Basecall_Stats_*/".format(
-                        data_folder, path_id
-                    )
+                "/srv/ngi-nas-ns/{}/*{}/Unaligned/" "Basecall_Stats_*/".format(
+                    data_folder, path_id
+                )
             )[0]
         except:
             sys.exit("Failed to get file path")
@@ -253,8 +253,9 @@ class RunQC:
             if self.high_lane_yield:
                 self.high_lane_yield = ", ".join(list(set(self.high_lane_yield)))
                 warn = (
-                    "{} High total yield of unexpected index on lane(s): "
-                    "{}.".format(warn, self.high_lane_yield)
+                    "{} High total yield of unexpected index on lane(s): " "{}.".format(
+                        warn, self.high_lane_yield
+                    )
                 )
             warn = warn + "Please check the Metrics file!"
             self.abstract.insert(0, warn)

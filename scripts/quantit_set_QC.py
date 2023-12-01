@@ -60,9 +60,9 @@ class QuantitQC:
         self.result_files = process.result_files()
         self.udfs = dict(list(process.udf.items()))
         self.required_udfs = {
-                "Allowed %CV of duplicates",
-                "Saturation threshold of fluorescence intensity",
-                "Minimum required concentration (ng/ul)",
+            "Allowed %CV of duplicates",
+            "Saturation threshold of fluorescence intensity",
+            "Minimum required concentration (ng/ul)",
         }
         self.abstract = []
         self.missing_udfs = []

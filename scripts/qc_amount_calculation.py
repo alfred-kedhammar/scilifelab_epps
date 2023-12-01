@@ -106,8 +106,7 @@ def check_udf_is_defined(artifacts, udf):
         else:
             logging.warning(
                 (
-                    "Found artifact for sample {} with {} "
-                    "undefined/blank, skipping"
+                    "Found artifact for sample {} with {} " "undefined/blank, skipping"
                 ).format(artifact.samples[0].name, udf)
             )
             incorrect_artifacts.append(artifact)
@@ -132,8 +131,7 @@ def check_udf_has_value(artifacts, udf, value):
             incorrect_artifacts.append(artifact)
             logging.warning(
                 (
-                    "Filtered out artifact for sample: {}"
-                    ", due to undefined/blank {}"
+                    "Filtered out artifact for sample: {}" ", due to undefined/blank {}"
                 ).format(artifact.samples[0].name, udf)
             )
 

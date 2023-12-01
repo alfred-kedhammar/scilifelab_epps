@@ -163,9 +163,7 @@ def main(lims, args):
             comments = pro.udf["Comments"].encode("utf-8")
         note = "Comment from {} ({}) : \n{}".format(
             pro.type.name,
-            "[LIMS]({}/clarity/work-details/{})".format(
-                BASEURI, pro.id.split("-")[1]
-            ),
+            "[LIMS]({}/clarity/work-details/{})".format(BASEURI, pro.id.split("-")[1]),
             comments,
         )
         noteobj["note"] = note

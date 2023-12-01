@@ -85,9 +85,9 @@ def check_udf_is_defined(projects, udf):
             filtered_projects.append(project)
         else:
             logging.warning(
-                (
-                    "Found project with id {} with {} " "undefined/blank, exiting"
-                ).format(project.id, udf)
+                ("Found project with id {} with {} " "undefined/blank, exiting").format(
+                    project.id, udf
+                )
             )
             incorrect_projects.append(project)
     return filtered_projects, incorrect_projects
