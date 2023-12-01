@@ -1,28 +1,24 @@
 # .pre-commit-config.yaml
 repos:
-  -   repo: local
-      hooks:
 
-      -   id: ruff-check
-          name: ruff --> Check for style violations
-          entry: ruff check --ignore E402,E722,E741 --unsafe-fixes .
-          language: system
-          types: [python]
+    - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+        - id: ruff
+        - id: ruff-format
 
-      -   id: isort-check
-          name: isort --> Check for best-practice sorting of imports
-          entry: isort --check .
-          language: system
-          types: [python]
+    - repo: https://github.com/pycqa/isort
+        rev: 5.11.2
+        hooks:
+        - id: isort
+            name: isort (python)
 
-      -   id: ruff-format
-          name: ruff --> Check code formatting
-          entry: ruff format --check .
-          language: system
-          types: [python]
+    - repo: https://github.com/pre-commit/mirrors-mypy
+        rev: ''  # Use the sha / tag you want to point at
+        hooks:
+        -   id: mypy
 
-      -   id: mypy-check
-          name: mypy --> Static type checking
-          entry: mypy --ignore-missing-imports --follow-imports=skip --exclude build .
-          language: system
-          types: [python]
+    - repo: https://github.com/asottile/pyupgrade
+        rev: v3.15.0
+        hooks:
+        -   id: pyupgrade
