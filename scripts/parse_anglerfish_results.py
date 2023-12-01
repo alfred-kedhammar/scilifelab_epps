@@ -1,148 +1,266 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-
-DESC = """
-Python script for parsing output file from Anglerfish
-And copy data in correspoding step in Clarity LIMS
-Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
-"""
-
 import os
-import sys
-import logging
-import numpy as np
-import codecs
-import re
+import pandas as pd
 import glob
 
-from datetime import datetime
+from datetime import datetime as dt
 from argparse import ArgumentParser
-from requests import HTTPError
 from genologics.lims import Lims
-from genologics.config import BASEURI,USERNAME,PASSWORD
-from genologics.entities import Process
-from scilifelab_epps.epp import EppLogger
-from scilifelab_epps.epp import ReadResultFiles
-from scilifelab_epps.epp import set_field
+from genologics.config import BASEURI, USERNAME, PASSWORD
+from genologics.entities import Process, Artifact
+from epp_utils.udf_tools import put, fetch
+from epp_utils import formula
 
-NGITENXSAMPLE_PAT = re.compile("P[0-9]+_[0-9]+_[0-9]+")
-NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 
-# Get file
-def get_anglerfish_output_file(lims, process):
-    thisyear=datetime.now().year
-    content = None
-    flowcell_id = process.udf['Flowcell ID'].upper()
-    for outart in process.all_outputs():
-        # First try fetching the Anglerfish result file from the uploaded file in LIMS
-        if outart.type == 'ResultFile' and outart.name == 'Anglerfish Result File':
-            try:
-                fid = outart.files[0].id
-                content = lims.get_file_contents(id=fid).readlines()
-            except:
-                # Second try fetching the Anglerfish result file from the storage server
-                if os.path.exists("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}".format(thisyear)):
-                    try:
-                        with open("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id), 'r') as asf:
-                            content = asf.readlines()
-                        lims.upload_new_file(outart,max(glob.glob("/srv/ngi-nas-ns/nanopore_results/anglerfish/{}/anglerfish_stats_{}.txt".format(thisyear, flowcell_id)),key=os.path.getctime))
-                    except:
-                        raise RuntimeError("No Anglerfish output file available")
-                else:
-                    raise RuntimeError("Cannot access the folder for Anglerfish output file")
-            break
-    if isinstance(content[0], bytes):
-        content = [x.decode('utf-8') for x in content]
+def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
+    flowcell_id: str = currentStep.udf["ONT flow cell ID"].upper().strip()
+    anglerfish_file_slot: Artifact = [
+        outart
+        for outart in currentStep.all_outputs()
+        if outart.name == "Anglerfish Result File"
+    ][0]
+
+    # Try to load file from LIMS
+    if anglerfish_file_slot.files:
+        loaded_file_name = anglerfish_file_slot.files[0].original_location.split("/")[
+            -1
+        ]
+        log.append(
+            f"Anglerfish Result File '{loaded_file_name}' detected in the step, loading it directly"
+        )
+        bytes_content = lims.get_file_contents(
+            id=anglerfish_file_slot.files[0].id
+        ).readlines()
+        content = [x.decode("utf-8") for x in bytes_content]
+
+    # Try to load file from ngi-nas-ns
+    else:
+        log.append(
+            "No 'Anglerfish Result File' detected in the step, trying to fetch it from ngi-nas-ns"
+        )
+
+        # Find latest run
+        run_query = f"/srv/ngi-nas-ns/minion_data/qc/*{flowcell_id}*"
+        log.append(f"Looking for path {run_query}")
+        run_glob = glob.glob(run_query)
+        assert (
+            len(run_glob) != 0
+        ), f"No runs with flowcell ID {flowcell_id} found on path {run_query}"
+        if len(run_glob) > 1:
+            runs_list = "\n".join(run_glob)
+            log.append(
+                f"WARNING: Multiple runs with flowcell ID {flowcell_id} detected:\n{runs_list}"
+            )
+        latest_run_path = max(run_glob, key=os.path.getctime)
+        log.append(f"Using latest run {latest_run_path}")
+
+        # Find latest Anglerfish results of run
+        anglerfish_results_query = (
+            f"{latest_run_path}/*anglerfish*/anglerfish_stats.txt"
+        )
+        anglerfish_results_glob = glob.glob(anglerfish_results_query)
+        assert (
+            len(anglerfish_results_glob) != 0
+        ), f"No Anglerfish results found for query {anglerfish_results_query}"
+        if len(anglerfish_results_glob) > 1:
+            results_list = "\n".join(anglerfish_results_glob)
+            log.append(
+                f"WARNING: Multiple Anglerfish results detected:\n{results_list}"
+            )
+        latest_anglerfish_results_path = max(
+            anglerfish_results_glob, key=os.path.getctime
+        )
+        log.append(f"Using latest Anglerfish results {latest_anglerfish_results_path}")
+
+        # Upload results to LIMS
+        lims.upload_new_file(anglerfish_file_slot, latest_anglerfish_results_path)
+
+        # Load file
+        content = open(latest_anglerfish_results_path, "r").readlines()
+
     return content
 
-# Parse file content
-def get_data(content, log):
-    read=False
-    raw_data={}
-    tenx_samples={}
-    results={}
-    header_flag = True
+
+def get_data(content: list, log: list):
+    data = []
+    header = None
+
+    # Extract sample data
     for line in content:
-        #Search for header
-        if 'sample_name' in line and '#reads' in line:
-            header_flag = False
+        # Search for header
+        if "sample_name" in line and "#reads" in line:
+            header = [e.strip() for e in line.split("\t")]
             continue
-        if (not header_flag) and (line != '\n'):
-            if '\t' in line:
-                sample_id = line.split('\t')[0]
-                read_count = int(line.split('\t')[1].replace('\n',''))
-            else:
-                sample_id = line.split()[0]
-                read_count = int(line.split()[1])
-            raw_data.update({sample_id: read_count})
-        # Read file until an empty line
-        if (not header_flag) and (line == '\n'):
+
+        # Parse tsv body
+        if (header) and (line != "\n"):
+            data.append([e.strip() for e in line.split("\t")])
+
+        # Ready tsv body until an empty line
+        if (header) and (line == "\n"):
             break
+
         else:
             continue
-    #Process raw data
-    for k,v in raw_data.items():
-        #Case of 10X samples
-        if NGITENXSAMPLE_PAT.findall(k):
-            tenx_sample_id = k.split('_')[0]+'_'+k.split('_')[1]
-            if tenx_samples.get(tenx_sample_id):
-                tenx_samples[tenx_sample_id] = tenx_samples[tenx_sample_id] + v
-            else:
-                tenx_samples.update({tenx_sample_id:v})
-        else:
-            results.update({k:v})
 
-    #Combine ordinary and 10X samples:
-    if tenx_samples:
-        tenx_samples_copy = tenx_samples.copy()
-        results.update(tenx_samples_copy)
+    # Compile data into dataframe
+    df = pd.DataFrame(data, columns=header)
+    df = df.astype(
+        {
+            "sample_name": str,
+            "#reads": int,
+            "mean_read_len": float,
+            "std_read_len": float,
+            "i5_reversed": bool,
+            "ont_barcode": str,
+        }
+    )
 
-    return results
+    # Add additional metrics
+    df["repr_total_pc"] = df["#reads"] / df["#reads"].sum() * 100
+    df["repr_within_barcode_pc"] = df.apply(
+        # Sample reads divided by sum of all sample reads w. the same barcode
+        lambda row: row["#reads"]
+        / df[df["ont_barcode"] == row["ont_barcode"]]["#reads"].sum()
+        * 100,
+        axis=1,
+    )
 
-def parse_anglerfish_results(lims, process):
-    #samples missing from the qubit csv file
-    missing_samples = []
-    #strings returned to the EPP user
+    return df
+
+
+def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
+    # Dictate which LIMS UDF corresponds to which column in the dataframe
+    udfs_to_cols = {
+        "# Reads": "#reads",
+        "Avg. Read Length": "mean_read_len",
+        "Std. Read Length": "std_read_len",
+        "Representation Within Run (%)": "repr_total_pc",
+        "Representation Within Barcode (%)": "repr_within_barcode_pc",
+    }
+
+    # Get Illumina pools
+    illumina_pools = [
+        input_art
+        for input_art in currentStep.all_inputs()
+        if input_art.type == "Analyte"
+    ]
+
+    for illumina_pool in illumina_pools:
+        try:
+            # Get Illumina samples in the current pool
+            illumina_samples = [
+                output
+                for output in currentStep.all_outputs()
+                if output.type == "ResultFile"
+                and output.input_artifact_list()[0].name == illumina_pool.name
+                and output.name in list(df["sample_name"])
+            ]
+
+            for illumina_sample in illumina_samples:
+                try:
+                    # Translate the ONT barcode well to the barcode string used by Anglerfish
+                    barcode_well: str = fetch(illumina_sample, "ONT Barcode Well")
+                    # Add colon if not present
+                    if not ":" in barcode_well:
+                        barcode_well = f"{barcode_well[0]}:{barcode_well[1:]}"
+                    # Get the number corresponding to the well (column-wise)
+                    barcode_num_str = str(formula.well_name2num_96plate[barcode_well])
+                    # Pad barcode number with leading zero if necessary
+                    if len(barcode_num_str) < 2:
+                        barcode_num_str = f"0{barcode_num_str}"
+                    barcode_name = f"barcode{barcode_num_str}"
+
+                    # Find the dataframe row matching the LIMS output artifact
+                    df_barcode = df[df["ont_barcode"] == barcode_name]
+                    df_match = df_barcode[
+                        df_barcode["sample_name"] == illumina_sample.name
+                    ]
+                    assert (
+                        len(df_match) == 1
+                    ), f"Multiple entries matching both Illumina sample name {illumina_sample.name} and ONT barcode {barcode_name} was found in the dataframe."
+
+                    # Start putting UDFs
+                    for udf, col in udfs_to_cols.items():
+                        try:
+                            value = float(df_match[col].values[0])
+                            put(
+                                illumina_sample,
+                                udf,
+                                value,
+                            )
+                        except:
+                            log.append(
+                                f"ERROR: Could not assign UDF '{udf}' value '{value}' for sample {illumina_sample.name}"
+                            )
+                            continue
+
+                except:
+                    log.append(
+                        f"ERROR: Could not process sample {illumina_sample.name}"
+                    )
+                    continue
+
+        except:
+            log.append(f"ERROR: Could not process pool {illumina_pool.name}")
+            continue
+
+
+def write_log(log, currentStep):
+    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+    log_filename = f"parse_anglerfish_results_log_{currentStep.id}_{timestamp}_{currentStep.technician.name.replace(' ','')}"
+    with open(log_filename, "w") as logContext:
+        logContext.write("\n".join(log))
+    return log_filename
+
+
+def upload_log(currentStep, lims, log_filename):
+    log_file_slot = [
+        slot
+        for slot in currentStep.all_outputs()
+        if slot.name == "Parse Anglerfish Results Log"
+    ][0]
+    for f in log_file_slot.files:
+        lims.request_session.delete(f.uri)
+    lims.upload_new_file(log_file_slot, log_filename)
+
+    # Remove originally written file
+    os.remove(log_filename)
+
+
+def main(lims: Lims, currentStep: Process):
+    # Instantiate log file
     log = []
-    # Get file contents by parsing lims artifacts
-    file_content = get_anglerfish_output_file(lims, process)
-    #parse the Anglerfish output
-    data = get_data(file_content, log)
 
-    # Fill values in LIMS
-    for out in process.all_outputs():
-        if NGISAMPLE_PAT.findall(out.name):
-            if data.get(out.name):
-                out.udf['# Reads'] = data[out.name]
-                out.put()
-                set_field(out)
-            else:
-                missing_samples.append(out.name)
+    # Get file contents
+    file_content: list = get_anglerfish_output_file(lims, currentStep, log)
 
-    if missing_samples:
-        log.append('Sample {} missing in the Anglerfish Result File.'.format(missing_samples))
+    # Parse the Anglerfish output
+    df: pd.DataFrame = get_data(file_content, log)
 
-    print(''.join(log), file=sys.stderr)
+    # Populate sample fields with Anglerfish results
+    fill_udfs(currentStep, df, log)
 
-def main(lims, pid, epp_logger):
+    # Add sample comments
+    # TODO
 
-    process = Process(lims,id = pid)
-    parse_anglerfish_results(lims, process)
+    # Write log
+    log_filename = write_log(log, currentStep)
+
+    # Upload log
+    upload_log(currentStep, lims, log_filename)
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid', default = '24-594126', dest = 'pid',
-                        help='Lims id for current Process')
-    parser.add_argument('--log', dest = 'log',
-                        help=('File name for standard log file, '
-                              'for runtime information and problems.'))
-
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--pid", default="24-594126", dest="pid", help="Lims id for current Process"
+    )
     args = parser.parse_args()
 
-    lims = Lims(BASEURI,USERNAME,PASSWORD)
+    lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
 
-    with EppLogger(log_file=args.log, lims=lims, prepend=True) as epp_logger:
-        main(lims, args.pid, epp_logger)
+    currentStep = Process(lims, id=args.pid)
+
+    main(lims, currentStep)
