@@ -233,8 +233,10 @@ def gen_Miseq_reads(pro):
     reads="[Reads]\n"
     if pro.udf["Read 1 Cycles"]:
         reads=reads + "{}\n".format(pro.udf["Read 1 Cycles"])
-    if pro.udf["Read 2 Cycles"]:
+    if pro.udf.get("Read 2 Cycles"):
         reads=reads + "{}\n".format(pro.udf["Read 2 Cycles"])
+    else:
+        reads=reads + "0\n"
     return reads
 
 def gen_Miseq_settings(pro):
@@ -299,7 +301,7 @@ def gen_Miseq_data(pro):
                     else:
                         sp_obj['idx2'] = ''
                     data.append(sp_obj)
-    header = "[Data]\n{}\n".format(",".join(header_ar))
+    header = "{}\n".format(",".join(header_ar))
     str_data = ""
     for line in sorted(data, key=lambda x: x['lane']):
         l_data = [line['fc'], line['lane'], line['sn'], line['sn'], line['ref'], line['idx1'], line['idx2'], line['pj'], line['ct'], line['rc'], line['op'], line['pj']]
@@ -309,6 +311,7 @@ def gen_Miseq_data(pro):
     df = pd.read_csv(StringIO(content))
     df = df.sort_values(['Lane', 'Sample_ID'])
     content = df.to_csv(index=False)
+    content = "[Data]\n{}\n".format(content)
 
     return (content, data)
 
