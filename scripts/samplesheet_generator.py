@@ -216,6 +216,33 @@ def gen_NovaSeqXPlus_lane_data(pro):
 
     return (content, data)
 
+def gen_Miseq_header(pro):
+    project_name=pro.all_inputs()[0].samples[0].project.name
+    chem = "Default"
+    for io in pro.input_output_maps:
+        sample_idxs = set()
+        find_barcode(sample_idxs, io[1]["uri"].samples[0], pro)
+        idxs = list(sample_idxs)[0]
+        if len(idxs) == 2:
+           chem="amplicon"
+
+    header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nModule,{mod}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Flowcell ID"], dt=datetime.now().strftime("%Y-%m-%d"), wf=pro.udf["Workflow"], mod=pro.udf["Module"], ass="null", dsc=pro.udf['Description'], chem=chem)
+    return header
+
+def gen_Miseq_reads(pro):
+    reads="[Reads]\n"
+    if pro.udf["Read 1 Cycles"]:
+        reads=reads + "{}\n".format(pro.udf["Read 1 Cycles"])
+    if pro.udf["Read 2 Cycles"]:
+        reads=reads + "{}\n".format(pro.udf["Read 2 Cycles"])
+    return reads
+
+def gen_Miseq_settings(pro):
+    ogf=1 if pro.udf["OnlyGenerateFASTQ"] else 0
+    fpdcrd=1 if pro.udf["FilterPCRDuplicates"] else 0
+    settings="[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n".format(ogf=ogf,fpdcrd=fpdcrd)
+    return settings
+
 def gen_Miseq_data(pro):
     data = []
     header_ar = [
@@ -272,7 +299,7 @@ def gen_Miseq_data(pro):
                     else:
                         sp_obj['idx2'] = ''
                     data.append(sp_obj)
-    header = "{}\n".format(",".join(header_ar))
+    header = "[Data]\n{}\n".format(",".join(header_ar))
     str_data = ""
     for line in sorted(data, key=lambda x: x['lane']):
         l_data = [line['fc'], line['lane'], line['sn'], line['sn'], line['ref'], line['idx1'], line['idx2'], line['pj'], line['ct'], line['rc'], line['op'], line['pj']]
@@ -476,7 +503,12 @@ def main(lims, args):
                     log.append(str(e))
 
         elif process.type.name == "Denature, Dilute and Load Sample (MiSeq) 4.0":
+            header = gen_Miseq_header(process)
+            reads = gen_Miseq_reads(process)
+            settings = gen_Miseq_settings(process)
             (content, obj) = gen_Miseq_data(process)
+            check_index_distance(obj, log)
+            content = "{}{}{}{}".format(header, reads, settings, content)
 
         elif process.type.name == 'Load to Flowcell (NextSeq v1.0)':
             (content, obj) = gen_Nextseq_lane_data(process)
