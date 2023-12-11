@@ -75,24 +75,18 @@ def main(lims, args, epp_logger):
         fns = list(filter(im_file_r.match, file_list))
 
         if len(fns) == 0:
-            logging.warning(
-                f"No image file found for artifact with id {i_a.id}"
-            )
+            logging.warning(f"No image file found for artifact with id {i_a.id}")
             artifact_missing_file.append(i_a)
         elif len(fns) > 1:
             logging.warning(
-                
-                    f"Multiple image files found for artifact with id {i_a.id}, "
-                    "please attach files manually"
-                
+                f"Multiple image files found for artifact with id {i_a.id}, "
+                "please attach files manually"
             )
             artifact_multiple_file.append(i_a)
         else:
             fn = fns[0]
             found_files.append(fn)
-            logging.info(
-                f"Found image file {fn} for artifact with id {i_a.id}"
-            )
+            logging.info(f"Found image file {fn} for artifact with id {i_a.id}")
             fp = os.path.join(args.path, fn)
 
             # Attach file to the LIMS

@@ -195,9 +195,7 @@ def sumreads(sample, summary):
     except AttributeError as e:
         print(e)
         # base_art is still None because no arts were found
-        logging.info(
-            f"No demultiplexing processes found for sample {sample.name}"
-        )
+        logging.info(f"No demultiplexing processes found for sample {sample.name}")
 
     # total is displayed as millions
     tot /= 1000000

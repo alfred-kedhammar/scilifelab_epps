@@ -60,9 +60,7 @@ def get_process_stats(demux_process):
             inputartifactlimsid=demux_process.all_inputs()[0].id, type=seq_processes
         )[0]
     except Exception as e:
-        problem_handler(
-            "exit", f"Undefined prior workflow step (run type): {str(e)}"
-        )
+        problem_handler("exit", f"Undefined prior workflow step (run type): {str(e)}")
     # Copies LIMS sequencing step content
     proc_stats = dict(list(seq_process.udf.items()))
     # Instrument is denoted the way it is since it is also used to find
@@ -114,9 +112,7 @@ def get_process_stats(demux_process):
         try:
             proc_stats["Chemistry"] = seq_process.udf["Chemistry"]
         except Exception as e:
-            problem_handler(
-                "exit", f"No run type set in sequencing step: {str(e)}"
-            )
+            problem_handler("exit", f"No run type set in sequencing step: {str(e)}")
         proc_stats["Instrument"] = "NextSeq"
         proc_stats["Read Length"] = (
             max(seq_process.udf["Read 1 Cycles"], seq_process.udf["Read 2 Cycles"])
@@ -133,9 +129,7 @@ def get_process_stats(demux_process):
     try:
         proc_stats["Paired"] = proc_stats.get("Paired", False)
     except Exception as e:
-        problem_handler(
-            "exit", f"Unable to fetch workflow information: {str(e)}"
-        )
+        problem_handler("exit", f"Unable to fetch workflow information: {str(e)}")
     if "Read 2 Cycles" in proc_stats:
         proc_stats["Paired"] = True
     logger.info("Paired libraries: {}".format(proc_stats["Paired"]))
@@ -229,9 +223,7 @@ def fill_process_fields(demux_process, process_stats):
     try:
         demux_process.put()
     except Exception as e:
-        problem_handler(
-            "exit", f"Failed to apply process thresholds to LIMS: {str(e)}"
-        )
+        problem_handler("exit", f"Failed to apply process thresholds to LIMS: {str(e)}")
 
 
 def set_sample_values(demux_process, parser_struct, process_stats):
@@ -261,9 +253,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
             inputartifactlimsid=demux_process.all_inputs()[0].id, type=seq_processes
         )[0]
     except Exception as e:
-        problem_handler(
-            "exit", f"Undefined prior workflow step (run type): {str(e)}"
-        )
+        problem_handler("exit", f"Undefined prior workflow step (run type): {str(e)}")
 
     if "Lanes to include undetermined" in demux_process.udf:
         try:
@@ -286,9 +276,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
         try:
             outarts_per_lane = demux_process.outputs_per_input(pool.id, ResultFile=True)
         except Exception as e:
-            problem_handler(
-                "exit", f"Unable to fetch artifacts of process: {str(e)}"
-            )
+            problem_handler("exit", f"Unable to fetch artifacts of process: {str(e)}")
         if process_stats["Instrument"] == "miseq":
             lane_no = "1"
         else:
@@ -317,9 +305,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                 "exit",
                 f"Faulty LIMS setup. Pool in lane {lane_no} has no samples: {e}",
             )
-        logger.info(
-            f"Expected sample clusters for this lane: {exp_smp_per_lne}"
-        )
+        logger.info(f"Expected sample clusters for this lane: {exp_smp_per_lne}")
 
         # Artifacts in each lane
         for target_file in outarts_per_lane:
@@ -735,9 +721,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
         problem_handler("warning", "Undetermined reads included in read count!")
 
     if failed_entries > 0:
-        problem_handler(
-            "warning", f"{failed_entries} entries failed automatic QC"
-        )
+        problem_handler("warning", f"{failed_entries} entries failed automatic QC")
 
 
 def write_demuxfile(process_stats, demux_id):

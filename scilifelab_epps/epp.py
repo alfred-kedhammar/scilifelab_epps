@@ -89,9 +89,7 @@ class EppLogger:
             )
         except DistributionNotFound as e:
             logging.error(e)
-            logging.error(
-                f"Make sure you have the {self.PACKAGE} " "package installed"
-            )
+            logging.error(f"Make sure you have the {self.PACKAGE} " "package installed")
             sys.exit(-1)
         return self
 

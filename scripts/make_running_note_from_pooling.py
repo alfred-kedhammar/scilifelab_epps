@@ -72,9 +72,7 @@ def main(lims, args):
         if out.name == "RNotes Log":
             attach_file(os.path.join(os.getcwd(), "EPP_Notes.log"), out)
 
-    sys.stderr.write(
-        f"Updated {len(list(datamap.keys()))} projects successfully"
-    )
+    sys.stderr.write(f"Updated {len(list(datamap.keys()))} projects successfully")
 
 
 if __name__ == "__main__":

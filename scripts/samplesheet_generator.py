@@ -96,8 +96,7 @@ def gen_Novaseq_lane_data(pro):
                             sp_obj["rc"] = "0-0"
                     else:
                         sp_obj["sid"] = (
-                            f"Sample_{sample.name}"
-                            .replace("(", "")
+                            f"Sample_{sample.name}".replace("(", "")
                             .replace(")", "")
                             .replace(".", "")
                             .replace(" ", "_")
@@ -203,8 +202,7 @@ def gen_NovaSeqXPlus_lane_data(pro):
                             sp_obj["rc"] = "0-0"
                     else:
                         sp_obj["sid"] = (
-                            f"Sample_{sample.name}"
-                            .replace("(", "")
+                            f"Sample_{sample.name}".replace("(", "")
                             .replace(")", "")
                             .replace(".", "")
                             .replace(" ", "_")
@@ -293,9 +291,7 @@ def gen_Miseq_reads(pro):
 def gen_Miseq_settings(pro):
     ogf = 1 if pro.udf["OnlyGenerateFASTQ"] else 0
     fpdcrd = 1 if pro.udf["FilterPCRDuplicates"] else 0
-    settings = (
-        f"[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n"
-    )
+    settings = f"[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n"
     return settings
 
 
@@ -346,8 +342,7 @@ def gen_Miseq_data(pro):
                     )
                 else:
                     sp_obj["sid"] = (
-                        f"Sample_{sample.name}"
-                        .replace("(", "")
+                        f"Sample_{sample.name}".replace("(", "")
                         .replace(")", "")
                         .replace(".", "")
                         .replace(" ", "_")
@@ -386,8 +381,7 @@ def gen_Miseq_data(pro):
                         )
                     else:
                         sp_obj["sid"] = (
-                            f"Sample_{sample.name}"
-                            .replace("(", "")
+                            f"Sample_{sample.name}".replace("(", "")
                             .replace(")", "")
                             .replace(".", "")
                             .replace(" ", "_")
@@ -584,8 +578,7 @@ def gen_Nextseq_lane_data(pro):
                             sp_obj["rc"] = "0-0"
                     else:
                         sp_obj["sid"] = (
-                            f"Sample_{sample.name}"
-                            .replace("(", "")
+                            f"Sample_{sample.name}".replace("(", "")
                             .replace(")", "")
                             .replace(".", "")
                             .replace(" ", "_")
@@ -773,9 +766,7 @@ def main(lims, args):
         if "Load to Flowcell (NovaSeq 6000 v2.0)" == process.type.name:
             (content, obj) = gen_Novaseq_lane_data(process)
             check_index_distance(obj, log)
-            if os.path.exists(
-                f"/srv/ngi-nas-ns/samplesheets/novaseq/{thisyear}"
-            ):
+            if os.path.exists(f"/srv/ngi-nas-ns/samplesheets/novaseq/{thisyear}"):
                 try:
                     with open(
                         "/srv/ngi-nas-ns/samplesheets/novaseq/{}/{}.csv".format(
@@ -790,9 +781,7 @@ def main(lims, args):
         elif "Load to Flowcell (NovaSeqXPlus)" in process.type.name:
             (content, obj) = gen_NovaSeqXPlus_lane_data(process)
             check_index_distance(obj, log)
-            if os.path.exists(
-                f"/srv/ngi-nas-ns/samplesheets/NovaSeqXPlus/{thisyear}"
-            ):
+            if os.path.exists(f"/srv/ngi-nas-ns/samplesheets/NovaSeqXPlus/{thisyear}"):
                 try:
                     with open(
                         "/srv/ngi-nas-ns/samplesheets/NovaSeqXPlus/{}/{}.csv".format(
@@ -820,9 +809,7 @@ def main(lims, args):
                 if process.udf["Flowcell Series Number"]
                 else obj[0]["fc"]
             )
-            if os.path.exists(
-                f"/srv/ngi-nas-ns/samplesheets/nextseq/{thisyear}"
-            ):
+            if os.path.exists(f"/srv/ngi-nas-ns/samplesheets/nextseq/{thisyear}"):
                 try:
                     with open(
                         "/srv/ngi-nas-ns/samplesheets/nextseq/{}/{}.csv".format(
@@ -851,9 +838,7 @@ def main(lims, args):
                 + "_"
                 + process.id
             )
-            if os.path.exists(
-                f"/srv/ngi-nas-ns/samplesheets/nanopore/{thisyear}"
-            ):
+            if os.path.exists(f"/srv/ngi-nas-ns/samplesheets/nanopore/{thisyear}"):
                 try:
                     with open(
                         "/srv/ngi-nas-ns/samplesheets/nanopore/{}/{}.csv".format(

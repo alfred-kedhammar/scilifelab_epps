@@ -1248,9 +1248,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             f"{total_volume:.2f}",
         )
     except KeyError as e:
-        logContext.write(
-            f"ERROR : The input artifact is lacking a field : {e}\n"
-        )
+        logContext.write(f"ERROR : The input artifact is lacking a field : {e}\n")
         checkTheLog[0] = True
     except AssertionError:
         logContext.write(

@@ -38,9 +38,7 @@ def calculate_cell_nuclei_conc(pro):
             art.udf["Conc. Units"] = "count/ul"
             art.udf["Amount (ng)"] = 0
             art.put()
-            log.append(
-                f"Sample {sample} concentration set to {conc} count/ul."
-            )
+            log.append(f"Sample {sample} concentration set to {conc} count/ul.")
         # Throw error message when there is missing value
         else:
             for k, v in value_dict.items():

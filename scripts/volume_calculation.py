@@ -44,9 +44,7 @@ def verify_inputs(process, value_list):
                 "ug/ml",
                 "mg/ml",
             ]:
-                message.append(
-                    f"ERROR: Unsupported {val} for sample {inp.name}."
-                )
+                message.append(f"ERROR: Unsupported {val} for sample {inp.name}.")
     return message
 
 

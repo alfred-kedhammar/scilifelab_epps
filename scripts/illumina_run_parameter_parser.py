@@ -64,9 +64,7 @@ def fetch_rundir(fc_id, run_type):
         data_dir = "NovaSeqXPlus_data"
 
     metadata_dir = "ngi-nas-ns"
-    run_dir_path = os.path.join(
-        os.sep, "srv", metadata_dir, data_dir, f"*{fc_id}"
-    )
+    run_dir_path = os.path.join(os.sep, "srv", metadata_dir, data_dir, f"*{fc_id}")
 
     if len(glob.glob(run_dir_path)) == 1:
         run_dir = glob.glob(run_dir_path)[0]
@@ -82,13 +80,9 @@ def fetch_rundir(fc_id, run_type):
 def parse_run(run_dir):
     runParserObj = RunParser(run_dir)
     if os.path.exists(f"{run_dir}/RunParameters.xml"):
-        RunParametersParserObj = RunParametersParser(
-            f"{run_dir}/RunParameters.xml"
-        )
+        RunParametersParserObj = RunParametersParser(f"{run_dir}/RunParameters.xml")
     elif os.path.exists(f"{run_dir}/runParameters.xml"):
-        RunParametersParserObj = RunParametersParser(
-            f"{run_dir}/runParameters.xml"
-        )
+        RunParametersParserObj = RunParametersParser(f"{run_dir}/runParameters.xml")
     else:
         sys.stderr.write(f"No RunParameters.xml found in path {run_dir}")
         sys.exit(2)
@@ -212,13 +206,11 @@ def set_run_stats_in_lims(process, run_stats_summary):
             for i in list(run_stats_summary[lane_nbr].keys()):
                 lane_stats_for_read = run_stats_summary[lane_nbr][i]
                 if not math.isnan(lane_stats_for_read["density"]):
-                    art.udf[
-                        f"Cluster Density (K/mm^2) R{read}"
-                    ] = lane_stats_for_read["density"]
-                if not math.isnan(lane_stats_for_read["error_rate"]):
-                    art.udf[f"% Error Rate R{read}"] = lane_stats_for_read[
-                        "error_rate"
+                    art.udf[f"Cluster Density (K/mm^2) R{read}"] = lane_stats_for_read[
+                        "density"
                     ]
+                if not math.isnan(lane_stats_for_read["error_rate"]):
+                    art.udf[f"% Error Rate R{read}"] = lane_stats_for_read["error_rate"]
                 if not math.isnan(lane_stats_for_read["first_cycle_intensity"]):
                     art.udf[f"Intensity Cycle 1 R{read}"] = lane_stats_for_read[
                         "first_cycle_intensity"
@@ -234,21 +226,15 @@ def set_run_stats_in_lims(process, run_stats_summary):
                 if not math.isnan(lane_stats_for_read["percent_pf"]):
                     art.udf[f"%PF R{read}"] = lane_stats_for_read["percent_pf"]
                 if not math.isnan(lane_stats_for_read["phasing"]):
-                    art.udf[f"% Phasing R{read}"] = lane_stats_for_read[
-                        "phasing"
-                    ]
+                    art.udf[f"% Phasing R{read}"] = lane_stats_for_read["phasing"]
                 if not math.isnan(lane_stats_for_read["prephasing"]):
-                    art.udf[f"% Prephasing R{read}"] = lane_stats_for_read[
-                        "prephasing"
-                    ]
+                    art.udf[f"% Prephasing R{read}"] = lane_stats_for_read["prephasing"]
                 if not math.isnan(lane_stats_for_read["reads_pf"]):
                     art.udf[f"Reads PF (M) R{read}"] = (
                         lane_stats_for_read["reads_pf"] / 1000000
                     )
                 if not math.isnan(lane_stats_for_read["yield_g"]):
-                    art.udf[f"Yield PF (Gb) R{read}"] = lane_stats_for_read[
-                        "yield_g"
-                    ]
+                    art.udf[f"Yield PF (Gb) R{read}"] = lane_stats_for_read["yield_g"]
                 read += 1
             art.put()
     process.put()
@@ -271,13 +257,9 @@ def set_run_stats_in_lims_miseq(process, run_stats_summary):
                 "first_cycle_intensity"
             ]
         if not math.isnan(lane_stats_for_read["percent_aligned"]):
-            art.udf[f"% Aligned R{read}"] = lane_stats_for_read[
-                "percent_aligned"
-            ]
+            art.udf[f"% Aligned R{read}"] = lane_stats_for_read["percent_aligned"]
         if not math.isnan(lane_stats_for_read["percent_gt_q30"]):
-            art.udf[f"% Bases >=Q30 R{read}"] = lane_stats_for_read[
-                "percent_gt_q30"
-            ]
+            art.udf[f"% Bases >=Q30 R{read}"] = lane_stats_for_read["percent_gt_q30"]
         if not math.isnan(lane_stats_for_read["percent_pf"]):
             art.udf[f"%PF R{read}"] = lane_stats_for_read["percent_pf"]
         if not math.isnan(lane_stats_for_read["phasing"]):
