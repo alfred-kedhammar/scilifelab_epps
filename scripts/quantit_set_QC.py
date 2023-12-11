@@ -137,14 +137,12 @@ def main(lims, pid, epp_logger):
     QiT.assign_QC_flag()
     if QiT.flour_int_missing:
         QiT.abstract.append(
-            "Fluorescence intensity is missing for {} " "samples.".format(
-                QiT.flour_int_missing
-            )
+            f"Fluorescence intensity is missing for {QiT.flour_int_missing} " "samples."
         )
     if QiT.missing_udfs:
         QiT.abstract.append(
             "Could not set QC flags. Some of the following "
-            "required udfs seems to be missing: {}.".format(QiT.missing_udfs)
+            f"required udfs seems to be missing: {QiT.missing_udfs}."
         )
     else:
         QiT.abstract.append(
@@ -154,15 +152,15 @@ def main(lims, pid, epp_logger):
         )
     if QiT.saturated:
         QiT.abstract.append(
-            "{} samples had saturated fluorescence " "intensity.".format(QiT.saturated)
+            f"{QiT.saturated} samples had saturated fluorescence " "intensity."
         )
     if QiT.hig_CV_fract:
-        QiT.abstract.append("{} samples had high %CV.".format(QiT.hig_CV_fract))
+        QiT.abstract.append(f"{QiT.hig_CV_fract} samples had high %CV.")
     if QiT.low_conc:
-        QiT.abstract.append("{} samples had low concentration.".format(QiT.low_conc))
+        QiT.abstract.append(f"{QiT.low_conc} samples had low concentration.")
     if QiT.conc_missing:
         QiT.abstract.append(
-            "Concentration is missing for {} " "sample(s).".format(QiT.conc_missing)
+            f"Concentration is missing for {QiT.conc_missing} " "sample(s)."
         )
     QiT.abstract = list(set(QiT.abstract))
     print(" ".join(QiT.abstract), file=sys.stderr)

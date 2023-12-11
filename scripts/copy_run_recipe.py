@@ -27,7 +27,7 @@ def main(lims, args):
             break
 
     with open(
-        "/srv/ngi-nas-ns/NovaSeq_data/gls_recipe_novaseq/{}".format(file_name), "w"
+        f"/srv/ngi-nas-ns/NovaSeq_data/gls_recipe_novaseq/{file_name}", "w"
     ) as sf:
         sf.write(content)
 

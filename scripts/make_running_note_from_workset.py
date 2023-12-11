@@ -19,11 +19,11 @@ def main(lims, args):
     log = []
     datamap = {}
     wsname = None
-    username = "{} {}".format(p.technician.first_name, p.technician.last_name)
+    username = f"{p.technician.first_name} {p.technician.last_name}"
     user_email = p.technician.email
     for art in p.all_inputs():
         if len(art.samples) != 1:
-            log.append("Warning : artifact {} has more than one sample".format(art.id))
+            log.append(f"Warning : artifact {art.id} has more than one sample")
         for sample in art.samples:
             # take care of lamda DNA
             if sample.project:
@@ -43,9 +43,9 @@ def main(lims, args):
     for pid in datamap:
         pj = Project(lims, id=pid)
         if len(datamap[pid]) > 1:
-            rnt = "{} samples planned for {}".format(len(datamap[pid]), wsname)
+            rnt = f"{len(datamap[pid])} samples planned for {wsname}"
         else:
-            rnt = "{} sample planned for {}".format(len(datamap[pid]), wsname)
+            rnt = f"{len(datamap[pid])} sample planned for {wsname}"
 
         running_note = {}
         running_note["note"] = rnt
@@ -73,7 +73,7 @@ def main(lims, args):
             attach_file(os.path.join(os.getcwd(), "EPP_Notes.log"), out)
 
     sys.stderr.write(
-        "Updated {} projects successfully".format(len(list(datamap.keys())))
+        f"Updated {len(list(datamap.keys()))} projects successfully"
     )
 
 

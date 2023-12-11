@@ -49,16 +49,16 @@ class NotUniqueError(ValueError):
 def unique_check(to_check, msg):
     "Check that l is of length 1, otherwise raise error, with msg appended"
     if len(to_check) == 0:
-        raise EmptyError("No item found for {}".format(msg))
+        raise EmptyError(f"No item found for {msg}")
     elif len(to_check) != 1:
-        raise NotUniqueError("Multiple items found for {}".format(msg))
+        raise NotUniqueError(f"Multiple items found for {msg}")
 
 
 def set_field(element):
     try:
         element.put()
     except (TypeError, HTTPError) as e:
-        logging.warning("Error while updating element: {}".format(e))
+        logging.warning(f"Error while updating element: {e}")
 
 
 class EppLogger:
@@ -80,17 +80,17 @@ class EppLogger:
     PACKAGE = "genologics"
 
     def __enter__(self):
-        logging.info("Executing file: {}".format(sys.argv[0]))
-        logging.info("with parameters: {}".format(sys.argv[1:]))
+        logging.info(f"Executing file: {sys.argv[0]}")
+        logging.info(f"with parameters: {sys.argv[1:]}")
         try:
             logging.info(
-                "Version of {}: ".format(self.PACKAGE)
+                f"Version of {self.PACKAGE}: "
                 + pkg_resources.require(self.PACKAGE)[0].version
             )
         except DistributionNotFound as e:
             logging.error(e)
             logging.error(
-                ("Make sure you have the {} " "package installed").format(self.PACKAGE)
+                f"Make sure you have the {self.PACKAGE} " "package installed"
             )
             sys.exit(-1)
         return self
@@ -180,22 +180,22 @@ class EppLogger:
                         self.lims.baseuri.split(":")[1]
                     )[1]
                     if not log_path.startswith("/"):
-                        log_path = "/{}".format(log_path)
+                        log_path = f"/{log_path}"
                     copy(log_path, local_log_path)
                     with open(local_log_path, "a") as f:
                         f.write("=" * 80 + "\n")
             except HTTPError:  # Probably no artifact found, skip prepending
                 print(
-                    ("No log file artifact found " "for id: {}").format(log_file_name),
+                    ("No log file artifact found " f"for id: {log_file_name}"),
                     file=sys.stderr,
                 )
             except OSError as e:  # Probably some path was wrong in copy
                 print(
                     (
                         "Log could not be prepended, "
-                        "make sure {} and {} are "
+                        f"make sure {log_path} and {log_file_name} are "
                         "proper paths."
-                    ).format(log_path, log_file_name),
+                    ),
                     file=sys.stderr,
                 )
                 raise e
@@ -326,9 +326,7 @@ class ReadResultFiles:
                 "Fix the file to continue. "
             ).format(",".join(duplicated_lines), name)
         if not file_info:
-            error_message = error_message + "Could not format parsed file {}.".format(
-                name
-            )
+            error_message = error_message + f"Could not format parsed file {name}."
         if error_message:
             print(error_message, file=sys.stderr)
             sys.exit(-1)
@@ -382,7 +380,7 @@ class CopyField:
             elt.put()
             return True
         except (TypeError, HTTPError) as e:
-            print("Error while updating element: {}".format(e), file=sys.stderr)
+            print(f"Error while updating element: {e}", file=sys.stderr)
             sys.exit(-1)
             return False
 

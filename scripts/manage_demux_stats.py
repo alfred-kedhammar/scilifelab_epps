@@ -61,7 +61,7 @@ def get_process_stats(demux_process):
         )[0]
     except Exception as e:
         problem_handler(
-            "exit", "Undefined prior workflow step (run type): {}".format(str(e))
+            "exit", f"Undefined prior workflow step (run type): {str(e)}"
         )
     # Copies LIMS sequencing step content
     proc_stats = dict(list(seq_process.udf.items()))
@@ -85,7 +85,7 @@ def get_process_stats(demux_process):
             proc_stats["Chemistry"] = seq_process.udf["Flow Cell Mode"]
         except Exception as e:
             problem_handler(
-                "exit", "No flowcell version set in sequencing step: {}".format(str(e))
+                "exit", f"No flowcell version set in sequencing step: {str(e)}"
             )
         proc_stats["Instrument"] = "NovaSeq"
         proc_stats["Read Length"] = (
@@ -100,7 +100,7 @@ def get_process_stats(demux_process):
             proc_stats["Chemistry"] = seq_process.udf["Flow Cell Mode"]
         except Exception as e:
             problem_handler(
-                "exit", "No flowcell version set in sequencing step: {}".format(str(e))
+                "exit", f"No flowcell version set in sequencing step: {str(e)}"
             )
         proc_stats["Instrument"] = "NovaSeqXPlus"
         proc_stats["Read Length"] = (
@@ -115,7 +115,7 @@ def get_process_stats(demux_process):
             proc_stats["Chemistry"] = seq_process.udf["Chemistry"]
         except Exception as e:
             problem_handler(
-                "exit", "No run type set in sequencing step: {}".format(str(e))
+                "exit", f"No run type set in sequencing step: {str(e)}"
             )
         proc_stats["Instrument"] = "NextSeq"
         proc_stats["Read Length"] = (
@@ -134,7 +134,7 @@ def get_process_stats(demux_process):
         proc_stats["Paired"] = proc_stats.get("Paired", False)
     except Exception as e:
         problem_handler(
-            "exit", "Unable to fetch workflow information: {}".format(str(e))
+            "exit", f"Unable to fetch workflow information: {str(e)}"
         )
     if "Read 2 Cycles" in proc_stats:
         proc_stats["Paired"] = True
@@ -150,7 +150,7 @@ def get_process_stats(demux_process):
     except Exception as e:
         problem_handler(
             "exit",
-            "Read Cycles not found. Unable to read Read Length: {}".format(str(e)),
+            f"Read Cycles not found. Unable to read Read Length: {str(e)}",
         )
 
     logger.info("Read length set to {}".format(proc_stats["Read Length"]))
@@ -178,9 +178,7 @@ def fill_process_fields(demux_process, process_stats):
         except Exception as e:
             problem_handler(
                 "exit",
-                "Udf improperly formatted. Unable to set Q30 threshold: {}".format(
-                    str(e)
-                ),
+                f"Udf improperly formatted. Unable to set Q30 threshold: {str(e)}",
             )
 
     # Would REALLY prefer "Minimum Reads per Lane" over "Threshold for # Reads"
@@ -196,9 +194,7 @@ def fill_process_fields(demux_process, process_stats):
         except Exception as e:
             problem_handler(
                 "exit",
-                "Udf improperly formatted. Unable to set # Reads threshold: {}".format(
-                    str(e)
-                ),
+                f"Udf improperly formatted. Unable to set # Reads threshold: {str(e)}",
             )
 
     # Would REALLY prefer "Maximum % Undetermined Reads per Lane" over "Threshold for Undemultiplexed Index Yield"
@@ -216,9 +212,7 @@ def fill_process_fields(demux_process, process_stats):
         except Exception as e:
             problem_handler(
                 "exit",
-                "Udf improperly formatted. Unable to set Undemultiplexed Index Yield threshold: {}".format(
-                    str(e)
-                ),
+                f"Udf improperly formatted. Unable to set Undemultiplexed Index Yield threshold: {str(e)}",
             )
 
     # Sets Run ID if not already exists:
@@ -226,7 +220,7 @@ def fill_process_fields(demux_process, process_stats):
         try:
             demux_process.udf["Run ID"] = process_stats["Run ID"]
         except Exception as e:
-            logger.info("Unable to automatically regenerate Run ID: {}".format(str(e)))
+            logger.info(f"Unable to automatically regenerate Run ID: {str(e)}")
 
     # Checks for document version
     if "Document Version" not in demux_process.udf:
@@ -236,7 +230,7 @@ def fill_process_fields(demux_process, process_stats):
         demux_process.put()
     except Exception as e:
         problem_handler(
-            "exit", "Failed to apply process thresholds to LIMS: {}".format(str(e))
+            "exit", f"Failed to apply process thresholds to LIMS: {str(e)}"
         )
 
 
@@ -268,7 +262,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
         )[0]
     except Exception as e:
         problem_handler(
-            "exit", "Undefined prior workflow step (run type): {}".format(str(e))
+            "exit", f"Undefined prior workflow step (run type): {str(e)}"
         )
 
     if "Lanes to include undetermined" in demux_process.udf:
@@ -293,7 +287,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
             outarts_per_lane = demux_process.outputs_per_input(pool.id, ResultFile=True)
         except Exception as e:
             problem_handler(
-                "exit", "Unable to fetch artifacts of process: {}".format(str(e))
+                "exit", f"Unable to fetch artifacts of process: {str(e)}"
             )
         if process_stats["Instrument"] == "miseq":
             lane_no = "1"
@@ -303,11 +297,9 @@ def set_sample_values(demux_process, parser_struct, process_stats):
             except Exception as e:
                 problem_handler(
                     "exit",
-                    "Unable to determine lane number. Incorrect location variable in process: {}".format(
-                        str(e)
-                    ),
+                    f"Unable to determine lane number. Incorrect location variable in process: {str(e)}",
                 )
-        logger.info("Lane number set to {}".format(lane_no))
+        logger.info(f"Lane number set to {lane_no}")
         try:
             correction_factor = (
                 thresholds.correction_factor_for_sample_in_pool
@@ -323,12 +315,10 @@ def set_sample_values(demux_process, parser_struct, process_stats):
         except ZeroDivisionError as e:
             problem_handler(
                 "exit",
-                "Faulty LIMS setup. Pool in lane {} has no samples: {}".format(
-                    lane_no, e
-                ),
+                f"Faulty LIMS setup. Pool in lane {lane_no} has no samples: {e}",
             )
         logger.info(
-            "Expected sample clusters for this lane: {}".format(exp_smp_per_lne)
+            f"Expected sample clusters for this lane: {exp_smp_per_lne}"
         )
 
         # Artifacts in each lane
@@ -338,9 +328,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
             except Exception as e:
                 problem_handler(
                     "exit",
-                    "Unable to determine sample name. Incorrect sample variable in process: {}".format(
-                        str(e)
-                    ),
+                    f"Unable to determine sample name. Incorrect sample variable in process: {str(e)}",
                 )
             for entry in parser_struct:
                 if lane_no == entry["Lane"]:
@@ -388,23 +376,17 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                         undet[clusterType].replace(",", "")
                                     )
                                 logger.info(
-                                    "Included undetermined for lane number {}".format(
-                                        lane_no
-                                    )
+                                    f"Included undetermined for lane number {lane_no}"
                                 )
                             except Exception as e:
                                 problem_handler(
                                     "exit",
-                                    "Unable to set values for undetermined #Reads and #Read Pairs: {}".format(
-                                        str(e)
-                                    ),
+                                    f"Unable to set values for undetermined #Reads and #Read Pairs: {str(e)}",
                                 )
                         else:
                             problem_handler(
                                 "exit",
-                                "Undetermined for lane {} requested, which has more than one sample".format(
-                                    lane_no
-                                ),
+                                f"Undetermined for lane {lane_no} requested, which has more than one sample",
                             )
 
                     # Bracket for adding typical sample info
@@ -467,9 +449,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                         except Exception as e:
                             problem_handler(
                                 "exit",
-                                "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(
-                                    str(e)
-                                ),
+                                f"Unable to set artifact values. Check laneBarcode.html for odd values: {str(e)}",
                             )
 
                         # Fetches clusters from laneBarcode.html file
@@ -514,9 +494,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                 except Exception as e:
                                     problem_handler(
                                         "exit",
-                                        "Unable to set values for #Reads and #Read Pairs for perceived noIndex lane: {}".format(
-                                            str(e)
-                                        ),
+                                        f"Unable to set values for #Reads and #Read Pairs for perceived noIndex lane: {str(e)}",
                                     )
                             # For all other cases, parse lane yield from all_inputs
                             else:
@@ -558,9 +536,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                 except Exception as e:
                                     problem_handler(
                                         "exit",
-                                        "Unable to set values for #Reads and #Read Pairs for perceived noIndex lane: {}".format(
-                                            str(e)
-                                        ),
+                                        f"Unable to set values for #Reads and #Read Pairs for perceived noIndex lane: {str(e)}",
                                     )
 
                         elif not noIndex:
@@ -609,9 +585,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                             except Exception as e:
                                 problem_handler(
                                     "exit",
-                                    "Unable to set values for #Reads and #Read Pairs: {}".format(
-                                        str(e)
-                                    ),
+                                    f"Unable to set values for #Reads and #Read Pairs: {str(e)}",
                                 )
 
                         # Spools samplesum into samples
@@ -643,22 +617,16 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                             target_file.udf[k] = samplesum[thing][k]
                                         if samplesum[sample]["count"] > 1:
                                             logger.info(
-                                                "Pooled total for {} of sample {} is set to {}".format(
-                                                    k, thing, v
-                                                )
+                                                f"Pooled total for {k} of sample {thing} is set to {v}"
                                             )
                                         else:
                                             logger.info(
-                                                "Attribute {} of sample {} is set to {}".format(
-                                                    k, thing, v
-                                                )
+                                                f"Attribute {k} of sample {thing} is set to {v}"
                                             )
                         except Exception as e:
                             problem_handler(
                                 "exit",
-                                "Unable to set artifact values. Check laneBarcode.html for odd values: {}".format(
-                                    str(e)
-                                ),
+                                f"Unable to set artifact values. Check laneBarcode.html for odd values: {str(e)}",
                             )
 
                         # Applies thresholds to samples
@@ -688,12 +656,12 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                 )
                             )
                             logger.info(
-                                "Sample QC status set to {}".format(target_file.qc_flag)
+                                f"Sample QC status set to {target_file.qc_flag}"
                             )
                         except Exception as e:
                             problem_handler(
                                 "exit",
-                                "Unable to set QC status for sample: {}".format(str(e)),
+                                f"Unable to set QC status for sample: {str(e)}",
                             )
 
                         lane_reads = lane_reads + target_file.udf["# Reads"]
@@ -726,9 +694,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
             except Exception as e:
                 problem_handler(
                     "exit",
-                    "Failed to apply artifact data to LIMS. Possibly due to data in laneBarcode.html; {}".format(
-                        str(e)
-                    ),
+                    f"Failed to apply artifact data to LIMS. Possibly due to data in laneBarcode.html; {str(e)}",
                 )
 
         # Counts undetermined per lane
@@ -743,9 +709,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
             except Exception:
                 problem_handler(
                     "error",
-                    "BCLConverter parsing error. No reads detected for lane {}.".format(
-                        lane_no
-                    ),
+                    f"BCLConverter parsing error. No reads detected for lane {lane_no}.",
                 )
 
             # If undetermined reads are greater than threshold*reads_in_lane
@@ -772,7 +736,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
 
     if failed_entries > 0:
         problem_handler(
-            "warning", "{} entries failed automatic QC".format(failed_entries)
+            "warning", f"{failed_entries} entries failed automatic QC"
         )
 
 
@@ -796,7 +760,7 @@ def write_demuxfile(process_stats, demux_id):
     except Exception as e:
         problem_handler(
             "exit",
-            "Unable to fetch laneBarcode.html from {}: {}".format(lanebc_path, str(e)),
+            f"Unable to fetch laneBarcode.html from {lanebc_path}: {str(e)}",
         )
     fname = "{}_demuxstats_{}.csv".format(demux_id, process_stats["Flow Cell ID"])
 
@@ -841,16 +805,14 @@ def write_demuxfile(process_stats, demux_id):
             except Exception as e:
                 problem_handler(
                     "exit",
-                    "Flowcell parser is unable to fetch all necessary fields for demux file: {}".format(
-                        str(e)
-                    ),
+                    f"Flowcell parser is unable to fetch all necessary fields for demux file: {str(e)}",
                 )
     return laneBC.sample_data
 
 
 def main(process_lims_id, demux_id, log_id):
     # Sets up logger
-    basic_name = "{}_logfile.txt".format(log_id)
+    basic_name = f"{log_id}_logfile.txt"
     logger.setLevel(logging.DEBUG)
     fh = logging.FileHandler(basic_name)
     fh.setLevel(logging.DEBUG)
@@ -865,9 +827,7 @@ def main(process_lims_id, demux_id, log_id):
     logger.addHandler(fh)
 
     logger.info(
-        "--process_lims_id {} --demux_id {} --log_id {}".format(
-            process_lims_id, demux_id, log_id
-        )
+        f"--process_lims_id {process_lims_id} --demux_id {demux_id} --log_id {log_id}"
     )
 
     demux_process = Process(lims, id=process_lims_id)

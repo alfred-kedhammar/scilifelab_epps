@@ -98,7 +98,7 @@ def get_data(csv_content, log):
 
 
 def convert_to_ng_ul(conc, unit):
-    factor = float(1.0)  # I really want a float
+    factor = 1.0  # I really want a float
     units = unit.split("/")
     if units[0] == "µg" or units[0] == "ug":
         factor *= 1000
@@ -165,9 +165,7 @@ def get_qbit_csv_data(process):
             missing_samples += 1
     if low_conc:
         log.append(
-            "{}/{} samples have low concentration.".format(
-                low_conc, len(process.result_files())
-            )
+            f"{low_conc}/{len(process.result_files())} samples have low concentration."
         )
     if missing_samples:
         log.append(

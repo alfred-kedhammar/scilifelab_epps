@@ -213,19 +213,19 @@ def main(lims, pid, epp_logger):
     if QiT.model and "Linearity of standards" in list(QiT.udfs.keys()):
         R2 = QiT.model[0]
         if R2 >= QiT.udfs["Linearity of standards"]:
-            QiT.abstract.insert(0, "R2 = {}. Standards OK.".format(R2))
+            QiT.abstract.insert(0, f"R2 = {R2}. Standards OK.")
             if QiT.result_files:
                 for sample, target_file in target_files.items():
                     rel_fluor_int = QiT.get_and_set_fluor_int(target_file)
                     QiT.calc_and_set_conc(target_file, rel_fluor_int)
                 QiT.abstract.append(
-                    "Concentrations uploaded for {} " "samples.".format(QiT.no_samps)
+                    f"Concentrations uploaded for {QiT.no_samps} " "samples."
                 )
             else:
                 QiT.abstract.append("Upload input file(s) for samples.")
         else:
             QiT.abstract.insert(
-                0, "R2 = {}. Problem with standards! Redo " "measurement!".format(R2)
+                0, f"R2 = {R2}. Problem with standards! Redo " "measurement!"
             )
     else:
         QiT.missing_udfs.append("Linearity of standards")

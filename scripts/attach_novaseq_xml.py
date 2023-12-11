@@ -27,9 +27,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/ngi-nas-ns/NovaSeqXPlus_data/*{}/RunInfo.xml".format(
-                                    FCID
-                                )
+                                f"/srv/ngi-nas-ns/NovaSeqXPlus_data/*{FCID}/RunInfo.xml"
                             ),
                             key=os.path.getctime,
                         ),
@@ -42,9 +40,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/ngi-nas-ns/NovaSeqXPlus_data/*{}/RunParameters.xml".format(
-                                    FCID
-                                )
+                                f"/srv/ngi-nas-ns/NovaSeqXPlus_data/*{FCID}/RunParameters.xml"
                             ),
                             key=os.path.getctime,
                         ),
@@ -70,9 +66,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/ngi-nas-ns/NovaSeq_data/*{}/RunInfo.xml".format(
-                                    FCID
-                                )
+                                f"/srv/ngi-nas-ns/NovaSeq_data/*{FCID}/RunInfo.xml"
                             ),
                             key=os.path.getctime,
                         ),
@@ -85,9 +79,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/ngi-nas-ns/NovaSeq_data/*{}/RunParameters.xml".format(
-                                    FCID
-                                )
+                                f"/srv/ngi-nas-ns/NovaSeq_data/*{FCID}/RunParameters.xml"
                             ),
                             key=os.path.getctime,
                         ),

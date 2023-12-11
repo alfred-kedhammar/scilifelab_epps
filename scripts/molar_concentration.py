@@ -32,7 +32,7 @@ def apply_calculations(lims, artifacts, conc_udf, size_udf, unit_udf, epp_logger
         )
         artifact.udf[unit_udf] = "nM"
         artifact.put()
-        logging.info("Updated {} to {}.".format(conc_udf, artifact.udf[conc_udf]))
+        logging.info(f"Updated {conc_udf} to {artifact.udf[conc_udf]}.")
 
 
 def check_udf_is_defined(artifacts, udf):

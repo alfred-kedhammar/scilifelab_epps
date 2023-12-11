@@ -131,7 +131,7 @@ def main(lims, args, epp_logger):
     if len(incorrect_udf) == 0:
         warning = "no projects"
     else:
-        warning = "WARNING: skipped {} project(s)".format(len(incorrect_udf))
+        warning = f"WARNING: skipped {len(incorrect_udf)} project(s)"
 
     d = {"cs": len(correct_samples), "warning": warning}
 

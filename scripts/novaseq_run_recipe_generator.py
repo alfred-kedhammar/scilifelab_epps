@@ -42,9 +42,7 @@ def main(lims, args):
     index_read1 = process.udf.get("Index Read 1", 0)
     index_read2 = process.udf.get("Index Read 2", 0)
     output_folder = "\\\\172.16.1.6\\novaseqdata\\Runs\\"
-    attachment = "\\\\172.16.1.6\\samplesheets\\novaseq\\{}\\\\{}.csv".format(
-        thisyear, fc_name
-    )
+    attachment = f"\\\\172.16.1.6\\samplesheets\\novaseq\\{thisyear}\\\\{fc_name}.csv"
     basespace_mode = process.udf.get("BaseSpace Sequence Hub Configuration")
     if basespace_mode == "Not Used":
         use_basespace = False
@@ -81,9 +79,7 @@ def main(lims, args):
     if os.path.exists("/srv/ngi-nas-ns/NovaSeq_data/gls_recipe_novaseq/"):
         try:
             with open(
-                "/srv/ngi-nas-ns/NovaSeq_data/gls_recipe_novaseq/{}.json".format(
-                    fc_name
-                ),
+                f"/srv/ngi-nas-ns/NovaSeq_data/gls_recipe_novaseq/{fc_name}.json",
                 "w",
             ) as sf:
                 json.dump(output, sf, separators=(",", ":"))
@@ -96,16 +92,16 @@ def main(lims, args):
         elif out.name == "Run Recipe Log":
             log_id = out.id
 
-    with open("{}.json".format(fc_name), "w", 0o664) as sf:
+    with open(f"{fc_name}.json", "w", 0o664) as sf:
         json.dump(output, sf, separators=(",", ":"))
-    os.chmod("{}.json".format(fc_name), 0o664)
+    os.chmod(f"{fc_name}.json", 0o664)
     for f in ss_art.files:
         lims.request_session.delete(f.uri)
-    lims.upload_new_file(ss_art, "{}.json".format(fc_name))
+    lims.upload_new_file(ss_art, f"{fc_name}.json")
 
     # Write log
     if log:
-        with open("{}_{}_Error.log".format(log_id, fc_name), "w") as f:
+        with open(f"{log_id}_{fc_name}_Error.log", "w") as f:
             f.write("\n".join(log))
         sys.stderr.write("Errors were met, check the log.")
         sys.exit(1)

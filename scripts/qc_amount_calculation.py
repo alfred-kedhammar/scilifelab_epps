@@ -63,16 +63,16 @@ def apply_calculations(artifacts, udf1, op, udf2, unit_amount_map, process):
                 udf2_value,
             )
         )
-        prod = eval("{}{}{}".format(artifact.udf[udf1], op, udf2_value))
+        prod = eval(f"{artifact.udf[udf1]}{op}{udf2_value}")
         if dil_fold:
-            prod = eval("{}{}{}".format(prod, op, dil_fold))
+            prod = eval(f"{prod}{op}{dil_fold}")
         if artifact.udf["Conc. Units"] == "pM":
-            prod = eval("{}{}{}".format(prod, op, 1 / 1000))
+            prod = eval(f"{prod}{op}{1 / 1000}")
         artifact.udf[result_udf] = prod
 
         artifact.put()
 
-        logging.info("Updated {} to {}.".format(result_udf, artifact.udf[result_udf]))
+        logging.info(f"Updated {result_udf} to {artifact.udf[result_udf]}.")
         calculate_fmol_AND_ng(artifact, result_udf)
 
 

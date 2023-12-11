@@ -177,11 +177,11 @@ def get_frag_an_csv_data(process):
                                 target_file.udf["Conc. Units"] = "ng/ul"
                         else:
                             log.append(
-                                "NaN {} value for Sample {}.".format(k, file_sample)
+                                f"NaN {k} value for Sample {file_sample}."
                             )
                     except ValueError:
                         log.append(
-                            "Bad {} value format for Sample {}.".format(k, file_sample)
+                            f"Bad {k} value format for Sample {file_sample}."
                         )
             # actually set the data
             target_file.put()

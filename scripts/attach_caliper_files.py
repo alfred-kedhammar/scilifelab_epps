@@ -76,28 +76,28 @@ def main(lims, args, epp_logger):
 
         if len(fns) == 0:
             logging.warning(
-                "No image file found for artifact with id {}".format(i_a.id)
+                f"No image file found for artifact with id {i_a.id}"
             )
             artifact_missing_file.append(i_a)
         elif len(fns) > 1:
             logging.warning(
-                (
-                    "Multiple image files found for artifact with id {}, "
+                
+                    f"Multiple image files found for artifact with id {i_a.id}, "
                     "please attach files manually"
-                ).format(i_a.id)
+                
             )
             artifact_multiple_file.append(i_a)
         else:
             fn = fns[0]
             found_files.append(fn)
             logging.info(
-                "Found image file {} for artifact with id {}".format(fn, i_a.id)
+                f"Found image file {fn} for artifact with id {i_a.id}"
             )
             fp = os.path.join(args.path, fn)
 
             # Attach file to the LIMS
             location = attach_file(fp, o_a)
-            logging.debug("Moving {} to {}".format(fp, location))
+            logging.debug(f"Moving {fp} to {location}")
 
     warning = ""
     if len(artifact_missing_file):
@@ -113,7 +113,7 @@ def main(lims, args, epp_logger):
     if warning:
         warning = "Warning: " + warning
 
-    abstract = "Uploaded {} file(s). {}".format(len(found_files), warning)
+    abstract = f"Uploaded {len(found_files)} file(s). {warning}"
     print(abstract, file=sys.stderr)  # stderr will be logged and printed in GUI
 
 

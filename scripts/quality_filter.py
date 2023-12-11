@@ -44,9 +44,7 @@ class QualityFilter:
 
     def read_QF_file(self):
         """QF file is read from the file msf system. Path hard coded."""
-        file_path = "/srv/ngi-nas-ns/QF/{}/{}.csv".format(
-            self.project_name, self.flowcell_id
-        )
+        file_path = f"/srv/ngi-nas-ns/QF/{self.project_name}/{self.flowcell_id}.csv"
         of = open(file_path)
         self.source_file = [row for row in csv.reader(of.read().splitlines())]
         of.close()
@@ -64,9 +62,7 @@ class QualityFilter:
                 self._set_udfs(samp_name, target_file, lane)
             if self.nr_samps_updat:
                 self.abstract_ext.append(
-                    "LANE {} with {} samples." "".format(
-                        lane, str(len(set(self.nr_samps_updat)))
-                    )
+                    f"LANE {lane} with {str(len(set(self.nr_samps_updat)))} samples." ""
                 )
             if self.missing_samps:
                 self.abstract_ext.append(

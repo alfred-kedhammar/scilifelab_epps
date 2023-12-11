@@ -162,28 +162,26 @@ class RunQC:
         try:
             fp_dem = self.file_path + "Demultiplex_Stats.htm"
             self.dem_stat = FRMP.parse_demultiplex_stats_htm(fp_dem)
-            logging.info("Parsed file {}".format(fp_dem))
+            logging.info(f"Parsed file {fp_dem}")
         except:
             sys.exit("Failed to find or parse Demultiplex_Stats.htm.")
         try:
             fp_und = self.file_path + "Undemultiplexed_stats.metrics"
             self.undem_stat = FRMP.parse_undemultiplexed_barcode_metrics(fp_und)
-            logging.info("Parsed file {}".format(fp_und))
+            logging.info(f"Parsed file {fp_und}")
         except:
             sys.exit("Failed to find or parse Undemultiplexed_stats.metrics")
 
     def _get_threshold_Q30(self):
         if "Threshold for % bases >= Q30" in self.user_def_tresh:
             self.Q30_treshold = self.user_def_tresh["Threshold for % bases >= Q30"]
-            qc_logg = "THRESHOLD FOR %Q30 was set by user to {}.".format(
-                self.Q30_treshold
-            )
+            qc_logg = f"THRESHOLD FOR %Q30 was set by user to {self.Q30_treshold}."
             print(qc_logg, file=self.qc_log_file)
         else:
             warning = (
-                "Un recognized read length: {}. Report this to "
+                f"Un recognized read length: {self.read_length}. Report this to "
                 "developers! set Threshold for % bases >= Q30 if you want to "
-                "run bcl conversion and demultiplexing anyway.".format(self.read_length)
+                "run bcl conversion and demultiplexing anyway."
             )
             if self.run_type == "MiSeq":
                 if self.read_length < 101:
@@ -208,10 +206,8 @@ class RunQC:
                 else:
                     sys.exit(warning)
             qc_logg = (
-                "THRESHOLD FOR %Q30 was set to {}. Value based on read"
-                " length: {}, and run type {}.".format(
-                    Q30_threshold, self.read_length, self.run_type
-                )
+                f"THRESHOLD FOR %Q30 was set to {Q30_threshold}. Value based on read"
+                f" length: {self.read_length}, and run type {self.run_type}."
             )
             print(qc_logg, file=self.qc_log_file)
             self.Q30_treshold = Q30_threshold
@@ -314,10 +310,8 @@ class RunQC:
     def logging(self):
         """Collects and prints logging info."""
         self.abstract.append(
-            "INFO: QC-data found and QC-flags uploaded for {}"
-            " out of {} analytes.".format(
-                self.nr_lane_samps_updat, self.nr_lane_samps_tot
-            )
+            f"INFO: QC-data found and QC-flags uploaded for {self.nr_lane_samps_updat}"
+            f" out of {self.nr_lane_samps_tot} analytes."
         )
         if self.QC_fail:
             self.abstract.append(
@@ -378,7 +372,7 @@ class LaneQC:
     def set_and_log_tresholds(self):
         """Generating tresholds and writing the tresholds to log file."""
         print("", file=self.qc_log_file)
-        print("TRESHOLDS - LANE {}:".format(self.lane), file=self.qc_log_file)
+        print(f"TRESHOLDS - LANE {self.lane}:", file=self.qc_log_file)
         self._get_exp_lane_and_ind_clust()
         self._set_reads_threshold()
         self._set_tresh_un_exp_lane()
@@ -408,9 +402,9 @@ class LaneQC:
             self.exp_lane_clust = 250000000
         else:
             sys.exit(
-                "Unrecognized run type: {}. Report to developer! Set "
+                f"Unrecognized run type: {self.run_type}. Report to developer! Set "
                 "Threshold for # Reads if you want to run bcl conversion "
-                "and demultiplexing again".format(self.run_type)
+                "and demultiplexing again"
             )
         self.exp_samp_clust = np.true_divide(self.exp_lane_clust, self.nr_lane_samps)
 
@@ -420,7 +414,7 @@ class LaneQC:
 
         if "Threshold for # Reads" in self.user_def_tresh:
             self.reads_threshold = self.user_def_tresh["Threshold for # Reads"]
-            qc_logg = "Index yield - expected index: {}".format(self.reads_threshold)
+            qc_logg = f"Index yield - expected index: {self.reads_threshold}"
             print(qc_logg, file=self.qc_log_file)
         else:
             self.reads_threshold = int(self.exp_samp_clust * 0.5)

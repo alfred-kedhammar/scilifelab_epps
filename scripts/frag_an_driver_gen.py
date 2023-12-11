@@ -28,7 +28,7 @@ def main(lims, args):
     for column in sorted(list(valid_cols)):
         col_idx += 1
         for i in range(1, 13):
-            location = "{}{}".format(column, i)
+            location = f"{column}{i}"
             driver.append(
                 (
                     col_idx * 12 + i,
@@ -39,7 +39,7 @@ def main(lims, args):
 
     with open("frag_an_driver.csv", "w") as f:
         for line in driver:
-            f.write("{},{},{}\n".format(line[0], line[1], line[2]))
+            f.write(f"{line[0]},{line[1]},{line[2]}\n")
 
     lims.upload_new_file(driver_file_out, "frag_an_driver.csv")
 

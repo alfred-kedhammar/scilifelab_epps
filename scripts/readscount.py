@@ -103,7 +103,7 @@ def main(lims, args, logger):
             f.write("{},{},{},{}\n".format(sample, totfc, totlanes, ";".join(view)))
     try:
         attach_file(os.path.join(os.getcwd(), "AggregationLog.csv"), logart)
-        logging.info("updated {} samples with {} errors".format(samplenb, errnb))
+        logging.info(f"updated {samplenb} samples with {errnb} errors")
     except AttributeError:
         # happens if the log artifact does not exist, if the step has been started before the configuration changes
         logging.info("Could not upload the log file")
@@ -111,7 +111,7 @@ def main(lims, args, logger):
 
 def demnumber(sample):
     """Returns the number of distinct demultiplexing processes tagged with "Include reads" for a given sample"""
-    expectedName = "{} (FASTQ reads)".format(sample.name)
+    expectedName = f"{sample.name} (FASTQ reads)"
     dem = set()
     arts = lims.get_artifacts(
         sample_name=sample.name,
@@ -127,7 +127,7 @@ def demnumber(sample):
 def sumreads(sample, summary):
     if sample.name not in summary:
         summary[sample.name] = {}
-    expectedName = "{} (FASTQ reads)".format(sample.name)
+    expectedName = f"{sample.name} (FASTQ reads)"
     arts = lims.get_artifacts(
         sample_name=sample.name,
         process_type=list(DEMULTIPLEX.values()),
@@ -196,7 +196,7 @@ def sumreads(sample, summary):
         print(e)
         # base_art is still None because no arts were found
         logging.info(
-            "No demultiplexing processes found for sample {}".format(sample.name)
+            f"No demultiplexing processes found for sample {sample.name}"
         )
 
     # total is displayed as millions

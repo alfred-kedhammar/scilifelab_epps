@@ -68,7 +68,7 @@ def verify_indexes(data):
             )
         if len(idx_length) > 1:
             message.append(
-                "INDEX WARNING: Multiple index lengths noticed in pool {}".format(p)
+                f"INDEX WARNING: Multiple index lengths noticed in pool {p}"
             )
     return message
 

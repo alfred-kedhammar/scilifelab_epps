@@ -236,9 +236,7 @@ def make_summary(lims, process, sample_table, library):
                     project, container_sample_table, library
                 )
                 if QC_details_per_container != "":
-                    comments += "\nQC details for container **{}**: \n".format(
-                        container
-                    )
+                    comments += f"\nQC details for container **{container}**: \n"
                     comments += QC_details_per_container
         noteobj = {}
         key = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")

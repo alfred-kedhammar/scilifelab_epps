@@ -135,7 +135,7 @@ def main(lims, pid, epp_logger):
     log = []
     time = datetime.datetime.now().strftime("%Y-%m-%d")
     log.append(time)
-    user = "{} {}".format(pro.technician.first_name, pro.technician.last_name)
+    user = f"{pro.technician.first_name} {pro.technician.last_name}"
     log.append(user)
     log_tmp = log[:]
     record = lims_process_record[pro.type.name]

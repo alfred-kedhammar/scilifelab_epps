@@ -111,7 +111,7 @@ def main(lims, args):
                 )
 
         if log:
-            with open("{}_frag_analyzer.log".format(log_art.id), "w") as logContext:
+            with open(f"{log_art.id}_frag_analyzer.log", "w") as logContext:
                 logContext.write("\n".join(log))
 
 

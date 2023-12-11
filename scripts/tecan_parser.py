@@ -81,7 +81,7 @@ def index_to_well(index):
     i = int(index)
     row = chr(64 + ((i - 1) % 8 + 1))
     col = int(((i - 1) - (i - 1) % 8) / 8 + 1)
-    return "{}{}".format(row, col)
+    return f"{row}{col}"
 
 
 def dictionarize(datalist):
@@ -110,7 +110,7 @@ def main(args, lims):
             out_id = output.id
 
     file_contents = lims.get_file_contents(id=fid)
-    with open("{}_tecan.out".format(out_id), "w") as outf:
+    with open(f"{out_id}_tecan.out", "w") as outf:
         data = convert(file_contents, outf)
 
     data_dict = dictionarize(data)

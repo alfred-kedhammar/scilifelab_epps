@@ -71,7 +71,7 @@ def main(lims, args, epp_logger):
     if incorrect_artifacts == 0:
         warning = "no artifacts"
     else:
-        warning = "WARNING: skipped {} udfs(s)".format(incorrect_artifacts)
+        warning = f"WARNING: skipped {incorrect_artifacts} udfs(s)"
     d = {
         "ua": no_updated,
         "ca": correct_artifacts,

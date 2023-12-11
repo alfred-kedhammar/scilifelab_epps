@@ -167,9 +167,7 @@ def main(lims, args):
             comments,
         )
         noteobj["note"] = note
-        noteobj["user"] = "{} {}".format(
-            pro.technician.first_name, pro.technician.last_name
-        )
+        noteobj["user"] = f"{pro.technician.first_name} {pro.technician.last_name}"
         noteobj["email"] = pro.technician.email
         key = datetime.datetime.now(datetime.timezone.utc)
         noteobj["categories"] = [categorization(pro.type.name)]

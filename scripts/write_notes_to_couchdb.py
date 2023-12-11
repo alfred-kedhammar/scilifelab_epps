@@ -19,7 +19,7 @@ def write_note_to_couch(pid, timestamp, note, lims):
         config = yaml.safe_load(config_file)
     if not config["statusdb"]:
         email_responsible(
-            "Statusdb credentials not found in {}\n ".format(lims),
+            f"Statusdb credentials not found in {lims}\n ",
             "genomics-bioinfo@scilifelab.se",
         )
         email_responsible(

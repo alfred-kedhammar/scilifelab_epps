@@ -39,9 +39,7 @@ def check_index_distance(data, log):
                 d = my_distance(b, b2)
                 if d < 2:
                     log.append(
-                        "Found indexes {} and {} in lane {}, indexes are too close".format(
-                            b, b2, l
-                        )
+                        f"Found indexes {b} and {b2} in lane {l}, indexes are too close"
                     )
 
 
@@ -81,7 +79,7 @@ def gen_Novaseq_lane_data(pro):
                     sp_obj = {}
                     sp_obj["lane"] = out.location[1].split(":")[0].replace(",", "")
                     if NGISAMPLE_PAT.findall(sample.name):
-                        sp_obj["sid"] = "Sample_{}".format(sample.name).replace(",", "")
+                        sp_obj["sid"] = f"Sample_{sample.name}".replace(",", "")
                         sp_obj["sn"] = sample.name.replace(",", "")
                         sp_obj["pj"] = sample.project.name.replace(".", "__").replace(
                             ",", ""
@@ -98,7 +96,7 @@ def gen_Novaseq_lane_data(pro):
                             sp_obj["rc"] = "0-0"
                     else:
                         sp_obj["sid"] = (
-                            "Sample_{}".format(sample.name)
+                            f"Sample_{sample.name}"
                             .replace("(", "")
                             .replace(")", "")
                             .replace(".", "")
@@ -155,7 +153,7 @@ def gen_Novaseq_lane_data(pro):
         ]
         str_data = str_data + ",".join(l_data) + "\n"
 
-    content = "{}{}".format(header, str_data)
+    content = f"{header}{str_data}"
     df = pd.read_csv(StringIO(content))
     df = df.sort_values(["Lane", "Sample_ID"])
     content = df.to_csv(index=False)
@@ -188,7 +186,7 @@ def gen_NovaSeqXPlus_lane_data(pro):
                     sp_obj = {}
                     sp_obj["lane"] = out.location[1].split(":")[0].replace(",", "")
                     if NGISAMPLE_PAT.findall(sample.name):
-                        sp_obj["sid"] = "Sample_{}".format(sample.name).replace(",", "")
+                        sp_obj["sid"] = f"Sample_{sample.name}".replace(",", "")
                         sp_obj["sn"] = sample.name.replace(",", "")
                         sp_obj["pj"] = sample.project.name.replace(".", "__").replace(
                             ",", ""
@@ -205,7 +203,7 @@ def gen_NovaSeqXPlus_lane_data(pro):
                             sp_obj["rc"] = "0-0"
                     else:
                         sp_obj["sid"] = (
-                            "Sample_{}".format(sample.name)
+                            f"Sample_{sample.name}"
                             .replace("(", "")
                             .replace(")", "")
                             .replace(".", "")
@@ -251,7 +249,7 @@ def gen_NovaSeqXPlus_lane_data(pro):
         ]
         str_data = str_data + ",".join(l_data) + "\n"
 
-    content = "{}{}".format(header, str_data)
+    content = f"{header}{str_data}"
     df = pd.read_csv(StringIO(content))
     df = df.sort_values(["Lane", "Sample_ID"])
     content = df.to_csv(index=False)
@@ -296,9 +294,7 @@ def gen_Miseq_settings(pro):
     ogf = 1 if pro.udf["OnlyGenerateFASTQ"] else 0
     fpdcrd = 1 if pro.udf["FilterPCRDuplicates"] else 0
     settings = (
-        "[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n".format(
-            ogf=ogf, fpdcrd=fpdcrd
-        )
+        f"[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n"
     )
     return settings
 
@@ -337,7 +333,7 @@ def gen_Miseq_data(pro):
                 pj_type = ""
                 sp_obj["lane"] = "1"
                 if NGISAMPLE_PAT.findall(sample.name):
-                    sp_obj["sid"] = "Sample_{}".format(sample.name).replace(",", "")
+                    sp_obj["sid"] = f"Sample_{sample.name}".replace(",", "")
                     sp_obj["sn"] = sample.name.replace(",", "")
                     sp_obj["pj"] = sample.project.name.replace(".", "_").replace(
                         ",", ""
@@ -350,7 +346,7 @@ def gen_Miseq_data(pro):
                     )
                 else:
                     sp_obj["sid"] = (
-                        "Sample_{}".format(sample.name)
+                        f"Sample_{sample.name}"
                         .replace("(", "")
                         .replace(")", "")
                         .replace(".", "")
@@ -377,7 +373,7 @@ def gen_Miseq_data(pro):
                     pj_type = ""
                     sp_obj["lane"] = "1"
                     if NGISAMPLE_PAT.findall(sample.name):
-                        sp_obj["sid"] = "Sample_{}".format(sample.name).replace(",", "")
+                        sp_obj["sid"] = f"Sample_{sample.name}".replace(",", "")
                         sp_obj["sn"] = sample.name.replace(",", "")
                         sp_obj["pj"] = sample.project.name.replace(".", "_").replace(
                             ",", ""
@@ -390,7 +386,7 @@ def gen_Miseq_data(pro):
                         )
                     else:
                         sp_obj["sid"] = (
-                            "Sample_{}".format(sample.name)
+                            f"Sample_{sample.name}"
                             .replace("(", "")
                             .replace(")", "")
                             .replace(".", "")
@@ -537,11 +533,11 @@ def gen_Miseq_data(pro):
             ]
         str_data = str_data + ",".join(l_data) + "\n"
 
-    content = "{}{}".format(header, str_data)
+    content = f"{header}{str_data}"
     df = pd.read_csv(StringIO(content), skiprows=1)
     df = df.sort_values(["Sample_ID"])
     content = df.to_csv(index=False)
-    content = "[Data]\n{}\n".format(content)
+    content = f"[Data]\n{content}\n"
 
     return (content, data)
 
@@ -571,7 +567,7 @@ def gen_Nextseq_lane_data(pro):
                     sp_obj = {}
                     sp_obj["lane"] = out.location[1].split(":")[0].replace(",", "")
                     if NGISAMPLE_PAT.findall(sample.name):
-                        sp_obj["sid"] = "Sample_{}".format(sample.name).replace(",", "")
+                        sp_obj["sid"] = f"Sample_{sample.name}".replace(",", "")
                         sp_obj["sn"] = sample.name.replace(",", "")
                         sp_obj["pj"] = sample.project.name.replace(".", "__").replace(
                             ",", ""
@@ -588,7 +584,7 @@ def gen_Nextseq_lane_data(pro):
                             sp_obj["rc"] = "0-0"
                     else:
                         sp_obj["sid"] = (
-                            "Sample_{}".format(sample.name)
+                            f"Sample_{sample.name}"
                             .replace("(", "")
                             .replace(")", "")
                             .replace(".", "")
@@ -634,7 +630,7 @@ def gen_Nextseq_lane_data(pro):
         ]
         str_data = str_data + ",".join(l_data) + "\n"
 
-    content = "{}{}".format(header, str_data)
+    content = f"{header}{str_data}"
     df = pd.read_csv(StringIO(content))
     df = df.sort_values(["Lane", "Sample_ID"])
     content = df.to_csv(index=False)
@@ -778,7 +774,7 @@ def main(lims, args):
             (content, obj) = gen_Novaseq_lane_data(process)
             check_index_distance(obj, log)
             if os.path.exists(
-                "/srv/ngi-nas-ns/samplesheets/novaseq/{}".format(thisyear)
+                f"/srv/ngi-nas-ns/samplesheets/novaseq/{thisyear}"
             ):
                 try:
                     with open(
@@ -795,7 +791,7 @@ def main(lims, args):
             (content, obj) = gen_NovaSeqXPlus_lane_data(process)
             check_index_distance(obj, log)
             if os.path.exists(
-                "/srv/ngi-nas-ns/samplesheets/NovaSeqXPlus/{}".format(thisyear)
+                f"/srv/ngi-nas-ns/samplesheets/NovaSeqXPlus/{thisyear}"
             ):
                 try:
                     with open(
@@ -814,7 +810,7 @@ def main(lims, args):
             settings = gen_Miseq_settings(process)
             (data, obj) = gen_Miseq_data(process)
             check_index_distance(obj, log)
-            content = "{}{}{}{}".format(header, reads, settings, data)
+            content = f"{header}{reads}{settings}{data}"
 
         elif process.type.name == "Load to Flowcell (NextSeq v1.0)":
             (content, obj) = gen_Nextseq_lane_data(process)
@@ -825,7 +821,7 @@ def main(lims, args):
                 else obj[0]["fc"]
             )
             if os.path.exists(
-                "/srv/ngi-nas-ns/samplesheets/nextseq/{}".format(thisyear)
+                f"/srv/ngi-nas-ns/samplesheets/nextseq/{thisyear}"
             ):
                 try:
                     with open(
@@ -856,7 +852,7 @@ def main(lims, args):
                 + process.id
             )
             if os.path.exists(
-                "/srv/ngi-nas-ns/samplesheets/nanopore/{}".format(thisyear)
+                f"/srv/ngi-nas-ns/samplesheets/nanopore/{thisyear}"
             ):
                 try:
                     with open(
@@ -903,14 +899,14 @@ def main(lims, args):
                 else:
                     fc_name = "Samplesheet" + "_" + process.id
 
-            with open("{}.csv".format(fc_name), "w", 0o664) as f:
+            with open(f"{fc_name}.csv", "w", 0o664) as f:
                 f.write(content)
-            os.chmod("{}.csv".format(fc_name), 0o664)
+            os.chmod(f"{fc_name}.csv", 0o664)
             for f in ss_art.files:
                 lims.request_session.delete(f.uri)
-            lims.upload_new_file(ss_art, "{}.csv".format(fc_name))
+            lims.upload_new_file(ss_art, f"{fc_name}.csv")
             if log:
-                with open("{}_{}_Error.log".format(log_id, fc_name), "w") as f:
+                with open(f"{log_id}_{fc_name}_Error.log", "w") as f:
                     f.write("\n".join(log))
 
                 sys.stderr.write("Errors were met, check the log.")

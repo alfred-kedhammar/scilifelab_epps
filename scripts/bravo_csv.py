@@ -517,8 +517,8 @@ def default_bravo(lims, currentStep, with_total_vol=True):
         # For now only one output plate is supported:
         if len(list(set(dest_plate))) == 1:
             dest_plate_name = list(set(dest_plate))[0]
-            os.rename("bravo.csv", "{}_bravo.csv".format(dest_plate_name))
-            os.rename("bravo.log", "{}_bravo.log".format(dest_plate_name))
+            os.rename("bravo.csv", f"{dest_plate_name}_bravo.csv")
+            os.rename("bravo.log", f"{dest_plate_name}_bravo.log")
         else:
             sys.stderr.write("ERROR: Multiple output plates!\n")
             sys.exit(2)
@@ -528,11 +528,11 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             if out.name == "EPP Generated Bravo CSV File":
                 for f in out.files:
                     lims.request_session.delete(f.uri)
-                lims.upload_new_file(out, "{}_bravo.csv".format(dest_plate_name))
+                lims.upload_new_file(out, f"{dest_plate_name}_bravo.csv")
             if out.name == "Bravo Log":
                 for f in out.files:
                     lims.request_session.delete(f.uri)
-                lims.upload_new_file(out, "{}_bravo.log".format(dest_plate_name))
+                lims.upload_new_file(out, f"{dest_plate_name}_bravo.log")
         if checkTheLog[0]:
             # to get an error display in the lims, you need a non-zero exit code AND a message in STDERR
             sys.stderr.write("Errors were met, please check the Log file\n")
@@ -751,9 +751,7 @@ def dilution(currentStep):
                                 )
                     except KeyError as e:
                         logContext.write(
-                            "ERROR : The input artifact is lacking a field : {}\n".format(
-                                e
-                            )
+                            f"ERROR : The input artifact is lacking a field : {e}\n"
                         )
                         checkTheLog[0] = True
                     except AssertionError:
@@ -841,9 +839,7 @@ def normalization(current_step):
                     src_conc = src.udf["Normalized conc. (nM)"]
                 else:
                     sys.stderr.write(
-                        "Non input concentration found for sample {}\n".format(
-                            dest.name
-                        )
+                        f"Non input concentration found for sample {dest.name}\n"
                     )
                     sys.exit(2)
 
@@ -861,9 +857,7 @@ def normalization(current_step):
                     sys.exit(2)
                 if src_conc < dest_conc:
                     log.append(
-                        "ERROR: Too low concentration for sample {}".format(
-                            src.samples[0].name
-                        )
+                        f"ERROR: Too low concentration for sample {src.samples[0].name}"
                     )
                 else:
                     # Warn if volume to take > volume available or max volume is
@@ -1156,10 +1150,10 @@ def calc_vol(art_tuple, logContext, checkTheLog):
                     art_tuple[1]["uri"].samples[0].name,
                     art_tuple[0]["uri"].location[0].name,
                     art_tuple[0]["uri"].location[1],
-                    "{:.2f}".format(org_vol),
-                    "{:.2f}".format(volume),
-                    "{:.2f}".format(amount_taken_from_plate),
-                    "{:.2f}".format(final_volume),
+                    f"{org_vol:.2f}",
+                    f"{volume:.2f}",
+                    f"{amount_taken_from_plate:.2f}",
+                    f"{final_volume:.2f}",
                     max_volume_warning,
                 )
             )
@@ -1176,9 +1170,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
 
             if final_volume > MAX_WARNING_VOLUME:
                 max_volume_warning = (
-                    "NOTE! Total dilution volume higher than {}!".format(
-                        MAX_WARNING_VOLUME
-                    )
+                    f"NOTE! Total dilution volume higher than {MAX_WARNING_VOLUME}!"
                 )
 
             logContext.write(
@@ -1186,10 +1178,10 @@ def calc_vol(art_tuple, logContext, checkTheLog):
                     art_tuple[1]["uri"].samples[0].name,
                     art_tuple[0]["uri"].location[0].name,
                     art_tuple[0]["uri"].location[1],
-                    "{:.2f}".format(volume),
+                    f"{volume:.2f}",
                     MIN_WARNING_VOLUME,
-                    "{:.2f}".format(amount_taken_from_plate),
-                    "{:.2f}".format(final_volume),
+                    f"{amount_taken_from_plate:.2f}",
+                    f"{final_volume:.2f}",
                     max_volume_warning,
                 )
             )
@@ -1206,10 +1198,10 @@ def calc_vol(art_tuple, logContext, checkTheLog):
                         art_tuple[1]["uri"].samples[0].name,
                         art_tuple[0]["uri"].location[0].name,
                         art_tuple[0]["uri"].location[1],
-                        "{:.2f}".format(volume),
-                        "{:.2f}".format(org_vol),
-                        "{:.2f}".format(amount_taken_from_plate),
-                        "{:.2f}".format(final_volume),
+                        f"{volume:.2f}",
+                        f"{org_vol:.2f}",
+                        f"{amount_taken_from_plate:.2f}",
+                        f"{final_volume:.2f}",
                         max_volume_warning,
                     )
                 )
@@ -1219,9 +1211,9 @@ def calc_vol(art_tuple, logContext, checkTheLog):
                         art_tuple[1]["uri"].samples[0].name,
                         art_tuple[0]["uri"].location[0].name,
                         art_tuple[0]["uri"].location[1],
-                        "{:.2f}".format(volume),
-                        "{:.2f}".format(final_volume),
-                        "{:.2f}".format(amount_taken_from_plate),
+                        f"{volume:.2f}",
+                        f"{final_volume:.2f}",
+                        f"{amount_taken_from_plate:.2f}",
                         max_volume_warning,
                     )
                 )
@@ -1249,15 +1241,15 @@ def calc_vol(art_tuple, logContext, checkTheLog):
 
         return (
             art_workflows,
-            "{:.2f}".format(volume),
-            "{:.2f}".format(final_volume),
-            "{:.2f}".format(amount_for_prep),
-            "{:.2f}".format(amount_taken_from_plate),
-            "{:.2f}".format(total_volume),
+            f"{volume:.2f}",
+            f"{final_volume:.2f}",
+            f"{amount_for_prep:.2f}",
+            f"{amount_taken_from_plate:.2f}",
+            f"{total_volume:.2f}",
         )
     except KeyError as e:
         logContext.write(
-            "ERROR : The input artifact is lacking a field : {}\n".format(e)
+            f"ERROR : The input artifact is lacking a field : {e}\n"
         )
         checkTheLog[0] = True
     except AssertionError:

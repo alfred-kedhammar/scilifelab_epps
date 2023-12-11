@@ -21,7 +21,7 @@ def main(lims, pid, udfs):
         if input.name not in input_udf_dict.keys():
             input_udf_dict[input.name] = dict(input.udf.items())
         else:
-            sys.stderr.write("ERROR: Duplicated artifact name {}!".format(input.name))
+            sys.stderr.write(f"ERROR: Duplicated artifact name {input.name}!")
             sys.exit(2)
 
     outputs = [i for i in process.all_outputs() if i.type == "Analyte"]
@@ -32,10 +32,10 @@ def main(lims, pid, udfs):
                     output.udf[udf] = input_udf_dict[output.name][udf]
                     output.put()
                 else:
-                    sys.stderr.write("ERROR: Specified UDF {} not found!".format(udf))
+                    sys.stderr.write(f"ERROR: Specified UDF {udf} not found!")
                     sys.exit(2)
         else:
-            sys.stderr.write("ERROR: Output name {} not found!".format(output.name))
+            sys.stderr.write(f"ERROR: Output name {output.name} not found!")
             sys.exit(2)
 
 
