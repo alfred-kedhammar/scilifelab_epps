@@ -1,8 +1,8 @@
 name: lint-code
 on: [push]
 jobs:
+  # Use ruff to check for code style violations
   ruff-check:
-    # Use ruff to check for code style violations
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -10,38 +10,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.7"
+          python-version: "3.10"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install ruff
       - name: ruff --> Check for style violations
-        # The following style violations will be ignored
-        # ==============================================
-        # E402: Module level import not at top of file
-        # E722: Do not use bare 'except'
-        # E741: Ambiguous variable name
-        run: ruff check --ignore E402,E722,E741 --unsafe-fixes .
+        # Configured in pyproject.toml
+        run: ruff check .
 
-  isort-check:
-    # Use isort to check that imports are ordered according to best practice
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.7"
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install isort
-      - name: isort --> Check for best-practice sorting of imports
-        run: isort --check .
-
+  # Use ruff to check code formatting
   ruff-format:
-    # Use ruff to check code formatting
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -49,7 +28,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.7"
+          python-version: "3.10"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -57,8 +36,8 @@ jobs:
       - name: ruff --> Check code formatting
         run: ruff format --check .
 
+  # Use mypy for static type checking
   mypy-check:
-    # Use mypy for static type checking
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -66,29 +45,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.7"
+          python-version: "3.10"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install mypy
+      # Start by installing type stubs
       - name: mypy --> Install stubs
-        run: echo -e "y" | mypy --install-types --ignore-missing-imports --follow-imports=skip --exclude build . || exit 0
+        run: echo -e "y" | mypy --install-types || exit 0
       - name: mypy --> Static type checking
-        run: mypy --ignore-missing-imports --follow-imports=skip --exclude build .
-
-  pyupgrade-check:
-    # Use pyupgrade to check for outdated syntax
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.7"
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pyupgrade
-      - name: pyupgrade --> Check for outdated syntax
-        run: pyupgrade **/*.py
+        # Configured in pyprojet.toml
+        run: mypy **/*.py
