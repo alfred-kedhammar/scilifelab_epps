@@ -4,19 +4,9 @@ repos:
     rev: v0.1.6
     hooks:
     -   id: ruff
-        args: [--ignore=E402, --ignore=E722, --ignore=E741, --unsafe-fixes]
     -   id: ruff-format
--   repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-    -   id: isort
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: 'v1.7.1'
     hooks:
     -   id: mypy
-        args: [--ignore-missing-imports, --follow-imports=skip]
         additional_dependencies: [types-tabulate]
--   repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
-    hooks:
-    -   id: pyupgrade
