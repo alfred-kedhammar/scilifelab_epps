@@ -1,4 +1,5 @@
 genologics
+couchdb
 markdown
 tabulate
 numpy
