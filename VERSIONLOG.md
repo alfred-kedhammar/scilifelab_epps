@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231212.1
+
+Enable Attaching xml files for MiSeq
+
 ## 20231201.1
 
 Change MiSeq samplesheet to new version
