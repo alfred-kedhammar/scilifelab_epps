@@ -29,6 +29,8 @@ python install setup.py
 
 ## Development
 
+Run `pip install requirements-dev.txt`
+
 ### Automated linting
 This repo is configured for automated linting. Linter parameters are defined in `pyproject.toml`.
 
