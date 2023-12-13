@@ -401,9 +401,9 @@ def get_well_number(art: Artifact, count_per: str) -> int:
 
     # Ensure container well names match classical convention
     assert (
-        art.container.type.y_dimension["is_alpha"] == True
+        art.container.type.y_dimension["is_alpha"]
         and art.container.type.y_dimension["offset"] == 0
-        and art.container.type.x_dimension["is_alpha"] == False
+        and not art.container.type.x_dimension["is_alpha"]
         and art.container.type.x_dimension["offset"] == 1
     ), "Can't convert well name --> well number for invalid container"
 

@@ -70,9 +70,6 @@ def main(lims, args):
             continue
 
         # Isolate the XML sample nest w. the same well as the measurement
-        log.append(
-            f"Looking for samples in .xml file matching well number {lims_well_num}..."
-        )
         xml_matching_samples = [
             sample_node
             for sample_node in xml_samples
@@ -117,6 +114,7 @@ def main(lims, args):
         try:
             xml_results = xml_sample.find(".//RegionsMolecularResults")
             assert xml_results
+            log.append("Fetched sample results section from .xml.")
         except:
             log.append(
                 f"ERROR: No smear region was found for {lims_art.name} in the .xml file, skipping."
@@ -142,6 +140,8 @@ def main(lims, args):
 
                 udf_tools.put(lims_art, udf_name, result)
 
+                log.append(f"{udf_name} --> {result}")
+
             except AssertionError:
                 log.append(
                     f"ERROR: Could not assign UDF {udf_name} of measurement {lims_art.name}, skipping."
@@ -149,7 +149,7 @@ def main(lims, args):
                 errors = True
                 continue
 
-        log.append(f"Successfully pulled metrics for measurement {lims_art.name}.")
+        log.append("Successfully pulled metrics.")
 
     # Write log
     timestamp = dt.now().strftime("%y%m%d_%H%M%S")
