@@ -328,6 +328,7 @@ def gen_Miseq_data(pro):
                     elif TENX_DUAL_PAT.findall(idxs[0]):
                         sp_obj['idx1'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][0].replace(',','')
                         sp_obj['idx2'] = ''.join(reversed([compl.get(b,b) for b in Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][1].replace(',','').upper()]))
+                        data.append(sp_obj)
                     # Case of SS3 indexes
                     elif SMARTSEQ_PAT.findall(idxs[0]):
                         for i7_idx in SMARTSEQ3_indexes[idxs[0]][0]:
@@ -346,6 +347,11 @@ def gen_Miseq_data(pro):
                                 sp_obj_sub['idx1'] = i7_idx
                                 sp_obj_sub['idx2'] = ''.join(reversed([compl.get(b,b) for b in i5_idx.replace(',','').upper()]))
                                 data.append(sp_obj_sub)
+                    # NoIndex cases
+                    elif idxs[0].replace(',','').upper() == 'NOINDEX':
+                        sp_obj['idx1'] = ''
+                        sp_obj['idx2'] = ''
+                        data.append(sp_obj)
                     # Ordinary indexes
                     else:
                         sp_obj['idx1'] = idxs[0].replace(',','').upper()
