@@ -347,15 +347,15 @@ def gen_Miseq_data(pro):
                                 data.append(sp_obj_sub)
                     # Ordinary indexes
                     else:
-                    sp_obj['idx1'] = idxs[0].replace(',','').upper()
-                    if idxs[1]:
-                        if pj_type == 'by user':
-                            sp_obj['idx2'] = idxs[1].replace(',','').upper()
+                        sp_obj['idx1'] = idxs[0].replace(',','').upper()
+                        if idxs[1]:
+                            if pj_type == 'by user':
+                                sp_obj['idx2'] = idxs[1].replace(',','').upper()
+                            else:
+                                sp_obj['idx2'] = ''.join(reversed([compl.get(b,b) for b in idxs[1].replace(',','').upper()]))
                         else:
-                            sp_obj['idx2'] = ''.join(reversed([compl.get(b,b) for b in idxs[1].replace(',','').upper()]))
-                    else:
-                        sp_obj['idx2'] = ''
-                    data.append(sp_obj)
+                            sp_obj['idx2'] = ''
+                        data.append(sp_obj)
     header = "{}\n".format(",".join(header_ar))
     str_data = ""
     for line in sorted(data, key=lambda x: x['lane']):
