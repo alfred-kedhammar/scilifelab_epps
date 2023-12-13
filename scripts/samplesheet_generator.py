@@ -18,6 +18,11 @@ from genologics.config import BASEURI, USERNAME, PASSWORD
 
 from data.Chromium_10X_indexes import Chromium_10X_indexes
 
+# Load SS3 indexes
+SMARTSEQ3_indexes_json = '/opt/gls/clarity/users/glsai/repos/scilifelab_epps/data/SMARTSEQ3_indexes.json'
+with open(SMARTSEQ3_indexes_json, 'r') as file:
+    SMARTSEQ3_indexes = json.loads(file.read())
+
 DESC = """EPP used to create samplesheets for Illumina sequencing platforms"""
 
 # Pre-compile regexes in global scope:
@@ -27,6 +32,8 @@ TENX_DUAL_PAT = re.compile("SI-(?:TT|NT|NN|TN|TS)-[A-H][1-9][0-2]?")
 SMARTSEQ_PAT = re.compile('SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]')
 NGISAMPLE_PAT =re.compile("P[0-9]+_[0-9]+")
 SEQSETUP_PAT =re.compile("[0-9]+-[0-9A-z]+-[0-9A-z]+-[0-9]+")
+
+compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
 
 def check_index_distance(data, log):
     lanes=set([x['lane'] for x in data])
@@ -102,7 +109,6 @@ def gen_Novaseq_lane_data(pro):
                         if pro.udf['Reagent Version'] == 'v1.5':
                             sp_obj['idx2'] = idxs[1].replace(',','').upper()
                         elif pro.udf['Reagent Version'] == 'v1.0':
-                            compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
                             sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
                     else:
                         sp_obj['idx2'] = ''
@@ -224,7 +230,7 @@ def gen_Miseq_header(pro):
             sample_idxs = set()
             find_barcode(sample_idxs, sample, pro)
             idxs = list(sample_idxs)[0]
-            if idxs[0] and idxs[1]:
+            if (idxs[0] and idxs[1]) or TENX_DUAL_PAT.findall(idxs[0]) or SMARTSEQ_PAT.findall(idxs[0]):
                 chem="amplicon"
 
     header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nModule,{mod}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Flowcell ID"], dt=datetime.now().strftime("%Y-%m-%d"), wf=pro.udf["Workflow"], mod=pro.udf["Module"], ass="null", dsc=pro.udf['Description'], chem=chem)
@@ -299,13 +305,54 @@ def gen_Miseq_data(pro):
                     sp_obj['op'] = pro.technician.name.replace(" ","_").replace(',','')
                     sp_obj['fc'] = out.location[0].name.replace(',','')
                     sp_obj['sw'] = out.location[1].replace(',','')
+
+                    # Expand 10X single indexes
+                    if TENX_SINGLE_PAT.findall(idxs[0]):
+                        for tenXidx in Chromium_10X_indexes[TENX_SINGLE_PAT.findall(idxs[0])[0]]:
+                            sp_obj_sub = {}
+                            sp_obj_sub['lane'] = sp_obj['lane']
+                            sp_obj_sub['sid'] = sp_obj['sid']
+                            sp_obj_sub['sn'] = sp_obj['sn']
+                            sp_obj_sub['pj'] = sp_obj['pj']
+                            sp_obj_sub['ref'] = sp_obj['ref']
+                            sp_obj_sub['rc'] = sp_obj['rc']
+                            sp_obj_sub['ct'] = sp_obj['ct']
+                            sp_obj_sub['op'] = sp_obj['op']
+                            sp_obj_sub['fc'] = sp_obj['fc']
+                            sp_obj_sub['sw'] = sp_obj['sw']
+                            sp_obj_sub['idx1'] = tenXidx.replace(',','')
+                            sp_obj_sub['idx2'] = ''
+                            data.append(sp_obj_sub)
+                    # Case of 10X dual indexes
+                    elif TENX_DUAL_PAT.findall(idxs[0]):
+                        sp_obj['idx1'] = Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][0].replace(',','')
+                        sp_obj['idx2'] = ''.join(reversed([compl.get(b,b) for b in Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs[0])[0]][1].replace(',','').upper()]))
+                    # Case of SS3 indexes
+                    elif SMARTSEQ_PAT.findall(idxs[0]):
+                        for i7_idx in SMARTSEQ3_indexes[idxs[0]][0]:
+                            for i5_idx in SMARTSEQ3_indexes[idxs[0]][1]:
+                                sp_obj_sub = {}
+                                sp_obj_sub['lane'] = sp_obj['lane']
+                                sp_obj_sub['sid'] = sp_obj['sid']
+                                sp_obj_sub['sn'] = sp_obj['sn']
+                                sp_obj_sub['pj'] = sp_obj['pj']
+                                sp_obj_sub['ref'] = sp_obj['ref']
+                                sp_obj_sub['rc'] = sp_obj['rc']
+                                sp_obj_sub['ct'] = sp_obj['ct']
+                                sp_obj_sub['op'] = sp_obj['op']
+                                sp_obj_sub['fc'] = sp_obj['fc']
+                                sp_obj_sub['sw'] = sp_obj['sw']
+                                sp_obj_sub['idx1'] = i7_idx
+                                sp_obj_sub['idx2'] = ''.join(reversed([compl.get(b,b) for b in i5_idx.replace(',','').upper()]))
+                                data.append(sp_obj_sub)
+                    # Ordinary indexes
+                    else:
                     sp_obj['idx1'] = idxs[0].replace(',','').upper()
                     if idxs[1]:
                         if pj_type == 'by user':
                             sp_obj['idx2'] = idxs[1].replace(',','').upper()
                         else:
-                            compl = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A'}
-                            sp_obj['idx2'] = ''.join( reversed( [compl.get(b,b) for b in idxs[1].replace(',','').upper() ] ) )
+                            sp_obj['idx2'] = ''.join(reversed([compl.get(b,b) for b in idxs[1].replace(',','').upper()]))
                     else:
                         sp_obj['idx2'] = ''
                     data.append(sp_obj)

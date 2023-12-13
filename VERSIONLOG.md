@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231213.2
+
+Expand 10X and SS3 indexes for MiSeq samplesheet
+
 ## 20231213.1
 
 Fix MiSeq samplesheet generator to include options for custom primers
