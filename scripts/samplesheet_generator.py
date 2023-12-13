@@ -246,7 +246,7 @@ def gen_Miseq_settings(pro):
     custom_r1_primer = 'CustomRead1PrimerMix,C1\n' if pro.udf["CustomRead1PrimerMix"] else ''
     custom_index_primer = 'CustomIndexPrimerMix,C2\n' if pro.udf["CustomIndexPrimerMix"] else ''
     custom_r2_primer = 'CustomRead2PrimerMix,C3\n' if pro.udf["CustomRead2PrimerMix"] else ''
-    settings="[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n{custom_r1_primer}{}{}".format(ogf=ogf,
+    settings="[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n{custom_r1_primer}{custom_index_primer}{custom_r2_primer}".format(ogf=ogf,
                                                                                                                 fpdcrd=fpdcrd,
                                                                                                                 custom_r1_primer=custom_r1_primer,
                                                                                                                 custom_index_primer=custom_index_primer,
