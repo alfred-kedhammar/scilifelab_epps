@@ -219,12 +219,13 @@ def gen_NovaSeqXPlus_lane_data(pro):
 def gen_Miseq_header(pro):
     project_name=pro.all_inputs()[0].samples[0].project.name
     chem = "Default"
-    for io in pro.input_output_maps:
-        sample_idxs = set()
-        find_barcode(sample_idxs, io[1]["uri"].samples[0], pro)
-        idxs = list(sample_idxs)[0]
-        if len(idxs) == 2:
-           chem="amplicon"
+    for out in pro.all_outputs():
+        for sample in out.samples:
+            sample_idxs = set()
+            find_barcode(sample_idxs, sample, pro)
+            idxs = list(sample_idxs)[0]
+            if idxs[0] and idxs[1]:
+                chem="amplicon"
 
     header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nModule,{mod}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Flowcell ID"], dt=datetime.now().strftime("%Y-%m-%d"), wf=pro.udf["Workflow"], mod=pro.udf["Module"], ass="null", dsc=pro.udf['Description'], chem=chem)
     return header
@@ -240,9 +241,16 @@ def gen_Miseq_reads(pro):
     return reads
 
 def gen_Miseq_settings(pro):
-    ogf=1 if pro.udf["OnlyGenerateFASTQ"] else 0
-    fpdcrd=1 if pro.udf["FilterPCRDuplicates"] else 0
-    settings="[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n".format(ogf=ogf,fpdcrd=fpdcrd)
+    ogf = 1 if pro.udf["OnlyGenerateFASTQ"] else 0
+    fpdcrd = 1 if pro.udf["FilterPCRDuplicates"] else 0
+    custom_r1_primer = 'CustomRead1PrimerMix,C1\n' if pro.udf["CustomRead1PrimerMix"] else ''
+    custom_index_primer = 'CustomIndexPrimerMix,C2\n' if pro.udf["CustomIndexPrimerMix"] else ''
+    custom_r2_primer = 'CustomRead2PrimerMix,C3\n' if pro.udf["CustomRead2PrimerMix"] else ''
+    settings="[Settings]\nOnlyGenerateFASTQ,{ogf}\nFilterPCRDuplicates,{fpdcrd}\n{custom_r1_primer}{}{}".format(ogf=ogf,
+                                                                                                                fpdcrd=fpdcrd,
+                                                                                                                custom_r1_primer=custom_r1_primer,
+                                                                                                                custom_index_primer=custom_index_primer,
+                                                                                                                custom_r2_primer=custom_r2_primer)
     return settings
 
 def gen_Miseq_data(pro):

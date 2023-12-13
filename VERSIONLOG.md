@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231213.1
+
+Fix MiSeq samplesheet generator to include options for custom primers
+
 ## 20231212.1
 
 Enable Attaching xml files for MiSeq
