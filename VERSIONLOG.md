@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231213.1
+
+Fix BioAnalyzer EPP to expect row-wise samples instead of column-wise. Associated with deviation #211.
+
 ## 20231120.1
 
 Fix change in flowcell mode name that is related with control software upgrade
