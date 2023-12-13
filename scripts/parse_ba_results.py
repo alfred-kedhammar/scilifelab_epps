@@ -48,10 +48,6 @@ def main(lims, args):
     for i, j in udf_to_xml.items():
         log.append(f"{i} --> {j}")
 
-    # print(
-    #     "\t".join(["LIMS name", "Well number", "Well name", "BA name", "BA position"])
-    # )
-
     # Iterate over output measurements and gather the results
     for lims_art in lims_arts:
         log.append(f"\nProcessing measurement '{lims_art.name}'...")
@@ -97,18 +93,6 @@ def main(lims, args):
             continue
         else:
             raise AssertionError
-
-        # print(
-        #     "\t".join(
-        #         [
-        #             lims_art.name.split()[1],
-        #             str(lims_well_num),
-        #             lims_art.location[1],
-        #             xml_sample.find(".//Name").text.strip(),
-        #             xml_sample.find(".//WellNumber").text.strip(),
-        #         ]
-        #     )
-        # )
 
         # Get the xml smear metrics
         try:
