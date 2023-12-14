@@ -35,7 +35,7 @@ Run `pip install requirements-dev.txt`
 This repo is configured for automated linting. Linter parameters are defined in `pyproject.toml`.
 
 As of now, we use:
-- [ruff](https://docs.astral.sh/ruff/) to perform automated formatting 
+- [ruff](https://docs.astral.sh/ruff/) to perform automated formatting and a variety of lint checks.
 - [mypy](https://mypy.readthedocs.io/en/stable/) for static type checking and to prevent contradictory type annotation.
 
 #### [GitHub Actions](https://docs.github.com/en/actions)
