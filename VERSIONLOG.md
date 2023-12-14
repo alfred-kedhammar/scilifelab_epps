@@ -1,5 +1,21 @@
 # Scilifelab_epps Version Log
 
+## 20231213.2
+
+Expand 10X and SS3 indexes for MiSeq samplesheet
+
+## 20231213.1
+
+Fix MiSeq samplesheet generator to include options for custom primers
+
+## 20231212.1
+
+Enable Attaching xml files for MiSeq
+
+## 20231201.1
+
+Change MiSeq samplesheet to new version
+
 ## 20231120.1
 
 Fix change in flowcell mode name that is related with control software upgrade

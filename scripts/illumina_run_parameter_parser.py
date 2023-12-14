@@ -236,6 +236,8 @@ def lims_for_nextseq(process, run_dir):
 def lims_for_miseq(process, run_dir):
     # Parse run
     runParserObj, RunParametersParserObj = parse_run(run_dir)
+    # Attach RunInfo.xml and RunParamters.xml
+    attach_xml(process, run_dir)
     # Set values for LIMS UDFs
     runParameters = RunParametersParserObj.data['RunParameters']
     process.udf['Finish Date'] = datetime.now().date()
