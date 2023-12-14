@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231213.3
+
+Fix BioAnalyzer EPP to expect row-wise samples instead of column-wise. Associated with deviation #211.
+
 ## 20231213.2
 
 Expand 10X and SS3 indexes for MiSeq samplesheet

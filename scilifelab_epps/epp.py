@@ -391,18 +391,24 @@ class CopyField(object):
             return False
 
 
-def get_well_number(art: Artifact) -> int:
-    """Convert well names (e.g. 'A:1', 'H:12') to column-wise well numbers."""
+def get_well_number(art: Artifact, count_per: str) -> int:
+    """Convert well names (e.g. 'A:1', 'H:12') to well numbers.
+
+    Choose between column-wise or row-wise counting.
+    """
+
+    assert count_per in ["row", "col"], "Invalid function argument"
 
     # Ensure container well names match classical convention
     assert (
-        art.container.type.y_dimension["is_alpha"] == True
+        art.container.type.y_dimension["is_alpha"]
         and art.container.type.y_dimension["offset"] == 0
-        and art.container.type.x_dimension["is_alpha"] == False
+        and not art.container.type.x_dimension["is_alpha"]
         and art.container.type.x_dimension["offset"] == 1
     ), "Can't convert well name --> well number for invalid container"
 
     # Get dimensions of artifact container
+    n_cols = art.container.type.x_dimension["size"]
     n_rows = art.container.type.y_dimension["size"]
 
     # Get simple dict translating letters to numbers
@@ -411,11 +417,16 @@ def get_well_number(art: Artifact) -> int:
     for i, l in zip(range(1, len(alphabet) + 1), alphabet):
         letter2num[l] = i
 
+    # Collect well data from LIMS
     well_name = art.location[1]
     row_letter, col_num = well_name.split(":")
+    row_num = letter2num[row_letter]
 
-    row_n = letter2num[row_letter]
-
-    well_num = (int(col_num) - 1) * n_rows + row_n
+    if count_per == "row":
+        well_num = (int(row_num) - 1) * n_cols + int(col_num)
+    elif count_per == "col":
+        well_num = (int(col_num) - 1) * n_rows + int(row_num)
+    else:
+        raise AssertionError
 
     return well_num
