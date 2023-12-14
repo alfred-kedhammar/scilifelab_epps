@@ -76,7 +76,7 @@ def main(lims, args):
             xml_sample = xml_matching_samples[0]
             xml_sample_name = xml_sample.find(".//Name").text.strip()
             log.append(
-                f"Found .xml sample {xml_sample_name} matching {count_per}-wise well number {lims_well_num}."
+                f"Found .xml sample '{xml_sample_name}' matching {count_per}-wise well number {lims_well_num}."
             )
 
         elif len(xml_matching_samples) < 1:
@@ -100,9 +100,7 @@ def main(lims, args):
             assert xml_results
             log.append("Fetched sample results section from .xml.")
         except:
-            log.append(
-                f"ERROR: No smear region was found for {lims_art.name} in the .xml file, skipping."
-            )
+            log.append("ERROR: No smear region was found, skipping.")
             errors = True
             continue
 
