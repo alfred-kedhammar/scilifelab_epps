@@ -22,16 +22,19 @@ def main(lims, args):
     currentStep = Process(lims, id=args.pid)
     log = []
     errors = False
+    count_per = "row"  # BioAnalyzer XML numbers wells row-wise
 
     # Set up an XML tree from the BioAnalyser output file
-    tree = ET.fromstring(get_ba_output_file(currentStep, log))
-    samples_node = tree.find(".//Samples")
+    xml_tree = ET.fromstring(get_ba_output_file(currentStep, log))
+    xml_samples = xml_tree.find(".//Samples")
+    log.append(f"{len(xml_samples)} samples found in .xml file.")
 
     # Grab the output measurements, i.e. output artifacts with a defined location
-    measurements = [art for art in currentStep.all_outputs() if art.location[1]]
+    lims_arts = [art for art in currentStep.all_outputs() if art.location[1]]
+    log.append(f"{len(lims_arts)} LIMS measurements to be processed.")
 
     # Define which LIMS UDFs should be populated with which XML metric
-    results_to_grab = {
+    udf_to_xml = {
         # {LIMS UDF: (XML name, type)}
         "Min Size (bp)": ("StartBasePair", int),
         "Max Size (bp)": ("EndBasePair", int),
@@ -40,49 +43,73 @@ def main(lims, args):
         "Ratio (%)": ("PercentTotal", float),
     }
 
+    log.append(
+        "\nFor each sample, populate the following UDFs with the following .xml nests"
+    )
+    for i, j in udf_to_xml.items():
+        log.append(f"{i} --> {j}")
+
     # Iterate over output measurements and gather the results
-    for measurement in measurements:
+    for lims_art in lims_arts:
+        log.append(f"\nProcessing measurement '{lims_art.name}'...")
+
         # Find the corresponding well number
         try:
-            well_num = get_well_number(measurement)
+            lims_well_num = get_well_number(lims_art, count_per)
+            log.append(
+                f"Well '{lims_art.location[1]}' corresponds to {count_per}-wise well number {lims_well_num}"
+            )
         except:
             log.append(
-                f"ERROR: Could not determine the well number of {measurement.name}, skipping."
+                f"ERROR: Could not determine the well number of {lims_art.name}, skipping."
             )
             errors = True
             continue
 
         # Isolate the XML sample nest w. the same well as the measurement
-        matching_wells = [
-            e
-            for e in samples_node
-            if int(e.find("WellNumber").text.strip()) == well_num
+        xml_matching_samples = [
+            sample_node
+            for sample_node in xml_samples
+            if int(sample_node.find("WellNumber").text.strip()) == lims_well_num
         ]
-        try:
-            assert len(matching_wells) == 1
-            sample_node = matching_wells[0]
-        except:
+
+        if len(xml_matching_samples) == 1:
+            xml_sample = xml_matching_samples[0]
+            xml_sample_name = xml_sample.find(".//Name").text.strip()
             log.append(
-                f"ERROR: The measurement {measurement.name} was not found in the .xml file, skipping."
+                f"Found .xml sample '{xml_sample_name}' matching {count_per}-wise well number {lims_well_num}."
+            )
+
+        elif len(xml_matching_samples) < 1:
+            log.append(
+                f"ERROR: Found no samples in the .xml at well number {lims_well_num}, skipping."
             )
             errors = True
             continue
+        elif len(xml_matching_samples) > 1:
+            log.append(
+                f"ERROR: Found multiple samples in the .xml at well number {lims_well_num}, skipping."
+            )
+            errors = True
+            continue
+        else:
+            raise AssertionError
 
         # Get the xml smear metrics
         try:
-            results_node = sample_node.find(".//RegionsMolecularResults")
+            xml_results = xml_sample.find(".//RegionsMolecularResults")
+            assert xml_results
+            log.append("Fetched sample results section from .xml.")
         except:
-            log.append(
-                f"ERROR: No smear region was found for {measurement.name} in the .xml file, skipping."
-            )
+            log.append("ERROR: No smear region was found, skipping.")
             errors = True
             continue
 
         # Grab the target results from the xml smear metrics
-        for udf_name in results_to_grab:
-            xml_nest, return_type = results_to_grab[udf_name]
+        for udf_name in udf_to_xml:
+            xml_query, return_type = udf_to_xml[udf_name]
 
-            result = results_node.find(f".//{xml_nest}").text.strip()
+            result = xml_results.find(f".//{xml_query}").text.strip()
             if return_type == int:
                 result = int(round(float(result), 0))
             elif return_type == float:
@@ -92,18 +119,20 @@ def main(lims, args):
                 # For concentrations (given in pg/ul), convert to ng/ul
                 if udf_name == "Concentration":
                     result = result / 1000
-                    udf_tools.put(measurement, "Conc. Units", "ng/ul")
+                    udf_tools.put(lims_art, "Conc. Units", "ng/ul")
 
-                udf_tools.put(measurement, udf_name, result)
+                udf_tools.put(lims_art, udf_name, result)
+
+                log.append(f"{udf_name} --> {result}")
 
             except AssertionError:
                 log.append(
-                    f"ERROR: Could not assign UDF {udf_name} of measurement {measurement.name}, skipping."
+                    f"ERROR: Could not assign UDF {udf_name} of measurement {lims_art.name}, skipping."
                 )
                 errors = True
                 continue
 
-        log.append(f"Successfully pulled metrics for measurment {measurement.name}.")
+        log.append("Successfully pulled metrics.")
 
     # Write log
     timestamp = dt.now().strftime("%y%m%d_%H%M%S")
