@@ -24,7 +24,7 @@ After installation, the scripts in `scripts/` are addded to the `bin` of the Con
 
 ```
 pip install requirements.txt
-python install setup.py
+pip install .
 ```
 
 ## Development
