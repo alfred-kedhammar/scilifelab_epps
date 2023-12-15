@@ -4,11 +4,8 @@ from setuptools import find_packages, setup
 
 version = "1.0"
 
-try:
-    with open("requirements.txt") as rq:
-        requires = rq.readlines()
-except:
-    requires = ["genologics"]
+with open("requirements.txt") as rq:
+    requires = rq.readlines()
 
 setup(
     name="scilifelab_epps",
