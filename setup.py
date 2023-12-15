@@ -25,15 +25,10 @@ setup(
     keywords="genologics api rest",
     author="Per Kraulis",
     author_email="per.kraulis@scilifelab.se",
-    maintainer="Denis Moreno",
-    maintainer_email="denis.moreno@scilifelab.se",
     url="https://github.com/scilifelab/scilifelab_epps",
     license="GPLv3",
     packages=find_packages(exclude=["ez_setup", "examples", "tests"]),
     scripts=glob.glob("scripts/*.py"),
     include_package_data=True,
     zip_safe=False,
-    entry_points="""
-      # -*- Entry points: -*-
-      """,
 )
