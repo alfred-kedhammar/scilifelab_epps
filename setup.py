@@ -1,18 +1,8 @@
 import glob
-import subprocess
 
 from setuptools import find_packages, setup
 
-# Fetch version from git tags.
-version = (
-    subprocess.Popen(
-        ["git", "describe", "--abbrev=0"],
-        stdout=subprocess.PIPE,
-        universal_newlines=True,
-    )
-    .communicate()[0]
-    .rstrip()
-)
+version = "1.0"
 
 try:
     with open("requirements.txt") as rq:
@@ -46,7 +36,6 @@ setup(
     scripts=glob.glob("scripts/*.py"),
     include_package_data=True,
     zip_safe=False,
-    install_requires=["genologics"],
     entry_points="""
       # -*- Entry points: -*-
       """,
