@@ -179,21 +179,21 @@ def format_worklist(df, deck):
             # As long as the transfer volume of the current row exceeds twice the max
             while row.transfer_vol > 2 * max_vol:
                 # Add a max-volume sub-transfer and deduct the same volume from the current row
-                transfers_to_add = transfers_to_add.append(max_vol_transfer)
+                transfers_to_add = transfers_to_add.concat(max_vol_transfer)
                 row.transfer_vol -= max_vol
 
             # The remaining volume is higher than the max but lower than twice the max. Split this volume across two transfers.
             final_split = row.copy()
             final_split.loc["transfer_vol"] = round(row.transfer_vol / 2)
-            transfers_to_add = transfers_to_add.append(final_split)
+            transfers_to_add = transfers_to_add.concat(final_split)
             row.transfer_vol -= final_split["transfer_vol"]
 
             # Append all the resolved sub-transfers and what remains of the original row to the new df
-            df_split = df_split.append(transfers_to_add)
-            df_split = df_split.append(row)
+            df_split = df_split.concat(transfers_to_add)
+            df_split = df_split.concat(row)
 
         else:
-            df_split = df_split.append(row)
+            df_split = df_split.concat(row)
 
     df_split.sort_index(inplace=True)
     df_split.reset_index(inplace=True, drop=True)
