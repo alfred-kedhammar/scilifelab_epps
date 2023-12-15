@@ -19,7 +19,7 @@ The repo is installed inside a designated conda environment on a server hosting 
 After installation, the scripts in `scripts/` are addded to the `bin` of the Conda environment, from which they can be called by LIMS.
 
 ## Installation
-1) Create a designated Conda environment (Python >=3.10)
+1) Create a designated Conda environment by running `conda env create -n scilifelab_epps -f conda_env.yml`
 2) Inside the environment, run
 
 ```

@@ -1,3 +1,8 @@
 ruff
 mypy
 pre-commit
+types-PyYAML
+types-requests
+types-tabulate
+types-Markdown
+types-setuptools
