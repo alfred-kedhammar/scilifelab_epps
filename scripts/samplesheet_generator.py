@@ -225,15 +225,7 @@ def gen_NovaSeqXPlus_lane_data(pro):
 
 def gen_Miseq_header(pro):
     project_name=pro.all_inputs()[0].samples[0].project.name
-    chem = "Default"
-    for out in pro.all_outputs():
-        for sample in out.samples:
-            sample_idxs = set()
-            find_barcode(sample_idxs, sample, pro)
-            idxs = list(sample_idxs)[0]
-            if (idxs[0] and idxs[1]) or TENX_DUAL_PAT.findall(idxs[0]) or SMARTSEQ_PAT.findall(idxs[0]):
-                chem="amplicon"
-
+    chem = "amplicon"
     header="[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nModule,{mod}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(inn=pro.technician.name, pn=project_name, en=pro.udf["Flowcell ID"], dt=datetime.now().strftime("%Y-%m-%d"), wf=pro.udf["Workflow"], mod=pro.udf["Module"], ass="null", dsc=pro.udf['Description'], chem=chem)
     return header
 

@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231214.1
+
+Always have chemistry as amplicon for Miseq samplesheet
+
 ## 20231213.3
 
 Fix BioAnalyzer EPP to expect row-wise samples instead of column-wise. Associated with deviation #211.
