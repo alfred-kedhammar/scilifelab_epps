@@ -163,40 +163,37 @@ def format_worklist(df, deck):
 
     assert all(df.transfer_vol < 180000), "Some transfer volumes exceed 180 ul"
     max_vol = 5000
-    df_split = pd.DataFrame(columns=df.columns)
+
+    # We need to split the row across multiple sub-transfers.
+    # Make a list to house the sub-transfers as dicts.
+    subtransfers = []
 
     # Iterate across rows
-    for idx, row in df.iterrows():
+    for _idx, row in df.iterrows():
         # If transfer volume of current row exceeds max
         if row.transfer_vol > max_vol:
-            # We need to split the row across multiple sub-transfers. Make new df to add the sub-transfers to.
-            transfers_to_add = pd.DataFrame(columns=df.columns)
-
             # Create a row corresponding to the max permitted volume
-            max_vol_transfer = row.copy()
-            max_vol_transfer.loc["transfer_vol"] = max_vol
+            max_vol_transfer = row.copy().to_dict()
+            max_vol_transfer["transfer_vol"] = max_vol
 
             # As long as the transfer volume of the current row exceeds twice the max
             while row.transfer_vol > 2 * max_vol:
                 # Add a max-volume sub-transfer and deduct the same volume from the current row
-                transfers_to_add = pd.concat([transfers_to_add, max_vol_transfer])
+                subtransfers.append(max_vol_transfer)
                 row.transfer_vol -= max_vol
 
             # The remaining volume is higher than the max but lower than twice the max. Split this volume across two transfers.
-            final_split = row.copy()
-            final_split.loc["transfer_vol"] = round(row.transfer_vol / 2)
-            transfers_to_add = pd.concat([transfers_to_add, final_split])
-            row.transfer_vol -= final_split["transfer_vol"]
-
-            # Append all the resolved sub-transfers and what remains of the original row to the new df
-            df_split = pd.concat([df_split, transfers_to_add])
-            df_split = pd.concat([df_split, row])
+            final_split = row.copy().to_dict()
+            final_split["transfer_vol"] = round(row.transfer_vol / 2)
+            # Append both
+            for i in range(2):
+                subtransfers.append(final_split)
 
         else:
-            df_split = pd.concat([df_split, row])
+            subtransfers.append(row.to_dict())
 
-    df_split.sort_index(inplace=True)
-    df_split.reset_index(inplace=True, drop=True)
+    # Format all resolved sub-transfers back into dataframe
+    df_split = pd.DataFrame(subtransfers)
 
     return df_split
 
@@ -328,7 +325,7 @@ def write_worklist(df, deck, wl_filename, comments=None, max_transfers_per_tip=1
     """
 
     # Replace all commas with semi-colons, so they can be printed without truncating the worklist
-    for c, is_string in zip(df.columns, df.applymap(type).eq(str).all()):
+    for c, is_string in zip(df.columns, df.map(type).eq(str).all()):
         if is_string:
             df[c] = df[c].apply(lambda x: x.replace(",", ";"))
 
