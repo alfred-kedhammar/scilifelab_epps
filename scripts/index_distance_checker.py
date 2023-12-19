@@ -15,6 +15,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 from genologics.lims import Lims
 from genologics.entities import Process
+from scilifelab_epps.epp import attach_file
 from genologics.config import BASEURI, USERNAME, PASSWORD
 
 from data.Chromium_10X_indexes import Chromium_10X_indexes
@@ -275,6 +276,12 @@ def main(lims, pid):
                 process.udf['Comments'] += '**Warnings from Verify Indexes and Placement EPP: **\n'
                 process.udf['Comments'] += '\n'.join(message)
             process.put()
+        else:
+            with open("check_index_distance.log", "w") as logContext:
+                logContext.write("\n".join(message))
+            for out in process.all_outputs():
+                if out.name == "Check Index Distance Log":
+                    attach_file(os.path.join(os.getcwd(), "check_index_distance.log"), out)
     else:
         print('No issue detected with indexes or placement', file=sys.stderr)
 
@@ -283,9 +290,6 @@ if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
     parser.add_argument('--pid',
                         help='Lims id for current Process')
-    parser.add_argument('--log', dest = 'log',
-                        help=('File name for standard log file, '
-                              'for runtime information and problems.'))
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
