@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from __future__ import division
 from argparse import ArgumentParser
 from genologics.lims import Lims
