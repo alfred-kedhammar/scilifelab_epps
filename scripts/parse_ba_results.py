@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import xml.etree.ElementTree as ET
@@ -13,7 +15,7 @@ from scilifelab_epps.epp import get_well_number
 
 DESC = """This script parses the Agilent BioAnalyzer XML report. 
 
-It is written to replace the current Illumina-supplied script consisting of compiled 
+It is written to replace the current Illumina-supplied sfdcript consisting of compiled 
 Java which does not as of 2023-08-25 populate the measurement UDFs of interest.
 """
 
