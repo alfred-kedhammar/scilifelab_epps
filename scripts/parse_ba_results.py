@@ -9,6 +9,7 @@ from scilifelab_epps.epp import get_well_number
 import sys
 from datetime import datetime as dt
 import os
+import re
 
 DESC = """This script parses the Agilent BioAnalyzer XML report. 
 
@@ -22,6 +23,7 @@ def main(lims, args):
     log = []
     errors = False
     count_per = "row"  # BioAnalyzer XML numbers wells row-wise
+    ngi_sample_id_pattern = r"(p|P)\d{5}_\d{3}"
 
     # Set up an XML tree from the BioAnalyser output file
     xml_tree = ET.fromstring(get_ba_output_file(currentStep, log))
@@ -78,6 +80,16 @@ def main(lims, args):
             log.append(
                 f"Found .xml sample '{xml_sample_name}' matching {count_per}-wise well number {lims_well_num}."
             )
+
+            if re.search(lims_art.name, ngi_sample_id_pattern):
+                lims_sample_name = re.search(
+                    lims_art.name, ngi_sample_id_pattern
+                ).group()
+                name_match = re.search(lims_sample_name, xml_sample_name)
+                if not name_match:
+                    log.append(
+                        f"WARNING: LIMS sample name '{lims_sample_name}' does not match .xml sample name '{xml_sample_name}', please double check sample placement."
+                    )
 
         elif len(xml_matching_samples) < 1:
             log.append(
