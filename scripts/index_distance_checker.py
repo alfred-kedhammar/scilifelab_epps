@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
+from scilifelab_epps.epp import attach_file
 
 from data.Chromium_10X_indexes import Chromium_10X_indexes
 
@@ -375,6 +376,12 @@ def main(lims, pid):
                 ] += "**Warnings from Verify Indexes and Placement EPP: **\n"
                 process.udf["Comments"] += "\n".join(message)
             process.put()
+        else:
+            with open("check_index_distance.log", "w") as logContext:
+                logContext.write("\n".join(message))
+            for out in process.all_outputs():
+                if out.name == "Check Index Distance Log":
+                    attach_file(os.path.join(os.getcwd(), "check_index_distance.log"), out)
     else:
         print("No issue detected with indexes or placement", file=sys.stderr)
 
