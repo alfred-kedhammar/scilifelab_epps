@@ -23,9 +23,8 @@ Java which does not as of 2023-08-25 populate the measurement UDFs of interest.
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
     log = []
-    errors = False
     count_per = "row"  # BioAnalyzer XML numbers wells row-wise
-    ngi_sample_id_pattern = r"(p|P)\d{5}_\d{3}"
+    ngi_sample_id_pattern = r"(p|P)\d{5,6}_\d{3,4}"
 
     # Set up an XML tree from the BioAnalyser output file
     xml_tree = ET.fromstring(get_ba_output_file(currentStep, log))
@@ -66,7 +65,6 @@ def main(lims, args):
             log.append(
                 f"ERROR: Could not determine the well number of {lims_art.name}, skipping."
             )
-            errors = True
             continue
 
         # Isolate the XML sample nest w. the same well as the measurement
@@ -99,13 +97,11 @@ def main(lims, args):
             log.append(
                 f"ERROR: Found no samples in the .xml at well number {lims_well_num}, skipping."
             )
-            errors = True
             continue
         elif len(xml_matching_samples) > 1:
             log.append(
                 f"ERROR: Found multiple samples in the .xml at well number {lims_well_num}, skipping."
             )
-            errors = True
             continue
         else:
             raise AssertionError
@@ -117,7 +113,6 @@ def main(lims, args):
             log.append("Fetched sample results section from .xml.")
         except:
             log.append("ERROR: No smear region was found, skipping.")
-            errors = True
             continue
 
         # Grab the target results from the xml smear metrics
@@ -144,7 +139,6 @@ def main(lims, args):
                 log.append(
                     f"ERROR: Could not assign UDF {udf_name} of measurement {lims_art.name}, skipping."
                 )
-                errors = True
                 continue
 
         log.append("Successfully pulled metrics.")
