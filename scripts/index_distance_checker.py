@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import json
+import os
 import re
 import sys
 from argparse import ArgumentParser
@@ -8,9 +9,9 @@ from argparse import ArgumentParser
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
-from scilifelab_epps.epp import attach_file
 
 from data.Chromium_10X_indexes import Chromium_10X_indexes
+from scilifelab_epps.epp import attach_file
 
 SMARTSEQ3_indexes_json = (
     "/opt/gls/clarity/users/glsai/repos/scilifelab_epps/data/SMARTSEQ3_indexes.json"
@@ -381,7 +382,9 @@ def main(lims, pid):
                 logContext.write("\n".join(message))
             for out in process.all_outputs():
                 if out.name == "Check Index Distance Log":
-                    attach_file(os.path.join(os.getcwd(), "check_index_distance.log"), out)
+                    attach_file(
+                        os.path.join(os.getcwd(), "check_index_distance.log"), out
+                    )
     else:
         print("No issue detected with indexes or placement", file=sys.stderr)
 
