@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20231220.1
+
+Fix bug with verify index EPP
+
 ## 20231219.1
 
 Fix bug that log is missing with index checker
