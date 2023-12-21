@@ -10,6 +10,8 @@ with open("requirements.txt") as rq:
 setup(
     name="scilifelab_epps",
     version=version,
+    python_requires=">=3.10",
+    requires=requires,
     description="Collection of EPPs for the Scilifelab Stockholm node.",
     classifiers=[
         "Development Status :: 4 - Beta",
