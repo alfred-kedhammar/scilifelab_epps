@@ -378,14 +378,18 @@ def main(lims, pid):
                 process.udf["Comments"] += "\n".join(message)
             process.put()
     else:
-        print('No issue detected with indexes or placement', file=sys.stderr)
-        message.append('No issue detected with indexes or placement')
+        print("No issue detected with indexes or placement", file=sys.stderr)
+        message.append("No issue detected with indexes or placement")
 
     with open("index_checker.log", "w") as logContext:
         logContext.write("\n".join(message))
     for out in process.all_outputs():
-        if out.name == "Check Index Distance Log" or out.name == "Verify Index and Placement Log":
+        if (
+            out.name == "Check Index Distance Log"
+            or out.name == "Verify Index and Placement Log"
+        ):
             attach_file(os.path.join(os.getcwd(), "index_checker.log"), out)
+
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
