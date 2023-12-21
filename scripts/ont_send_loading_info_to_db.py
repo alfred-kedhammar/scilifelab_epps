@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 
-from __future__ import division
-from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process
-from ont_send_reloading_info_to_db import get_ONT_db
-import sys
-import pandas as pd
-from io import StringIO
-from datetime import datetime as dt
-import re
-from epp_utils import udf_tools
-from ont_generate_samplesheet import minknow_samplesheet_default
 import os
+import re
+import sys
+from argparse import ArgumentParser
+from datetime import datetime as dt
+from io import StringIO
+
+import pandas as pd
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+from ont_generate_samplesheet import minknow_samplesheet_default
+from ont_send_reloading_info_to_db import get_ONT_db
+
+from epp_utils import udf_tools
 
 DESC = """ Script for EPP "ont_send_loading_info_to_db".
 
@@ -82,7 +83,7 @@ def match_to_db_using_run_id(lims, args):
 
             runtime_log.append(f"{run_id} was found and updated successfully.")
 
-        except AssertionError as e:
+        except AssertionError:
             errors = True
             continue
 
@@ -120,7 +121,7 @@ def match_to_db_using_samplesheet(lims, args):
 
     # Check step samplesheet is up-to-date with step UDFs
     new_ss_path = minknow_samplesheet_default(currentStep)
-    new_ss_contents = open(new_ss_path, "r").read()
+    new_ss_contents = open(new_ss_path).read()
     os.remove(new_ss_path)
     assert (
         samplesheet.read() == new_ss_contents
@@ -228,7 +229,7 @@ def match_to_db_using_samplesheet(lims, args):
                 f"Path {pattern.replace('[^/]','')} was found and updated successfully."
             )
 
-        except AssertionError as e:
+        except AssertionError:
             errors = True
             continue
 

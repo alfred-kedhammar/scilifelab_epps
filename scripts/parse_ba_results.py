@@ -1,18 +1,21 @@
-from __future__ import division
-from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process
+#!/usr/bin/env python
+
+import os
+import sys
 import xml.etree.ElementTree as ET
+from argparse import ArgumentParser
+from datetime import datetime as dt
+
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+
 from epp_utils import udf_tools
 from scilifelab_epps.epp import get_well_number
-import sys
-from datetime import datetime as dt
-import os
 
 DESC = """This script parses the Agilent BioAnalyzer XML report. 
 
-It is written to replace the current Illumina-supplied script consisting of compiled 
+It is written to replace the current Illumina-supplied sfdcript consisting of compiled 
 Java which does not as of 2023-08-25 populate the measurement UDFs of interest.
 """
 

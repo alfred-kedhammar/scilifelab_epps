@@ -1,26 +1,27 @@
 #!/usr/bin/env python
 
-from __future__ import division
-from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process
-from datetime import datetime as dt
-import pandas as pd
-import re
-import sys
-import shutil
 import os
+import re
+import shutil
+import sys
+from argparse import ArgumentParser
 from datetime import datetime as dt
+
+import pandas as pd
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+
+from data.Chromium_10X_indexes import Chromium_10X_indexes as idxs_10x
 from epp_utils import udf_tools
 from epp_utils.formula import well_name2num_96plate as well2num
-from data.Chromium_10X_indexes import Chromium_10X_indexes as idxs_10x
 
 DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot(s) "ONT sample sheet" (and optionally "Anglerfish sample sheet").
 Used to generate MinKNOW (and Anglerfish) samplesheets.
 """
 
 timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+
 
 def main(lims, args):
     """
@@ -186,7 +187,7 @@ def minknow_samplesheet_for_qc(currentStep):
     measurements = []
 
     # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
-    sample_pattern = re.compile("P\d{5}_\d{3,4}")
+    sample_pattern = re.compile(r"P\d{5}_\d{3,4}")
     for art in currentStep.all_outputs():
         if re.search(sample_pattern, art.name):
             measurements.append(art)
@@ -203,7 +204,6 @@ def minknow_samplesheet_for_qc(currentStep):
 
     # Iterate through the input Illumina pools one by one
     for pool in currentStep.all_inputs():
-
         # Find all outputs belonging to the current Illumina pool
         pool_samples = [
             art_tuple[1]["uri"]
@@ -226,7 +226,6 @@ def minknow_samplesheet_for_qc(currentStep):
         barcode_well_pattern = re.compile("^[A-H]:?([1-9]$|(1[0-2])$)")
 
         if barcode_well:
-
             assert (
                 currentStep.udf.get("ONT expansion kit") != "None"
             ), "ONT Barcodes have been assigned, but no 'ONT expansion kit' is specified."
@@ -282,17 +281,16 @@ def minknow_samplesheet_for_qc(currentStep):
 
 
 def anglerfish_samplesheet(currentStep):
-
     measurements = []
 
     # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
-    sample_pattern = re.compile("P\d{5}_\d{3,4}")
+    sample_pattern = re.compile(r"P\d{5}_\d{3,4}")
     for art in currentStep.all_outputs():
         if re.search(sample_pattern, art.name):
             measurements.append(art)
 
     ont_barcode_bools = [
-        udf_tools.fetch(art, "ONT Barcode Well", on_fail=None) != None
+        udf_tools.fetch(art, "ONT Barcode Well", on_fail=None) is not None
         for art in measurements
     ]
 
@@ -309,9 +307,7 @@ def anglerfish_samplesheet(currentStep):
 
     # Iterate through the samples
     for sample in measurements:
-
         if ont_barcodes:
-
             barcode_well = udf_tools.fetch(sample, "ONT Barcode Well")
 
             if barcode_well not in well2num:
@@ -321,13 +317,12 @@ def anglerfish_samplesheet(currentStep):
             fastq_path = f"./fastq_pass/barcode{str(barcode_int).zfill(2)}/*.fastq.gz"  # Assuming the Anglerfish working dir is the ONT run dir TODO
 
         elif not ont_barcodes:
-            fastq_path = f"./fastq_pass/*.fastq.gz"
+            fastq_path = "./fastq_pass/*.fastq.gz"
 
         index_seq_list, adaptors_name = get_index_info(sample)
 
         # For multi-index samples, append multiple rows
         for index_seq in index_seq_list:
-
             row = {
                 "sample_name": sample.name,
                 "adaptors": adaptors_name,
@@ -403,7 +398,7 @@ def get_index_info(sample):
     # Return
 
     if index_seq:
-        if type(index_seq) != list:
+        if not isinstance(index_seq, list):
             index_seq = [index_seq]
         return index_seq, adaptors_name
 
@@ -420,7 +415,6 @@ def upload_file(file_name, file_slot, currentStep, lims):
 
 
 def write_minknow_csv(df, file_name):
-
     columns = [
         "flow_cell_id",
         "position_id",
@@ -457,7 +451,7 @@ def get_minknow_sample_id(art):
     Multi project pool      PAAAAA_101, PBBBBB_101  34-567890   34-567890
     """
 
-    sample_id_pattern = re.compile("(P\d{5})_(\d+)")
+    sample_id_pattern = re.compile(r"(P\d{5})_(\d+)")
 
     # Single sample
     if len(art.samples) == 1:

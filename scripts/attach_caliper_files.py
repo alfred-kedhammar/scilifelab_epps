@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-DESC="""EPP script to fetch and upload Caliper image files for Clarity LIMS.
+DESC = """EPP script to fetch and upload Caliper image files for Clarity LIMS.
 Searches the directory given by the path argument for filenames matching
 a specific pattern ending with:
 ${INPUT.CONTAINER.PLACEMENT}_${INPUT.NAME}_${INPUT.CONTAINER.LIMSID}_${INPUT.LIMSID}.
@@ -11,17 +11,18 @@ Clarity LIMS EPP wrapper to associate the file with this artifact.
 Written by Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden.
 """
 
-from genologics.lims import Lims
-from genologics.entities import Artifact, Process,Container, Sample
-from genologics.config import BASEURI,USERNAME,PASSWORD
-
-from argparse import ArgumentParser
+import logging
 import os
 import re
 import sys
-import logging
+from argparse import ArgumentParser
 
-from scilifelab_epps.epp import attach_file,EppLogger, unique_check, EmptyError
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Artifact, Process
+from genologics.lims import Lims
+
+from scilifelab_epps.epp import EppLogger, attach_file
+
 
 def main(lims, args, epp_logger):
     p = Process(lims, id=args.pid)
@@ -33,86 +34,93 @@ def main(lims, args, epp_logger):
 
     # Find all per input result files
     io = p.input_output_maps
-    io_filtered = [x for x in io if x[1]['output-generation-type']=='PerInput']
-    io_filtered = [x for x in io_filtered if x[1]['output-type']=='ResultFile']
+    io_filtered = [x for x in io if x[1]["output-generation-type"] == "PerInput"]
+    io_filtered = [x for x in io_filtered if x[1]["output-type"] == "ResultFile"]
 
     artifact_missing_file = []
     artifact_multiple_file = []
     found_files = []
 
     for input, output in io_filtered:
-        i_a = Artifact(lims,id=input['limsid'])
-        o_a = Artifact(lims,id=output['limsid'])
+        i_a = Artifact(lims, id=input["limsid"])
+        o_a = Artifact(lims, id=output["limsid"])
 
         # Input Well, Input Container
         i_w, i_c = i_a.location[1], i_a.location[0]
 
         # Well is typed without colon in filename:
-        i_w = ''.join(i_w.split(':'))
-
+        i_w = "".join(i_w.split(":"))
 
         # Use a reguluar expression to find the file name given
         # the container and sample. This is all assuming the driver template name ends with:
         # ${INPUT.CONTAINER.PLACEMENT}_${INPUT.NAME}_${INPUT.CONTAINER.LIMSID}_${INPUT.LIMSID}
         # However, names are excluded to improve robustness.
         if args.instrument == "fragment_analyzer":
-            info = {'well':o_a.location[1].replace(":", ""),
-                'output_artifact_name':o_a.samples[0].name}
-            re_str = '.*{well}.*{output_artifact_name}'\
-                                       .format(**info)
+            info = {
+                "well": o_a.location[1].replace(":", ""),
+                "output_artifact_name": o_a.samples[0].name,
+            }
+            re_str = ".*{well}.*{output_artifact_name}".format(**info)
         else:
-            info = {'well':i_w,
-                'container_id':i_c.id,
-                'input_artifact_id':i_a.id}
-            re_str = '.*{well}_.*_.*{container_id}_.*{input_artifact_id}'\
-                                       .format(**info)
-            logging.info(("Looking for file for artifact id: {input_artifact_id} "
-                      "from container with id: {container_id}.").format(**info))
+            info = {"well": i_w, "container_id": i_c.id, "input_artifact_id": i_a.id}
+            re_str = ".*{well}_.*_.*{container_id}_.*{input_artifact_id}".format(**info)
+            logging.info(
+                (
+                    "Looking for file for artifact id: {input_artifact_id} "
+                    "from container with id: {container_id}."
+                ).format(**info)
+            )
 
         im_file_r = re.compile(re_str)
         fns = list(filter(im_file_r.match, file_list))
 
         if len(fns) == 0:
-            logging.warning("No image file found for artifact with id {0}".format(i_a.id))
+            logging.warning(f"No image file found for artifact with id {i_a.id}")
             artifact_missing_file.append(i_a)
         elif len(fns) > 1:
-            logging.warning(("Multiple image files found for artifact with id {0}, "
-                            "please attach files manually").format(i_a.id))
+            logging.warning(
+                f"Multiple image files found for artifact with id {i_a.id}, "
+                "please attach files manually"
+            )
             artifact_multiple_file.append(i_a)
         else:
             fn = fns[0]
             found_files.append(fn)
-            logging.info("Found image file {0} for artifact with id {1}".format(fn, i_a.id))
+            logging.info(f"Found image file {fn} for artifact with id {i_a.id}")
             fp = os.path.join(args.path, fn)
 
             # Attach file to the LIMS
             location = attach_file(fp, o_a)
-            logging.debug("Moving {0} to {1}".format(fp,location))
+            logging.debug(f"Moving {fp} to {location}")
 
     warning = ""
     if len(artifact_missing_file):
-        warning = "Did not find any file for {0} artifact(s). ".format(len(artifact_missing_file))
+        warning = "Did not find any file for {} artifact(s). ".format(
+            len(artifact_missing_file)
+        )
 
     if len(artifact_multiple_file):
-        warning += "Found multiple files for {0} artifact(s), none of these were uploaded.".format(len(artifact_multiple_file))
+        warning += "Found multiple files for {} artifact(s), none of these were uploaded.".format(
+            len(artifact_multiple_file)
+        )
 
     if warning:
-       warning = "Warning: " + warning
+        warning = "Warning: " + warning
 
-    abstract = "Uploaded {0} file(s). {1}".format(len(found_files), warning)
-    print(abstract, file=sys.stderr) # stderr will be logged and printed in GUI
+    abstract = f"Uploaded {len(found_files)} file(s). {warning}"
+    print(abstract, file=sys.stderr)  # stderr will be logged and printed in GUI
 
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid',
-                        help='Lims id for current Process')
-    parser.add_argument('--log',
-                        help='Log file for runtime info and errors')
-    parser.add_argument('--path',
-                        help='Path where image files are located')
-    parser.add_argument('--instrument',default="caliper",
-                        help='instrument deciding the file regex format')
+    parser.add_argument("--pid", help="Lims id for current Process")
+    parser.add_argument("--log", help="Log file for runtime info and errors")
+    parser.add_argument("--path", help="Path where image files are located")
+    parser.add_argument(
+        "--instrument",
+        default="caliper",
+        help="instrument deciding the file regex format",
+    )
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
