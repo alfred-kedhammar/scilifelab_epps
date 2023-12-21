@@ -11,7 +11,7 @@ setup(
     name="scilifelab_epps",
     version=version,
     python_requires=">=3.10",
-    requires=requires,
+    install_requires=requires,
     description="Collection of EPPs for the Scilifelab Stockholm node.",
     classifiers=[
         "Development Status :: 4 - Beta",
