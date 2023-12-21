@@ -12,7 +12,26 @@ from epp_utils.udf_tools import put, fetch
 from epp_utils import formula
 
 
-def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
+def find_latest_flowcell_run(currentStep, log) -> str:
+    flowcell_id: str = currentStep.udf["ONT flow cell ID"].upper().strip()
+    run_query = f"/srv/ngi-nas-ns/minion_data/qc/*{flowcell_id}*"
+    log.append(f"Looking for path {run_query}")
+    run_glob = glob.glob(run_query)
+    assert (
+        len(run_glob) != 0
+    ), f"No runs with flowcell ID {flowcell_id} found on path {run_query}"
+    if len(run_glob) > 1:
+        runs_list = "\n".join(run_glob)
+        log.append(
+            f"WARNING: Multiple runs with flowcell ID {flowcell_id} detected:\n{runs_list}"
+        )
+    latest_run_path = max(run_glob, key=os.path.getctime)
+    log.append(f"Using latest run {latest_run_path}")
+
+    return latest_run_path
+
+
+def get_anglerfish_text_results(lims: Lims, currentStep: Process, log: list):
     flowcell_id: str = currentStep.udf["ONT flow cell ID"].upper().strip()
     anglerfish_file_slot: Artifact = [
         outart
@@ -28,10 +47,7 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
         log.append(
             f"Anglerfish Result File '{loaded_file_name}' detected in the step, loading it directly"
         )
-        bytes_content = lims.get_file_contents(
-            id=anglerfish_file_slot.files[0].id
-        ).readlines()
-        content = [x.decode("utf-8") for x in bytes_content]
+        df = pd.read_csv(lims.get_file_contents(id=anglerfish_file_slot.files[0].id))
 
     # Try to load file from ngi-nas-ns
     else:
@@ -56,7 +72,7 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
 
         # Find latest Anglerfish results of run
         anglerfish_results_query = (
-            f"{latest_run_path}/*anglerfish*/anglerfish_stats.txt"
+            f"{latest_run_path}/*anglerfish*/anglerfish_dataframe.csv"
         )
         anglerfish_results_glob = glob.glob(anglerfish_results_query)
         assert (
@@ -76,45 +92,39 @@ def get_anglerfish_output_file(lims: Lims, currentStep: Process, log: list):
         lims.upload_new_file(anglerfish_file_slot, latest_anglerfish_results_path)
 
         # Load file
-        content = open(latest_anglerfish_results_path, "r").readlines()
+        df = pd.read_csv(latest_anglerfish_results_path)
 
-    return content
+    return df
 
 
-def get_data(content: list, log: list):
-    data = []
-    header = None
-
-    # Extract sample data
-    for line in content:
-        # Search for header
-        if "sample_name" in line and "#reads" in line:
-            header = [e.strip() for e in line.split("\t")]
-            continue
-
-        # Parse tsv body
-        if (header) and (line != "\n"):
-            data.append([e.strip() for e in line.split("\t")])
-
-        # Ready tsv body until an empty line
-        if (header) and (line == "\n"):
-            break
-
-        else:
-            continue
-
-    # Compile data into dataframe
-    df = pd.DataFrame(data, columns=header)
-    df = df.astype(
-        {
-            "sample_name": str,
-            "#reads": int,
-            "mean_read_len": float,
-            "std_read_len": float,
-            "i5_reversed": bool,
-            "ont_barcode": str,
-        }
+def get_anglerfish_dataframe(
+    lims: Lims, latest_run_path: str, log: list
+) -> pd.DataFrame:
+    # Find latest Anglerfish results of run
+    anglerfish_results_query = (
+        f"{latest_run_path}/*anglerfish*/anglerfish_dataframe.csv"
     )
+    anglerfish_results_glob = glob.glob(anglerfish_results_query)
+    assert (
+        len(anglerfish_results_glob) != 0
+    ), f"No Anglerfish results found for query {anglerfish_results_query}"
+    if len(anglerfish_results_glob) > 1:
+        results_list = "\n".join(anglerfish_results_glob)
+        log.append(f"WARNING: Multiple Anglerfish results detected:\n{results_list}")
+    latest_anglerfish_results_path = max(anglerfish_results_glob, key=os.path.getctime)
+    log.append(f"Using latest Anglerfish results {latest_anglerfish_results_path}")
+
+    # Upload results to LIMS
+    lims.upload_new_file(anglerfish_file_slot, latest_anglerfish_results_path)
+
+    # Load file
+    df = pd.read_csv(latest_anglerfish_results_path)
+
+    return df
+
+
+def parse_data(df_raw: pd.DataFrame, log: list):
+    df = df_raw.copy()
 
     # Add additional metrics
     df["repr_total_pc"] = df["#reads"] / df["#reads"].sum() * 100
@@ -233,13 +243,13 @@ def main(lims: Lims, currentStep: Process):
     log = []
 
     # Get file contents
-    file_content: list = get_anglerfish_output_file(lims, currentStep, log)
+    df_raw: pd.Dataframe = get_anglerfish_dataframe(lims, currentStep, log)
 
     # Parse the Anglerfish output
-    df: pd.DataFrame = get_data(file_content, log)
+    df_parsed: pd.DataFrame = parse_data(df_raw, log)
 
     # Populate sample fields with Anglerfish results
-    fill_udfs(currentStep, df, log)
+    fill_udfs(currentStep, df_parsed, log)
 
     # Add sample comments
     # TODO
