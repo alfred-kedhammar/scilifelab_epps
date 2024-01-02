@@ -244,7 +244,7 @@ if __name__ == "__main__":
     logging.basicConfig(
         filename=log_filename,
         filemode="w",
-        format="%(name)s - %(levelname)s - %(message)s",
+        format="%(levelname)s: %(message)s",
         level=logging.INFO,
     )
 
