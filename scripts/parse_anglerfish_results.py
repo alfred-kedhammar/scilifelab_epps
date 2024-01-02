@@ -181,12 +181,13 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame):
             continue
 
 
-def upload_log(currentStep: Process, lims: Lims, log_filename):
+def upload_log(currentStep: Process, lims: Lims, log_filename: str):
     log_file_slot = [
         slot
         for slot in currentStep.all_outputs()
         if slot.name == "Parse Anglerfish Results Log"
     ][0]
+
     for f in log_file_slot.files:
         lims.request_session.delete(f.uri)
     lims.upload_new_file(log_file_slot, log_filename)
@@ -209,9 +210,6 @@ def main(lims: Lims, currentStep: Process):
 
     # Populate sample fields with Anglerfish results
     fill_udfs(currentStep, df_parsed)
-
-    # Add sample comments
-    # TODO
 
     # Upload log
     upload_log(currentStep, lims, log_filename)
