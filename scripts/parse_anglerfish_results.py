@@ -230,7 +230,7 @@ if __name__ == "__main__":
 
     # Set up logging
     timestamp = dt.now().strftime("%y%m%d_%H%M%S")
-    log_filename = f"parse_anglerfish_results_log_{currentStep.id}_{timestamp}_{currentStep.technician.name.replace(' ','')}"
+    log_filename = f"parse_anglerfish_results_log_{currentStep.id}_{timestamp}_{currentStep.technician.name.replace(' ','')}.txt"
     logging.basicConfig(
         filename=log_filename,
         filemode="w",
