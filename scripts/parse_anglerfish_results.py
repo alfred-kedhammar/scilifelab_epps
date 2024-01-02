@@ -16,6 +16,7 @@ def find_latest_flowcell_run(currentStep, log) -> str:
     flowcell_id: str = currentStep.udf["ONT flow cell ID"].upper().strip()
     run_query = f"/srv/ngi-nas-ns/minion_data/qc/*{flowcell_id}*"
     log.append(f"Looking for path {run_query}")
+
     run_glob = glob.glob(run_query)
     assert (
         len(run_glob) != 0
@@ -25,113 +26,66 @@ def find_latest_flowcell_run(currentStep, log) -> str:
         log.append(
             f"WARNING: Multiple runs with flowcell ID {flowcell_id} detected:\n{runs_list}"
         )
-    latest_run_path = max(run_glob, key=os.path.getctime)
-    log.append(f"Using latest run {latest_run_path}")
+    latest_flowcell_run_path = max(run_glob, key=os.path.getctime)
 
-    return latest_run_path
+    log.append(f"Using latest flowcell run {latest_flowcell_run_path}")
+    return latest_flowcell_run_path
 
 
-def get_anglerfish_text_results(lims: Lims, currentStep: Process, log: list):
-    flowcell_id: str = currentStep.udf["ONT flow cell ID"].upper().strip()
+def find_latest_anglerfish_run(log, latest_flowcell_run_path) -> str:
+    anglerfish_query = f"{latest_flowcell_run_path}/*anglerfish_run*"
+    anglerfish_glob = glob.glob(anglerfish_query)
+
+    assert (
+        len(anglerfish_glob) != 0
+    ), f"No Anglerfish runs found for query {anglerfish_query}"
+
+    if len(anglerfish_glob) > 1:
+        runs_list = "\n".join(anglerfish_glob)
+        log.append(f"WARNING: Multiple Anglerfish runs detected:\n{runs_list}")
+    latest_anglerfish_run_path = max(anglerfish_glob, key=os.path.getctime)
+    log.append(f"Using latest Anglerfish run {latest_anglerfish_run_path}")
+
+    return latest_anglerfish_run_path
+
+
+def upload_anglerfish_text_results(
+    lims: Lims, currentStep: Process, log: list, latest_anglerfish_run_path: str
+):
+    log.append("Uploading Anglerfish results .txt-file to LIMS")
+
     anglerfish_file_slot: Artifact = [
         outart
         for outart in currentStep.all_outputs()
         if outart.name == "Anglerfish Result File"
     ][0]
 
-    # Try to load file from LIMS
-    if anglerfish_file_slot.files:
-        loaded_file_name = anglerfish_file_slot.files[0].original_location.split("/")[
-            -1
-        ]
-        log.append(
-            f"Anglerfish Result File '{loaded_file_name}' detected in the step, loading it directly"
-        )
-        df = pd.read_csv(lims.get_file_contents(id=anglerfish_file_slot.files[0].id))
-
-    # Try to load file from ngi-nas-ns
-    else:
-        log.append(
-            "No 'Anglerfish Result File' detected in the step, trying to fetch it from ngi-nas-ns"
-        )
-
-        # Find latest run
-        run_query = f"/srv/ngi-nas-ns/minion_data/qc/*{flowcell_id}*"
-        log.append(f"Looking for path {run_query}")
-        run_glob = glob.glob(run_query)
-        assert (
-            len(run_glob) != 0
-        ), f"No runs with flowcell ID {flowcell_id} found on path {run_query}"
-        if len(run_glob) > 1:
-            runs_list = "\n".join(run_glob)
-            log.append(
-                f"WARNING: Multiple runs with flowcell ID {flowcell_id} detected:\n{runs_list}"
-            )
-        latest_run_path = max(run_glob, key=os.path.getctime)
-        log.append(f"Using latest run {latest_run_path}")
-
-        # Find latest Anglerfish results of run
-        anglerfish_results_query = (
-            f"{latest_run_path}/*anglerfish*/anglerfish_dataframe.csv"
-        )
-        anglerfish_results_glob = glob.glob(anglerfish_results_query)
-        assert (
-            len(anglerfish_results_glob) != 0
-        ), f"No Anglerfish results found for query {anglerfish_results_query}"
-        if len(anglerfish_results_glob) > 1:
-            results_list = "\n".join(anglerfish_results_glob)
-            log.append(
-                f"WARNING: Multiple Anglerfish results detected:\n{results_list}"
-            )
-        latest_anglerfish_results_path = max(
-            anglerfish_results_glob, key=os.path.getctime
-        )
-        log.append(f"Using latest Anglerfish results {latest_anglerfish_results_path}")
-
-        # Upload results to LIMS
-        lims.upload_new_file(anglerfish_file_slot, latest_anglerfish_results_path)
-
-        # Load file
-        df = pd.read_csv(latest_anglerfish_results_path)
-
-    return df
-
-
-def get_anglerfish_dataframe(
-    lims: Lims, latest_run_path: str, log: list
-) -> pd.DataFrame:
-    # Find latest Anglerfish results of run
-    anglerfish_results_query = (
-        f"{latest_run_path}/*anglerfish*/anglerfish_dataframe.csv"
-    )
-    anglerfish_results_glob = glob.glob(anglerfish_results_query)
-    assert (
-        len(anglerfish_results_glob) != 0
-    ), f"No Anglerfish results found for query {anglerfish_results_query}"
-    if len(anglerfish_results_glob) > 1:
-        results_list = "\n".join(anglerfish_results_glob)
-        log.append(f"WARNING: Multiple Anglerfish results detected:\n{results_list}")
-    latest_anglerfish_results_path = max(anglerfish_results_glob, key=os.path.getctime)
-    log.append(f"Using latest Anglerfish results {latest_anglerfish_results_path}")
+    file_name = os.path.join(latest_anglerfish_run_path, "anglerfish_stats.txt")
+    assert os.path.exists(file_name), f"File {file_name} does not exist"
 
     # Upload results to LIMS
-    lims.upload_new_file(anglerfish_file_slot, latest_anglerfish_results_path)
+    lims.upload_new_file(anglerfish_file_slot, file_name)
 
-    # Load file
-    df = pd.read_csv(latest_anglerfish_results_path)
 
-    return df
+def get_anglerfish_dataframe(latest_anglerfish_run_path) -> pd.DataFrame:
+    file_name = "anglerfish_dataframe.csv"
+    file_path = os.path.join(latest_anglerfish_run_path, file_name)
+    assert os.path.exists(file_path), f"File {file_path} does not exist"
+
+    df_raw = pd.read_csv(file_path)
+
+    return df_raw
 
 
 def parse_data(df_raw: pd.DataFrame, log: list):
     df = df_raw.copy()
 
     # Add additional metrics
-    df["repr_total_pc"] = df["#reads"] / df["#reads"].sum() * 100
+    df["repr_total_pc"] = df["num_reads"] / df["num_reads"].sum() * 100
     df["repr_within_barcode_pc"] = df.apply(
         # Sample reads divided by sum of all sample reads w. the same barcode
-        lambda row: row["#reads"]
-        / df[df["ont_barcode"] == row["ont_barcode"]]["#reads"].sum()
+        lambda row: row["num_reads"]
+        / df[df["ont_barcode"] == row["ont_barcode"]]["num_reads"].sum()
         * 100,
         axis=1,
     )
@@ -139,10 +93,26 @@ def parse_data(df_raw: pd.DataFrame, log: list):
     return df
 
 
+def ont_barcode_well2name(barcode_well: str) -> str:
+    # Add colon if not present
+    if ":" not in barcode_well:
+        barcode_well = f"{barcode_well[0]}:{barcode_well[1:]}"
+
+    # Get the number corresponding to the well (column-wise)
+    barcode_num_str = str(formula.well_name2num_96plate[barcode_well])
+
+    # Pad barcode number with leading zero if necessary
+    if len(barcode_num_str) < 2:
+        barcode_num_str = f"0{barcode_num_str}"
+    barcode_name = f"barcode{barcode_num_str}"
+
+    return barcode_name
+
+
 def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
     # Dictate which LIMS UDF corresponds to which column in the dataframe
     udfs_to_cols = {
-        "# Reads": "#reads",
+        "# Reads": "num_reads",
         "Avg. Read Length": "mean_read_len",
         "Std. Read Length": "std_read_len",
         "Representation Within Run (%)": "repr_total_pc",
@@ -169,19 +139,11 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
 
             for illumina_sample in illumina_samples:
                 try:
-                    # Translate the ONT barcode well to the barcode string used by Anglerfish
-                    barcode_well: str = fetch(illumina_sample, "ONT Barcode Well")
-                    # Add colon if not present
-                    if not ":" in barcode_well:
-                        barcode_well = f"{barcode_well[0]}:{barcode_well[1:]}"
-                    # Get the number corresponding to the well (column-wise)
-                    barcode_num_str = str(formula.well_name2num_96plate[barcode_well])
-                    # Pad barcode number with leading zero if necessary
-                    if len(barcode_num_str) < 2:
-                        barcode_num_str = f"0{barcode_num_str}"
-                    barcode_name = f"barcode{barcode_num_str}"
+                    barcode_name = ont_barcode_well2name(
+                        fetch(illumina_sample, "ONT Barcode Well")
+                    )
 
-                    # Find the dataframe row matching the LIMS output artifact
+                    # Subset dataframe
                     df_barcode = df[df["ont_barcode"] == barcode_name]
                     df_match = df_barcode[
                         df_barcode["sample_name"] == illumina_sample.name
@@ -239,11 +201,17 @@ def upload_log(currentStep, lims, log_filename):
 
 
 def main(lims: Lims, currentStep: Process):
-    # Instantiate log file
     log = []
 
+    latest_flowcell_run_path = find_latest_flowcell_run(currentStep, log)
+    latest_anglerfish_run_path = find_latest_anglerfish_run(
+        log, latest_flowcell_run_path
+    )
+
+    upload_anglerfish_text_results(lims, currentStep, log, latest_anglerfish_run_path)
+
     # Get file contents
-    df_raw: pd.Dataframe = get_anglerfish_dataframe(lims, currentStep, log)
+    df_raw: pd.DataFrame = get_anglerfish_dataframe(latest_anglerfish_run_path)
 
     # Parse the Anglerfish output
     df_parsed: pd.DataFrame = parse_data(df_raw, log)
