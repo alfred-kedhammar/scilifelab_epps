@@ -229,8 +229,18 @@ if __name__ == "__main__":
     currentStep = Process(lims, id=args.pid)
 
     # Set up logging
-    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
-    log_filename = f"parse_anglerfish_results_log_{currentStep.id}_{timestamp}_{currentStep.technician.name.replace(' ','')}.txt"
+    log_filename = (
+        "_".join(
+            [
+                "parse_anglerfish_results",
+                currentStep.id,
+                dt.now().strftime("%y%m%d_%H%M%S"),
+                currentStep.technician.name.replace(" ", ""),
+            ]
+        )
+        + ".txt"
+    )
+
     logging.basicConfig(
         filename=log_filename,
         filemode="w",
