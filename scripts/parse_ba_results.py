@@ -3,7 +3,6 @@
 import os
 import re
 import sys
-
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
 from datetime import datetime as dt
