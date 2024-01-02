@@ -1,7 +1,8 @@
-from requests.exceptions import HTTPError
-from genologics.entities import Artifact, Process
 import json
+from typing import Union
 
+from genologics.entities import Artifact, Process
+from requests.exceptions import HTTPError
 
 DESC = """This is a submodule for defining reuasble functions to handle artifact
 UDFs in in the Genonolics Clarity LIMS API.
@@ -19,7 +20,7 @@ def put(art: Artifact, target_udf: str, val, on_fail=AssertionError()):
         art.put()
         return True
 
-    except HTTPError as e:
+    except HTTPError:
         del art.udf[target_udf]
         if issubclass(type(on_fail), BaseException):
             raise on_fail
@@ -42,7 +43,7 @@ def no_outputs(currentStep: Process) -> bool:
     art_tuples = get_art_tuples(currentStep)
 
     if art_tuples:
-        none_outputs = [t[1] == None for t in art_tuples]
+        none_outputs = [t[1] is None for t in art_tuples]
 
         if all(none_outputs):
             return True
@@ -78,7 +79,7 @@ def get_art_tuples(currentStep: Process) -> list:
 
 
 def fetch_from_tuple(
-    art_tuple: tuple, target_udfs: str or list, on_fail=AssertionError()
+    art_tuple: tuple, target_udfs: Union[str, list], on_fail=AssertionError()
 ):
     """Try to fetch UDF based on input/output tuple of step that is missing either input or output artifacts,
     optionally without causing fatar error.
@@ -86,7 +87,7 @@ def fetch_from_tuple(
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
 
-    if type(target_udfs) == str:
+    if isinstance(target_udfs, str):
         target_udfs = [target_udfs]
 
     for target_udf in target_udfs:
@@ -104,13 +105,13 @@ def fetch_from_tuple(
         return on_fail
 
 
-def fetch(art: Artifact, target_udfs: str or list, on_fail=AssertionError()):
+def fetch(art: Artifact, target_udfs: Union[str, list], on_fail=AssertionError()):
     """Try to fetch UDF from artifact, optionally without causing fatar error.
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
 
-    if type(target_udfs) == str:
+    if isinstance(target_udfs, str):
         target_udfs = [target_udfs]
 
     for target_udf in target_udfs:
@@ -132,7 +133,7 @@ def list_udfs(art: Artifact) -> list:
 def fetch_last(
     currentStep: Process,
     art_tuple: tuple,
-    target_udfs: str or list,
+    target_udfs: Union[str, list],
     use_current=True,
     print_history=False,
     on_fail=AssertionError(),
@@ -145,7 +146,7 @@ def fetch_last(
     """
 
     # Convert to list, to enable iteration
-    if type(target_udfs) == str:
+    if isinstance(target_udfs, str):
         target_udfs = [target_udfs]
 
     history = []
@@ -162,7 +163,7 @@ def fetch_last(
         except:
             output_art = None
 
-        if len(history) == 1 and use_current != True:
+        if len(history) == 1 and use_current is not True:
             # If we are in the original step and "use_current" is false, skip
             pass
         else:
@@ -177,7 +178,7 @@ def fetch_last(
 
                 for target_udf in target_udfs:
                     if target_udf in list_udfs(output_art):
-                        if print_history == True:
+                        if print_history is True:
                             return output_art.udf[target_udf], json.dumps(
                                 history, indent=2
                             )
@@ -201,7 +202,7 @@ def fetch_last(
                 )
                 for target_udf in target_udfs:
                     if target_udf in list_udfs(input_art):
-                        if print_history == True:
+                        if print_history is True:
                             return input_art.udf[target_udf], json.dumps(
                                 history, indent=2
                             )
@@ -238,10 +239,10 @@ def fetch_last(
 
         except:
             if issubclass(type(on_fail), BaseException):
-                if print_history == True:
+                if print_history is True:
                     print(json.dumps(history, indent=2))
                 raise on_fail
             else:
-                if print_history == True:
+                if print_history is True:
                     print(json.dumps(history, indent=2))
                 return on_fail

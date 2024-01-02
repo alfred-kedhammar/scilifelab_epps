@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 
-import os
 import glob
-
+import os
 from argparse import ArgumentParser
-from genologics.lims import Lims
+
+from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
-from genologics.config import BASEURI, USERNAME, PASSWORD
+from genologics.lims import Lims
 
 DESC = """EPP for attaching RunInfo.xml and RunParameters.xml from NovaSeq run dir, and copying run parameters from the previous step
 Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """
 
+
 def main(lims, args):
     process = Process(lims, id=args.pid)
 
     if "NovaSeqXPlus Run" in process.type.name:
-
         # Fetch Flowcell ID
         FCID = process.parent_processes()[0].output_containers()[0].name
 
@@ -27,9 +27,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/ngi-nas-ns/NovaSeqXPlus_data/*{}/RunInfo.xml".format(
-                                    FCID
-                                )
+                                f"/srv/ngi-nas-ns/NovaSeqXPlus_data/*{FCID}/RunInfo.xml"
                             ),
                             key=os.path.getctime,
                         ),
@@ -42,9 +40,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/ngi-nas-ns/NovaSeqXPlus_data/*{}/RunParameters.xml".format(
-                                    FCID
-                                )
+                                f"/srv/ngi-nas-ns/NovaSeqXPlus_data/*{FCID}/RunParameters.xml"
                             ),
                             key=os.path.getctime,
                         ),
@@ -70,7 +66,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/ngi-nas-ns/NovaSeq_data/*{}/RunInfo.xml".format(FCID)
+                                f"/srv/ngi-nas-ns/NovaSeq_data/*{FCID}/RunInfo.xml"
                             ),
                             key=os.path.getctime,
                         ),
@@ -83,9 +79,7 @@ def main(lims, args):
                         outart,
                         max(
                             glob.glob(
-                                "/srv/ngi-nas-ns/NovaSeq_data/*{}/RunParameters.xml".format(
-                                    FCID
-                                )
+                                f"/srv/ngi-nas-ns/NovaSeq_data/*{FCID}/RunParameters.xml"
                             ),
                             key=os.path.getctime,
                         ),
@@ -93,10 +87,10 @@ def main(lims, args):
                 except:
                     raise RuntimeError("No RunParameters.xml Found!")
 
+
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid',
-                        help='Lims id for current Process')
+    parser.add_argument("--pid", help="Lims id for current Process")
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)

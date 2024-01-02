@@ -3,3 +3,7 @@
 *.egg
 build/
 .DS_Store
+.ipynb_checkpoints/
+.*_cache/
+*.swp
+__pycache__
