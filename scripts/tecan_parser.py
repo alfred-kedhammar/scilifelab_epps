@@ -1,16 +1,13 @@
-import sys
-import re
-import fileinput
 import csv
-import os
-
+import re
+import sys
 from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI,USERNAME,PASSWORD
-from genologics.entities import *
-from scilifelab_epps.epp import attach_file, EppLogger
 
-DESC="""EPP used to parse csv files from the Tecan plate reader
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+
+DESC = """EPP used to parse csv files from the Tecan plate reader
 Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """
 
@@ -19,16 +16,17 @@ Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 SD_LIMIT = 1000
 CV_LIMIT = 20
 
+
 def parse(iterable):
     # Pattern for matching "Layout" ID:
     p = re.compile(r"(S[MT])1_(\d{1,2})")
     # Read in the csv file:
     for line in iterable.splitlines():
         if "#" in line:
-            vals = line.rstrip().replace("#","").replace(" ","").split(",")
+            vals = line.rstrip().replace("#", "").replace(" ", "").split(",")
             vals.append("#")
         else:
-            vals = line.rstrip().replace(" ","").split(",")
+            vals = line.rstrip().replace(" ", "").split(",")
             vals.append("")
         # Filter out all rows with sample and standard entries and
         # Use "1/3" or "1/2" replicate:
@@ -50,11 +48,12 @@ def parse(iterable):
 
             yield vals
 
+
 def convert(file_in, file_out):
     # Make a list of it to be able to sort:
     file_in = file_in.read()
     if isinstance(file_in, bytes):
-        file_in = file_in.decode('utf-8')
+        file_in = file_in.decode("utf-8")
     data = list(parse(file_in))
     # Sort the results on type then index:
     data.sort(key=lambda x: (x[1], int(x[2])))
@@ -67,7 +66,7 @@ def convert(file_in, file_out):
         "Raw standard dev",
         "Conc mean (ng/uL)",
         "Conc CV%",
-        "Mark"
+        "Mark",
     ]
     # Write data:
     writer = csv.writer(file_out)
@@ -76,41 +75,45 @@ def convert(file_in, file_out):
 
     return data
 
+
 # Convert an index to a plate coordinate, e.g. 8 => H1
 def index_to_well(index):
     i = int(index)
-    row = chr(64 + ((i-1) % 8 + 1))
-    col = int(((i-1) - (i-1) % 8) / 8 + 1)
-    return "{0}{1}".format(row, col)
+    row = chr(64 + ((i - 1) % 8 + 1))
+    col = int(((i - 1) - (i - 1) % 8) / 8 + 1)
+    return f"{row}{col}"
+
 
 def dictionarize(datalist):
-    data_to_upload={}
+    data_to_upload = {}
     for row in datalist:
-        data_to_upload[row[0]]={}
-        data_to_upload[row[0]]['conc']=row[5]
-        data_to_upload[row[0]]['cv']=row[6]
-        data_to_upload[row[0]]['raw_sd']=row[4]
-
+        data_to_upload[row[0]] = {}
+        data_to_upload[row[0]]["conc"] = row[5]
+        data_to_upload[row[0]]["cv"] = row[6]
+        data_to_upload[row[0]]["raw_sd"] = row[4]
 
     return data_to_upload
 
+
 def main(args, lims):
-    err_out=""
-    pro=Process(lims, id=args.pid)
+    err_out = ""
+    pro = Process(lims, id=args.pid)
     for output in pro.all_outputs():
         if output.name == "Tecan output file":
             try:
-                fid=output.files[0].id
+                fid = output.files[0].id
             except:
-                raise RuntimeError("Cannot access the tecan output file to read the concentrations.")
-        elif output.name=='EPP log file':
-            out_id=output.id
+                raise RuntimeError(
+                    "Cannot access the tecan output file to read the concentrations."
+                )
+        elif output.name == "EPP log file":
+            out_id = output.id
 
-    file_contents=lims.get_file_contents(id=fid)
-    with open('{0}_tecan.out'.format(out_id), 'w') as outf:
-        data=convert(file_contents, outf)
+    file_contents = lims.get_file_contents(id=fid)
+    with open(f"{out_id}_tecan.out", "w") as outf:
+        data = convert(file_contents, outf)
 
-    data_dict=dictionarize(data)
+    data_dict = dictionarize(data)
 
     for iom in pro.input_output_maps:
         outp = iom[1]["uri"]
@@ -129,10 +132,15 @@ def main(args, lims):
                 if not err_out:
                     err_out = "Data is missing for one or several samples."
             else:
-                if float(sample_data["raw_sd"]) > SD_LIMIT and float(sample_data["cv"]) > CV_LIMIT:
+                if (
+                    float(sample_data["raw_sd"]) > SD_LIMIT
+                    and float(sample_data["cv"]) > CV_LIMIT
+                ):
                     status = "FAILED"
                     if not err_out:
-                        err_out="One or several samples has a raw SD above {:d} and concentration CV above {:d}. Check the output file for details.".format(SD_LIMIT, CV_LIMIT)
+                        err_out = "One or several samples has a raw SD above {:d} and concentration CV above {:d}. Check the output file for details.".format(
+                            SD_LIMIT, CV_LIMIT
+                        )
 
             outp.qc_flag = status
             outp.put()
@@ -141,12 +149,11 @@ def main(args, lims):
         sys.stderr.write(err_out)
         sys.exit(2)
 
+
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid',
-                        help='Lims id for current Process')
-    parser.add_argument('--log',
-                        help='log file name')
+    parser.add_argument("--pid", help="Lims id for current Process")
+    parser.add_argument("--log", help="log file name")
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)

@@ -2,14 +2,15 @@
 
 import os
 import sys
-import yaml
-import psycopg2
 from argparse import ArgumentParser
-from datetime import datetime
-from scilifelab_epps.epp import attach_file
-from genologics.lims import Lims
+
+import psycopg2
+import yaml
+from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
-from genologics.config import BASEURI, USERNAME, PASSWORD
+from genologics.lims import Lims
+
+from scilifelab_epps.epp import attach_file
 
 DESC = """EPP for calculating volume for the OmniC protocol
 Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
@@ -24,7 +25,7 @@ factors = {
     "mg/ml": 0.001,
 }
 
-with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml", "r") as f:
+with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml") as f:
     config = yaml.safe_load(f)
 
 
@@ -34,7 +35,7 @@ def verify_inputs(process, value_list):
     for inp in process.all_inputs():
         for val in value_list:
             if not inp.udf.get(val):
-                message.append("ERROR: Unknown {} for sample {}.".format(val, inp.name))
+                message.append(f"ERROR: Unknown {val} for sample {inp.name}.")
             elif val == "Conc. Units" and inp.udf[val].lower() not in [
                 "ng/ul",
                 "ug/ul",
@@ -43,9 +44,7 @@ def verify_inputs(process, value_list):
                 "ug/ml",
                 "mg/ml",
             ]:
-                message.append(
-                    "ERROR: Unsupported {} for sample {}.".format(val, inp.name)
-                )
+                message.append(f"ERROR: Unsupported {val} for sample {inp.name}.")
     return message
 
 
@@ -100,9 +99,7 @@ def calculate_volume_limsapi(process, use_total_lysate):
                     )
             else:
                 error_messages.append(
-                    "ERROR: Amount for prep (ng) not defined for sample {}.".format(
-                        output.name
-                    )
+                    f"ERROR: Amount for prep (ng) not defined for sample {output.name}."
                 )
 
     return error_messages, log
@@ -149,18 +146,16 @@ def calculate_volume_postgres(process):
             cursor.execute(query.format(input.id))
             query_output = cursor.fetchall()
             if len(query_output) == 1:
-                sample_id = query_output[0][1]
                 conc = query_output[0][2]
                 conc_unit = query_output[0][3]
             # When there are more than 1 query results found, use the latest values
             elif len(query_output) > 1:
-                sample_id = max(query_output, key=lambda tup: tup[0])[1]
                 conc = max(query_output, key=lambda tup: tup[0])[2]
                 conc_unit = max(query_output, key=lambda tup: tup[0])[3]
             # No concentration could be found
             else:
                 error_messages.append(
-                    "ERROR: No measurement found for sample {}.".format(output.name)
+                    f"ERROR: No measurement found for sample {output.name}."
                 )
             # Calculation
             if output.udf.get("Amount for prep (ng)"):
@@ -177,15 +172,11 @@ def calculate_volume_postgres(process):
                     output.put()
                 else:
                     error_messages.append(
-                        "ERROR: Invalid conc or conc unit for sample {}.".format(
-                            output.name
-                        )
+                        f"ERROR: Invalid conc or conc unit for sample {output.name}."
                     )
             else:
                 error_messages.append(
-                    "ERROR: Amount for prep (ng) not defined for sample {}.".format(
-                        output.name
-                    )
+                    f"ERROR: Amount for prep (ng) not defined for sample {output.name}."
                 )
 
     return error_messages, log

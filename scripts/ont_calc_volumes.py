@@ -1,11 +1,14 @@
-from __future__ import division
-from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process
-from epp_utils import udf_tools, formula
+#!/usr/bin/env python
+
 import sys
+from argparse import ArgumentParser
 from datetime import datetime as dt
+
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+
+from epp_utils import formula, udf_tools
 
 DESC = """
 EPP "ONT calculate volumes"
