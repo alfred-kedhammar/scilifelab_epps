@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import glob
+import logging
 import os
 from argparse import ArgumentParser
 from datetime import datetime as dt
@@ -13,10 +14,10 @@ from epp_utils import formula
 from epp_utils.udf_tools import fetch, put
 
 
-def find_latest_flowcell_run(currentStep, log) -> str:
+def find_latest_flowcell_run(currentStep: Process) -> str:
     flowcell_id: str = currentStep.udf["ONT flow cell ID"].upper().strip()
     run_query = f"/srv/ngi-nas-ns/minion_data/qc/*{flowcell_id}*"
-    log.append(f"Looking for path {run_query}")
+    logging.info(f"Looking for path {run_query}")
 
     run_glob = glob.glob(run_query)
     assert (
@@ -24,16 +25,16 @@ def find_latest_flowcell_run(currentStep, log) -> str:
     ), f"No runs with flowcell ID {flowcell_id} found on path {run_query}"
     if len(run_glob) > 1:
         runs_list = "\n".join(run_glob)
-        log.append(
-            f"WARNING: Multiple runs with flowcell ID {flowcell_id} detected:\n{runs_list}"
+        logging.warning(
+            f"Multiple runs with flowcell ID {flowcell_id} detected:\n{runs_list}"
         )
     latest_flowcell_run_path = max(run_glob, key=os.path.getctime)
 
-    log.append(f"Using latest flowcell run {latest_flowcell_run_path}")
+    logging.info(f"Using latest flowcell run {latest_flowcell_run_path}")
     return latest_flowcell_run_path
 
 
-def find_latest_anglerfish_run(log, latest_flowcell_run_path) -> str:
+def find_latest_anglerfish_run(latest_flowcell_run_path: str) -> str:
     anglerfish_query = f"{latest_flowcell_run_path}/*anglerfish_run*"
     anglerfish_glob = glob.glob(anglerfish_query)
 
@@ -43,17 +44,17 @@ def find_latest_anglerfish_run(log, latest_flowcell_run_path) -> str:
 
     if len(anglerfish_glob) > 1:
         runs_list = "\n".join(anglerfish_glob)
-        log.append(f"WARNING: Multiple Anglerfish runs detected:\n{runs_list}")
+        logging.warning(f"Multiple Anglerfish runs detected:\n{runs_list}")
     latest_anglerfish_run_path = max(anglerfish_glob, key=os.path.getctime)
-    log.append(f"Using latest Anglerfish run {latest_anglerfish_run_path}")
+    logging.info(f"Using latest Anglerfish run {latest_anglerfish_run_path}")
 
     return latest_anglerfish_run_path
 
 
 def upload_anglerfish_text_results(
-    lims: Lims, currentStep: Process, log: list, latest_anglerfish_run_path: str
+    lims: Lims, currentStep: Process, latest_anglerfish_run_path: str
 ):
-    log.append("Uploading Anglerfish results .txt-file to LIMS")
+    logging.info("Uploading Anglerfish results .txt-file to LIMS")
 
     anglerfish_file_slot: Artifact = [
         outart
@@ -68,7 +69,7 @@ def upload_anglerfish_text_results(
     lims.upload_new_file(anglerfish_file_slot, file_name)
 
 
-def get_anglerfish_dataframe(latest_anglerfish_run_path) -> pd.DataFrame:
+def get_anglerfish_dataframe(latest_anglerfish_run_path: str) -> pd.DataFrame:
     file_name = "anglerfish_dataframe.csv"
     file_path = os.path.join(latest_anglerfish_run_path, file_name)
     assert os.path.exists(file_path), f"File {file_path} does not exist"
@@ -78,7 +79,7 @@ def get_anglerfish_dataframe(latest_anglerfish_run_path) -> pd.DataFrame:
     return df_raw
 
 
-def parse_data(df_raw: pd.DataFrame, log: list):
+def parse_data(df_raw: pd.DataFrame):
     df = df_raw.copy()
 
     # Add additional metrics
@@ -110,7 +111,7 @@ def ont_barcode_well2name(barcode_well: str) -> str:
     return barcode_name
 
 
-def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
+def fill_udfs(currentStep: Process, df: pd.DataFrame):
     # Dictate which LIMS UDF corresponds to which column in the dataframe
     udfs_to_cols = {
         "# Reads": "num_reads",
@@ -166,31 +167,21 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame, log: list):
                                 value,
                             )
                         except:
-                            log.append(
-                                f"ERROR: Could not assign UDF '{udf}' value '{value}' for sample {illumina_sample.name}"
+                            logging.error(
+                                f"Could not assign UDF '{udf}' value '{value}' for sample {illumina_sample.name}"
                             )
                             continue
 
                 except:
-                    log.append(
-                        f"ERROR: Could not process sample {illumina_sample.name}"
-                    )
+                    logging.error(f"Could not process sample {illumina_sample.name}")
                     continue
 
         except:
-            log.append(f"ERROR: Could not process pool {illumina_pool.name}")
+            logging.error(f"Could not process pool {illumina_pool.name}")
             continue
 
 
-def write_log(log, currentStep):
-    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
-    log_filename = f"parse_anglerfish_results_log_{currentStep.id}_{timestamp}_{currentStep.technician.name.replace(' ','')}"
-    with open(log_filename, "w") as logContext:
-        logContext.write("\n".join(log))
-    return log_filename
-
-
-def upload_log(currentStep, lims, log_filename):
+def upload_log(currentStep: Process, lims: Lims, log_filename):
     log_file_slot = [
         slot
         for slot in currentStep.all_outputs()
@@ -205,44 +196,48 @@ def upload_log(currentStep, lims, log_filename):
 
 
 def main(lims: Lims, currentStep: Process):
-    log = []
+    latest_flowcell_run_path = find_latest_flowcell_run(currentStep)
+    latest_anglerfish_run_path = find_latest_anglerfish_run(latest_flowcell_run_path)
 
-    latest_flowcell_run_path = find_latest_flowcell_run(currentStep, log)
-    latest_anglerfish_run_path = find_latest_anglerfish_run(
-        log, latest_flowcell_run_path
-    )
-
-    upload_anglerfish_text_results(lims, currentStep, log, latest_anglerfish_run_path)
+    upload_anglerfish_text_results(lims, currentStep, latest_anglerfish_run_path)
 
     # Get file contents
     df_raw: pd.DataFrame = get_anglerfish_dataframe(latest_anglerfish_run_path)
 
     # Parse the Anglerfish output
-    df_parsed: pd.DataFrame = parse_data(df_raw, log)
+    df_parsed: pd.DataFrame = parse_data(df_raw)
 
     # Populate sample fields with Anglerfish results
-    fill_udfs(currentStep, df_parsed, log)
+    fill_udfs(currentStep, df_parsed)
 
     # Add sample comments
     # TODO
-
-    # Write log
-    log_filename = write_log(log, currentStep)
 
     # Upload log
     upload_log(currentStep, lims, log_filename)
 
 
 if __name__ == "__main__":
+    # Parse script arguments
     parser = ArgumentParser()
     parser.add_argument(
         "--pid", default="24-594126", dest="pid", help="Lims id for current Process"
     )
     args = parser.parse_args()
 
+    # Set up LIMS instance
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
-
     currentStep = Process(lims, id=args.pid)
+
+    # Set up logging
+    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+    log_filename = f"parse_anglerfish_results_log_{currentStep.id}_{timestamp}_{currentStep.technician.name.replace(' ','')}"
+    logging.basicConfig(
+        filename=log_filename,
+        filemode="w",
+        format="%(name)s - %(levelname)s - %(message)s",
+        level=logging.INFO,
+    )
 
     main(lims, currentStep)
