@@ -232,13 +232,13 @@ if __name__ == "__main__":
     log_filename = (
         "_".join(
             [
-                "parse_anglerfish_results",
+                "parse-anglerfish-results",
                 currentStep.id,
-                dt.now().strftime("%y%m%d_%H%M%S"),
+                dt.now().strftime("%y%m%d-%H%M%S"),
                 currentStep.technician.name.replace(" ", ""),
             ]
         )
-        + ".txt"
+        + ".log"
     )
 
     logging.basicConfig(
