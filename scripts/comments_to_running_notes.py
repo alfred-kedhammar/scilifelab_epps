@@ -1,15 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 DESC = """EPP script to copy the "Comments" field to the projects running notes on process termination
 
 Denis Moreno, Science for Life Laboratory, Stockholm, Sweden
 """
-from argparse import ArgumentParser
-from genologics.entities import *
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from write_notes_to_couchdb import write_note_to_couch
 import datetime
+from argparse import ArgumentParser
+
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+from write_notes_to_couchdb import write_note_to_couch
 
 
 def categorization(process_name):
@@ -154,32 +154,26 @@ def categorization(process_name):
 
 
 def main(lims, args):
-    comment = False
-
     noteobj = {}
     pro = Process(lims, id=args.pid)
-    if "Comments" in pro.udf and pro.udf["Comments"] is not "":
+    if "Comments" in pro.udf and pro.udf["Comments"] != "":
         if isinstance(pro.udf["Comments"], str):
             comments = pro.udf["Comments"]
         else:
             comments = pro.udf["Comments"].encode("utf-8")
-        note = "Comment from {0} ({1}) : \n{2}".format(
+        note = "Comment from {} ({}) : \n{}".format(
             pro.type.name,
-            "[LIMS]({0}/clarity/work-details/{1})".format(
-                BASEURI, pro.id.split("-")[1]
-            ),
+            "[LIMS]({}/clarity/work-details/{})".format(BASEURI, pro.id.split("-")[1]),
             comments,
         )
         noteobj["note"] = note
-        noteobj["user"] = "{0} {1}".format(
-            pro.technician.first_name, pro.technician.last_name
-        )
+        noteobj["user"] = f"{pro.technician.first_name} {pro.technician.last_name}"
         noteobj["email"] = pro.technician.email
         key = datetime.datetime.now(datetime.timezone.utc)
-        noteobj['categories'] = [categorization(pro.type.name)]
-        noteobj['note_type'] = 'project'
-        noteobj['created_at_utc'] = key.isoformat()
-        noteobj['updated_at_utc'] = key.isoformat()
+        noteobj["categories"] = [categorization(pro.type.name)]
+        noteobj["note_type"] = "project"
+        noteobj["created_at_utc"] = key.isoformat()
+        noteobj["updated_at_utc"] = key.isoformat()
 
         # find the correct projects.
         samples = set()
@@ -192,9 +186,9 @@ def main(lims, args):
                 projects.add(sam.project)
 
         for proj in projects:
-            noteobj['projects'] = [proj.id]
-            noteobj['parent'] = proj.id
-            noteobj['_id'] = f'{proj.id}:{datetime.datetime.timestamp(key)}'
+            noteobj["projects"] = [proj.id]
+            noteobj["parent"] = proj.id
+            noteobj["_id"] = f"{proj.id}:{datetime.datetime.timestamp(key)}"
             write_note_to_couch(proj.id, key, noteobj, lims.get_uri())
 
 

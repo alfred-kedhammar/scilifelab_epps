@@ -1,14 +1,17 @@
-from __future__ import division
+#!/usr/bin/env python
+
+import sys
 from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
+from datetime import datetime as dt
+
+from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
-from zika_utils import fetch_sample_data
-from epp_utils import formula
+from genologics.lims import Lims
 from numpy import minimum
 from tabulate import tabulate
-from datetime import datetime as dt
-import sys
+from zika_utils import fetch_sample_data
+
+from epp_utils import formula
 
 DESC = """
 EPP "ONT pooling", file slot "ONT pooling log".
@@ -60,7 +63,7 @@ def main(lims, args):
             # Get molar proportions between samples within pool
             df_pool["prop_nM"] = df_pool.conc_nM / sum(df_pool.conc_nM)
             df_pool["prop_nM_inv"] = (1 / df_pool["prop_nM"]) / sum(
-                (1 / df_pool["prop_nM"])
+                1 / df_pool["prop_nM"]
             )
 
             # If amount is specified, use for calculations and ignore target vol

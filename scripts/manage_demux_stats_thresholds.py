@@ -1,11 +1,12 @@
 """Written by Isak Sylvin. isak.sylvin@scilifelab.se"""
 
-import sys
 import logging
+import sys
 
-class Thresholds():
+
+class Thresholds:
     def __init__(self, instrument, chemistry, paired, read_length):
-        self.logger = logging.getLogger('demux_logger.thresholds')
+        self.logger = logging.getLogger("demux_logger.thresholds")
         self.Q30 = None
         self.exp_lane_clust = None
         self.undet_indexes_perc = None
@@ -35,8 +36,14 @@ class Thresholds():
             "10B",
         ]
 
-        if not instrument in self.valid_instruments or not chemistry in self.valid_chemistry:
-            self.problem_handler("exit", "Detected instrument and chemistry combination are not classed as valid in manage_demux_stats_thresholds.py")
+        if (
+            instrument not in self.valid_instruments
+            or chemistry not in self.valid_chemistry
+        ):
+            self.problem_handler(
+                "exit",
+                "Detected instrument and chemistry combination are not classed as valid in manage_demux_stats_thresholds.py",
+            )
         else:
             self.instrument = instrument
             self.chemistry = chemistry
@@ -60,6 +67,7 @@ class Thresholds():
             self.undet_indexes_perc = 10
 
     """Q30 values are derived from governing document 1618"""
+
     def set_Q30(self):
         if self.instrument == "miseq":
             if self.read_length >= 250:
@@ -96,8 +104,12 @@ class Thresholds():
                 self.Q30 = 85
 
         if not self.Q30:
-            self.problem_handler("exit", "No predefined Q30 threshold (see doc 1618). Instrument: {}, Chemistry: {}, Read Length: {}".\
-                                 format(self.instrument, self.chemistry, self.read_length))
+            self.problem_handler(
+                "exit",
+                "No predefined Q30 threshold (see doc 1618). Instrument: {}, Chemistry: {}, Read Length: {}".format(
+                    self.instrument, self.chemistry, self.read_length
+                ),
+            )
 
     def set_exp_lane_clust(self):
         """Expected lanes per cluster are derived from undemultiplex_index.py"""
@@ -139,5 +151,9 @@ class Thresholds():
         else:
             self.problem_handler("exit", "Unknown run type!")
         if not self.exp_lane_clust:
-            self.problem_handler("exit", "No predefined clusters per lane threshold. Instrument: {}, Chemistry: {}, Read Length: {}".\
-                                 format(self.instrument, self.chemistry, self.read_length))
+            self.problem_handler(
+                "exit",
+                "No predefined clusters per lane threshold. Instrument: {}, Chemistry: {}, Read Length: {}".format(
+                    self.instrument, self.chemistry, self.read_length
+                ),
+            )

@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
-from __future__ import division
-from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from genologics.entities import Process
-from datetime import datetime as dt
-from tabulate import tabulate
-from ont_send_reloading_info_to_db import parse_run
-import pandas as pd
-import sys
-from epp_utils import udf_tools
 
+import sys
+from argparse import ArgumentParser
+from datetime import datetime as dt
+
+import pandas as pd
+from genologics.config import BASEURI, PASSWORD, USERNAME
+from genologics.entities import Process
+from genologics.lims import Lims
+from ont_send_reloading_info_to_db import parse_run
+from tabulate import tabulate
+
+from epp_utils import udf_tools
 
 DESC = """
 Script for the EPP "Log fields" and file slot "Field log".

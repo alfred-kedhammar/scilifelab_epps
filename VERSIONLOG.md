@@ -1,8 +1,36 @@
 # Scilifelab_epps Version Log
 
-## 20231213.1
+## 20231220.1
+
+Fix bug with verify index EPP
+
+## 20231219.1
+
+Fix bug that log is missing with index checker
+
+## 20231214.1
+
+Always have chemistry as amplicon for Miseq samplesheet
+
+## 20231213.3
 
 Fix BioAnalyzer EPP to expect row-wise samples instead of column-wise. Associated with deviation #211.
+
+## 20231213.2
+
+Expand 10X and SS3 indexes for MiSeq samplesheet
+
+## 20231213.1
+
+Fix MiSeq samplesheet generator to include options for custom primers
+
+## 20231212.1
+
+Enable Attaching xml files for MiSeq
+
+## 20231201.1
+
+Change MiSeq samplesheet to new version
 
 ## 20231120.1
 
