@@ -1,5 +1,11 @@
 name: lint-code
-on: [push]
+on: [push, pull_request]
+
+# Cancel if a newer run is started
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Use ruff to check for code style violations
   ruff-check:
