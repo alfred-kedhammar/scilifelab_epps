@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import re
 import sys
 import xml.etree.ElementTree as ET
 from argparse import ArgumentParser
@@ -23,8 +24,8 @@ Java which does not as of 2023-08-25 populate the measurement UDFs of interest.
 def main(lims, args):
     currentStep = Process(lims, id=args.pid)
     log = []
-    errors = False
     count_per = "row"  # BioAnalyzer XML numbers wells row-wise
+    ngi_sample_id_pattern = r"(p|P)\d+_\d+"
 
     # Set up an XML tree from the BioAnalyser output file
     xml_tree = ET.fromstring(get_ba_output_file(currentStep, log))
@@ -65,7 +66,6 @@ def main(lims, args):
             log.append(
                 f"ERROR: Could not determine the well number of {lims_art.name}, skipping."
             )
-            errors = True
             continue
 
         # Isolate the XML sample nest w. the same well as the measurement
@@ -82,17 +82,27 @@ def main(lims, args):
                 f"Found .xml sample '{xml_sample_name}' matching {count_per}-wise well number {lims_well_num}."
             )
 
+            try:
+                lims_sample_name = re.search(
+                    ngi_sample_id_pattern, lims_art.name
+                ).group()
+                name_match = re.search(lims_sample_name, xml_sample_name)
+                if not name_match:
+                    log.append(
+                        f"WARNING: LIMS sample name '{lims_sample_name}' does not match .xml sample name '{xml_sample_name}', please double check sample placement."
+                    )
+            except AttributeError:
+                pass
+
         elif len(xml_matching_samples) < 1:
             log.append(
                 f"ERROR: Found no samples in the .xml at well number {lims_well_num}, skipping."
             )
-            errors = True
             continue
         elif len(xml_matching_samples) > 1:
             log.append(
                 f"ERROR: Found multiple samples in the .xml at well number {lims_well_num}, skipping."
             )
-            errors = True
             continue
         else:
             raise AssertionError
@@ -104,7 +114,6 @@ def main(lims, args):
             log.append("Fetched sample results section from .xml.")
         except:
             log.append("ERROR: No smear region was found, skipping.")
-            errors = True
             continue
 
         # Grab the target results from the xml smear metrics
@@ -131,7 +140,6 @@ def main(lims, args):
                 log.append(
                     f"ERROR: Could not assign UDF {udf_name} of measurement {lims_art.name}, skipping."
                 )
-                errors = True
                 continue
 
         log.append("Successfully pulled metrics.")
@@ -154,9 +162,15 @@ def main(lims, args):
             # Clean up
             os.remove(log_filename)
 
-            if errors:
+            if any("ERROR" in entry for entry in log):
                 sys.stderr.write("Some samples were skipped, please check the Log file")
-                sys.exit()
+                sys.exit(1)
+
+            if any("WARNING" in entry for entry in log):
+                sys.stderr.write(
+                    "Some samples generated warnings, please check the Log file"
+                )
+                sys.exit(1)
 
 
 def get_ba_output_file(currentStep, log):
