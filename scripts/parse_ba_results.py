@@ -25,7 +25,7 @@ def main(lims, args):
     currentStep = Process(lims, id=args.pid)
     log = []
     count_per = "row"  # BioAnalyzer XML numbers wells row-wise
-    ngi_sample_id_pattern = r"(p|P)\d{5,6}_\d{3,4}"
+    ngi_sample_id_pattern = r"(p|P)\d+_\d+"
 
     # Set up an XML tree from the BioAnalyser output file
     xml_tree = ET.fromstring(get_ba_output_file(currentStep, log))
