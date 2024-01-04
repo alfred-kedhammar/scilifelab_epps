@@ -4,7 +4,7 @@ Collection of EPPs for the Scilifelab Stockholm node.
 
 Table of contents
 
-- [scilifelab\_epps](#scilifelab_epps)
+- [scilifelab_epps](#scilifelab_epps)
   - [Overview](#overview)
   - [Installation](#installation)
   - [Development](#development)
