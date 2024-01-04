@@ -5,3 +5,6 @@ aa673cb40c34a2481d6f864c6d67ffac9a2b6a16
 # 231212, Autoformatting using ruff with expanded rule set //AKe
 fe13c30f4a7f588a29556af37a3545b5662eb4f2
 6899e33d965291455c36c8eff83ed5cc68cd478f
+
+# 240104, Autoformatting using Prettier //AKe
+e22265e0cacd51c3239a790e3c2c9acf7c34be4a

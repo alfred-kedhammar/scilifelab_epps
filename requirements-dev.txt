@@ -1,6 +1,7 @@
-ruff
 mypy
+pipreqs
 pre-commit
+ruff
 types-PyYAML
 types-requests
 types-tabulate

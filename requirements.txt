@@ -1,6 +1,17 @@
+CouchDB
+flowcell_parser @ git+https://github.com/SciLifeLab/flowcell_parser
 genologics
-couchdb
-markdown
-tabulate
+google_api_python_client
+httplib2
+interop
+Markdown
 numpy
+oauth2client
 pandas
+protobuf
+psycopg2
+PyYAML
+Requests
+scilifelab_parsers @ git+https://github.com/SciLifeLab/scilifelab_parsers
+setuptools
+tabulate
