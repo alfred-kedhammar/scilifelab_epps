@@ -1,18 +1,19 @@
 # .pre-commit-config.yaml
 repos:
--   repo: https://github.com/astral-sh/ruff-pre-commit
+  - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.6
     hooks:
-    -   id: ruff
-    -   id: ruff-format
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.7.1'
+      - id: ruff
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: "v1.7.1"
     hooks:
-    -   id: mypy
-        additional_dependencies: [
+      - id: mypy
+        additional_dependencies:
+          [
             types-Markdown,
             types-PyYAML,
             types-requests,
             types-setuptools,
             types-tabulate,
-        ]
+          ]

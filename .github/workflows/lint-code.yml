@@ -7,7 +7,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   # Use ruff to check for code style violations
   ruff-check:
     runs-on: ubuntu-latest
@@ -73,11 +72,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
 
       - name: Install pipreqs
         run: pip install pipreqs
-      
+
       - name: Install requirements
         run: pip install -r requirements.txt
 
@@ -134,5 +133,3 @@ jobs:
 
       - name: editorconfig --> Lint files
         run: editorconfig-checker $(git ls-files | grep -v 'test\|.py\|.md\|.json\|.yml\|.yaml\|.html')
-
-

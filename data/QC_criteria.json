@@ -184,7 +184,7 @@
         }
     },
     "Finished library (by user)": {
-        "MiSeq":{
+        "MiSeq": {
             "default": {
                 "default": {
                     "Concentration": 2,
@@ -208,7 +208,7 @@
                     "Concentration": 2,
                     "Volume (ul)": 110
                 },
-                "XP clustering":{
+                "XP clustering": {
                     "Concentration": 1.5,
                     "Volume (ul)": 25
                 }
@@ -218,7 +218,7 @@
                     "Concentration": 2,
                     "Volume (ul)": 160
                 },
-                "XP clustering":{
+                "XP clustering": {
                     "Concentration": 1.5,
                     "Volume (ul)": 30
                 }
@@ -228,7 +228,7 @@
                     "Concentration": 2,
                     "Volume (ul)": 320
                 },
-                "XP clustering":{
+                "XP clustering": {
                     "Concentration": 1.5,
                     "Volume (ul)": 35
                 }
