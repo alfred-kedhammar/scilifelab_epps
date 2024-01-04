@@ -7,6 +7,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
   # Use ruff to check for code style violations
   ruff-check:
     runs-on: ubuntu-latest
@@ -98,3 +99,40 @@ jobs:
             echo "Requirements are different"
             exit 1
           fi
+
+    # Use Prettier to check various file formats
+  prettier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Prettier
+        run: npm install -g prettier
+
+      - name: Run Prettier --check
+        run: prettier --check .
+
+  # Use editorconfig to check all remaining file formats
+  editorconfig:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install editorconfig-checker
+        run: npm install -g editorconfig-checker
+
+      - name: editorconfig --> Lint files
+        run: editorconfig-checker $(git ls-files | grep -v 'test\|.py\|.md\|.json\|.yml\|.yaml\|.html')
+
+
