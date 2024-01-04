@@ -4,7 +4,7 @@ Collection of EPPs for the Scilifelab Stockholm node.
 
 Table of contents
 
-- [scilifelab_epps](#scilifelab_epps)
+- [scilifelab\_epps](#scilifelab_epps)
   - [Overview](#overview)
   - [Installation](#installation)
   - [Development](#development)
@@ -34,9 +34,37 @@ This repo is configured for automated linting. Linter parameters are defined in 
 
 As of now, we use:
 
-- [ruff](https://docs.astral.sh/ruff/) to perform automated formatting and a variety of lint checks. Run wit h`ruff check .` and `ruff format .`
-- [mypy](https://mypy.readthedocs.io/en/stable/) for static type checking and to prevent contradictory type annotation. Run with `mypy **/*.py`
-- [pipreqs](https://github.com/bndr/pipreqs) to check that the requirement files are up-to-date with the code. This is run with a custom Bash script in GitHub Actions which will only compare the list of package names.
+- [ruff](https://docs.astral.sh/ruff/) to perform automated formatting and a variety of lint checks.
+  - Run with `ruff check .` and `ruff format .`
+- [mypy](https://mypy.readthedocs.io/en/stable/) for static type checking and to prevent contradictory type annotation.
+  - Run with `mypy **/*.py`
+- [pipreqs](https://github.com/bndr/pipreqs) to check that the requirement files are up-to-date with the code.
+
+  - This is run with a custom Bash script in GitHub Actions which will only compare the list of package names.
+
+    ```
+    # Extract and sort package names
+    awk '{print $1}' $1 | sort -u > "$1".compare
+    awk -F'==' '{print $1}' $2 | sort -u > "$2".compare
+
+    # Compare package lists
+    if cmp -s "$1".compare "$2".compare
+    then
+      echo "Requirements are the same"
+      exit 0
+    else
+      echo "Requirements are different"
+      exit 1
+    fi
+    ```
+
+- [prettier](https://prettier.io/) to format common languages.
+  - Run with `prettier .`
+- [editorconfig-checker](https://github.com/editorconfig-checker/editorconfig-checker) to enforce `.editorconfig` rules for all files not covered by the tools above.
+  - Run with
+    ```
+    editorconfig-checker $(git ls-files | grep -v 'test\|.py\|.md\|.json\|.yml\|.yaml\|.html')
+    ```
 
 #### [GitHub Actions](https://docs.github.com/en/actions)
 
