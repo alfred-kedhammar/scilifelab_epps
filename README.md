@@ -63,7 +63,7 @@ As of now, we use:
 - [editorconfig-checker](https://github.com/editorconfig-checker/editorconfig-checker) to enforce `.editorconfig` rules for all files not covered by the tools above.
   - Run with
     ```
-    editorconfig-checker $(git ls-files | grep -v 'test\|.py\|.md\|.json\|.yml\|.yaml\|.html')
+    editorconfig-checker $(git ls-files | grep -v '.py\|.md\|.json\|.yml\|.yaml\|.html')
     ```
 
 #### [GitHub Actions](https://docs.github.com/en/actions)
