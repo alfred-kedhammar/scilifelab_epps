@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 
-from __future__ import division
+
 import logging
 import os
-import sys
 import re
+import sys
+from argparse import ArgumentParser
+
 import pandas as pd
 import zika_methods
 import zika_utils
-from argparse import ArgumentParser
-from genologics.lims import Lims
-from genologics.config import BASEURI, USERNAME, PASSWORD
-from scilifelab_epps.epp import attach_file
+from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
-from numpy import minimum
-from datetime import datetime as dt
+from genologics.lims import Lims
 
+from scilifelab_epps.epp import attach_file
 
 DESC = """EPP used to create csv files for the bravo robot"""
 
@@ -23,13 +22,12 @@ MAX_WARNING_VOLUME = 150.0
 MIN_WARNING_VOLUME = 2.0
 
 # Three values are minimum required conc for setup workset, maximum conc for dilution and minimum volume for dilution
-Dilution_preset = {
-    "Smarter pico": [1.25, 375.0, 10.0]
-}
+Dilution_preset = {"Smarter pico": [1.25, 375.0, 10.0]}
 
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,})-?([ATCG]*)")
 TENX_PAT = re.compile("SI-GA-[A-H][1-9][0-2]?")
+
 
 def obtain_previous_volumes(currentStep, lims):
     samples_volumes = {}
@@ -43,17 +41,19 @@ def obtain_previous_volumes(currentStep, lims):
                 try:
                     fid = output.files[0].id
                 except:
-                    raise RuntimeError("Cannot access the normalisation CSV file to read the volumes.")
+                    raise RuntimeError(
+                        "Cannot access the normalisation CSV file to read the volumes."
+                    )
                 else:
                     file_contents = lims.get_file_contents(id=fid)
                     if isinstance(file_contents, bytes):
-                        file_contents = file_contents.decode('utf-8')
+                        file_contents = file_contents.decode("utf-8")
                     genologics_format = False
                     well_idx = 4
                     plate_idx = 3
                     source_vol_idx = 2
                     buffer_vol_idx = 5
-                    for line in file_contents.split('\n'):
+                    for line in file_contents.split("\n"):
                         # Skip some lines:
                         if not line.rstrip():
                             continue
@@ -65,7 +65,7 @@ def obtain_previous_volumes(currentStep, lims):
                             # This is Genologics format and the header line
                             # so change column indices:
                             genologics_format = True
-                            elements = line.split(',')
+                            elements = line.split(",")
                             for idx, el in enumerate(elements):
                                 if el == "Source Volume (uL)":
                                     source_vol_idx = idx
@@ -78,7 +78,7 @@ def obtain_previous_volumes(currentStep, lims):
                                 elif el == "Sample Name":
                                     name_idx = idx
                         else:
-                            elements = line.split(',')
+                            elements = line.split(",")
                             well = elements[well_idx]
                             matches = re_well.search(well)
                             if matches:
@@ -87,14 +87,16 @@ def obtain_previous_volumes(currentStep, lims):
                             srcvol = elements[source_vol_idx]
                             bufvol = elements[buffer_vol_idx]
                             # Remove any quotes:
-                            (plate, srcvol, bufvol) = [s.replace('"', '') for s in (plate, srcvol, bufvol)]
+                            (plate, srcvol, bufvol) = (
+                                s.replace('"', "") for s in (plate, srcvol, bufvol)
+                            )
                             srcvol = float(srcvol)
                             bufvol = float(bufvol)
                             totvol = bufvol
                             # For Genologics format compability:
                             if genologics_format:
                                 totvol += srcvol
-                                name = elements[name_idx].replace('"', '')
+                                name = elements[name_idx].replace('"', "")
                                 samples_volumes[name] = totvol
                             else:
                                 samples_volumes.setdefault(plate, {})[well] = totvol
@@ -108,43 +110,48 @@ def make_datastructure(currentStep, lims, log):
         samples_volumes = obtain_previous_volumes(currentStep, lims)
     except:
         log.append("Unable to find previous volumes")
-        sys.stderr.write("Samples volumes cannot be found. Check the file from the previous step")
+        sys.stderr.write(
+            "Samples volumes cannot be found. Check the file from the previous step"
+        )
         sys.exit(2)
 
     for inp, out in currentStep.input_output_maps:
-        if out['output-type'] == 'Analyte':
+        if out["output-type"] == "Analyte":
             obj = {}
-            obj['name'] = inp['uri'].samples[0].name
-            obj['id'] = inp['uri'].id
-            if "Normalized conc. (nM)" in inp['uri'].udf:
-                obj['conc'] = inp['uri'].udf['Normalized conc. (nM)']
+            obj["name"] = inp["uri"].samples[0].name
+            obj["id"] = inp["uri"].id
+            if "Normalized conc. (nM)" in inp["uri"].udf:
+                obj["conc"] = inp["uri"].udf["Normalized conc. (nM)"]
             else:
-                obj['conc'] = inp['uri'].udf['Concentration']
-            obj['pool_id'] = out['uri'].id
+                obj["conc"] = inp["uri"].udf["Concentration"]
+            obj["pool_id"] = out["uri"].id
             # obj['pool_conc']=out['uri'].udf['Normalized conc. (nM)']
-            obj['src_fc'] = inp['uri'].location[0].name
-            obj['src_fc_id'] = inp['uri'].location[0].id
-            obj['src_well'] = inp['uri'].location[1]
-            obj['dst_fc'] = out['uri'].location[0].id
-            obj['dst_well'] = out['uri'].location[1]
+            obj["src_fc"] = inp["uri"].location[0].name
+            obj["src_fc_id"] = inp["uri"].location[0].id
+            obj["src_well"] = inp["uri"].location[1]
+            obj["dst_fc"] = out["uri"].location[0].id
+            obj["dst_well"] = out["uri"].location[1]
             # For Genologics format compability:
-            if obj['name'] in samples_volumes:
-                obj['vol'] = samples_volumes[obj['name']]
+            if obj["name"] in samples_volumes:
+                obj["vol"] = samples_volumes[obj["name"]]
             # Try to match container ID first then name:
-            elif obj['src_fc_id'] in samples_volumes:
-                obj['vol'] = samples_volumes[obj['src_fc_id']][obj['src_well']]
-            elif "Volume (ul)" in inp['uri'].udf:
-                obj['vol']=inp['uri'].udf["Volume (ul)"]
+            elif obj["src_fc_id"] in samples_volumes:
+                obj["vol"] = samples_volumes[obj["src_fc_id"]][obj["src_well"]]
+            elif "Volume (ul)" in inp["uri"].udf:
+                obj["vol"] = inp["uri"].udf["Volume (ul)"]
             else:
                 try:
-                    obj['vol'] = samples_volumes[obj['src_fc']][obj['src_well']]
+                    obj["vol"] = samples_volumes[obj["src_fc"]][obj["src_well"]]
                 except KeyError:
-                    obj['vol'] = None
-                    log.append("Unable to find previous volume for {}".format(obj["name"]))
+                    obj["vol"] = None
+                    log.append(
+                        "Unable to find previous volume for {}".format(obj["name"])
+                    )
 
             data.append(obj)
 
     return data
+
 
 """ LAZY WAY
  Just divide the total with the number of samples, it is implied that the final
@@ -154,6 +161,7 @@ def make_datastructure(currentStep, lims, log):
 
 def lazy_volumes(samples, final_vol):
     return [final_vol / len(samples) for s in samples]
+
 
 """ OTHER WAY
  Iteratively reduce the smallest input volume until we are close to the desired
@@ -167,7 +175,6 @@ def optimize_volumes(samples, final_vol, limit_vol=2):
     # Create a list we can sort to get the min/max values:
     l = [(s["conc"] * s["vol"], s["conc"], s["vol"]) for s in samples]
     # Find the min/max values by sorting on the different values:
-    min_conc = sorted(l, key=lambda x: x[1])[0][1]  # unused
     max_conc = sorted(l, key=lambda x: x[1])[-1][1]
     min_vol = sorted(l, key=lambda x: x[2])[0][2]
     # The volume of the input with lowest amount:
@@ -197,8 +204,8 @@ def compute_transfer_volume(currentStep, lims, log):
     data = make_datastructure(currentStep, lims, log)
     returndata = []
     for pool in currentStep.all_outputs():
-        if pool.type == 'Analyte':
-            valid_inputs = [x for x in data if x['pool_id'] == pool.id]
+        if pool.type == "Analyte":
+            valid_inputs = [x for x in data if x["pool_id"] == pool.id]
             # Set the output conc of the pool and also get the "desired" pool
             # volume, which is which?
             final_vol = float(pool.udf["Final Volume (uL)"])
@@ -208,19 +215,27 @@ def compute_transfer_volume(currentStep, lims, log):
             if all(s["conc"] == conc for s in valid_inputs):
                 vols = lazy_volumes(valid_inputs, final_vol)
                 if sum(vols) > MAX_WARNING_VOLUME:
-                    log.append("ERROR: Total volume of pool {} is too high: {}. Redo the calculations manually!".format(pool.name, sum(vols)))
-                pool.udf['Normalized conc. (nM)'] = conc
+                    log.append(
+                        "ERROR: Total volume of pool {} is too high: {}. Redo the calculations manually!".format(
+                            pool.name, sum(vols)
+                        )
+                    )
+                pool.udf["Normalized conc. (nM)"] = conc
             else:
                 vols = optimize_volumes(valid_inputs, final_vol, MIN_WARNING_VOLUME)
                 # Calculate and add the theoretical pool conc:
                 if sum(vols) > MAX_WARNING_VOLUME:
-                    log.append("ERROR: Total volume of pool {} is too high: {}. Redo the calculations manually!".format(pool.name, sum(vols)))
+                    log.append(
+                        "ERROR: Total volume of pool {} is too high: {}. Redo the calculations manually!".format(
+                            pool.name, sum(vols)
+                        )
+                    )
                 z = list(zip([s["conc"] for s in valid_inputs], vols))
-                v = (sum(x[0] * x[1] for x in z) / sum(vols))
-                pool.udf['Normalized conc. (nM)'] = v
+                v = sum(x[0] * x[1] for x in z) / sum(vols)
+                pool.udf["Normalized conc. (nM)"] = v
             pool.put()
             for s, vol in zip(valid_inputs, vols):
-                s['vol_to_take'] = vol
+                s["vol_to_take"] = vol
                 returndata.append(s)
 
     return returndata
@@ -229,17 +244,21 @@ def compute_transfer_volume(currentStep, lims, log):
 def aliquot_fixed_volume(currentStep, lims, volume, log):
     data = []
     for inp, out in currentStep.input_output_maps:
-        if out['output-type'] == 'ResultFile':
+        if out["output-type"] == "ResultFile":
             obj = {}
-            obj['src_fc'] = inp['uri'].location[0].name.replace(',','_').replace(' ','_')
-            obj['src_fc_id'] = inp['uri'].location[0].id
-            obj['src_well'] = inp['uri'].location[1]
-            obj['dst_fc'] = out['uri'].location[0].name.replace(',','_').replace(' ','_')
-            obj['dst_fc_id'] = out['uri'].location[0].id
-            obj['dst_well'] = out['uri'].location[1]
-            obj['vol'] = volume
+            obj["src_fc"] = (
+                inp["uri"].location[0].name.replace(",", "_").replace(" ", "_")
+            )
+            obj["src_fc_id"] = inp["uri"].location[0].id
+            obj["src_well"] = inp["uri"].location[1]
+            obj["dst_fc"] = (
+                out["uri"].location[0].name.replace(",", "_").replace(" ", "_")
+            )
+            obj["dst_fc_id"] = out["uri"].location[0].id
+            obj["dst_well"] = out["uri"].location[1]
+            obj["vol"] = volume
             data.append(obj)
-    data = sorted(data, key=lambda k: (k['src_fc_id'], k['src_well']))
+    data = sorted(data, key=lambda k: (k["src_fc_id"], k["src_well"]))
     return data
 
 
@@ -247,34 +266,33 @@ def prepooling(currentStep, lims):
     log = []
 
     if zika_utils.verify_step(
-        currentStep,
-        targets = [('', 'Library Pooling (RAD-seq) v1.0')]
+        currentStep, targets=[("", "Library Pooling (RAD-seq) v1.0")]
     ):
         zika_methods.pool(
             currentStep=currentStep,
             lims=lims,
-            udfs = {
+            udfs={
                 "target_amt": "Amount for prep (ng)",
                 "target_vol": "Final Volume (uL)",
                 "target_conc": None,
                 "final_amt": "Amount for prep (ng)",
                 "final_vol": "Final Volume (uL)",
-                "final_conc": None
-            }
+                "final_conc": None,
+            },
         )
 
     elif currentStep.instrument.name == "Zika":
         zika_methods.pool(
             currentStep=currentStep,
             lims=lims,
-            udfs = {
+            udfs={
                 "target_amt": None,
                 "target_vol": "Final Volume (uL)",
                 "target_conc": "Pool Conc. (nM)",
                 "final_amt": None,
                 "final_vol": "Final Volume (uL)",
-                "final_conc": "Pool Conc. (nM)"
-            }
+                "final_conc": "Pool Conc. (nM)",
+            },
         )
 
     else:
@@ -282,20 +300,38 @@ def prepooling(currentStep, lims):
         data = compute_transfer_volume(currentStep, lims, log)
         with open("bravo.csv", "w") as csvContext:
             for s in data:
-                if s['vol_to_take'] > MAX_WARNING_VOLUME:
-                    log.append("Volume for sample {} is above {}, redo the calculations manually".format(MAX_WARNING_VOLUME, s['name']))
-                if s['vol_to_take'] < MIN_WARNING_VOLUME:
-                    log.append("Volume for sample {} is below {}, redo the calculations manually".format(MIN_WARNING_VOLUME, s['name']))
-                csvContext.write("{0},{1},{2},{3},{4}\n".format(s['src_fc_id'], s['src_well'], s['vol_to_take'], s['dst_fc'], s['dst_well']))
+                if s["vol_to_take"] > MAX_WARNING_VOLUME:
+                    log.append(
+                        "Volume for sample {} is above {}, redo the calculations manually".format(
+                            MAX_WARNING_VOLUME, s["name"]
+                        )
+                    )
+                if s["vol_to_take"] < MIN_WARNING_VOLUME:
+                    log.append(
+                        "Volume for sample {} is below {}, redo the calculations manually".format(
+                            MIN_WARNING_VOLUME, s["name"]
+                        )
+                    )
+                csvContext.write(
+                    "{},{},{},{},{}\n".format(
+                        s["src_fc_id"],
+                        s["src_well"],
+                        s["vol_to_take"],
+                        s["dst_fc"],
+                        s["dst_well"],
+                    )
+                )
         if log:
             with open("bravo.log", "w") as logContext:
                 logContext.write("\n".join(log))
 
         df = pd.read_csv("bravo.csv", header=None)
-        df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
-        df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
-        df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
-        df.to_csv('bravo.csv', header=False, index=False)
+        df["dest_row"] = df.apply(lambda row: row[4].split(":")[0], axis=1)
+        df["dest_col"] = df.apply(lambda row: int(row[4].split(":")[1]), axis=1)
+        df = df.sort_values(["dest_col", "dest_row"]).drop(
+            ["dest_row", "dest_col"], axis=1
+        )
+        df.to_csv("bravo.csv", header=False, index=False)
 
         for out in currentStep.all_outputs():
             # attach the csv file and the log file
@@ -316,16 +352,20 @@ def setup_qpcr(currentStep, lims):
     data = aliquot_fixed_volume(currentStep, lims, MIN_WARNING_VOLUME, log)
     with open("bravo.csv", "w") as csvContext:
         for s in data:
-            csvContext.write("{0},{1},{2},{3},{4}\n".format(s['src_fc_id'], s['src_well'], s['vol'], s['dst_fc'], s['dst_well']))
+            csvContext.write(
+                "{},{},{},{},{}\n".format(
+                    s["src_fc_id"], s["src_well"], s["vol"], s["dst_fc"], s["dst_well"]
+                )
+            )
     if log:
         with open("bravo.log", "w") as logContext:
             logContext.write("\n".join(log))
 
     df = pd.read_csv("bravo.csv", header=None)
-    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
-    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
-    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
-    df.to_csv('bravo.csv', header=False, index=False)
+    df["dest_row"] = df.apply(lambda row: row[4].split(":")[0], axis=1)
+    df["dest_col"] = df.apply(lambda row: int(row[4].split(":")[1]), axis=1)
+    df = df.sort_values(["dest_col", "dest_row"]).drop(["dest_row", "dest_col"], axis=1)
+    df.to_csv("bravo.csv", header=False, index=False)
 
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
@@ -342,45 +382,43 @@ def setup_qpcr(currentStep, lims):
 
 
 def default_bravo(lims, currentStep, with_total_vol=True):
-
     # Re-route to Zika
     if zika_utils.verify_step(
         currentStep,
-        targets = [
-            ('SMARTer Pico RNA', "Setup Workset/Plate"),
-            ("QIAseq miRNA",     "Setup Workset/Plate"),
-        ]
-        ):
+        targets=[
+            ("SMARTer Pico RNA", "Setup Workset/Plate"),
+            ("QIAseq miRNA", "Setup Workset/Plate"),
+        ],
+    ):
         zika_methods.norm(
             currentStep=currentStep,
             lims=lims,
-            udfs = {
+            udfs={
                 "target_amt": "Amount for prep (ng)",
                 "target_vol": "Total Volume (uL)",
                 "target_conc": None,
                 "final_amt": "Amount taken from plate (ng)",
                 "final_vol": "Total Volume (uL)",
-                "final_conc": None
-            }
+                "final_conc": None,
+            },
         )
     elif zika_utils.verify_step(
-        currentStep,
-        targets = [("Amplicon", "Setup Workset/Plate")]
-        ):
+        currentStep, targets=[("Amplicon", "Setup Workset/Plate")]
+    ):
         zika_methods.norm(
             currentStep=currentStep,
             lims=lims,
             # Use lower minimum pipetting volume and customer metrics
             zika_min_vol=0.1,
             use_customer_metrics=True,
-            udfs = {
+            udfs={
                 "target_amt": "Amount for prep (ng)",
                 "target_vol": "Total Volume (uL)",
                 "target_conc": None,
                 "final_amt": "Amount taken from plate (ng)",
                 "final_vol": "Total Volume (uL)",
-                "final_conc": None
-            }
+                "final_conc": None,
+            },
         )
 
     elif currentStep.instrument.name == "Zika":
@@ -394,42 +432,93 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             with open("bravo.log", "w") as logContext:
                 # working directly with the map allows easier input/output handling
                 for art_tuple in currentStep.input_output_maps:
-                # filter out result files
-                    if art_tuple[0]['uri'].type == 'Analyte' and art_tuple[1]['uri'].type == 'Analyte':
-                        source_fc = art_tuple[0]['uri'].location[0].name
-                        source_well = art_tuple[0]['uri'].location[1]
-                        dest_fc = art_tuple[1]['uri'].location[0].id
-                        dest_well = art_tuple[1]['uri'].location[1]
-                        dest_fc_name = art_tuple[1]['uri'].location[0].name
+                    # filter out result files
+                    if (
+                        art_tuple[0]["uri"].type == "Analyte"
+                        and art_tuple[1]["uri"].type == "Analyte"
+                    ):
+                        source_fc = art_tuple[0]["uri"].location[0].name
+                        source_well = art_tuple[0]["uri"].location[1]
+                        dest_fc = art_tuple[1]["uri"].location[0].id
+                        dest_well = art_tuple[1]["uri"].location[1]
+                        dest_fc_name = art_tuple[1]["uri"].location[0].name
                         dest_plate.append(dest_fc_name)
                         if with_total_vol:
-                            if art_tuple[1]['uri'].udf.get("Total Volume (uL)"):
-                                art_workflows, volume, final_volume, amount_for_prep, amount_taken_from_plate, total_volume = calc_vol(art_tuple, logContext, checkTheLog)
+                            if art_tuple[1]["uri"].udf.get("Total Volume (uL)"):
+                                (
+                                    art_workflows,
+                                    volume,
+                                    final_volume,
+                                    amount_for_prep,
+                                    amount_taken_from_plate,
+                                    total_volume,
+                                ) = calc_vol(art_tuple, logContext, checkTheLog)
                                 # Update Amount for prep (ng), Total Volume (uL) and Amount taken from plate (ng) in LIMS
-                                if not any(x == '#ERROR#' for x in [volume, final_volume, amount_for_prep, amount_taken_from_plate, total_volume]):
-                                    art_tuple[1]['uri'].udf['Amount for prep (ng)'] = float(amount_for_prep)
-                                    art_tuple[1]['uri'].udf['Total Volume (uL)'] = float(final_volume)
-                                    art_tuple[1]['uri'].udf['Amount taken from plate (ng)'] = float(amount_taken_from_plate)
+                                if not any(
+                                    x == "#ERROR#"
+                                    for x in [
+                                        volume,
+                                        final_volume,
+                                        amount_for_prep,
+                                        amount_taken_from_plate,
+                                        total_volume,
+                                    ]
+                                ):
+                                    art_tuple[1]["uri"].udf[
+                                        "Amount for prep (ng)"
+                                    ] = float(amount_for_prep)
+                                    art_tuple[1]["uri"].udf[
+                                        "Total Volume (uL)"
+                                    ] = float(final_volume)
+                                    art_tuple[1]["uri"].udf[
+                                        "Amount taken from plate (ng)"
+                                    ] = float(amount_taken_from_plate)
                                     art_tuple[1]["uri"].put()
-                                csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, volume, dest_fc, dest_well, final_volume))
+                                csvContext.write(
+                                    "{},{},{},{},{},{}\n".format(
+                                        source_fc,
+                                        source_well,
+                                        volume,
+                                        dest_fc,
+                                        dest_well,
+                                        final_volume,
+                                    )
+                                )
                             else:
-                                logContext.write("No Total Volume found for sample {0}\n".format(art_tuple[0]['uri'].samples[0].name))
+                                logContext.write(
+                                    "No Total Volume found for sample {}\n".format(
+                                        art_tuple[0]["uri"].samples[0].name
+                                    )
+                                )
                                 checkTheLog[0] = True
                         else:
-                            art_workflows, volume, final_volume, amount_for_prep, amount_taken_from_plate, total_volume = calc_vol(art_tuple, logContext, checkTheLog)
-                            csvContext.write("{0},{1},{2},{3},{4}\n".format(source_fc, source_well, volume, dest_fc, dest_well))
+                            (
+                                art_workflows,
+                                volume,
+                                final_volume,
+                                amount_for_prep,
+                                amount_taken_from_plate,
+                                total_volume,
+                            ) = calc_vol(art_tuple, logContext, checkTheLog)
+                            csvContext.write(
+                                "{},{},{},{},{}\n".format(
+                                    source_fc, source_well, volume, dest_fc, dest_well
+                                )
+                            )
 
         df = pd.read_csv("bravo.csv", header=None)
-        df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
-        df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
-        df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
-        df.to_csv('bravo.csv', header=False, index=False)
+        df["dest_row"] = df.apply(lambda row: row[4].split(":")[0], axis=1)
+        df["dest_col"] = df.apply(lambda row: int(row[4].split(":")[1]), axis=1)
+        df = df.sort_values(["dest_col", "dest_row"]).drop(
+            ["dest_row", "dest_col"], axis=1
+        )
+        df.to_csv("bravo.csv", header=False, index=False)
 
         # For now only one output plate is supported:
         if len(list(set(dest_plate))) == 1:
             dest_plate_name = list(set(dest_plate))[0]
-            os.rename("bravo.csv", "{}_bravo.csv".format(dest_plate_name))
-            os.rename("bravo.log", "{}_bravo.log".format(dest_plate_name))
+            os.rename("bravo.csv", f"{dest_plate_name}_bravo.csv")
+            os.rename("bravo.log", f"{dest_plate_name}_bravo.log")
         else:
             sys.stderr.write("ERROR: Multiple output plates!\n")
             sys.exit(2)
@@ -439,11 +528,11 @@ def default_bravo(lims, currentStep, with_total_vol=True):
             if out.name == "EPP Generated Bravo CSV File":
                 for f in out.files:
                     lims.request_session.delete(f.uri)
-                lims.upload_new_file(out, "{}_bravo.csv".format(dest_plate_name))
+                lims.upload_new_file(out, f"{dest_plate_name}_bravo.csv")
             if out.name == "Bravo Log":
                 for f in out.files:
                     lims.request_session.delete(f.uri)
-                lims.upload_new_file(out, "{}_bravo.log".format(dest_plate_name))
+                lims.upload_new_file(out, f"{dest_plate_name}_bravo.log")
         if checkTheLog[0]:
             # to get an error display in the lims, you need a non-zero exit code AND a message in STDERR
             sys.stderr.write("Errors were met, please check the Log file\n")
@@ -455,95 +544,246 @@ def default_bravo(lims, currentStep, with_total_vol=True):
 def dilution(currentStep):
     checkTheLog = [False]
     # Read in the presets of minimum required conc for setup workset, maximum conc for dilution and minimum volume for dilution
-    if "SMARTer Pico RNA" in currentStep.input_output_maps[0][0]['uri'].workflow_stages[0].workflow.name:
-        preset = Dilution_preset['Smarter pico']
+    if (
+        "SMARTer Pico RNA"
+        in currentStep.input_output_maps[0][0]["uri"].workflow_stages[0].workflow.name
+    ):
+        preset = Dilution_preset["Smarter pico"]
     # Use the values set in the step UDFs; if not set, use the default values
-    min_required_conc = currentStep.udf['Minimum required conc for workset (ng/ul)'] if currentStep.udf['Minimum required conc for workset (ng/ul)'] else preset[0]
-    max_conc_for_dilution = currentStep.udf['Maximum conc for dilution (ng/ul)'] if currentStep.udf['Maximum conc for dilution (ng/ul)'] else preset[1]
-    min_vol_for_dilution = currentStep.udf['Minimum volume for dilution (ul)'] if currentStep.udf['Minimum volume for dilution (ul)'] else preset[2]
+    min_required_conc = (
+        currentStep.udf["Minimum required conc for workset (ng/ul)"]
+        if currentStep.udf["Minimum required conc for workset (ng/ul)"]
+        else preset[0]
+    )
+    max_conc_for_dilution = (
+        currentStep.udf["Maximum conc for dilution (ng/ul)"]
+        if currentStep.udf["Maximum conc for dilution (ng/ul)"]
+        else preset[1]
+    )
+    min_vol_for_dilution = (
+        currentStep.udf["Minimum volume for dilution (ul)"]
+        if currentStep.udf["Minimum volume for dilution (ul)"]
+        else preset[2]
+    )
     with open("bravo.csv", "w") as csvContext:
         with open("bravo.log", "w") as logContext:
             # working directly with the map allows easier input/output handling
             for art_tuple in currentStep.input_output_maps:
-            # filter out result files
-                if art_tuple[0]['uri'].type == 'Analyte' and art_tuple[1]['uri'].type == 'Analyte':
-                    source_fc = art_tuple[0]['uri'].location[0].name
-                    source_well = art_tuple[0]['uri'].location[1]
-                    dest_fc = art_tuple[1]['uri'].location[0].id
-                    dest_well = art_tuple[1]['uri'].location[1]
+                # filter out result files
+                if (
+                    art_tuple[0]["uri"].type == "Analyte"
+                    and art_tuple[1]["uri"].type == "Analyte"
+                ):
+                    source_fc = art_tuple[0]["uri"].location[0].name
+                    source_well = art_tuple[0]["uri"].location[1]
+                    dest_fc = art_tuple[1]["uri"].location[0].id
+                    dest_well = art_tuple[1]["uri"].location[1]
                     try:
                         # Only ng/ul or ng/uL are supported
-                        assert art_tuple[0]['uri'].udf['Conc. Units'] in ["ng/ul", "ng/uL"]
+                        assert art_tuple[0]["uri"].udf["Conc. Units"] in [
+                            "ng/ul",
+                            "ng/uL",
+                        ]
                         # Fill in all necessary UDFs
-                        art_tuple[1]['uri'].udf['Concentration'] = art_tuple[0]['uri'].udf['Concentration']
-                        art_tuple[1]['uri'].udf['Conc. Units'] = art_tuple[0]['uri'].udf['Conc. Units']
+                        art_tuple[1]["uri"].udf["Concentration"] = art_tuple[0][
+                            "uri"
+                        ].udf["Concentration"]
+                        art_tuple[1]["uri"].udf["Conc. Units"] = art_tuple[0][
+                            "uri"
+                        ].udf["Conc. Units"]
                         # Case that sample concentration lower than the minimum required conc for setup workset
-                        if art_tuple[1]['uri'].udf['Concentration'] < min_required_conc:
-                            if art_tuple[0]['uri'].udf['Volume (ul)'] >= min_vol_for_dilution:
-                                art_tuple[1]['uri'].udf['Volume to take (uL)'] = min_vol_for_dilution
-                                art_tuple[1]['uri'].udf['Final Concentration'] = art_tuple[1]['uri'].udf['Concentration']
-                                art_tuple[1]['uri'].udf['Final Volume (uL)'] = min_vol_for_dilution
-                                logContext.write("WARN : Sample {0} located {1} {2} has a LOWER conc than {3}. Take {4} ul directly into the dilution plate.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],min_required_conc,min_vol_for_dilution))
+                        if art_tuple[1]["uri"].udf["Concentration"] < min_required_conc:
+                            if (
+                                art_tuple[0]["uri"].udf["Volume (ul)"]
+                                >= min_vol_for_dilution
+                            ):
+                                art_tuple[1]["uri"].udf[
+                                    "Volume to take (uL)"
+                                ] = min_vol_for_dilution
+                                art_tuple[1]["uri"].udf[
+                                    "Final Concentration"
+                                ] = art_tuple[1]["uri"].udf["Concentration"]
+                                art_tuple[1]["uri"].udf[
+                                    "Final Volume (uL)"
+                                ] = min_vol_for_dilution
+                                logContext.write(
+                                    "WARN : Sample {} located {} {} has a LOWER conc than {}. Take {} ul directly into the dilution plate.\n".format(
+                                        art_tuple[1]["uri"].samples[0].name,
+                                        art_tuple[0]["uri"].location[0].name,
+                                        art_tuple[0]["uri"].location[1],
+                                        min_required_conc,
+                                        min_vol_for_dilution,
+                                    )
+                                )
                             else:
-                                art_tuple[1]['uri'].udf['Volume to take (uL)'] = 0
-                                art_tuple[1]['uri'].udf['Final Concentration'] = 0
-                                art_tuple[1]['uri'].udf['Final Volume (uL)'] = 0
-                                logContext.write("ERROR : Sample {0} located {1} {2} has a LOWER conc than {3} and total volume less than {4} ul. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],min_required_conc,min_vol_for_dilution))
+                                art_tuple[1]["uri"].udf["Volume to take (uL)"] = 0
+                                art_tuple[1]["uri"].udf["Final Concentration"] = 0
+                                art_tuple[1]["uri"].udf["Final Volume (uL)"] = 0
+                                logContext.write(
+                                    "ERROR : Sample {} located {} {} has a LOWER conc than {} and total volume less than {} ul. It is skipped in dilution.\n".format(
+                                        art_tuple[1]["uri"].samples[0].name,
+                                        art_tuple[0]["uri"].location[0].name,
+                                        art_tuple[0]["uri"].location[1],
+                                        min_required_conc,
+                                        min_vol_for_dilution,
+                                    )
+                                )
                         # Case that sample concentration higher than the maximum conc for dilution
-                        elif art_tuple[1]['uri'].udf['Concentration'] > max_conc_for_dilution:
-                            art_tuple[1]['uri'].udf['Volume to take (uL)'] = 0
-                            art_tuple[1]['uri'].udf['Final Concentration'] = 0
-                            art_tuple[1]['uri'].udf['Final Volume (uL)'] = 0
-                            logContext.write("ERROR : Sample {0} located {1} {2} has a HIGHER conc than {3}. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],max_conc_for_dilution))
+                        elif (
+                            art_tuple[1]["uri"].udf["Concentration"]
+                            > max_conc_for_dilution
+                        ):
+                            art_tuple[1]["uri"].udf["Volume to take (uL)"] = 0
+                            art_tuple[1]["uri"].udf["Final Concentration"] = 0
+                            art_tuple[1]["uri"].udf["Final Volume (uL)"] = 0
+                            logContext.write(
+                                "ERROR : Sample {} located {} {} has a HIGHER conc than {}. It is skipped in dilution.\n".format(
+                                    art_tuple[1]["uri"].samples[0].name,
+                                    art_tuple[0]["uri"].location[0].name,
+                                    art_tuple[0]["uri"].location[1],
+                                    max_conc_for_dilution,
+                                )
+                            )
                         # Case that dilution will be done with 2uL sample
-                        elif art_tuple[1]['uri'].udf['Concentration'] <= max_conc_for_dilution and art_tuple[1]['uri'].udf['Concentration'] > float(min_required_conc*min_vol_for_dilution)/MIN_WARNING_VOLUME:
-                            if art_tuple[0]['uri'].udf['Volume (ul)'] >= MIN_WARNING_VOLUME:
+                        elif (
+                            art_tuple[1]["uri"].udf["Concentration"]
+                            <= max_conc_for_dilution
+                            and art_tuple[1]["uri"].udf["Concentration"]
+                            > float(min_required_conc * min_vol_for_dilution)
+                            / MIN_WARNING_VOLUME
+                        ):
+                            if (
+                                art_tuple[0]["uri"].udf["Volume (ul)"]
+                                >= MIN_WARNING_VOLUME
+                            ):
                                 final_conc = min_required_conc
-                                step = 0.25
-                                while final_conc <= max_conc_for_dilution*MIN_WARNING_VOLUME/MAX_WARNING_VOLUME:
-                                    if float(art_tuple[1]['uri'].udf['Concentration']*MIN_WARNING_VOLUME/final_conc) <= MAX_WARNING_VOLUME:
-                                        art_tuple[1]['uri'].udf['Volume to take (uL)'] = MIN_WARNING_VOLUME
-                                        art_tuple[1]['uri'].udf['Final Concentration'] = final_conc
-                                        art_tuple[1]['uri'].udf['Final Volume (uL)'] = float(art_tuple[1]['uri'].udf['Concentration']*MIN_WARNING_VOLUME/final_conc)
-                                        logContext.write("INFO : Sample {0} looks okay.\n".format(art_tuple[1]['uri'].samples[0].name))
+                                while (
+                                    final_conc
+                                    <= max_conc_for_dilution
+                                    * MIN_WARNING_VOLUME
+                                    / MAX_WARNING_VOLUME
+                                ):
+                                    if (
+                                        float(
+                                            art_tuple[1]["uri"].udf["Concentration"]
+                                            * MIN_WARNING_VOLUME
+                                            / final_conc
+                                        )
+                                        <= MAX_WARNING_VOLUME
+                                    ):
+                                        art_tuple[1]["uri"].udf[
+                                            "Volume to take (uL)"
+                                        ] = MIN_WARNING_VOLUME
+                                        art_tuple[1]["uri"].udf[
+                                            "Final Concentration"
+                                        ] = final_conc
+                                        art_tuple[1]["uri"].udf[
+                                            "Final Volume (uL)"
+                                        ] = float(
+                                            art_tuple[1]["uri"].udf["Concentration"]
+                                            * MIN_WARNING_VOLUME
+                                            / final_conc
+                                        )
+                                        logContext.write(
+                                            "INFO : Sample {} looks okay.\n".format(
+                                                art_tuple[1]["uri"].samples[0].name
+                                            )
+                                        )
                                         break
                                     else:
-                                        final_conc = final_conc+0.25
+                                        final_conc = final_conc + 0.25
                             else:
-                                art_tuple[1]['uri'].udf['Volume to take (uL)'] = 0
-                                art_tuple[1]['uri'].udf['Final Concentration'] = 0
-                                art_tuple[1]['uri'].udf['Final Volume (uL)'] = 0
-                                logContext.write("ERROR : Sample {0} located {1} {2} has a LOWER volume than {3} ul. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],MIN_WARNING_VOLUME))
+                                art_tuple[1]["uri"].udf["Volume to take (uL)"] = 0
+                                art_tuple[1]["uri"].udf["Final Concentration"] = 0
+                                art_tuple[1]["uri"].udf["Final Volume (uL)"] = 0
+                                logContext.write(
+                                    "ERROR : Sample {} located {} {} has a LOWER volume than {} ul. It is skipped in dilution.\n".format(
+                                        art_tuple[1]["uri"].samples[0].name,
+                                        art_tuple[0]["uri"].location[0].name,
+                                        art_tuple[0]["uri"].location[1],
+                                        MIN_WARNING_VOLUME,
+                                    )
+                                )
                         # Case that more than 2uL sample is needed for dilution
-                        elif art_tuple[1]['uri'].udf['Concentration'] <= float(min_required_conc*min_vol_for_dilution)/MIN_WARNING_VOLUME and art_tuple[1]['uri'].udf['Concentration'] >= min_required_conc:
-                            if art_tuple[0]['uri'].udf['Volume (ul)'] >= float(min_required_conc*min_vol_for_dilution/art_tuple[1]['uri'].udf['Concentration']):
-                                art_tuple[1]['uri'].udf['Volume to take (uL)'] = float(min_required_conc*min_vol_for_dilution/art_tuple[1]['uri'].udf['Concentration'])
-                                art_tuple[1]['uri'].udf['Final Concentration'] = min_required_conc
-                                art_tuple[1]['uri'].udf['Final Volume (uL)'] = min_vol_for_dilution
-                                logContext.write("INFO : Sample {0} looks okay.\n".format(art_tuple[1]['uri'].samples[0].name))
+                        elif (
+                            art_tuple[1]["uri"].udf["Concentration"]
+                            <= float(min_required_conc * min_vol_for_dilution)
+                            / MIN_WARNING_VOLUME
+                            and art_tuple[1]["uri"].udf["Concentration"]
+                            >= min_required_conc
+                        ):
+                            if art_tuple[0]["uri"].udf["Volume (ul)"] >= float(
+                                min_required_conc
+                                * min_vol_for_dilution
+                                / art_tuple[1]["uri"].udf["Concentration"]
+                            ):
+                                art_tuple[1]["uri"].udf["Volume to take (uL)"] = float(
+                                    min_required_conc
+                                    * min_vol_for_dilution
+                                    / art_tuple[1]["uri"].udf["Concentration"]
+                                )
+                                art_tuple[1]["uri"].udf[
+                                    "Final Concentration"
+                                ] = min_required_conc
+                                art_tuple[1]["uri"].udf[
+                                    "Final Volume (uL)"
+                                ] = min_vol_for_dilution
+                                logContext.write(
+                                    "INFO : Sample {} looks okay.\n".format(
+                                        art_tuple[1]["uri"].samples[0].name
+                                    )
+                                )
                             else:
-                                art_tuple[1]['uri'].udf['Volume to take (uL)'] = 0
-                                art_tuple[1]['uri'].udf['Final Concentration'] = 0
-                                art_tuple[1]['uri'].udf['Final Volume (uL)'] = 0
-                                logContext.write("ERROR : Sample {0} located {1} {2} has a LOWER volume than {3} ul. It is skipped in dilution.\n".format(art_tuple[1]['uri'].samples[0].name,art_tuple[0]['uri'].location[0].name, art_tuple[0]['uri'].location[1],float(min_required_conc*min_vol_for_dilution/art_tuple[1]['uri'].udf['Concentration'])))
+                                art_tuple[1]["uri"].udf["Volume to take (uL)"] = 0
+                                art_tuple[1]["uri"].udf["Final Concentration"] = 0
+                                art_tuple[1]["uri"].udf["Final Volume (uL)"] = 0
+                                logContext.write(
+                                    "ERROR : Sample {} located {} {} has a LOWER volume than {} ul. It is skipped in dilution.\n".format(
+                                        art_tuple[1]["uri"].samples[0].name,
+                                        art_tuple[0]["uri"].location[0].name,
+                                        art_tuple[0]["uri"].location[1],
+                                        float(
+                                            min_required_conc
+                                            * min_vol_for_dilution
+                                            / art_tuple[1]["uri"].udf["Concentration"]
+                                        ),
+                                    )
+                                )
                     except KeyError as e:
-                        logContext.write("ERROR : The input artifact is lacking a field : {0}\n".format(e))
+                        logContext.write(
+                            f"ERROR : The input artifact is lacking a field : {e}\n"
+                        )
                         checkTheLog[0] = True
                     except AssertionError:
-                        logContext.write("ERROR : This script expects the concentration to be in ng/ul or ng/uL, this does not seem to be the case.\n")
+                        logContext.write(
+                            "ERROR : This script expects the concentration to be in ng/ul or ng/uL, this does not seem to be the case.\n"
+                        )
                         checkTheLog[0] = True
                     except ZeroDivisionError:
-                        logContext.write("ERROR: Sample {0} has a concentration of 0\n".format(art_tuple[1]['uri'].samples[0].name))
+                        logContext.write(
+                            "ERROR: Sample {} has a concentration of 0\n".format(
+                                art_tuple[1]["uri"].samples[0].name
+                            )
+                        )
                         checkTheLog[0] = True
 
-                    art_tuple[1]['uri'].put()
-                    csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, art_tuple[1]['uri'].udf['Volume to take (uL)'], dest_fc, dest_well, art_tuple[1]['uri'].udf['Final Volume (uL)']))
+                    art_tuple[1]["uri"].put()
+                    csvContext.write(
+                        "{},{},{},{},{},{}\n".format(
+                            source_fc,
+                            source_well,
+                            art_tuple[1]["uri"].udf["Volume to take (uL)"],
+                            dest_fc,
+                            dest_well,
+                            art_tuple[1]["uri"].udf["Final Volume (uL)"],
+                        )
+                    )
 
     df = pd.read_csv("bravo.csv", header=None)
-    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
-    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
-    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
-    df.to_csv('bravo.csv', header=False, index=False)
+    df["dest_row"] = df.apply(lambda row: row[4].split(":")[0], axis=1)
+    df["dest_col"] = df.apply(lambda row: int(row[4].split(":")[1]), axis=1)
+    df = df.sort_values(["dest_col", "dest_row"]).drop(["dest_row", "dest_col"], axis=1)
+    df.to_csv("bravo.csv", header=False, index=False)
 
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
@@ -573,22 +813,35 @@ def normalization(current_step):
                     src_tot_volume = float(src.udf["Volume (ul)"])
                 except:
                     src_tot_volume = 999999
-                    log.append("WARNING: No volume found for input sample {0}".format(src.samples[0].name))
+                    log.append(
+                        "WARNING: No volume found for input sample {}".format(
+                            src.samples[0].name
+                        )
+                    )
                 try:
                     src_volume = float(dest.udf["Volume to take (uL)"])
                 except:
-                    sys.stderr.write("Field 'Volume to take (uL)' is empty for artifact {0}\n".format(dest.name))
+                    sys.stderr.write(
+                        "Field 'Volume to take (uL)' is empty for artifact {}\n".format(
+                            dest.name
+                        )
+                    )
                     sys.exit(2)
                 if "Concentration" in src.udf:
                     src_conc = src.udf["Concentration"]
                     if src.udf["Conc. Units"] != "nM":
-                        log.append("ERROR: No valid concentration found for sample {0}".format(src.samples[0].name))
+                        log.append(
+                            "ERROR: No valid concentration found for sample {}".format(
+                                src.samples[0].name
+                            )
+                        )
                 elif "Normalized conc. (nM)" in src.udf:
                     src_conc = src.udf["Normalized conc. (nM)"]
                 else:
-                    sys.stderr.write("Non input concentration found for sample {0}\n".format(dest.name))
+                    sys.stderr.write(
+                        f"Non input concentration found for sample {dest.name}\n"
+                    )
                     sys.exit(2)
-
 
                 # Diluted sample:
                 dest_plate = dest.location[0].id
@@ -596,28 +849,51 @@ def normalization(current_step):
                 try:
                     dest_conc = dest.udf["Normalized conc. (nM)"]
                 except:
-                    sys.stderr.write("Field 'Normalized conc. (nM)' is empty for artifact {0}\n".format(dest.name))
+                    sys.stderr.write(
+                        "Field 'Normalized conc. (nM)' is empty for artifact {}\n".format(
+                            dest.name
+                        )
+                    )
                     sys.exit(2)
                 if src_conc < dest_conc:
-                    log.append("ERROR: Too low concentration for sample {0}".format(src.samples[0].name))
+                    log.append(
+                        f"ERROR: Too low concentration for sample {src.samples[0].name}"
+                    )
                 else:
                     # Warn if volume to take > volume available or max volume is
                     # exceeded but still do the calculation:
                     if src_volume > src_tot_volume:
-                        log.append("WARNING: Not enough available volume of sample {0}".format(src.samples[0].name))
+                        log.append(
+                            "WARNING: Not enough available volume of sample {}".format(
+                                src.samples[0].name
+                            )
+                        )
                     final_volume = src_conc * src_volume / dest_conc
                     if final_volume > MAX_WARNING_VOLUME:
-                        log.append("WARNING: Maximum volume exceeded for sample {0}".format(src.samples[0].name))
-                    csv.write("{0},{1},{2},{3},{4},{5}\n".format(src_plate, src_well, src_volume, dest_plate, dest_well, final_volume))
+                        log.append(
+                            "WARNING: Maximum volume exceeded for sample {}".format(
+                                src.samples[0].name
+                            )
+                        )
+                    csv.write(
+                        "{},{},{},{},{},{}\n".format(
+                            src_plate,
+                            src_well,
+                            src_volume,
+                            dest_plate,
+                            dest_well,
+                            final_volume,
+                        )
+                    )
     if log:
         with open("bravo.log", "w") as log_context:
             log_context.write("\n".join(log))
 
     df = pd.read_csv("bravo.csv", header=None)
-    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
-    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
-    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
-    df.to_csv('bravo.csv', header=False, index=False)
+    df["dest_row"] = df.apply(lambda row: row[4].split(":")[0], axis=1)
+    df["dest_col"] = df.apply(lambda row: int(row[4].split(":")[1]), axis=1)
+    df = df.sort_values(["dest_col", "dest_row"]).drop(["dest_row", "dest_col"], axis=1)
+    df.to_csv("bravo.csv", header=False, index=False)
 
     for out in current_step.all_outputs():
         # attach the csv file and the log file
@@ -635,107 +911,150 @@ def normalization(current_step):
 
 def sample_dilution_before_QC(currentStep):
     checkTheLog = [False]
-    mode = currentStep.udf['Mode']
+    mode = currentStep.udf["Mode"]
     with open("bravo.csv", "w") as csvContext:
         with open("bravo.log", "w") as logContext:
             for art_tuple in currentStep.input_output_maps:
-                if art_tuple[1]['output-generation-type'] == 'PerInput':
-                    source_fc = art_tuple[0]['uri'].location[0].name
-                    source_well = art_tuple[0]['uri'].location[1]
-                    dest_fc = art_tuple[1]['uri'].location[0].id
-                    dest_well = art_tuple[1]['uri'].location[1]
-                    submitted_sam = art_tuple[0]['uri'].samples[0]
+                if art_tuple[1]["output-generation-type"] == "PerInput":
+                    source_fc = art_tuple[0]["uri"].location[0].name
+                    source_well = art_tuple[0]["uri"].location[1]
+                    dest_fc = art_tuple[1]["uri"].location[0].id
+                    dest_well = art_tuple[1]["uri"].location[1]
+                    submitted_sam = art_tuple[0]["uri"].samples[0]
                     sample_name = submitted_sam.name
                     # Retrieve the previous aggregate values for concentration and volume. Note that aggregated values have a higher priority than customer values
                     try:
-                        aggregate_conc = art_tuple[0]['uri'].udf['Concentration']
-                        aggregate_vol = art_tuple[0]['uri'].udf['Volume (ul)']
+                        aggregate_conc = art_tuple[0]["uri"].udf["Concentration"]
+                        aggregate_vol = art_tuple[0]["uri"].udf["Volume (ul)"]
                         input_conc = aggregate_conc
                         input_vol = aggregate_vol
                     except KeyError:
-                        logContext.write("WARNING : Sample {0} does not have aggregated values for concentration or volume. Trying with customer values instead.\n".format(sample_name))
+                        logContext.write(
+                            "WARNING : Sample {} does not have aggregated values for concentration or volume. Trying with customer values instead.\n".format(
+                                sample_name
+                            )
+                        )
                         # Retrieve customer values for concentration and volume
                         try:
-                            customer_conc = submitted_sam.udf['Customer Conc']
-                            customer_vol = submitted_sam.udf['Customer Volume']
+                            customer_conc = submitted_sam.udf["Customer Conc"]
+                            customer_vol = submitted_sam.udf["Customer Volume"]
                             input_conc = customer_conc
                             input_vol = customer_vol
                         except KeyError:
-                            logContext.write("ERROR : Sample {0} does not have customer values for concentration or volume. It will be skipped.\n".format(sample_name))
+                            logContext.write(
+                                "ERROR : Sample {} does not have customer values for concentration or volume. It will be skipped.\n".format(
+                                    sample_name
+                                )
+                            )
                             checkTheLog[0] = True
                             continue
 
                     # Volume for the dilution mode
-                    if mode == 'Dilution to a new plate':
+                    if mode == "Dilution to a new plate":
                         # Error when the input volume is lower than the minimum pipetting volume
                         if input_vol < MIN_WARNING_VOLUME:
-                            logContext.write("ERROR : Sample {0} has too little volume for dilution.\n".format(sample_name))
+                            logContext.write(
+                                "ERROR : Sample {} has too little volume for dilution.\n".format(
+                                    sample_name
+                                )
+                            )
                             checkTheLog[0] = True
                             continue
                         # Fetch the set value of volume to take. Otherwise take as little as possible
                         else:
                             try:
-                                vol_taken = art_tuple[1]['uri'].udf['Volume to take (uL)']
+                                vol_taken = art_tuple[1]["uri"].udf[
+                                    "Volume to take (uL)"
+                                ]
                                 if vol_taken > input_vol:
-                                    logContext.write("ERROR : Sample {0} has a volume {1} uL which is not enough for taking {2} uL.\n".format(sample_name, customer_vol, vol_taken))
+                                    logContext.write(
+                                        "ERROR : Sample {} has a volume {} uL which is not enough for taking {} uL.\n".format(
+                                            sample_name, customer_vol, vol_taken
+                                        )
+                                    )
                                     checkTheLog[0] = True
                                     continue
                             except KeyError:
                                 vol_taken = MIN_WARNING_VOLUME
                     # Volume for the aliquotation mode
-                    elif mode == 'Add EB to original plate':
+                    elif mode == "Add EB to original plate":
                         vol_taken = input_vol
 
                     # 1st priority: Aim concentration
                     try:
-                        final_conc = art_tuple[1]['uri'].udf['Final Concentration']
-                        final_vol = input_conc*vol_taken/final_conc
-                        dilution_fold = final_vol/vol_taken
-                        EB_vol = final_vol-vol_taken
+                        final_conc = art_tuple[1]["uri"].udf["Final Concentration"]
+                        final_vol = input_conc * vol_taken / final_conc
+                        dilution_fold = final_vol / vol_taken
+                        EB_vol = final_vol - vol_taken
                     except KeyError:
                         # 2nd priority: Final volume
                         try:
-                            final_vol = art_tuple[1]['uri'].udf['Final Volume (uL)']
-                            final_conc = input_conc*vol_taken/final_vol
-                            dilution_fold = final_vol/vol_taken
-                            EB_vol = final_vol-vol_taken
+                            final_vol = art_tuple[1]["uri"].udf["Final Volume (uL)"]
+                            final_conc = input_conc * vol_taken / final_vol
+                            dilution_fold = final_vol / vol_taken
+                            EB_vol = final_vol - vol_taken
                         except KeyError:
                             # 3rd priority: Dilution fold
                             try:
-                                dilution_fold = art_tuple[1]['uri'].udf['Dilution Fold']
-                                final_vol = vol_taken*dilution_fold
-                                final_conc = input_conc/dilution_fold
-                                EB_vol = final_vol-vol_taken
+                                dilution_fold = art_tuple[1]["uri"].udf["Dilution Fold"]
+                                final_vol = vol_taken * dilution_fold
+                                final_conc = input_conc / dilution_fold
+                                EB_vol = final_vol - vol_taken
                             except KeyError:
-                            # Error when no value is set
-                                logContext.write("ERROR : Sample {0} does not have a preset value.\n".format(sample_name))
+                                # Error when no value is set
+                                logContext.write(
+                                    "ERROR : Sample {} does not have a preset value.\n".format(
+                                        sample_name
+                                    )
+                                )
                                 checkTheLog[0] = True
                                 continue
                     # Whether final volume is higher than the capacity of plate
                     if final_vol <= MAX_WARNING_VOLUME and final_conc <= input_conc:
-                        art_tuple[1]['uri'].udf['Final Concentration'] = final_conc
-                        art_tuple[1]['uri'].udf['Final Volume (uL)'] = final_vol
-                        art_tuple[1]['uri'].udf['Dilution Fold'] = dilution_fold
-                        art_tuple[1]['uri'].udf['Volume to take (uL)'] = vol_taken
-                        art_tuple[1]['uri'].put()
-                        if mode == 'Dilution to a new plate':
-                            csvContext.write("{0},{1},{2},{3},{4},{5}\n".format(source_fc, source_well, vol_taken, dest_fc, dest_well, final_vol))
-                        elif mode == 'Add EB to original plate':
-                            csvContext.write("{0},{1},{2},{3},{4}\n".format('EB_plate', 'A1', EB_vol, source_fc, source_well))
+                        art_tuple[1]["uri"].udf["Final Concentration"] = final_conc
+                        art_tuple[1]["uri"].udf["Final Volume (uL)"] = final_vol
+                        art_tuple[1]["uri"].udf["Dilution Fold"] = dilution_fold
+                        art_tuple[1]["uri"].udf["Volume to take (uL)"] = vol_taken
+                        art_tuple[1]["uri"].put()
+                        if mode == "Dilution to a new plate":
+                            csvContext.write(
+                                "{},{},{},{},{},{}\n".format(
+                                    source_fc,
+                                    source_well,
+                                    vol_taken,
+                                    dest_fc,
+                                    dest_well,
+                                    final_vol,
+                                )
+                            )
+                        elif mode == "Add EB to original plate":
+                            csvContext.write(
+                                "{},{},{},{},{}\n".format(
+                                    "EB_plate", "A1", EB_vol, source_fc, source_well
+                                )
+                            )
                     elif final_vol > MAX_WARNING_VOLUME:
-                        logContext.write("ERROR : Sample {0} will have a dilution higher than max allowed volume {1}.\n".format(sample_name, MAX_WARNING_VOLUME))
+                        logContext.write(
+                            "ERROR : Sample {} will have a dilution higher than max allowed volume {}.\n".format(
+                                sample_name, MAX_WARNING_VOLUME
+                            )
+                        )
                         checkTheLog[0] = True
                         continue
                     elif final_conc > input_conc:
-                        logContext.write("ERROR : Sample {0} will have a final concentration higher than the input concentration {1}.\n".format(sample_name, input_conc))
+                        logContext.write(
+                            "ERROR : Sample {} will have a final concentration higher than the input concentration {}.\n".format(
+                                sample_name, input_conc
+                            )
+                        )
                         checkTheLog[0] = True
                         continue
 
     df = pd.read_csv("bravo.csv", header=None)
-    df['dest_row'] = df.apply(lambda row: row[4].split(':')[0], axis=1)
-    df['dest_col'] = df.apply(lambda row: int(row[4].split(':')[1]), axis=1)
-    df = df.sort_values(['dest_col', 'dest_row']).drop(['dest_row', 'dest_col'], axis=1)
-    df.to_csv('bravo.csv', header=False, index=False)
+    df["dest_row"] = df.apply(lambda row: row[4].split(":")[0], axis=1)
+    df["dest_col"] = df.apply(lambda row: int(row[4].split(":")[1]), axis=1)
+    df = df.sort_values(["dest_col", "dest_row"]).drop(["dest_row", "dest_col"], axis=1)
+    df.to_csv("bravo.csv", header=False, index=False)
 
     for out in currentStep.all_outputs():
         # attach the csv file and the log file
@@ -772,11 +1091,11 @@ def main(lims, args):
         "Library Normalization (NovaSeqXPlus) v1.0",
     ]:
         normalization(currentStep)
-    elif currentStep.type.name == 'Library Pooling (RAD-seq) 1.0':
+    elif currentStep.type.name == "Library Pooling (RAD-seq) 1.0":
         default_bravo(lims, currentStep, False)
-    elif currentStep.type.name == 'Diluting Samples':
+    elif currentStep.type.name == "Diluting Samples":
         dilution(currentStep)
-    elif currentStep.type.name == 'Sample Dilution Before QC':
+    elif currentStep.type.name == "Sample Dilution Before QC":
         sample_dilution_before_QC(currentStep)
     elif currentStep.type.name in [
         "qPCR QC (Library Validation) 4.0",
@@ -790,63 +1109,82 @@ def main(lims, args):
 def calc_vol(art_tuple, logContext, checkTheLog):
     # Fetch workflow name
     art_workflows = []
-    for stage in art_tuple[0]['uri'].workflow_stages_and_statuses:
-        if stage[1] == 'IN_PROGRESS':
+    for stage in art_tuple[0]["uri"].workflow_stages_and_statuses:
+        if stage[1] == "IN_PROGRESS":
             art_workflows.append(stage[0].workflow.name)
-    project = art_tuple[0]['uri'].samples[0].project
     try:
         # not handling different units yet. Might be needed at some point.
-        assert art_tuple[0]['uri'].udf['Conc. Units'] in ["ng/ul", "ng/uL"]
+        assert art_tuple[0]["uri"].udf["Conc. Units"] in ["ng/ul", "ng/uL"]
 
-        amount_for_prep = amount_taken_from_plate = art_tuple[1]['uri'].udf.get('Amount for prep (ng)', 0)
-        total_volume = final_volume = art_tuple[1]['uri'].udf.get('Total Volume (uL)', 0)
+        amount_for_prep = amount_taken_from_plate = art_tuple[1]["uri"].udf.get(
+            "Amount for prep (ng)", 0
+        )
+        total_volume = final_volume = art_tuple[1]["uri"].udf.get(
+            "Total Volume (uL)", 0
+        )
 
-        max_volume_warning = ''
+        max_volume_warning = ""
         if final_volume > MAX_WARNING_VOLUME:
-            max_volume_warning = 'NOTE! Total dilution volume higher than {}!'.format(MAX_WARNING_VOLUME)
+            max_volume_warning = "NOTE! Total dilution volume higher than {}!".format(
+                MAX_WARNING_VOLUME
+            )
 
         try:
-            if art_tuple[0]['uri'].parent_process.type.name == "Diluting Samples":
-                conc = art_tuple[0]['uri'].udf['Final Concentration']
-                org_vol = art_tuple[0]['uri'].udf['Final Volume (uL)']
+            if art_tuple[0]["uri"].parent_process.type.name == "Diluting Samples":
+                conc = art_tuple[0]["uri"].udf["Final Concentration"]
+                org_vol = art_tuple[0]["uri"].udf["Final Volume (uL)"]
             else:
-                conc = art_tuple[0]['uri'].udf['Concentration']
-                org_vol = art_tuple[0]['uri'].udf['Volume (ul)']
+                conc = art_tuple[0]["uri"].udf["Concentration"]
+                org_vol = art_tuple[0]["uri"].udf["Volume (ul)"]
         except AttributeError:
-            conc = art_tuple[0]['uri'].udf['Concentration']
-            org_vol = art_tuple[0]['uri'].udf['Volume (ul)']
+            conc = art_tuple[0]["uri"].udf["Concentration"]
+            org_vol = art_tuple[0]["uri"].udf["Volume (ul)"]
         volume = float(amount_for_prep) / float(conc)
 
         # Case with very low sample volume: take everything or what is needed. Reset amount values and keep the target dilution volume
         if org_vol < MIN_WARNING_VOLUME:
             volume = min(org_vol, volume)
             amount_for_prep = amount_taken_from_plate = volume * conc
-            logContext.write("WARN : Sample {0} located {1} {2} has a LOW original volume : {3}. Take {4}uL sample which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                                                                                                 art_tuple[0]['uri'].location[0].name,
-                                                                                                                                                                                 art_tuple[0]['uri'].location[1],
-                                                                                                                                                                                 "{0:.2f}".format(org_vol),
-                                                                                                                                                                                 "{0:.2f}".format(volume),
-                                                                                                                                                                                 "{0:.2f}".format(amount_taken_from_plate),
-                                                                                                                                                                                 "{0:.2f}".format(final_volume),
-                                                                                                                                                                                 max_volume_warning))
+            logContext.write(
+                "WARN : Sample {} located {} {} has a LOW original volume : {}. Take {}uL sample which is {}ng and dilute in a total volume {}uL. {}\n".format(
+                    art_tuple[1]["uri"].samples[0].name,
+                    art_tuple[0]["uri"].location[0].name,
+                    art_tuple[0]["uri"].location[1],
+                    f"{org_vol:.2f}",
+                    f"{volume:.2f}",
+                    f"{amount_taken_from_plate:.2f}",
+                    f"{final_volume:.2f}",
+                    max_volume_warning,
+                )
+            )
             checkTheLog[0] = True
         # Case with very low pipetting volume due to high sample conc:
         elif volume < MIN_WARNING_VOLUME:
             # When the volume is lower than the MIN_WARNING_VOLUME, set volume to MIN_WARNING_VOLUME, and expand the final dilution volume
-            final_volume = MIN_WARNING_VOLUME*float(conc)/(float(amount_for_prep)/float(total_volume))
-            amount_taken_from_plate = MIN_WARNING_VOLUME*conc
+            final_volume = (
+                MIN_WARNING_VOLUME
+                * float(conc)
+                / (float(amount_for_prep) / float(total_volume))
+            )
+            amount_taken_from_plate = MIN_WARNING_VOLUME * conc
 
             if final_volume > MAX_WARNING_VOLUME:
-                max_volume_warning = 'NOTE! Total dilution volume higher than {}!'.format(MAX_WARNING_VOLUME)
+                max_volume_warning = (
+                    f"NOTE! Total dilution volume higher than {MAX_WARNING_VOLUME}!"
+                )
 
-            logContext.write("WARN : Sample {0} located {1} {2}  has a LOW pippetting volume: {3}. CSV adjusted by taking {4}uL sample which is {5}ng and diluting in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                                                                                                                          art_tuple[0]['uri'].location[0].name,
-                                                                                                                                                                                                          art_tuple[0]['uri'].location[1],
-                                                                                                                                                                                                          "{0:.2f}".format(volume),
-                                                                                                                                                                                                          MIN_WARNING_VOLUME,
-                                                                                                                                                                                                          "{0:.2f}".format(amount_taken_from_plate),
-                                                                                                                                                                                                          "{0:.2f}".format(final_volume),
-                                                                                                                                                                                                          max_volume_warning))
+            logContext.write(
+                "WARN : Sample {} located {} {}  has a LOW pippetting volume: {}. CSV adjusted by taking {}uL sample which is {}ng and diluting in a total volume {}uL. {}\n".format(
+                    art_tuple[1]["uri"].samples[0].name,
+                    art_tuple[0]["uri"].location[0].name,
+                    art_tuple[0]["uri"].location[1],
+                    f"{volume:.2f}",
+                    MIN_WARNING_VOLUME,
+                    f"{amount_taken_from_plate:.2f}",
+                    f"{final_volume:.2f}",
+                    max_volume_warning,
+                )
+            )
             volume = MIN_WARNING_VOLUME
             checkTheLog[0] = True
         # Case that insufficient material is available
@@ -855,85 +1193,113 @@ def calc_vol(art_tuple, logContext, checkTheLog):
             new_volume = min(org_vol, final_volume)
             amount_for_prep = amount_taken_from_plate = new_volume * conc
             if org_vol <= final_volume:
-                logContext.write("WARN : Sample {0} located {1} {2} has a HIGHER volume than the original: {3}uL over {4}uL. Take original volume: {4}uL which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                                                                                                                                             art_tuple[0]['uri'].location[0].name,
-                                                                                                                                                                                                                             art_tuple[0]['uri'].location[1],
-                                                                                                                                                                                                                             "{0:.2f}".format(volume),
-                                                                                                                                                                                                                             "{0:.2f}".format(org_vol),
-                                                                                                                                                                                                                             "{0:.2f}".format(amount_taken_from_plate),
-                                                                                                                                                                                                                             "{0:.2f}".format(final_volume),
-                                                                                                                                                                                                                             max_volume_warning))
+                logContext.write(
+                    "WARN : Sample {0} located {1} {2} has a HIGHER volume than the original: {3}uL over {4}uL. Take original volume: {4}uL which is {5}ng and dilute in a total volume {6}uL. {7}\n".format(
+                        art_tuple[1]["uri"].samples[0].name,
+                        art_tuple[0]["uri"].location[0].name,
+                        art_tuple[0]["uri"].location[1],
+                        f"{volume:.2f}",
+                        f"{org_vol:.2f}",
+                        f"{amount_taken_from_plate:.2f}",
+                        f"{final_volume:.2f}",
+                        max_volume_warning,
+                    )
+                )
             else:
-                logContext.write("WARN : Sample {0} located {1} {2} has a HIGHER volume than the total: {3}uL over {4}uL. Take total volume: {4}uL which is {5}ng. {6}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                                                                                                                  art_tuple[0]['uri'].location[0].name,
-                                                                                                                                                                                  art_tuple[0]['uri'].location[1],
-                                                                                                                                                                                  "{0:.2f}".format(volume),
-                                                                                                                                                                                  "{0:.2f}".format(final_volume),
-                                                                                                                                                                                  "{0:.2f}".format(amount_taken_from_plate),
-                                                                                                                                                                                  max_volume_warning))
+                logContext.write(
+                    "WARN : Sample {0} located {1} {2} has a HIGHER volume than the total: {3}uL over {4}uL. Take total volume: {4}uL which is {5}ng. {6}\n".format(
+                        art_tuple[1]["uri"].samples[0].name,
+                        art_tuple[0]["uri"].location[0].name,
+                        art_tuple[0]["uri"].location[1],
+                        f"{volume:.2f}",
+                        f"{final_volume:.2f}",
+                        f"{amount_taken_from_plate:.2f}",
+                        max_volume_warning,
+                    )
+                )
             volume = new_volume
             checkTheLog[0] = False
         elif max_volume_warning:
             amount_for_prep = amount_taken_from_plate = volume * conc
-            logContext.write("WARN : Sample {0} located {1} {2}: {3}\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                               art_tuple[0]['uri'].location[0].name,
-                                                                               art_tuple[0]['uri'].location[1],
-                                                                               max_volume_warning))
+            logContext.write(
+                "WARN : Sample {} located {} {}: {}\n".format(
+                    art_tuple[1]["uri"].samples[0].name,
+                    art_tuple[0]["uri"].location[0].name,
+                    art_tuple[0]["uri"].location[1],
+                    max_volume_warning,
+                )
+            )
         else:
             amount_for_prep = amount_taken_from_plate = volume * conc
-            logContext.write("INFO : Sample {0} located {1} {2} looks okay.\n".format(art_tuple[1]['uri'].samples[0].name,
-                                                                                      art_tuple[0]['uri'].location[0].name,
-                                                                                      art_tuple[0]['uri'].location[1]))
+            logContext.write(
+                "INFO : Sample {} located {} {} looks okay.\n".format(
+                    art_tuple[1]["uri"].samples[0].name,
+                    art_tuple[0]["uri"].location[0].name,
+                    art_tuple[0]["uri"].location[1],
+                )
+            )
 
-        return (art_workflows, "{0:.2f}".format(volume), "{0:.2f}".format(final_volume), "{0:.2f}".format(amount_for_prep), "{0:.2f}".format(amount_taken_from_plate), "{0:.2f}".format(total_volume))
+        return (
+            art_workflows,
+            f"{volume:.2f}",
+            f"{final_volume:.2f}",
+            f"{amount_for_prep:.2f}",
+            f"{amount_taken_from_plate:.2f}",
+            f"{total_volume:.2f}",
+        )
     except KeyError as e:
-        logContext.write("ERROR : The input artifact is lacking a field : {0}\n".format(e))
+        logContext.write(f"ERROR : The input artifact is lacking a field : {e}\n")
         checkTheLog[0] = True
     except AssertionError:
-        logContext.write("ERROR : This script expects the concentration to be in ng/ul or ng/uL, this does not seem to be the case.\n")
+        logContext.write(
+            "ERROR : This script expects the concentration to be in ng/ul or ng/uL, this does not seem to be the case.\n"
+        )
         checkTheLog[0] = True
     except ZeroDivisionError:
-        logContext.write("ERROR: Sample {0} has a concentration of 0\n".format(art_tuple[1]['uri'].samples[0].name))
+        logContext.write(
+            "ERROR: Sample {} has a concentration of 0\n".format(
+                art_tuple[1]["uri"].samples[0].name
+            )
+        )
         checkTheLog[0] = True
     # this allows to still write the file. Won't be readable though
     return (art_workflows, "#ERROR#", "#ERROR#", "#ERROR#", "#ERROR#", "#ERROR#")
 
 
 def find_barcode(artifact):
-        if len(artifact.samples) == 1 and artifact.reagent_labels:
-            reagent_label_name=artifact.reagent_labels[0].upper()
-            idxs = TENX_PAT.findall(reagent_label_name)
-            if idxs:
-                # Put in tuple with empty string as second index to
-                # match expected type:
-                idxs = (idxs[0], "")
-            else:
-                try:
-                    idxs = IDX_PAT.findall(reagent_label_name)[0]
-                except IndexError:
-                    try:
-                        # we only have the reagent label name.
-                        rt = lims.get_reagent_types(name=reagent_label_name)[0]
-                        idxs = IDX_PAT.findall(rt.sequence)[0]
-                    except:
-                        return ("NoIndex","")
-
-            return idxs
+    if len(artifact.samples) == 1 and artifact.reagent_labels:
+        reagent_label_name = artifact.reagent_labels[0].upper()
+        idxs = TENX_PAT.findall(reagent_label_name)
+        if idxs:
+            # Put in tuple with empty string as second index to
+            # match expected type:
+            idxs = (idxs[0], "")
         else:
-            if artifact == artifact.samples[0].artifact:
-                return None
-            else:
-                next_artifact=None
-                for iomap in artifact.parent_process.input_output_maps:
-                    if iomap[1]['uri'].id == artifact.id:
-                        next_artifact=iomap[0]['uri']
-                return find_barcode(next_artifact)
+            try:
+                idxs = IDX_PAT.findall(reagent_label_name)[0]
+            except IndexError:
+                try:
+                    # we only have the reagent label name.
+                    rt = lims.get_reagent_types(name=reagent_label_name)[0]
+                    idxs = IDX_PAT.findall(rt.sequence)[0]
+                except:
+                    return ("NoIndex", "")
+
+        return idxs
+    else:
+        if artifact == artifact.samples[0].artifact:
+            return None
+        else:
+            next_artifact = None
+            for iomap in artifact.parent_process.input_output_maps:
+                if iomap[1]["uri"].id == artifact.id:
+                    next_artifact = iomap[0]["uri"]
+            return find_barcode(next_artifact)
 
 
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
-    parser.add_argument('--pid',
-                        help='Lims id for current Process')
+    parser.add_argument("--pid", help="Lims id for current Process")
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
