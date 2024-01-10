@@ -84,7 +84,7 @@ def main(lims, args):
 
     except AssertionError as e:
         sys.stderr.write(str(e))
-        sys.exit(1)
+        sys.exit(2)
 
 
 if __name__ == "__main__":

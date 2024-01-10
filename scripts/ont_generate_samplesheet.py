@@ -104,7 +104,7 @@ def main(lims, args):
 
     except AssertionError as e:
         sys.stderr.write(str(e))
-        sys.exit()
+        sys.exit(2)
 
 
 def minknow_samplesheet_default(currentStep):
@@ -510,6 +510,6 @@ if __name__ == "__main__":
     lims.check_version()
     try:
         main(lims, args)
-    except BaseException as e:
+    except Exception as e:
         sys.stderr.write(str(e))
-        sys.exit()
+        sys.exit(2)

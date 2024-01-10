@@ -850,7 +850,7 @@ def main(lims, args):
                     f.write("\n".join(log))
 
                 sys.stderr.write("Errors were met, check the log.")
-                sys.exit(1)
+                sys.exit(2)
 
         else:
             print(content)
