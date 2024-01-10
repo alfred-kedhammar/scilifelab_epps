@@ -165,6 +165,6 @@ if __name__ == "__main__":
     lims.check_version()
     try:
         main(lims, args)
-    except BaseException as e:
+    except Exception as e:
         sys.stderr.write(str(e))
         sys.exit(2)

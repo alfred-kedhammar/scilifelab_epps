@@ -28,7 +28,7 @@ def write_note_to_couch(pid, timestamp, note, lims):
             ),
             note["email"],
         )
-        sys.exit(1)
+        sys.exit(2)
 
     url_string = "https://{}:{}@{}".format(
         config["statusdb"].get("username"),

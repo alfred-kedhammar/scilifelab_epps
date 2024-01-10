@@ -104,7 +104,7 @@ def main(lims, args):
         with open(f"{log_id}_{fc_name}_Error.log", "w") as f:
             f.write("\n".join(log))
         sys.stderr.write("Errors were met, check the log.")
-        sys.exit(1)
+        sys.exit(2)
 
 
 if __name__ == "__main__":
