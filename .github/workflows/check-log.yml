@@ -1,33 +1,23 @@
-name: check-log
+name: Check VERSIONLOG.MD has been updated
 on: [pull_request]
 
-# Cancel if a newer run is started
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  # Check that the VERSIONLOG.MD file has been updated
   check-versionlog:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Check versionlog
-        id: check_versionlog
-        # Use JS w. GitHub API
-        uses: actions/github-script@v5
+      - name: Checkout PR
+        uses: actions/checkout@v3
         with:
-          script: |
-            const {payload} = context;
-            const prNumber = payload.number;
-            const {data: files} = await github.pulls.listFiles({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: prNumber
-            });
-            const versionLogUpdated = files.some(file => file.filename === 'VERSIONLOG.MD');
-            if (!versionLogUpdated) {
-              throw new Error('VERSIONLOG.MD has not been updated');
-            }
+          fetch-depth: 0 # Fetch all history for all branches and tags
+
+      - name: Check for VERSIONLOG.MD changes
+        id: versionlog_check
+        run: |
+          PR_BASE_SHA=$(git merge-base HEAD ${{ github.event.pull_request.base.sha }})
+          FILE_CHANGED=$(git diff --name-only $PR_BASE_SHA HEAD | grep 'VERSIONLOG.MD' || true)
+          if [ -n "$FILE_CHANGED" ]; then
+            echo "VERSIONLOG.MD has been changed."
+          else
+            echo "VERSIONLOG.MD has NOT been changed."
+            exit 1 # Fail the workflow if no changes in VERSIONLOG.MD
+          fi
