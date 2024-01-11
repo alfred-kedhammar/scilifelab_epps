@@ -1,4 +1,4 @@
-name: lint-code
+name: Lint code
 on: [push]
 
 jobs:
