@@ -1,5 +1,5 @@
-name: lint-code
-on: [pull_request, push]
+name: check-log
+on: [pull_request]
 
 # Cancel if a newer run is started
 concurrency:
