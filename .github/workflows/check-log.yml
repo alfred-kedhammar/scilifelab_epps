@@ -7,6 +7,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Check that the VERSIONLOG.MD file has been updated
   check-versionlog:
     runs-on: ubuntu-latest
     steps:
