@@ -16,6 +16,7 @@ jobs:
 
       - name: Check versionlog
         id: check_versionlog
+        # Use JS w. GitHub API
         uses: actions/github-script@v5
         with:
           script: |
