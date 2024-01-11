@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20230111.1
+
+Add CI-check to see versionlog is updated for a given pull request
+
 ## 20231220.1
 
 Fix bug with verify index EPP
