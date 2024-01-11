@@ -1,0 +1,31 @@
+name: lint-code
+on: [pull_request]
+
+# Cancel if a newer run is started
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-versionlog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Check versionlog
+        id: check_versionlog
+        uses: actions/github-script@v5
+        with:
+          script: |
+            const {payload} = context;
+            const prNumber = payload.number;
+            const {data: files} = await github.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+            const versionLogUpdated = files.some(file => file.filename === 'VERSIONLOG.MD');
+            if (!versionLogUpdated) {
+              throw new Error('VERSIONLOG.MD has not been updated');
+            }
