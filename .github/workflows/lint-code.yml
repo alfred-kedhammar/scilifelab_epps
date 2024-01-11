@@ -1,5 +1,5 @@
 name: Lint code
-on: [push]
+on: [push, pull_request]
 
 jobs:
   # Use ruff to check for code style violations
