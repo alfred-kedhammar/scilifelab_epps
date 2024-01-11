@@ -1,4 +1,4 @@
-name: lint-code
+name: check-log
 on: [pull_request]
 
 # Cancel if a newer run is started
