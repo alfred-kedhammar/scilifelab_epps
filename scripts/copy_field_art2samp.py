@@ -65,7 +65,7 @@ def main(lims, args, epp_logger):
                             )
                             test = copy_sesion.copy_udf(changelog_f)
                         else:
-                            pass
+                            test = ''
                     else:
                         copy_sesion = CopyField(
                             artifact, artifact.samples[0], source_udf, dest_udf
