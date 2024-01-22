@@ -19,8 +19,8 @@ Written by Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden
 """
 
 import logging
-import sys
 import re
+import sys
 from argparse import ArgumentParser
 
 from genologics.config import BASEURI, PASSWORD, USERNAME
@@ -56,21 +56,21 @@ def main(lims, args, epp_logger):
             for artifact in artifacts:
                 if source_udf in artifact.udf:
                     correct_artifacts = correct_artifacts + 1
-                    # Special case for copying values from Aggregate QC step
-                    if args.aggregate:
-                        # Only copy for NGI samples and skip controls
-                        if NGISAMPLE_PAT.findall(artifact.samples[0].name):
-                            copy_sesion = CopyField(
-                                artifact, artifact.samples[0].artifact, source_udf, dest_udf
-                            )
-                            test = copy_sesion.copy_udf(changelog_f)
+                    # Special case for copying values from Aggregate QC step;
+                    # Only copy for NGI samples and skip controls
+                    if NGISAMPLE_PAT.findall(artifact.samples[0].name):
+                        if args.aggregate:
+                            art_sample_dest = artifact.samples[0].artifact
                         else:
-                            test = ''
-                    else:
+                            art_sample_dest = artifact.samples[0]
+
                         copy_sesion = CopyField(
-                            artifact, artifact.samples[0], source_udf, dest_udf
+                            artifact, art_sample_dest, source_udf, dest_udf
                         )
                         test = copy_sesion.copy_udf(changelog_f)
+                    else:
+                        test = ''
+
                     if test:
                         no_updated = no_updated + 1
                 else:
