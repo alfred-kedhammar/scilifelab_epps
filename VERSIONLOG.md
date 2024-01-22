@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240122.1
+
+Enable copy_field_art2samp to copy values from Aggregate QC steps
+
 ## 20230111.1
 
 Add CI-check to see versionlog is updated for a given pull request

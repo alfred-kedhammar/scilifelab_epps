@@ -19,6 +19,7 @@ Written by Johannes Alneberg, Science for Life Laboratory, Stockholm, Sweden
 """
 
 import logging
+import re
 import sys
 from argparse import ArgumentParser
 
@@ -27,6 +28,8 @@ from genologics.entities import Process
 from genologics.lims import Lims
 
 from scilifelab_epps.epp import CopyField, EppLogger
+
+NGISAMPLE_PAT = re.compile("P[0-9]+_[0-9]+")
 
 
 def main(lims, args, epp_logger):
@@ -53,10 +56,21 @@ def main(lims, args, epp_logger):
             for artifact in artifacts:
                 if source_udf in artifact.udf:
                     correct_artifacts = correct_artifacts + 1
-                    copy_sesion = CopyField(
-                        artifact, artifact.samples[0], source_udf, dest_udf
-                    )
-                    test = copy_sesion.copy_udf(changelog_f)
+                    # Special case for copying values from Aggregate QC step;
+                    # Only copy for NGI samples and skip controls
+                    if NGISAMPLE_PAT.findall(artifact.samples[0].name):
+                        if args.aggregate:
+                            art_sample_dest = artifact.samples[0].artifact
+                        else:
+                            art_sample_dest = artifact.samples[0]
+
+                        copy_sesion = CopyField(
+                            artifact, art_sample_dest, source_udf, dest_udf
+                        )
+                        test = copy_sesion.copy_udf(changelog_f)
+                    else:
+                        test = ""
+
                     if test:
                         no_updated = no_updated + 1
                 else:
@@ -133,6 +147,12 @@ if __name__ == "__main__":
             " when for status change events. "
             "Prepends the old changelog file by default."
         ),
+    )
+    parser.add_argument(
+        "--aggregate",
+        dest="aggregate",
+        action="store_true",
+        help=("Used for Aggregate QC step specially."),
     )
     args = parser.parse_args()
 
