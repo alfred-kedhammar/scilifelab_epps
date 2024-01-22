@@ -7,3 +7,4 @@ build/
 .*_cache/
 *.swp
 __pycache__
+node_modules

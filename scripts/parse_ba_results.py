@@ -14,9 +14,9 @@ from genologics.lims import Lims
 from epp_utils import udf_tools
 from scilifelab_epps.epp import get_well_number
 
-DESC = """This script parses the Agilent BioAnalyzer XML report. 
+DESC = """This script parses the Agilent BioAnalyzer XML report.
 
-It is written to replace the current Illumina-supplied sfdcript consisting of compiled 
+It is written to replace the current Illumina-supplied sfdcript consisting of compiled
 Java which does not as of 2023-08-25 populate the measurement UDFs of interest.
 """
 
@@ -164,13 +164,13 @@ def main(lims, args):
 
             if any("ERROR" in entry for entry in log):
                 sys.stderr.write("Some samples were skipped, please check the Log file")
-                sys.exit(1)
+                sys.exit(2)
 
             if any("WARNING" in entry for entry in log):
                 sys.stderr.write(
                     "Some samples generated warnings, please check the Log file"
                 )
-                sys.exit(1)
+                sys.exit(2)
 
 
 def get_ba_output_file(currentStep, log):
@@ -201,6 +201,6 @@ if __name__ == "__main__":
     lims.check_version()
     try:
         main(lims, args)
-    except BaseException as e:
+    except Exception as e:
         sys.stderr.write(str(e))
         sys.exit(2)

@@ -143,7 +143,7 @@ def main(lims, args):
                     lims.request_session.delete(f.uri)
                 lims.upload_new_file(out, log_filename)
 
-    except BaseException as e:
+    except Exception as e:
         sys.stderr.write(str(e))
         sys.exit(2)
 
