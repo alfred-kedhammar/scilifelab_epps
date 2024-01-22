@@ -29,8 +29,8 @@ from genologics.lims import Lims
 
 from scilifelab_epps.epp import CopyField, EppLogger
 
-
 NGISAMPLE_PAT = re.compile("P[0-9]+_[0-9]+")
+
 
 def main(lims, args, epp_logger):
     source_udfs = args.source_udf
@@ -69,7 +69,7 @@ def main(lims, args, epp_logger):
                         )
                         test = copy_sesion.copy_udf(changelog_f)
                     else:
-                        test = ''
+                        test = ""
 
                     if test:
                         no_updated = no_updated + 1
@@ -152,9 +152,7 @@ if __name__ == "__main__":
         "--aggregate",
         dest="aggregate",
         action="store_true",
-        help=(
-            "Used for Aggregate QC step specially."
-        ),
+        help=("Used for Aggregate QC step specially."),
     )
     args = parser.parse_args()
 
