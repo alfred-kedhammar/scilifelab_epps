@@ -35,7 +35,7 @@ def find_latest_flowcell_run(currentStep: Process) -> str:
 
 
 def find_latest_anglerfish_run(latest_flowcell_run_path: str) -> str:
-    anglerfish_query = f"{latest_flowcell_run_path}/*anglerfish_run*"
+    anglerfish_query = f"{latest_flowcell_run_path}/**/anglerfish_run*"
     anglerfish_glob = glob.glob(anglerfish_query)
 
     assert (
