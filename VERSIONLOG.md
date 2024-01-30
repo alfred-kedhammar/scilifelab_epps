@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240130.1
+
+Handle Anglerfish result parsing for runs W/O ONT barcodes
+
 ## 20240126.1
 
 Discover latest anglerfish run even if embedded in subdir of run dir
