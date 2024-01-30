@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240126.1
+
+Discover latest anglerfish run even if embedded in subdir of run dir
+
 ## 20240122.1
 
 Enable copy_field_art2samp to copy values from Aggregate QC steps
