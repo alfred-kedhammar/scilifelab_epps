@@ -147,17 +147,18 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame):
                     barcode_well = fetch(
                         illumina_sample, "ONT Barcode Well", on_fail=None
                     )
+
                     if barcode_well:
                         barcode_name = ont_barcode_well2name(barcode_well)
 
                         # Subset df to the current ONT barcode
                         df_barcode = df[df["ont_barcode"] == barcode_name]
 
-                    # Subset df to the current Illumina sample
-                    if barcode_well:
+                        # Subset df to the current Illumina sample
                         df_sample = df_barcode[
                             df_barcode["sample_name"] == illumina_sample.name
                         ]
+
                     else:
                         df_sample = df[df["sample_name"] == illumina_sample.name]
 
