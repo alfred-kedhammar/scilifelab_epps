@@ -114,15 +114,6 @@ def ont_barcode_well2name(barcode_well: str) -> str:
 
 
 def fill_udfs(currentStep: Process, df: pd.DataFrame):
-    # Dictate which LIMS UDF corresponds to which column in the dataframe
-    udfs_to_cols = {
-        "# Reads": "num_reads",
-        "Avg. Read Length": "mean_read_len",
-        "Std. Read Length": "std_read_len",
-        "Representation Within Run (%)": "repr_total_pc",
-        "Representation Within Barcode (%)": "repr_within_barcode_pc",
-    }
-
     # Get Illumina pools
     illumina_pools = [
         input_art
@@ -160,11 +151,24 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame):
                         ]
 
                     else:
+                        # Subset df to the current Illumina sample
                         df_sample = df[df["sample_name"] == illumina_sample.name]
 
                     assert (
                         len(df_sample) == 1
                     ), f"Multiple entries matching both Illumina sample name {illumina_sample.name} and ONT barcode {barcode_name} was found in the dataframe."
+
+                    # Determine which UDFs to assign
+                    udfs_to_cols = {
+                        "# Reads": "num_reads",
+                        "Avg. Read Length": "mean_read_len",
+                        "Std. Read Length": "std_read_len",
+                        "Representation Within Run (%)": "repr_total_pc",
+                    }
+                    if barcode_well:
+                        udfs_to_cols[
+                            "Representation Within Barcode (%)"
+                        ] = "repr_within_barcode_pc"
 
                     # Start putting UDFs
                     for udf, col in udfs_to_cols.items():
