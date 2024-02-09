@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240208.1
+
+In Anglerfish parsing, only try to assign barcode-specific UDFs for barcoded samples.
+
 ## 20240130.1
 
 Handle Anglerfish result parsing for runs W/O ONT barcodes
