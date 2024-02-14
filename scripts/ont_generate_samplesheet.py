@@ -29,10 +29,7 @@ def main(lims, args):
 
     flow_cell_id                e.g. PAM96489
     position_id                 [1-3A-G] for PromethION, else None
-    sample_id                   - For single samples:       <sample-id>
-                                - For pools:                <proj-id>_<lims-pool-id>
-                                - For multi-project pools:  <lims-pool-id>
-                                - For Illumina QC           QC_<timestamp>_<operator>
+    sample_id                   lims-sample-name
     experiment_id               lims-step-id
     flow_cell_product_code      e.g. FLO-MIN106D
     kit                         Product codes separated by spaces, e.g. SQK-LSK109 EXP-NBD196
@@ -46,14 +43,9 @@ def main(lims, args):
     - flow_cell_product_code
     - experiment_id
 
-    Must be unique within sheet:
-    - flow_cell_id
-    - position_id
-    - sample_id (TODO check if enforced by MinKNOW)
-
     Must be unique within the same flowcell
-    - alias (TODO check if enforced by MinKNOW)
-    - barcode (TODO check if enforced by MinKNOW)
+    - alias
+    - barcode
 
     === Flowcell product codes ===
 
