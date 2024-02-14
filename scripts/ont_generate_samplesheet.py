@@ -20,7 +20,7 @@ DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot(s) "ONT samp
 Used to generate MinKNOW (and Anglerfish) samplesheets.
 """
 
-timestamp = dt.now().strftime("%y%m%d_%H%M%S")
+TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 
 
 def main(lims, args):
@@ -116,7 +116,7 @@ def minknow_samplesheet_default(currentStep):
         row = {
             "flow_cell_id": art.udf.get("ONT flow cell ID"),
             "position_id": art.udf.get("ONT flow cell position"),
-            "sample_id": get_minknow_sample_id(art),
+            "sample_id": art.name,
             "experiment_id": f"{currentStep.id}",
             "flow_cell_product_code": currentStep.udf["ONT flow cell type"].split(" ")[
                 0
@@ -177,7 +177,7 @@ def minknow_samplesheet_default(currentStep):
 
     file_name = write_minknow_csv(
         df,
-        f"{currentStep.id}_ONT_samplesheet_{timestamp}_{currentStep.technician.name.replace(' ','')}.csv",
+        f"{currentStep.id}_ONT_samplesheet_{TIMESTAMP}_{currentStep.technician.name.replace(' ','')}.csv",
     )
 
     return file_name
@@ -245,7 +245,7 @@ def minknow_samplesheet_for_qc(currentStep):
         row = {
             "position_id": "None",
             "flow_cell_id": currentStep.udf["ONT flow cell ID"],
-            "sample_id": f"QC_{timestamp}_{currentStep.technician.name.replace(' ', '')}",
+            "sample_id": f"QC_{art.name}",
             "experiment_id": f"{currentStep.id}",
             "flow_cell_product_code": currentStep.udf["ONT flow cell type"].split(" ")[
                 0
@@ -275,7 +275,7 @@ def minknow_samplesheet_for_qc(currentStep):
 
     file_name = write_minknow_csv(
         df,
-        f"ONT_samplesheet_{df.experiment_id.unique()[0]}_{timestamp}.csv",
+        f"ONT_samplesheet_{df.experiment_id.unique()[0]}_{TIMESTAMP}.csv",
     )
     return file_name
 
@@ -335,7 +335,7 @@ def anglerfish_samplesheet(currentStep):
     df = pd.DataFrame(rows)
     df.sort_values(by="sample_name", inplace=True)
 
-    file_name = f"Anglerfish_samplesheet_{currentStep.id}_{timestamp}.csv"
+    file_name = f"Anglerfish_samplesheet_{currentStep.id}_{TIMESTAMP}.csv"
     df.to_csv(
         file_name,
         header=False,
@@ -436,46 +436,6 @@ def write_minknow_csv(df, file_name):
     df_csv.to_csv(file_name, index=False)
 
     return file_name
-
-
-def get_minknow_sample_id(art):
-    """
-    Assigns a MinKNOW sample ID based on the nature of the input artifact.
-    Single samples, single-project pools and multi-project pools are treated differently.
-
-    === Examples ===
-    Type                    Contains                ID          Returns MinKNOW sample ID
-
-    Single sample           PAAAAA_101              12-345678   PAAAAA_101
-    Single project pool     PAAAAA_101, PAAAAA_102  23-456789   PAAAAA_23-456789
-    Multi project pool      PAAAAA_101, PBBBBB_101  34-567890   34-567890
-    """
-
-    sample_id_pattern = re.compile(r"(P\d{5})_(\d+)")
-
-    # Single sample
-    if len(art.samples) == 1:
-        re_match = re.match(sample_id_pattern, art.samples[0].name)
-        if re_match:
-            return re_match.group()
-        else:
-            return None
-
-    # Pool
-    else:
-        # Look at the name of the first sample in the pool
-        re_match = re.match(sample_id_pattern, art.samples[0].name)
-        # If all samples in the pool have the same project
-        if all(
-            [
-                re.match(sample_id_pattern, sample.name).groups()[0]
-                == re_match.groups()[0]
-                for sample in art.samples
-            ]
-        ):
-            return f"{re_match.groups()[0]}_{art.id}"
-        else:
-            return art.id
 
 
 def strip_characters(input_string):
