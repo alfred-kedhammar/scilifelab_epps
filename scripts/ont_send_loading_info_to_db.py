@@ -250,7 +250,7 @@ def main():
             lims=lims,
         )
         sys.stderr.write(str(e))
-        sys.exit(str(e))
+        sys.exit(2)
     else:
         logging.info("Script completed successfully.")
         logging.shutdown()
