@@ -249,6 +249,7 @@ def main():
             currentStep=process,
             lims=lims,
         )
+        sys.stderr.write(str(e))
         sys.exit(str(e))
     else:
         logging.info("Script completed successfully.")
