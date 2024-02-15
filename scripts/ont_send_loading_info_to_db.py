@@ -138,6 +138,9 @@ def process_artifacts(process: Process):
         art for art in process.all_outputs() if art.type == "Analyte"
     ]
 
+    # Keep track of which artifacts were successfully updated
+    arts_successful = []
+
     db: Database = get_ONT_db()
     view: ViewResults = db.view("info/all_stats")
 
@@ -181,6 +184,12 @@ def process_artifacts(process: Process):
 
         update_doc(doc, db, process, art)
         logging.info(f"'{doc_run_name}' was found and updated successfully.")
+        arts_successful.append(art)
+
+    if len(arts_successful) < len(arts):
+        raise AssertionError(
+            f"Only {len(arts_successful)} out of {len(arts)} artifacts were successfully updated. Check log."
+        )
 
 
 def ont_send_loading_info_to_db(process: Process, lims: Lims):
