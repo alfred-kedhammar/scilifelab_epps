@@ -16,10 +16,10 @@ from ont_send_reloading_info_to_db import get_ONT_db
 
 from epp_utils import udf_tools
 
-DESC = """Script for EPP "ont_send_loading_info_to_db".
+DESC = """Script for finishing the step to start ONT sequencing in LIMS.
 
-- Ensure UDFs, samplesheet and run name do not contain any contradictions
-- Upload LIMS-specific information to the run entry in the database
+Makes sure there are no discprepancies in the provided information and
+appends LIMS-specific information to the ONT run in StatusDB.
 """
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
