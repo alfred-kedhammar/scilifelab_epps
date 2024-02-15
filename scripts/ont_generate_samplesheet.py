@@ -108,7 +108,7 @@ def minknow_samplesheet_default(currentStep):
         row = {
             "flow_cell_id": art.udf.get("ONT flow cell ID"),
             "position_id": art.udf.get("ONT flow cell position"),
-            "sample_id": art.name,
+            "sample_id": strip_characters(art.name),
             "experiment_id": f"{currentStep.id}",
             "flow_cell_product_code": currentStep.udf["ONT flow cell type"].split(" ")[
                 0
@@ -434,8 +434,10 @@ def strip_characters(input_string):
     """Remove potentially problematic characters from string."""
 
     allowed_characters = re.compile("[^a-zA-Z0-9_-]")
+    # Replace any disallowed characters with underscores
     subbed_string = allowed_characters.sub("_", input_string)
 
+    # Remove any consecutive underscores
     string_to_shorten = re.compile("__+")
     shortened_string = string_to_shorten.sub("_", subbed_string)
 
