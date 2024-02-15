@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240215.1
+
+Treat RAD-seq as regular pooling step, requested by Hamid.
+
 ## 20240208.1
 
 In Anglerfish parsing, only try to assign barcode-specific UDFs for barcoded samples.

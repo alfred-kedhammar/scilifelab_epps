@@ -265,23 +265,7 @@ def aliquot_fixed_volume(currentStep, lims, volume, log):
 def prepooling(currentStep, lims):
     log = []
 
-    if zika_utils.verify_step(
-        currentStep, targets=[("", "Library Pooling (RAD-seq) v1.0")]
-    ):
-        zika_methods.pool(
-            currentStep=currentStep,
-            lims=lims,
-            udfs={
-                "target_amt": "Amount for prep (ng)",
-                "target_vol": "Final Volume (uL)",
-                "target_conc": None,
-                "final_amt": "Amount for prep (ng)",
-                "final_vol": "Final Volume (uL)",
-                "final_conc": None,
-            },
-        )
-
-    elif currentStep.instrument.name == "Zika":
+    if currentStep.instrument.name == "Zika":
         zika_methods.pool(
             currentStep=currentStep,
             lims=lims,
