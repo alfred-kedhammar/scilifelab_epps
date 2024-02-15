@@ -77,7 +77,7 @@ def get_matching_rows(
     # If the run name is supplied, query the database directly
     if run_name:
         logging.info(
-            f"Full run name supplied. Quering the database for run {run_name}."
+            f"Full run name supplied. Quering the database for run '{run_name}'."
         )
         for row in view.rows:
             if run_name == row.key:
@@ -145,7 +145,7 @@ def process_artifacts(process: Process):
     view: ViewResults = db.view("info/all_stats")
 
     for art in arts:
-        logging.info(f"Checking '{art.name}'...")
+        logging.info(f"Processing '{art.name}'...")
 
         run_name: str = udf_tools.fetch(art, "ONT run name", on_fail=None)
         if run_name:
