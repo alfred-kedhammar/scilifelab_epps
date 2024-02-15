@@ -7,7 +7,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
-from couchdb.client import Database, Document, ViewResults
+from couchdb.client import Database, Document, Row, ViewResults
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
@@ -68,20 +68,20 @@ def udfs_matches_run_name(art: Artifact) -> bool:
         return False
 
 
-def get_matching_docs(
+def get_matching_rows(
     art: Artifact, process: Process, view: ViewResults, run_name: str
-) -> list[Document]:
-    """Find the documents in the database that match the given artifact."""
-    matching_docs = []
+) -> list[Row]:
+    """Find the rows in the database view that match the given artifact."""
+    matching_rows = []
 
     # If the run name is supplied, query the database directly
     if run_name:
         logging.info(
             f"Full run name supplied. Quering the database for run {run_name}."
         )
-        for doc in view.rows:
-            if run_name == doc.key:
-                matching_docs.append(doc)
+        for row in view.rows:
+            if run_name == row.key:
+                matching_rows.append(row)
 
     # If run name is not supplied, try to find it in the database, assuming it follows the samplesheet naming convention
     else:
@@ -94,12 +94,12 @@ def get_matching_docs(
             f"No run name supplied. Quering the database for run with path pattern {pattern}."
         )
 
-        for doc in view.rows:
-            query = doc.value["TACA_run_path"]
+        for row in view.rows:
+            query = row.value["TACA_run_path"]
             if re.match(pattern, query):
-                matching_docs.append(doc)
+                matching_rows.append(row)
 
-    return matching_docs
+    return matching_rows
 
 
 def update_doc(doc, db: Database, process: Process, art: Artifact):
@@ -107,7 +107,7 @@ def update_doc(doc, db: Database, process: Process, art: Artifact):
     # Which projects are contained in the library?
     projects = [
         {"name": project.name, "id": project.id}
-        for project in [sample.project for sample in art.samples]
+        for project in set([sample.project for sample in art.samples])
     ]
 
     # Info to add to the db doc
@@ -152,36 +152,35 @@ def process_artifacts(process: Process):
                 continue
 
         # Get matching run docs
-        matching_docs: list = get_matching_docs(art, process, view, run_name)
+        matching_rows: list[Row] = get_matching_rows(art, process, view, run_name)
 
-        if len(matching_docs) == 0:
+        if len(matching_rows) == 0:
             logging.warning("Run was not found in the database. Skipping.")
             continue
 
-        elif len(matching_docs) > 1:
+        elif len(matching_rows) > 1:
             logging.warning(
                 f"{run_name} was found in multiple instances in the database. Contact a database administrator. Skipping."
             )
             continue
 
-        doc_id: str = matching_docs[0].id
+        doc_run_name: str = matching_rows[0].key
+        doc_id: str = matching_rows[0].id
         doc: Document = db[doc_id]
-        doc_run_name = doc.key
 
-        logging.info(f"Found matching run {doc_run_name} in the database.")
+        logging.info(f"Found matching run '{doc_run_name}' in the database.")
 
         if run_name and run_name != doc_run_name:
             logging.error(
                 f"UDF Run name {run_name} contradicted by database run name {doc_run_name}. Skipping."
             )
             continue
+        else:
+            logging.info(f"Assigning UDF 'ONT run name': '{doc_run_name}'.")
+            udf_tools.put(art, "ONT run name", doc_run_name)
 
         update_doc(doc, db, process, art)
         logging.info(f"{doc_run_name} was found and updated successfully.")
-
-        if not run_name:
-            logging.info(f"Assigning UDF 'ONT run name': '{doc_run_name}'.")
-            udf_tools.put(art, "ONT run name", doc_run_name)
 
 
 def ont_send_loading_info_to_db(process: Process, lims: Lims):
