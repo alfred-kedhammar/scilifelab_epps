@@ -181,7 +181,7 @@ def process_artifacts(process: Process):
 
 
 def ont_send_loading_info_to_db(process: Process, lims: Lims):
-    """Executive script"""
+    """Executive script, called once."""
     # Assert we are in the right step
     assert (
         "ONT Start Sequencing" in process.type.name
