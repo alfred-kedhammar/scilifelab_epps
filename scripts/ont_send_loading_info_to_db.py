@@ -11,7 +11,11 @@ from couchdb.client import Database, Document, ViewResults
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
-from ont_generate_samplesheet import minknow_samplesheet_default, strip_characters
+from ont_generate_samplesheet import (
+    minknow_samplesheet_default,
+    strip_characters,
+    upload_file,
+)
 from ont_send_reloading_info_to_db import get_ONT_db
 
 from epp_utils import udf_tools
@@ -203,19 +207,6 @@ def ont_send_loading_info_to_db(process: Process, lims: Lims):
     process_artifacts(process)
 
 
-def upload_log(currentStep: Process, lims: Lims, log_filename: str):
-    log_file_slot = [
-        slot for slot in currentStep.all_outputs() if slot.name == "Database sync log"
-    ][0]
-
-    for f in log_file_slot.files:
-        lims.request_session.delete(f.uri)
-    lims.upload_new_file(log_file_slot, log_filename)
-
-    # Remove originally written file
-    os.remove(log_filename)
-
-
 def main():
     # Parse args
     parser = ArgumentParser(description=DESC)
@@ -253,12 +244,22 @@ def main():
         # Post error to LIMS GUI
         logging.error(e)
         logging.shutdown()
-        upload_log(process, lims, log_filename)
+        upload_file(
+            file_name=log_filename,
+            file_slot="Database sync log",
+            currentStep=process,
+            lims=lims,
+        )
         sys.exit(20)
     else:
         logging.info("Script completed successfully.")
         logging.shutdown()
-        upload_log(process, lims, log_filename)
+        upload_file(
+            file_name=log_filename,
+            file_slot="Database sync log",
+            currentStep=process,
+            lims=lims,
+        )
         sys.exit(0)
 
 

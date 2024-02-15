@@ -29,7 +29,7 @@ def main(lims, args):
 
     flow_cell_id                e.g. PAM96489
     position_id                 [1-3A-G] for PromethION, else None
-    sample_id                   lims-sample-name
+    sample_id                   lims-sample-name, stripped of problematic characters
     experiment_id               lims-step-id
     flow_cell_product_code      e.g. FLO-MIN106D
     kit                         Product codes separated by spaces, e.g. SQK-LSK109 EXP-NBD196
