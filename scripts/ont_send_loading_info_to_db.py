@@ -6,11 +6,9 @@ import re
 import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
-from io import StringIO
 
-import pandas as pd
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import Process
+from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 from ont_generate_samplesheet import minknow_samplesheet_default
 from ont_send_reloading_info_to_db import get_ONT_db
@@ -26,11 +24,11 @@ DESC = """Script for EPP "ont_send_loading_info_to_db".
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 
 
-def assert_samplesheet_vs_udfs(currentStep, samplesheet_contents):
+def assert_samplesheet_vs_udfs(process: Process, samplesheet_contents: str) -> None:
     """Check that the current samplesheet is up to date, by re-generating one from the current UDFs and comparing it to the existing one."""
 
     # Generate new samplesheet from step, then read it and remove the file
-    new_samplesheet_path = minknow_samplesheet_default(currentStep)
+    new_samplesheet_path = minknow_samplesheet_default(process)
     new_samplesheet_contents = open(new_samplesheet_path).read()
     os.remove(new_samplesheet_path)
 
@@ -44,238 +42,187 @@ def assert_samplesheet_vs_udfs(currentStep, samplesheet_contents):
         )
 
 
-def assert_udfs_to_run_name(lims, args):
-    """Assert step UDFs do not contradict the run name."""
-    currentStep = Process(lims, id=args.pid)
-    arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
+def udfs_matches_run_name(art: Artifact) -> bool:
+    """Check that artifact run name is not contradicted by other UDFs."""
 
-    for art in arts:
-        yyyymmdd, hhmm, pos, fc_id, hash = art.udf["ONT run name"].split("_")
-        assert (
-            art.udf["ONT flow cell ID"] == fc_id
-        ), f"Mismatch between flowcell ID '{art.udf['ONT flow cell ID']}' and run name '{art.udf['ONT run name']}'"
-        assert (
-            art.udf["ONT flow cell position"] == pos
-        ), f"Mismatch between flowcell position '{art.udf['ONT flow cell position']}' and run name '{art.udf['ONT run name']}'"
+    matches = True
+    _yyyymmdd, _hhmm, pos, fc_id, _hash = art.udf["ONT run name"].split("_")
 
-    pass
+    if art.udf["ONT flow cell ID"] != fc_id:
+        matches = False
+        msg = f"Mismatch between UDFs 'ONT flow cell ID': '{art.udf['ONT flow cell ID']}' and 'ONT run name': '{art.udf['ONT run name']}'"
+        logging.error(msg)
+    if art.udf["ONT flow cell position"] != pos:
+        matches = False
+        msg = f"Mismatch between UDFs 'ONT flow cell position': '{art.udf['ONT flow cell position']}' and 'ONT run name': '{art.udf['ONT run name']}'"
+        logging.error(msg)
+
+    if matches:
+        return True
+    else:
+        return False
 
 
-def send_runs_to_db(lims: Lims, args: Namespace):
-    currentStep = Process(lims, id=args.pid)
+def get_matching_docs(art: Artifact, process: Process, view, run_name: str) -> list:
+    matching_docs = []
 
-    arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
-
-    db = get_ONT_db()
-    view = db.view("info/all_stats")
-
-    errors = False
-    for art in arts:
-        logging.info(f"Checking {art.name}...")
-
-        try:
-            run_id = art.udf["ONT run name"]
-        except KeyError:
-            logging.info(f"No run name supplied for {art.name}")
-            errors = True
-
-        matching_docs = []
+    # If the run name is supplied, query the database directly
+    if run_name:
+        logging.info(
+            f"Full run name supplied. Quering the database for run {run_name}."
+        )
         for doc in view.rows:
-            if run_id == doc.key:
+            if run_name == doc.key:
                 matching_docs.append(doc)
 
-        try:
-            if len(matching_docs) == 0:
-                logging.info(f"{run_id} was not found in the database.")
-                raise AssertionError()
-
-            elif len(matching_docs) > 1:
-                logging.info(
-                    f"{run_id} was found in multiple instances in the database. Contact a database administrator."
-                )
-                raise AssertionError()
-
-            doc_id = matching_docs[0].id
-            doc = db[doc_id]
-
-            dict_to_add = {
-                "step_name": currentStep.type.name,
-                "step_id": currentStep.id,
-                "timestamp": TIMESTAMP,
-                "operator": currentStep.technician.name,
-                "sample_name": art.name,
-                "sample_id": art.id,
-                "load_fmol": art.udf["ONT flow cell loading amount (fmol)"],
-                "load_vol": art.udf["Volume to take (uL)"],
-            }
-
-            if "lims" not in doc:
-                doc["lims"] = {}
-            if "loading" not in doc["lims"]:
-                doc["lims"]["loading"] = []
-            doc["lims"]["loading"].append(dict_to_add)
-
-            db[doc.id] = doc
-
-            logging.info(f"{run_id} was found and updated successfully.")
-
-        except AssertionError:
-            errors = True
-            continue
-
-    if errors:
-        raise AssertionError()
-
-
-def main():
-    try:
-        # Parse args
-        parser = ArgumentParser(description=DESC)
-        parser.add_argument("--pid", help="Lims id for current Process")
-        args: Namespace = parser.parse_args()
-
-        # Set up LIMS
-        lims = Lims(BASEURI, USERNAME, PASSWORD)
-        lims.check_version()
-        currentStep = Process(lims, id=args.pid)
-
-        # Set up logging
-        log_filename: str = (
-            "_".join(
-                [
-                    "ont-db",
-                    currentStep.id,
-                    TIMESTAMP,
-                    currentStep.technician.name.replace(" ", ""),
-                ]
-            )
-            + ".log"
-        )
-
-        logging.basicConfig(
-            filename=log_filename,
-            filemode="w",
-            format="%(levelname)s: %(message)s",
-            level=logging.INFO,
-        )
-
-        # Assert we are in the right step
-        assert (
-            "ONT Start Sequencing" in currentStep.type.name
-        ), f"Unrecognized LIMS step: {currentStep.type.name}."
-
-        # Get ONT samplesheet file artifact
-        file_art = [
-            op for op in currentStep.all_outputs() if op.name == "ONT sample sheet"
-        ][0]
-
-        # If samplesheet file is loaded
-        if file_art.files:
-            logging.info("Detected samplesheet.")
-            samplesheet_contents = lims.get_file_contents(uri=file_art.files[0].uri)
-
-            logging.info("Checking that the loaded samplesheet is up to date...")
-            assert_samplesheet_vs_udfs(currentStep, samplesheet_contents)
-
-            # Parse samplesheet to run-level dataframe
-            df_ss = pd.read_csv(StringIO(samplesheet_contents))
-            columns_to_keep = ["experiment_id", "sample_id", "flow_cell_id"]
-            if "position_id" in df_ss.columns:
-                columns_to_keep.append("position_id")
-            df_ss_runs = (
-                df_ss[columns_to_keep].drop_duplicates()
-            )  # Duplicates can occur because rows are on sample level, not on run level
-
-        send_runs_to_db(lims, args, df_ss_runs)
-
-    # Post error to LIMS GUI
-    except AssertionError as e:
-        sys.stderr.write(str(e))
-        sys.exit(2)
-
-
-if __name__ == "__main__":
-    main()
-
-
-def match_to_db_using_samplesheet(lims: Lims, args: Namespace):
-    currentStep = Process(lims, id=args.pid)
-
-    # Match df to db
-    db = get_ONT_db()
-    view = db.view("info/all_stats")
-
-    runtime_log = [
-        "Check that all runs have synced to the database (i.e. they are visible in GenStat) and that the samplesheet info is correct."
-    ]
-    errors = False
-    fc2run = {}
-    for i, row in df.iterrows():
-        try:
-            pattern = f"{row.experiment_id}/{row.sample_id}/[^/]*_{row.position_id}_{row.flow_cell_id}_[^/]*"
-        except AttributeError:
+    # If run name is not supplied, try to find it in the database, assuming it follows the samplesheet naming convention
+    else:
+        # Define query pattern
+        if art.udf["ONT flow cell position"]:
+            pattern = rf"{process.id}/{art.name}/[^/]*_{art.udf['ONT flow cell position']}_{art.udf['ONT flow cell ID']}_[^/]*"
+        else:
             pattern = (
-                f"{row.experiment_id}/{row.sample_id}/[^/]*_{row.flow_cell_id}_[^/]*"
+                rf"{process.id}/{art.name}/[^/]*_{art.udf['ONT flow cell ID']}_[^/]*"
             )
+        logging.info(
+            f"No run name supplied. Quering the database for run with path pattern {pattern}."
+        )
 
-        matching_docs = []
         for doc in view.rows:
             query = doc.value["TACA_run_path"]
             if re.match(pattern, query):
                 matching_docs.append(doc)
 
-        try:
-            if len(matching_docs) == 0:
-                logging.info(
-                    f"Path {pattern.replace('[^/]','')} was not found in the database."
-                )
+    return matching_docs
 
-                raise AssertionError()
 
-            elif len(matching_docs) > 1:
-                logging.info(
-                    f"Path {pattern.replace('[^/]','')} was found in multiple instances in the database. Contact a database administrator."
-                )
-                raise AssertionError()
+def update_doc(doc, db, process: Process, art: Artifact) -> None:
+    dict_to_add = {
+        "step_name": process.type.name,
+        "step_id": process.id,
+        "timestamp": TIMESTAMP,
+        "operator": process.technician.name,
+        "sample_name": art.name,
+        "sample_id": art.id,
+        "load_fmol": art.udf["ONT flow cell loading amount (fmol)"],
+        "load_vol": art.udf["Volume to take (uL)"],
+    }
 
-            # Make dict for mapping to run names
-            fc = [
-                art.udf["ONT flow cell ID"]
-                for art in arts
-                if art.udf["ONT flow cell ID"] == row.flow_cell_id
-            ][0]
-            fc2run[fc] = matching_docs[0].value["TACA_run_path"].split("/")[-1]
+    if "lims" not in doc:
+        doc["lims"] = {}
+    if "loading" not in doc["lims"]:
+        doc["lims"]["loading"] = []
+    doc["lims"]["loading"].append(dict_to_add)
 
-            doc_id = matching_docs[0].id
-            doc = db[doc_id]
+    db[doc.id] = doc
 
-            dict_to_add = {
-                "step_name": currentStep.type.name,
-                "pid": currentStep.id,
-                "timestamp": TIMESTAMP,
-                "qc": row.qc_pore_count,
-                "load_fmol": row.initial_loading_fmol,
-                "operator": currentStep.technician.name,
-            }
 
-            if "lims" not in doc:
-                doc["lims"] = {}
-            if "loading" not in doc["lims"]:
-                doc["lims"]["loading"] = []
-            doc["lims"]["loading"].append(dict_to_add)
+def send_runs_to_db(process: Process) -> None:
+    arts: list[Artifact] = [
+        art for art in process.all_outputs() if art.type == "Analyte"
+    ]
 
-            db[doc.id] = doc
-
-            logging.info(
-                f"Path {pattern.replace('[^/]','')} was found and updated successfully."
-            )
-
-        except AssertionError:
-            errors = True
-            continue
-
-    if errors:
-        raise AssertionError("\n".join(runtime_log))
+    db = get_ONT_db()
+    view = db.view("info/all_stats")
 
     for art in arts:
-        udf_tools.put(art, "ONT run name", fc2run[art.udf["ONT flow cell ID"]])
+        logging.info(f"Checking {art.name}...")
+
+        run_name: str = udf_tools.fetch(art, "ONT run name", on_fail=None)
+        if run_name:
+            # Assert run name is not contradicted by other UDFs
+            if not udfs_matches_run_name(art):
+                logging.warning("Run name contradicted by other UDFs. Skipping.")
+                continue
+
+        # Get matching run docs
+        matching_docs: list = get_matching_docs(art, process, view, run_name)
+
+        if len(matching_docs) == 0:
+            logging.warning("Run was not found in the database. Skipping.")
+            continue
+
+        elif len(matching_docs) > 1:
+            logging.warning(
+                f"{run_name} was found in multiple instances in the database. Contact a database administrator. Skipping."
+            )
+            continue
+
+        else:
+            doc_id: str = matching_docs[0].id
+            doc = db[doc_id]
+
+            logging.info("Found matching run in the database.")
+
+            update_doc(doc, db, process, art)
+            logging.info(f"{run_name} was found and updated successfully.")
+
+
+def ont_send_loading_info_to_db() -> None:
+    # Parse args
+    parser = ArgumentParser(description=DESC)
+    parser.add_argument("--pid", help="Lims id for current Process")
+    args: Namespace = parser.parse_args()
+
+    # Set up LIMS
+    lims = Lims(BASEURI, USERNAME, PASSWORD)
+    lims.check_version()
+    process = Process(lims, id=args.pid)
+
+    # Set up logging
+    log_filename: str = (
+        "_".join(
+            [
+                "ont-db",
+                process.id,
+                TIMESTAMP,
+                process.technician.name.replace(" ", ""),
+            ]
+        )
+        + ".log"
+    )
+
+    logging.basicConfig(
+        filename=log_filename,
+        filemode="w",
+        format="%(levelname)s: %(message)s",
+        level=logging.INFO,
+    )
+
+    # Assert we are in the right step
+    assert (
+        "ONT Start Sequencing" in process.type.name
+    ), f"Unrecognized LIMS step: {process.type.name}."
+
+    # Get ONT samplesheet file artifact
+    file_art: Artifact = [
+        op for op in process.all_outputs() if op.name == "ONT sample sheet"
+    ][0]
+
+    # If samplesheet file is loaded
+    if file_art.files:
+        logging.info("Detected samplesheet.")
+        samplesheet_contents: str = lims.get_file_contents(uri=file_art.files[0].uri)
+
+        logging.info("Checking that the loaded samplesheet is up to date...")
+        assert_samplesheet_vs_udfs(process, samplesheet_contents)
+
+    send_runs_to_db(process)
+
+
+def main() -> None:
+    try:
+        ont_send_loading_info_to_db()
+    except Exception as e:
+        # Post error to LIMS GUI
+        logging.error(e)
+        logging.shutdown()
+        sys.exit(2)
+    else:
+        logging.info("Script completed successfully.")
+        logging.shutdown()
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
