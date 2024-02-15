@@ -250,7 +250,7 @@ def main():
             currentStep=process,
             lims=lims,
         )
-        sys.exit(20)
+        sys.exit(2)
     else:
         logging.info("Script completed successfully.")
         logging.shutdown()
