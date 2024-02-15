@@ -7,6 +7,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
+from couchdb.client import Database, Document, ViewResults
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
@@ -21,10 +22,10 @@ DESC = """Script for EPP "ont_send_loading_info_to_db".
 - Upload LIMS-specific information to the run entry in the database
 """
 
-TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
+TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
 
 
-def assert_samplesheet_vs_udfs(process: Process, samplesheet_contents: str) -> None:
+def assert_samplesheet_vs_udfs(process: Process, samplesheet_contents: str):
     """Check that the current samplesheet is up to date, by re-generating one from the current UDFs and comparing it to the existing one."""
 
     # Generate new samplesheet from step, then read it and remove the file
@@ -63,7 +64,10 @@ def udfs_matches_run_name(art: Artifact) -> bool:
         return False
 
 
-def get_matching_docs(art: Artifact, process: Process, view, run_name: str) -> list:
+def get_matching_docs(
+    art: Artifact, process: Process, view: ViewResults, run_name: str
+) -> list[Document]:
+    """Find the documents in the database that match the given artifact."""
     matching_docs = []
 
     # If the run name is supplied, query the database directly
@@ -94,7 +98,8 @@ def get_matching_docs(art: Artifact, process: Process, view, run_name: str) -> l
     return matching_docs
 
 
-def update_doc(doc, db, process: Process, art: Artifact) -> None:
+def update_doc(doc, db: Database, process: Process, art: Artifact):
+    """Update a given document with the given artifact's loading information."""
     # Which projects are contained in the library?
     projects = [
         {"name": project.name, "id": project.id}
@@ -123,13 +128,14 @@ def update_doc(doc, db, process: Process, art: Artifact) -> None:
     db[doc.id] = doc
 
 
-def process_artifacts(process: Process) -> None:
+def process_artifacts(process: Process):
+    """Iterate across artifacts and update the database with the loading information."""
     arts: list[Artifact] = [
         art for art in process.all_outputs() if art.type == "Analyte"
     ]
 
-    db = get_ONT_db()
-    view = db.view("info/all_stats")
+    db: Database = get_ONT_db()
+    view: ViewResults = db.view("info/all_stats")
 
     for art in arts:
         logging.info(f"Checking {art.name}...")
@@ -155,7 +161,7 @@ def process_artifacts(process: Process) -> None:
             continue
 
         doc_id: str = matching_docs[0].id
-        doc = db[doc_id]
+        doc: Document = db[doc_id]
         doc_run_name = doc.key
 
         logging.info(f"Found matching run {doc_run_name} in the database.")
@@ -174,7 +180,8 @@ def process_artifacts(process: Process) -> None:
             udf_tools.put(art, "ONT run name", doc_run_name)
 
 
-def ont_send_loading_info_to_db(process, lims) -> None:
+def ont_send_loading_info_to_db(process: Process, lims: Lims):
+    """Executive script"""
     # Assert we are in the right step
     assert (
         "ONT Start Sequencing" in process.type.name
@@ -198,9 +205,7 @@ def ont_send_loading_info_to_db(process, lims) -> None:
 
 def upload_log(currentStep: Process, lims: Lims, log_filename: str):
     log_file_slot = [
-        slot
-        for slot in currentStep.all_outputs()
-        if slot.name == "ONT database sync log"
+        slot for slot in currentStep.all_outputs() if slot.name == "Database sync log"
     ][0]
 
     for f in log_file_slot.files:
@@ -211,7 +216,7 @@ def upload_log(currentStep: Process, lims: Lims, log_filename: str):
     os.remove(log_filename)
 
 
-def main() -> None:
+def main():
     # Parse args
     parser = ArgumentParser(description=DESC)
     parser.add_argument("--pid", help="Lims id for current Process")
@@ -249,7 +254,7 @@ def main() -> None:
         logging.error(e)
         logging.shutdown()
         upload_log(process, lims, log_filename)
-        sys.exit(2)
+        sys.exit(20)
     else:
         logging.info("Script completed successfully.")
         logging.shutdown()
