@@ -91,7 +91,7 @@ def get_matching_rows(
         else:
             pattern = rf"{process.id}/{strip_characters(art.name)}/[^/]*_{art.udf['ONT flow cell ID']}_[^/]*"
         logging.info(
-            f"No run name supplied. Quering the database for run with path pattern {pattern}."
+            f"No run name supplied. Quering the database for run with path pattern '{pattern}'."
         )
 
         for row in view.rows:
@@ -142,7 +142,7 @@ def process_artifacts(process: Process):
     view: ViewResults = db.view("info/all_stats")
 
     for art in arts:
-        logging.info(f"Checking {art.name}...")
+        logging.info(f"Checking '{art.name}'...")
 
         run_name: str = udf_tools.fetch(art, "ONT run name", on_fail=None)
         if run_name:
@@ -160,7 +160,7 @@ def process_artifacts(process: Process):
 
         elif len(matching_rows) > 1:
             logging.warning(
-                f"{run_name} was found in multiple instances in the database. Contact a database administrator. Skipping."
+                f"'{run_name}' was found in multiple instances in the database. Contact a database administrator. Skipping."
             )
             continue
 
@@ -172,7 +172,7 @@ def process_artifacts(process: Process):
 
         if run_name and run_name != doc_run_name:
             logging.error(
-                f"UDF Run name {run_name} contradicted by database run name {doc_run_name}. Skipping."
+                f"UDF Run name '{run_name}' contradicted by database run name '{doc_run_name}'. Skipping."
             )
             continue
         else:
@@ -180,7 +180,7 @@ def process_artifacts(process: Process):
             udf_tools.put(art, "ONT run name", doc_run_name)
 
         update_doc(doc, db, process, art)
-        logging.info(f"{doc_run_name} was found and updated successfully.")
+        logging.info(f"'{doc_run_name}' was found and updated successfully.")
 
 
 def ont_send_loading_info_to_db(process: Process, lims: Lims):
