@@ -230,7 +230,7 @@ def main():
     log_filename: str = (
         "_".join(
             [
-                "ont-db",
+                "ont-db-loading",
                 process.id,
                 TIMESTAMP,
                 process.technician.name.replace(" ", ""),
