@@ -195,8 +195,8 @@ def process_artifacts(process: Process):
 def ont_send_loading_info_to_db(process: Process, lims: Lims):
     """Executive script, called once."""
     # Assert we are in the right step
-    assert (
-        "ONT Start Sequencing" in process.type.name
+    assert any(
+        [step in process.type.name for step in ["ONT Start Sequencing", "MinION QC"]]
     ), f"Unrecognized LIMS step: {process.type.name}."
 
     # Get ONT samplesheet file artifact
