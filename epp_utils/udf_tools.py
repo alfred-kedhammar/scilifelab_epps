@@ -154,6 +154,7 @@ def fetch_last(
     while True:
         history.append({"Step name": currentStep.type.name, "Step ID": currentStep.id})
 
+        # Try to grab input and output articles, if possible
         try:
             input_art = art_tuple[0]["uri"]
         except:
