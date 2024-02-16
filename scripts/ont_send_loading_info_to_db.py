@@ -163,7 +163,7 @@ def process_artifacts(process: Process):
 
         elif len(matching_rows) > 1:
             logging.warning(
-                f"'{run_name}' was found in multiple instances in the database. Contact a database administrator. Skipping."
+                "Query was found in multiple instances in the database. Contact a database administrator. Skipping."
             )
             continue
 
