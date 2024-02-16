@@ -20,7 +20,7 @@ DESC = """Used to record the washing and reloading of ONT flow cells.
 Information is parsed from LIMS and uploaded to the CouchDB database nanopore_runs.
 """
 
-TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
+TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
 
 
 def send_reloading_info_to_db(process: Process, lims: Lims):
