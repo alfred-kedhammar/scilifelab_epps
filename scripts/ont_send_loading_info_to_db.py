@@ -162,9 +162,11 @@ def process_artifacts(process: Process):
             continue
 
         elif len(matching_rows) > 1:
-            logging.warning(
-                "Query was found in multiple instances in the database. Contact a database administrator. Skipping."
-            )
+            matching_run_names = [row.key for row in matching_rows]
+            logging.warning("Query was found in multiple instances in the database: ")
+            for run_name in matching_run_names:
+                logging.warning(f"Matching run name: '{run_name}'.")
+            logging.warning("Contact a database administrator. Skipping.")
             continue
 
         doc_run_name: str = matching_rows[0].key
