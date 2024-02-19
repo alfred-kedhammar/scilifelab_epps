@@ -118,22 +118,17 @@ def main():
     """
     # Parse args
     parser = ArgumentParser(description=DESC)
-    parser.add_argument("--pid", help="Lims id for current Process")
-    parser.add_argument("--udf_vol_in", help="UDF for volume of ingoing artifact")
-    parser.add_argument("--udf_amt_out", help="UDF for amount of outgoing artifact")
-    parser.add_argument("--udf_vol_out", help="UDF for volume of outgoing artifact")
+    parser.add_argument("--pid", type=str, help="Lims id for current Process")
+    parser.add_argument(
+        "--udf_vol_in", type=str, help="UDF for volume of ingoing artifact"
+    )
+    parser.add_argument(
+        "--udf_amt_out", type=str, help="UDF for amount of outgoing artifact"
+    )
+    parser.add_argument(
+        "--udf_vol_out", type=str, help="UDF for volume of outgoing artifact"
+    )
     args = parser.parse_args()
-
-    assert isinstance(args.pid, str), "Invalid argument for --pid. Must be a string."
-    assert isinstance(
-        args.udf_vol_in, str
-    ), "Invalid argument for --udf_vol_in. Must be a string."
-    assert isinstance(
-        args.udf_amt_out, str
-    ), "Invalid argument for --udf_amt_out. Must be a string."
-    assert isinstance(
-        args.udf_vol_outw, str
-    ), "Invalid argument for --udf_vol_out. Must be a string."
 
     # Set up LIMS
     lims = Lims(BASEURI, USERNAME, PASSWORD)
