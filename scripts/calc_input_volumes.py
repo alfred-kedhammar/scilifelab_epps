@@ -31,62 +31,78 @@ def calc_input_volume(process: Process, lims: Lims, args: Namespace):
     art_tuples = udf_tools.get_art_tuples(process)
 
     for art_tuple in art_tuples:
-        art_in = art_tuple[0]["uri"]
-        art_out = art_tuple[1]["uri"]
-        logging.info(f"Input '{art_in.name}' --> Output '{art_out.name}'")
+        try:
+            art_in = art_tuple[0]["uri"]
+            art_out = art_tuple[1]["uri"]
+            logging.info(f"Input '{art_in.name}' --> Output '{art_out.name}'")
 
-        # Get last known length
-        size_bp, size_bp_history = udf_tools.fetch_last(
-            process,
-            art_tuple,
-            target_udfs="Size (bp)",
-            on_fail=None,
-            print_history=True,
-        )
-        logging.info(
-            f"Fetched 'Size (bp)': {size_bp}\nFetch history: \n{size_bp_history}"
-        )
-
-        # Get info from input artifact
-        input_vol = udf_tools.fetch(art_in, args.udf_vol_in)
-        logging.info(f"Input '{args.udf_vol_in}': {round(input_vol,2)}")
-        input_conc = udf_tools.fetch(art_in, "Concentration")
-        logging.info(f"Input 'Concentration': {round(input_conc,2)}")
-        input_conc_units = udf_tools.fetch(art_in, "Conc. Units")
-        logging.info(f"Input 'Conc. Units': {input_conc_units}")
-        assert input_conc_units in [
-            "ng/ul",
-            "nM",
-        ], f'Unsupported conc. units "{input_conc_units}" for art {art_in.name}'
-
-        # Get info from output artifact (UDFs writeable in this step)
-        output_amt = udf_tools.fetch(art_out, args.udf_amt_out)
-        logging.info(f"Output '{args.udf_amt_out}': {output_amt}")
-
-        # Calculate required volume
-        if input_conc_units == "nM":
-            vol_required = output_amt / input_conc
-        elif input_conc_units == "ng/ul":
-            vol_required = min(
-                formula.fmol_to_ng(output_amt, size_bp) / input_conc, input_vol
+            # Get last known length
+            size_bp, size_bp_history = udf_tools.fetch_last(
+                process,
+                art_tuple,
+                target_udfs="Size (bp)",
+                on_fail=None,
+                print_history=True,
             )
-        logging.info(f"Calculated required volume {round(vol_required,2)} uL.")
-
-        # Adress case of volume depletion
-        if vol_required > input_vol:
-            logging.warning(
-                f"Volume required ({round(vol_required, 2)} uL) is greater than the available input '{args.udf_vol_in}': {input_vol}."
+            logging.info(
+                f"Fetched 'Size (bp)': {size_bp}\nFetch history: \n{size_bp_history}"
             )
-            logging.warning("Using all available volume.")
-            vol_to_take = input_vol
-        else:
-            vol_to_take = vol_required
 
-        logging.info(
-            f"Calculated vol to take --> '{args.udf_vol_out}': {round(vol_to_take, 2)}"
-        )
+            # Get info from input artifact
+            input_vol = udf_tools.fetch(art_in, args.udf_vol_in)
+            logging.info(f"Input '{args.udf_vol_in}': {round(input_vol,2)}")
+            input_conc = udf_tools.fetch(art_in, "Concentration")
+            logging.info(f"Input 'Concentration': {round(input_conc,2)}")
+            input_conc_units = udf_tools.fetch(art_in, "Conc. Units")
+            logging.info(f"Input 'Conc. Units': {input_conc_units}")
+            assert input_conc_units in [
+                "ng/ul",
+                "nM",
+            ], f'Unsupported conc. units "{input_conc_units}" for art {art_in.name}'
 
-        udf_tools.put(art_out, args.udf_vol_out, round(vol_to_take, 2))
+            # Get info from output artifact (UDFs writeable in this step)
+            output_amt = udf_tools.fetch(art_out, args.udf_amt_out)
+            logging.info(f"Output '{args.udf_amt_out}': {output_amt}")
+
+            # Calculate required volume
+            if input_conc_units == "nM":
+                vol_required = output_amt / input_conc
+            elif input_conc_units == "ng/ul":
+                vol_required = min(
+                    formula.fmol_to_ng(output_amt, size_bp) / input_conc, input_vol
+                )
+            logging.info(f"Calculated required volume {round(vol_required,2)} uL.")
+
+            # Adress case of volume depletion
+            if vol_required > input_vol:
+                logging.warning(
+                    f"Volume required ({round(vol_required, 2)} uL) is greater than the available input '{args.udf_vol_in}': {input_vol}."
+                )
+                logging.warning("Using all available volume.")
+                vol_to_take = input_vol
+
+                new_output_amt = vol_to_take * input_conc
+                logging.info(
+                    f"Updating amount used --> '{args.udf_amt_out}': {output_amt} -> {new_output_amt}"
+                )
+            else:
+                vol_to_take = vol_required
+
+            logging.info(
+                f"Calculated vol to take --> '{args.udf_vol_out}': {round(vol_to_take, 2)}"
+            )
+
+            # Update volume UDF of output artifact
+            udf_tools.put(art_out, args.udf_vol_out, round(vol_to_take, 2))
+            logging.info(f"Assigned UDF '{args.udf_vol_out}': {round(vol_to_take, 2)}")
+            if vol_required > input_vol:
+                logging.warning(
+                    f"Changed UDF '{args.udf_amt_out}': {output_amt} -> {new_output_amt}"
+                )
+        except AssertionError as e:
+            logging.error(f"Assertion error: \n{str(e)}")
+            logging.warning(f"Skipping artifact {art_out.name}.")
+            continue
 
 
 def main():
@@ -107,6 +123,11 @@ def main():
     parser.add_argument("--udf_amt_out", help="UDF for amount of outgoing artifact")
     parser.add_argument("--udf_vol_out", help="UDF for volume of outgoing artifact")
     args = parser.parse_args()
+
+    assert isinstance(args.pid, str)
+    assert isinstance(args.udf_vol_in, float)
+    assert isinstance(args.udf_amt_out, float)
+    assert isinstance(args.udf_vol_outw, float)
 
     # Set up LIMS
     lims = Lims(BASEURI, USERNAME, PASSWORD)
