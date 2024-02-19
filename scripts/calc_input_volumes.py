@@ -124,10 +124,16 @@ def main():
     parser.add_argument("--udf_vol_out", help="UDF for volume of outgoing artifact")
     args = parser.parse_args()
 
-    assert isinstance(args.pid, str)
-    assert isinstance(args.udf_vol_in, float)
-    assert isinstance(args.udf_amt_out, float)
-    assert isinstance(args.udf_vol_outw, float)
+    assert isinstance(args.pid, str), "Invalid argument for --pid. Must be a string."
+    assert isinstance(
+        args.udf_vol_in, str
+    ), "Invalid argument for --udf_vol_in. Must be a string."
+    assert isinstance(
+        args.udf_amt_out, str
+    ), "Invalid argument for --udf_amt_out. Must be a string."
+    assert isinstance(
+        args.udf_vol_outw, str
+    ), "Invalid argument for --udf_vol_out. Must be a string."
 
     # Set up LIMS
     lims = Lims(BASEURI, USERNAME, PASSWORD)
