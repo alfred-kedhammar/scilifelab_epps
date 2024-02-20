@@ -15,8 +15,8 @@ from epp_utils import formula, udf_tools
 DESC = """Calculate how much volume to use, given the necessary UDF paremeters as arguments.
 
     Used for calculation:
-    - Volume of input artifact, UDF specified from argument
-    - Target amount of output artifact, UDF specified from argument
+    - Input volume, specified from argument
+    - Target output amount, specified from argument
     - UDFs 'Concentration' and 'Conc. Units' of input artifact
     - The last recorded UDF 'Size (bp)' is fetched recursively
 
@@ -27,7 +27,7 @@ Outputs the volume to obtain the target amount into the UDF specified from argum
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
 
 
-def calc_input_volume(process: Process, lims: Lims, args: Namespace):
+def calc_input_volume(process: Process, args: Namespace):
     art_tuples = udf_tools.get_art_tuples(process)
 
     for art_tuple in art_tuples:
@@ -49,7 +49,11 @@ def calc_input_volume(process: Process, lims: Lims, args: Namespace):
             )
 
             # Get info from input artifact
-            input_vol = udf_tools.fetch(art_in, args.udf_vol_in)
+            if args.vol_in["source"] == "input":
+                input_vol = udf_tools.fetch(art_in, args.udf_vol_in)
+            elif args.vol_in["source"] == "output":
+                input_vol = udf_tools.fetch(art_out, args.udf_vol_in)
+
             logging.info(f"Input '{args.udf_vol_in}': {round(input_vol,2)}")
             input_conc = udf_tools.fetch(art_in, "Concentration")
             logging.info(f"Input 'Concentration': {round(input_conc,2)}")
@@ -105,29 +109,84 @@ def calc_input_volume(process: Process, lims: Lims, args: Namespace):
             continue
 
 
+def parse_udf_arg(arg_string: str) -> dict:
+    """Parse UDF argument string into key-value pairs, and validate.
+
+    E.g. the argument
+
+        --vol_in udf='Volume (uL)',source='input',recursive=False
+
+    will assign
+
+        args.vol_in = {
+            'udf': 'Volume (uL)',
+            'source': 'input',
+            'recursive': False
+        }
+
+    """
+    kv_pairs: str = arg_string.split(",")
+
+    arg_dict = {}
+    for kv_pair in kv_pairs:
+        key, value = kv_pair.split("=")
+
+        if key == "udf":
+            arg_dict[key] = value
+        elif key == "source":
+            assert value in ["input", "output"]
+            arg_dict[key] = value
+        elif key == "recursive":
+            assert value in ["True", "False"]
+            arg_dict[key] = eval(value)
+        else:
+            raise AssertionError(
+                f"Invalid value '{value}' for key '{key}' in argument '{arg_string}'"
+            )
+
+    # Apply defaults
+    if "recursive" not in arg_dict:
+        arg_dict["recursive"] = False
+    if "source" not in arg_dict:
+        arg_dict["source"] = "output"
+
+    return arg_dict
+
+
 def main():
     """Example call:
 
         python calc_input_volumes.py \
         --pid {processLuid} \
-        --udf_vol_in 'Volume (ul)' \
-        --udf_amt_out 'Amount (fmol)' \
-        --udf_vol_out 'Volume to take (uL)'
+        --vol_in 'current:input:Volume (ul)' \
+        --amt_out 'current:output:Amount (fmol)' \
+        --vol_out 'current:output:Volume to take (uL)'
 
 
     """
-    # Parse args
+    ## Parse args
     parser = ArgumentParser(description=DESC)
-    parser.add_argument("--pid", type=str, help="Lims id for current Process")
+
+    # Process ID
+    parser.add_argument("--pid", type=str, help="Lims ID for current Process")
+
+    # UDFs
     parser.add_argument(
-        "--udf_vol_in", type=str, help="UDF for volume of ingoing artifact"
+        "--vol_in",
+        type=parse_udf_arg,
+        help="Ingoing volume, specified.",
     )
     parser.add_argument(
-        "--udf_amt_out", type=str, help="UDF for amount of outgoing artifact"
+        "--amt_out",
+        type=parse_udf_arg,
+        help="Outgoing amount, specified.",
     )
     parser.add_argument(
-        "--udf_vol_out", type=str, help="UDF for volume of outgoing artifact"
+        "--vol_out",
+        type=parse_udf_arg,
+        help="Outgoing volume, to be calculated.",
     )
+
     args = parser.parse_args()
 
     # Set up LIMS
@@ -156,7 +215,7 @@ def main():
     )
 
     try:
-        calc_input_volume(process, lims, args)
+        calc_input_volume(process, args)
     except Exception as e:
         # Post error to LIMS GUI
         logging.error(e)
