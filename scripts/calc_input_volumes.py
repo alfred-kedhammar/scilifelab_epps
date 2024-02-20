@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 import logging
 import sys
 from argparse import ArgumentParser, Namespace
@@ -55,7 +55,7 @@ def fetch_from_arg(
     log_str = " ".join(
         [
             f"{'Fetched' if not arg_dict['recursive'] else 'Recusively fetched'}",
-            f"UDF '{arg_dict['udf']}': '{value}'",
+            f"UDF '{arg_dict['udf']}': {value}",
             f"from {arg_dict['source']} artifact",
             f"'{art_tuple[0]['uri'].name if arg_dict['source'] == 'input' else art_tuple[0]['uri'].name }'.",
         ]
@@ -65,7 +65,7 @@ def fetch_from_arg(
         history_yaml = yaml.load(history, Loader=yaml.FullLoader)
         last_step_name = history_yaml[-1]["Step name"]
         last_step_id = history_yaml[-1]["Step ID"]
-        logging.info(f"UDF fetched from: {last_step_name} (ID: {last_step_id})")
+        logging.info(f"UDF fetched from: '{last_step_name}' (ID: '{last_step_id}')")
 
     return value
 
@@ -78,7 +78,7 @@ def calc_input_volume(process: Process, args: Namespace):
             art_in = art_tuple[0]["uri"]
             art_out = art_tuple[1]["uri"]
             logging.info(
-                f"Processing input '{art_in.name}' --> output '{art_out.name}'..."
+                f"Processing input '{art_in.name}' -> output '{art_out.name}'..."
             )
 
             # Get info specified by script arguments
@@ -111,19 +111,20 @@ def calc_input_volume(process: Process, args: Namespace):
 
                 new_output_amt = vol_to_take * input_conc
                 logging.info(
-                    f"Updating amount used --> '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
+                    f"Updating amount used -> '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
                 )
             else:
                 vol_to_take = vol_required
 
             logging.info(
-                f"Calculated vol to take --> '{args.vol_out['udf']}': {vol_to_take:.2f}"
+                f"Calculated vol to take -> '{args.vol_out['udf']}': {vol_to_take:.2f}"
             )
 
             # Update volume UDF of output artifact
-            udf_tools.put(art_out, args.vol_out["udf"], f"{vol_to_take:.2f}")
+            udf_tools.put(art_out, args.vol_out["udf"], vol_to_take)
             logging.info(f"Assigned UDF '{args.vol_out['udf']}': {vol_to_take:.2f}")
             if vol_required > input_vol:
+                udf_tools.put(art_out, args.amt_out["udf"], new_output_amt)
                 logging.warning(
                     f"Changed UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
                 )
@@ -181,16 +182,19 @@ def parse_udf_arg(arg_string: str) -> dict:
 
 
 def main():
-    """Example call:
+    """Set up log, LIMS instance and parse args.
 
-        python calc_input_volumes.py \
-        --pid           {processLuid} \
+    Example call:
+
+        python scripts/calc_input_volumes.py \
+        --pid           24-885698 \
         --vol_in        udf='Volume (ul)',source='input' \
         --conc_in       udf='Concentration',source='input' \
-        --conc_units_in udf='Concentration',source='input' \
+        --conc_units_in udf='Conc. Units',source='input' \
         --size_in       udf='Size (bp)',source='output',recursive=True \
         --amt_out       udf='Input Amount (fmol)' \
         --vol_out       udf='Volume (ul)'
+
 
         For every input-ouput pair of a step, will use the volume, concentration
         and concentration units of the ingoing sample, the specified amount of
@@ -278,6 +282,7 @@ def main():
             currentStep=process,
             lims=lims,
         )
+        os.remove(log_filename)
         sys.stderr.write(str(e))
         sys.exit(2)
     else:
@@ -289,7 +294,16 @@ def main():
             currentStep=process,
             lims=lims,
         )
-        sys.exit(0)
+        # Check log for erros and warnings
+        log_content = open(log_filename).read()
+        os.remove(log_filename)
+        if "ERROR:" in log_content or "WARNING:" in log_content:
+            sys.stderr.write(
+                "Script finished successfully, but log contains erros or warnings, please have a look."
+            )
+            sys.exit(2)
+        else:
+            sys.exit(0)
 
 
 if __name__ == "__main__":
