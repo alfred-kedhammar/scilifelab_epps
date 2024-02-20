@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-import os
 import logging
+import os
 import sys
+import traceback
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
@@ -290,7 +291,7 @@ def main():
         calc_input_volume(process, args)
     except Exception as e:
         # Post error to LIMS GUI
-        logging.error(e)
+        logging.error(str(e), exc_info=True)
         logging.shutdown()
         upload_file(
             file_name=log_filename,
