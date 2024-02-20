@@ -84,6 +84,8 @@ def calc_input_volume(process: Process, args: Namespace):
             # Get info specified by script arguments
             size_bp = fetch_from_arg(art_tuple, args.size_in, process)
             input_conc = fetch_from_arg(art_tuple, args.conc_in, process)
+            input_vol = fetch_from_arg(art_tuple, args.vol_in, process)
+            output_amt = fetch_from_arg(art_tuple, args.amt_out, process)
             if args.conc_units_in:
                 input_conc_units = fetch_from_arg(
                     art_tuple, args.conc_units_in, process
@@ -93,9 +95,14 @@ def calc_input_volume(process: Process, args: Namespace):
                     "nM",
                 ], f'Unsupported conc. units "{input_conc_units}" for art {art_in.name}'
             else:
-                input_conc_units = "ng/ul"
-            input_vol = fetch_from_arg(art_tuple, args.vol_in, process)
-            output_amt = fetch_from_arg(art_tuple, args.amt_out, process)
+                if "ng" in args.conc_in["udf"]:
+                    input_conc_units = "nM"
+                elif "nM" in args.conc_in["udf"]:
+                    input_conc_units = "nM"
+                else:
+                    raise AssertionError(
+                        f"No concentration units can inferred for {art_out.name}."
+                    )
 
             # Calculate required volume
             if input_conc_units == "nM":
