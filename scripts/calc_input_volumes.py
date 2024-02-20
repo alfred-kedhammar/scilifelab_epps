@@ -12,19 +12,60 @@ from ont_generate_samplesheet import upload_file
 
 from epp_utils import formula, udf_tools
 
-DESC = """Calculate how much volume to use, given the necessary UDF paremeters as arguments.
+DESC = """Given a target amount, calculate how much volume to use.
 
-    Used for calculation:
-    - Input volume, specified from argument
-    - Target output amount, specified from argument
-    - UDFs 'Concentration' and 'Conc. Units' of input artifact
-    - The last recorded UDF 'Size (bp)' is fetched recursively
-
-Outputs the volume to obtain the target amount into the UDF specified from argument.
-
+The script is written with the intention of reusability,
+so the script arguments specify which UDFs to use and
+from where their values should be fetched.
 """
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
+
+
+def fetch_from_arg(
+    art_tuple: tuple, arg_dict: dict, process: Process
+) -> int | float | str:
+    """Branching decision-making function. Determine HOW to fetch UDFs given the argument dictionary."""
+
+    if arg_dict["recursive"]:
+        if arg_dict["source"] == "input":
+            use_current = False
+        elif arg_dict["source"] == "output":
+            use_current = True
+        else:
+            raise AssertionError(f"Invalid source '{arg_dict['source']}'")
+        value, history = udf_tools.fetch_last(
+            currentStep=process,
+            art_tuple=art_tuple,
+            target_udfs=arg_dict["udf"],
+            use_current=use_current,
+            print_history=True,
+        )
+    else:
+        if arg_dict["source"] == "input":
+            art = art_tuple[0]["uri"]
+        elif arg_dict["source"] == "output":
+            art = art_tuple[1]["uri"]
+        else:
+            raise AssertionError(f"Invalid source '{arg_dict['source']}'")
+        history = None
+        value = udf_tools.fetch(art, arg_dict["udf"])
+
+    log_str = " ".join(
+        [
+            f"{'Fetched' if not arg_dict['recursive'] else 'Recusively fetched'}",
+            f"UDF '{arg_dict['udf']}': '{value}'",
+            f"from {arg_dict['source']} artifact",
+            f"'{art_tuple[0]['uri'].name if arg_dict['source'] == 'input' else art_tuple[0]['uri'].name }'.",
+        ]
+    )
+    logging.info(log_str)
+    if history:
+        last_step_name = history[-1]["Step name"]
+        last_step_id = history[-1]["Step ID"]
+        logging.info(f"UDF fetched from: {last_step_name} (ID: {last_step_id})")
+
+    return value
 
 
 def calc_input_volume(process: Process, args: Namespace):
@@ -34,39 +75,20 @@ def calc_input_volume(process: Process, args: Namespace):
         try:
             art_in = art_tuple[0]["uri"]
             art_out = art_tuple[1]["uri"]
-            logging.info(f"Input '{art_in.name}' --> Output '{art_out.name}'")
-
-            # Get last known length
-            size_bp, size_bp_history = udf_tools.fetch_last(
-                process,
-                art_tuple,
-                target_udfs="Size (bp)",
-                on_fail=None,
-                print_history=True,
-            )
             logging.info(
-                f"Fetched 'Size (bp)': {size_bp}\nFetch history: \n{size_bp_history}"
+                f"Processing input '{art_in.name}' --> output '{art_out.name}'..."
             )
 
-            # Get info from input artifact
-            if args.vol_in["source"] == "input":
-                input_vol = udf_tools.fetch(art_in, args.udf_vol_in)
-            elif args.vol_in["source"] == "output":
-                input_vol = udf_tools.fetch(art_out, args.udf_vol_in)
-
-            logging.info(f"Input '{args.udf_vol_in}': {round(input_vol,2)}")
-            input_conc = udf_tools.fetch(art_in, "Concentration")
-            logging.info(f"Input 'Concentration': {round(input_conc,2)}")
-            input_conc_units = udf_tools.fetch(art_in, "Conc. Units")
-            logging.info(f"Input 'Conc. Units': {input_conc_units}")
+            # Get info specified by script arguments
+            size_bp = fetch_from_arg(art_tuple, args.size_in, process)
+            input_conc = fetch_from_arg(art_tuple, args.conc_in, process)
+            input_conc_units = fetch_from_arg(art_tuple, args.conc_units_in, process)
             assert input_conc_units in [
                 "ng/ul",
                 "nM",
             ], f'Unsupported conc. units "{input_conc_units}" for art {art_in.name}'
-
-            # Get info from output artifact (UDFs writeable in this step)
-            output_amt = udf_tools.fetch(art_out, args.udf_amt_out)
-            logging.info(f"Output '{args.udf_amt_out}': {output_amt}")
+            input_vol = fetch_from_arg(art_tuple, args.vol_in, process)
+            output_amt = fetch_from_arg(art_tuple, args.amt_out, process)
 
             # Calculate required volume
             if input_conc_units == "nM":
@@ -75,33 +97,33 @@ def calc_input_volume(process: Process, args: Namespace):
                 vol_required = min(
                     formula.fmol_to_ng(output_amt, size_bp) / input_conc, input_vol
                 )
-            logging.info(f"Calculated required volume {round(vol_required,2)} uL.")
+            logging.info(f"Calculated required volume {vol_required:.2f} uL.")
 
             # Adress case of volume depletion
             if vol_required > input_vol:
                 logging.warning(
-                    f"Volume required ({round(vol_required, 2)} uL) is greater than the available input '{args.udf_vol_in}': {input_vol}."
+                    f"Volume required ({vol_required:.2f} uL) is greater than the available input '{args.vol_in['udf']}': {input_vol:.2f}."
                 )
                 logging.warning("Using all available volume.")
                 vol_to_take = input_vol
 
                 new_output_amt = vol_to_take * input_conc
                 logging.info(
-                    f"Updating amount used --> '{args.udf_amt_out}': {output_amt} -> {new_output_amt}"
+                    f"Updating amount used --> '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
                 )
             else:
                 vol_to_take = vol_required
 
             logging.info(
-                f"Calculated vol to take --> '{args.udf_vol_out}': {round(vol_to_take, 2)}"
+                f"Calculated vol to take --> '{args.vol_out['udf']}': {vol_to_take:.2f}"
             )
 
             # Update volume UDF of output artifact
-            udf_tools.put(art_out, args.udf_vol_out, round(vol_to_take, 2))
-            logging.info(f"Assigned UDF '{args.udf_vol_out}': {round(vol_to_take, 2)}")
+            udf_tools.put(art_out, args.vol_out["udf"], f"{vol_to_take:.2f}")
+            logging.info(f"Assigned UDF '{args.vol_out['udf']}': {vol_to_take:.2f}")
             if vol_required > input_vol:
                 logging.warning(
-                    f"Changed UDF '{args.udf_amt_out}': {output_amt} -> {new_output_amt}"
+                    f"Changed UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
                 )
         except AssertionError as e:
             logging.error(f"Assertion error: \n{str(e)}")
@@ -112,18 +134,21 @@ def calc_input_volume(process: Process, args: Namespace):
 def parse_udf_arg(arg_string: str) -> dict:
     """Parse UDF argument string into key-value pairs, and validate.
 
-    E.g. the argument
+    Example:
 
-        --vol_in udf='Volume (uL)',source='input',recursive=False
+        the argument
 
-    will assign
+            --vol_in udf='Volume (uL)',source='input',recursive=False
 
-        args.vol_in = {
-            'udf': 'Volume (uL)',
-            'source': 'input',
-            'recursive': False
-        }
+        will assign
 
+            args.vol_in = {
+                'udf': 'Volume (uL)',
+                'source': 'input',
+                'recursive': False
+            }
+
+    The keys "source" and "recursive" have default values.
     """
     kv_pairs: str = arg_string.split(",")
 
@@ -157,30 +182,55 @@ def main():
     """Example call:
 
         python calc_input_volumes.py \
-        --pid {processLuid} \
-        --vol_in 'current:input:Volume (ul)' \
-        --amt_out 'current:output:Amount (fmol)' \
-        --vol_out 'current:output:Volume to take (uL)'
+        --pid           {processLuid} \
+        --vol_in        udf='Volume (ul)',source='input' \
+        --conc_in       udf='Concentration',source='input' \
+        --conc_units_in udf='Concentration',source='input' \
+        --size_in       udf='Size (bp)',source='output',recursive=True \
+        --amt_out       udf='Input Amount (fmol)' \
+        --vol_out       udf='Volume (ul)' \
 
+        For every input-ouput pair of a step, will use the volume, concentration
+        and concentration units of the ingoing sample, the specified amount of
+        the outgoing sample and the last recorded size of the sample lineage to
+        calculate the outgoing volume required to reach the specified amount.
 
     """
+
     ## Parse args
     parser = ArgumentParser(description=DESC)
 
     # Process ID
     parser.add_argument("--pid", type=str, help="Lims ID for current Process")
 
-    # UDFs
+    ## UDFs
+    # To use for calculations
     parser.add_argument(
         "--vol_in",
         type=parse_udf_arg,
-        help="Ingoing volume, specified.",
+        help="Ingoing volume.",
+    )
+    parser.add_argument(
+        "--size_in",
+        type=parse_udf_arg,
+        help="Ingoing size.",
+    )
+    parser.add_argument(
+        "--conc_in",
+        type=parse_udf_arg,
+        help="Ingoing concentration.",
+    )
+    parser.add_argument(
+        "--conc_units_in",
+        type=parse_udf_arg,
+        help="Ingoing concentration units.",
     )
     parser.add_argument(
         "--amt_out",
         type=parse_udf_arg,
-        help="Outgoing amount, specified.",
+        help="Outgoing amount.",
     )
+    # To calculate
     parser.add_argument(
         "--vol_out",
         type=parse_udf_arg,
