@@ -134,10 +134,10 @@ def calc_input_volume(process: Process, args: Namespace):
             )
 
             # Update volume UDF of output artifact
-            udf_tools.put(art_out, args.vol_out["udf"], vol_to_take)
+            udf_tools.put(art_out, args.vol_out["udf"], round(vol_to_take, 2))
             logging.info(f"Assigned UDF '{args.vol_out['udf']}': {vol_to_take:.2f}")
             if vol_required > input_vol:
-                udf_tools.put(art_out, args.amt_out["udf"], new_output_amt)
+                udf_tools.put(art_out, args.amt_out["udf"], round(new_output_amt, 2))
                 logging.warning(
                     f"Changed UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
                 )
