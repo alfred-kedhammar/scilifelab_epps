@@ -236,6 +236,7 @@ def main():
     )
     parser.add_argument(
         "--conc_units_in",
+        default=None,
         type=parse_udf_arg,
         help="Ingoing concentration units.",
     )
