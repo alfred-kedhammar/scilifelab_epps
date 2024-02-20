@@ -84,11 +84,16 @@ def calc_input_volume(process: Process, args: Namespace):
             # Get info specified by script arguments
             size_bp = fetch_from_arg(art_tuple, args.size_in, process)
             input_conc = fetch_from_arg(art_tuple, args.conc_in, process)
-            input_conc_units = fetch_from_arg(art_tuple, args.conc_units_in, process)
-            assert input_conc_units in [
-                "ng/ul",
-                "nM",
-            ], f'Unsupported conc. units "{input_conc_units}" for art {art_in.name}'
+            if args.conc_units_in:
+                input_conc_units = fetch_from_arg(
+                    art_tuple, args.conc_units_in, process
+                )
+                assert input_conc_units in [
+                    "ng/ul",
+                    "nM",
+                ], f'Unsupported conc. units "{input_conc_units}" for art {art_in.name}'
+            else:
+                input_conc_units = "ng/ul"
             input_vol = fetch_from_arg(art_tuple, args.vol_in, process)
             output_amt = fetch_from_arg(art_tuple, args.amt_out, process)
 
@@ -184,7 +189,7 @@ def parse_udf_arg(arg_string: str) -> dict:
 def main():
     """Set up log, LIMS instance and parse args.
 
-    Example call:
+    Example 1:
 
         python scripts/calc_input_volumes.py \
         --pid           24-885698 \
@@ -195,12 +200,15 @@ def main():
         --amt_out       udf='Input Amount (fmol)' \
         --vol_out       udf='Volume (ul)'
 
+    Example 2:
 
-        For every input-ouput pair of a step, will use the volume, concentration
-        and concentration units of the ingoing sample, the specified amount of
-        the outgoing sample and the last recorded size of the sample lineage to
-        calculate the outgoing volume required to reach the specified amount.
-
+        python scripts/calc_input_volumes.py \
+        --pid           24-885698 \
+        --vol_in        udf='Library volume (uL)' \
+        --conc_in       udf='Library Conc. (ng/ul)' \
+        --size_in       udf='Size (bp)',source='output',recursive=True \
+        --amt_out       udf='ONT flow cell loading amount (fmol)' \
+        --vol_out       udf='Library to load (uL)'
     """
 
     ## Parse args
