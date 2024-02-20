@@ -27,9 +27,7 @@ def fetch_from_arg(
     art_tuple: tuple, arg_dict: dict, process: Process
 ) -> int | float | str:
     """Branching decision-making function. Determine HOW to fetch UDFs given the argument dictionary."""
-    import ipdb
 
-    ipdb.set_trace()
     if arg_dict["recursive"]:
         if arg_dict["source"] == "input":
             use_current = False
