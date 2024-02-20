@@ -5,6 +5,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
+import yaml
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
@@ -26,7 +27,9 @@ def fetch_from_arg(
     art_tuple: tuple, arg_dict: dict, process: Process
 ) -> int | float | str:
     """Branching decision-making function. Determine HOW to fetch UDFs given the argument dictionary."""
+    import ipdb
 
+    ipdb.set_trace()
     if arg_dict["recursive"]:
         if arg_dict["source"] == "input":
             use_current = False
@@ -61,8 +64,9 @@ def fetch_from_arg(
     )
     logging.info(log_str)
     if history:
-        last_step_name = history[-1]["Step name"]
-        last_step_id = history[-1]["Step ID"]
+        history_yaml = yaml.load(history, Loader=yaml.FullLoader)
+        last_step_name = history_yaml[-1]["Step name"]
+        last_step_id = history_yaml[-1]["Step ID"]
         logging.info(f"UDF fetched from: {last_step_name} (ID: {last_step_id})")
 
     return value
@@ -188,7 +192,7 @@ def main():
         --conc_units_in udf='Concentration',source='input' \
         --size_in       udf='Size (bp)',source='output',recursive=True \
         --amt_out       udf='Input Amount (fmol)' \
-        --vol_out       udf='Volume (ul)' \
+        --vol_out       udf='Volume (ul)'
 
         For every input-ouput pair of a step, will use the volume, concentration
         and concentration units of the ingoing sample, the specified amount of
