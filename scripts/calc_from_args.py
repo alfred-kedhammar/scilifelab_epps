@@ -397,6 +397,13 @@ def main():
         level=logging.INFO,
     )
 
+    # Initialize logging
+    logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
+    logging.info(
+        f"Launched in step {process.type.name} ({process.id}){TIMESTAMP} by {process.technician.name}."
+    )
+    logging.info(f"Arguments: {args}")
+
     try:
         function_to_use = eval(args.calc)
         function_to_use(process, args)
