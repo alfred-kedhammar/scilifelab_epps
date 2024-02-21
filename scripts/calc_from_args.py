@@ -163,6 +163,7 @@ def amount(process: Process, args: Namespace):
         try:
             art_in = art_tuple[0]["uri"]
             art_out = art_tuple[1]["uri"]
+            logging.info("")
             logging.info(
                 f"Processing input '{art_in.name}' -> output '{art_out.name}'..."
             )
@@ -181,8 +182,8 @@ def amount(process: Process, args: Namespace):
                 ], f'Unsupported conc. units "{input_conc_units}" for art {art_in.name}'
             else:
                 # Infer concentration unit
-                if "ng" in args.conc_in["udf"]:
-                    input_conc_units = "nM"
+                if "ng/ul" in args.conc_in["udf"]:
+                    input_conc_units = "ng/ul"
                 elif "nM" in args.conc_in["udf"]:
                     input_conc_units = "nM"
                 else:
@@ -404,7 +405,7 @@ def main():
         f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
     )
     args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
-    logging.info(f"Script called with arguments: \n{args_str}")
+    logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
         function_to_use = eval(args.calc)
