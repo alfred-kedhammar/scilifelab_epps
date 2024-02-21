@@ -55,18 +55,17 @@ def fetch_from_arg(
 
     log_str = " ".join(
         [
-            f"{'Fetched' if not arg_dict['recursive'] else 'Recusively fetched'}",
-            f"UDF '{arg_dict['udf']}': {value}",
+            f"Fetched UDF '{arg_dict['udf']}': {value}",
             f"from {arg_dict['source']} artifact",
             f"'{art_tuple[0]['uri'].name if arg_dict['source'] == 'input' else art_tuple[0]['uri'].name }'.",
         ]
     )
-    logging.info(log_str)
     if history:
         history_yaml = yaml.load(history, Loader=yaml.FullLoader)
         last_step_name = history_yaml[-1]["Step name"]
         last_step_id = history_yaml[-1]["Step ID"]
-        logging.info(f"UDF fetched from: '{last_step_name}' (ID: '{last_step_id}')")
+        log_str += f"\n\tUDF recusively fetched from: '{last_step_name}' (ID: '{last_step_id}')"
+    logging.info(log_str)
 
     return value
 
@@ -424,6 +423,7 @@ def main():
         sys.stderr.write(str(e))
         sys.exit(2)
     else:
+        logging.info("")
         logging.info("Script completed successfully.")
         logging.shutdown()
         upload_file(
