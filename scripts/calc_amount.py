@@ -2,7 +2,6 @@
 import logging
 import os
 import sys
-import traceback
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
@@ -14,7 +13,7 @@ from ont_generate_samplesheet import upload_file
 
 from epp_utils import formula, udf_tools
 
-DESC = """Given a target amount, calculate how much volume to use.
+DESC = """UDF-agnostic script to calculate an amount.
 
 The script is written with the intention of reusability,
 so the script arguments specify which UDFs to use and
@@ -22,6 +21,7 @@ from where their values should be fetched.
 """
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
+SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
 def fetch_from_arg(
@@ -201,32 +201,22 @@ def main():
 
         python scripts/calc_input_volumes.py \
         --pid           24-885698 \
-        --vol_in        udf='Volume (ul)',source='input' \
-        --conc_in       udf='Concentration',source='input' \
-        --conc_units_in udf='Conc. Units',source='input' \
-        --size_in       udf='Size (bp)',source='output',recursive=True \
-        --amt_out       udf='Input Amount (fmol)' \
-        --vol_out       udf='Volume (ul)'
-
-    Example 2:
-
-        python scripts/calc_input_volumes.py \
-        --pid           24-885698 \
+        --log           "Calculate library amount log" \
         --vol_in        udf='Library volume (uL)' \
         --conc_in       udf='Library Conc. (ng/ul)' \
-        --size_in       udf='Size (bp)',source='output',recursive=True \
-        --amt_out       udf='ONT flow cell loading amount (fmol)' \
-        --vol_out       udf='Library to load (uL)'
+        --size_in       udf='Size (bp)',recursive=True \
+        --amt_out       udf='Library Amount (fmol)' \
     """
-
-    ## Parse args
+    # Parse args
     parser = ArgumentParser(description=DESC)
 
     # Process ID
     parser.add_argument("--pid", type=str, help="Lims ID for current Process")
 
-    ## UDFs
-    # To use for calculations
+    # Log file slot
+    parser.add_argument("--log", type=str, help="Which log file slot to use")
+
+    # UDFs to use for calculations
     parser.add_argument(
         "--vol_in",
         type=parse_udf_arg,
@@ -248,16 +238,11 @@ def main():
         type=parse_udf_arg,
         help="Ingoing concentration units.",
     )
+    # UDF to calculate
     parser.add_argument(
         "--amt_out",
         type=parse_udf_arg,
         help="Outgoing amount.",
-    )
-    # To calculate
-    parser.add_argument(
-        "--vol_out",
-        type=parse_udf_arg,
-        help="Outgoing volume, to be calculated.",
     )
 
     args = parser.parse_args()
@@ -271,7 +256,7 @@ def main():
     log_filename: str = (
         "_".join(
             [
-                "calc-input-volumes",
+                SCRIPT_NAME,
                 process.id,
                 TIMESTAMP,
                 process.technician.name.replace(" ", ""),
@@ -295,7 +280,7 @@ def main():
         logging.shutdown()
         upload_file(
             file_name=log_filename,
-            file_slot="Volume Calculation Log",
+            file_slot=args.log,
             currentStep=process,
             lims=lims,
         )
@@ -307,7 +292,7 @@ def main():
         logging.shutdown()
         upload_file(
             file_name=log_filename,
-            file_slot="Volume Calculation Log",
+            file_slot=args.log,
             currentStep=process,
             lims=lims,
         )
