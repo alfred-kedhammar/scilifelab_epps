@@ -397,10 +397,6 @@ def main():
         level=logging.INFO,
     )
 
-    import ipdb
-
-    ipdb.set_trace()
-
     try:
         function_to_use = eval(args.calc)
         function_to_use(process, args)
