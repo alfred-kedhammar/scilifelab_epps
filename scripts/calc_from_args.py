@@ -189,7 +189,7 @@ def amount(process: Process, args: Namespace):
                         f"No concentration units can inferred for {art_out.name}."
                     )
                 logging.info(
-                    f"Inferred unit of UDF '{args.amt_out['udf']}': {input_conc_units}."
+                    f"Inferred unit of UDF '{args.conc_in['udf']}': {input_conc_units}."
                 )
 
             # Infer amount unit
@@ -302,7 +302,7 @@ def main():
         --vol_in        udf='Library volume (uL)' \
         --conc_in       udf='Library Conc. (ng/ul)' \
         --size_in       udf='Size (bp)',recursive=True \
-        --amt_out       udf='Library Amount (fmol)' \
+        --amt_out       udf='Library Amount (fmol)'
 
     Example 3:
 
