@@ -291,7 +291,7 @@ def main():
         --conc_units_in udf='Conc. Units',source='input' \
         --size_in       udf='Size (bp)',source='output',recursive=True \
         --amt_out       udf='Input Amount (fmol)' \
-        --vol_out       udf='Volume (ul)'
+        --vol_out       udf='Input Volume (uL)'
 
     Example 2:
 
