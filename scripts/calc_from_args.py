@@ -82,8 +82,9 @@ def volume_to_use(process: Process, args: Namespace):
         try:
             art_in = art_tuple[0]["uri"]
             art_out = art_tuple[1]["uri"]
+            logging.info("")
             logging.info(
-                f"\nProcessing input '{art_in.name}' -> output '{art_out.name}'..."
+                f"Processing input '{art_in.name}' -> output '{art_out.name}'..."
             )
 
             # Get info specified by script arguments
@@ -402,7 +403,7 @@ def main():
     logging.info(
         f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
     )
-    args_str = "\n".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
+    args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
     logging.info(f"Script called with arguments: \n{args_str}")
 
     try:
