@@ -13,7 +13,7 @@ from ont_generate_samplesheet import upload_file
 
 from epp_utils import formula, udf_tools
 
-DESC = """UDF-agnostic script to calculate an amount.
+DESC = """UDF-agnostic script to perform calculations across all artifacts of a step.
 
 The script is written with the intention of reusability,
 so the script arguments specify which UDFs to use and
@@ -71,7 +71,11 @@ def fetch_from_arg(
     return value
 
 
-def calc_input_volume(process: Process, args: Namespace):
+def volume_to_use(process: Process, args: Namespace):
+    """Calculate how much volume to use based on a target amount.
+
+    Uses target amount, concentration, conc.units and size.
+    """
     art_tuples = udf_tools.get_art_tuples(process)
 
     for art_tuple in art_tuples:
@@ -147,8 +151,87 @@ def calc_input_volume(process: Process, args: Namespace):
             continue
 
 
+def amount(process: Process, args: Namespace):
+    """Calculate amount.
+
+    Uses volume, concentration, conc.units and size.
+    """
+    art_tuples = udf_tools.get_art_tuples(process)
+
+    for art_tuple in art_tuples:
+        try:
+            art_in = art_tuple[0]["uri"]
+            art_out = art_tuple[1]["uri"]
+            logging.info(
+                f"Processing input '{art_in.name}' -> output '{art_out.name}'..."
+            )
+
+            # Get info specified by script arguments
+            size_bp = fetch_from_arg(art_tuple, args.size_in, process)
+            input_conc = fetch_from_arg(art_tuple, args.conc_in, process)
+            input_vol = fetch_from_arg(art_tuple, args.vol_in, process)
+            if args.conc_units_in:
+                input_conc_units = fetch_from_arg(
+                    art_tuple, args.conc_units_in, process
+                )
+                assert input_conc_units in [
+                    "ng/ul",
+                    "nM",
+                ], f'Unsupported conc. units "{input_conc_units}" for art {art_in.name}'
+            else:
+                # Infer concentration unit
+                if "ng" in args.conc_in["udf"]:
+                    input_conc_units = "nM"
+                elif "nM" in args.conc_in["udf"]:
+                    input_conc_units = "nM"
+                else:
+                    raise AssertionError(
+                        f"No concentration units can inferred for {art_out.name}."
+                    )
+                logging.info(
+                    f"Inferred unit of UDF '{args.amt_out['udf']}': {input_conc_units}."
+                )
+
+            # Infer amount unit
+            if "fmol" in args.amt_out["udf"]:
+                output_amt_unit = "fmol"
+            elif "ng" in args.amt_out["udf"]:
+                output_amt_unit = "ng"
+            else:
+                raise AssertionError(
+                    f"Can't infer units from '{args.amt_out['udf']}' for art {art_out.name}"
+                )
+            logging.info(
+                f"Inferred unit of UDF '{args.amt_out['udf']}': {output_amt_unit}."
+            )
+
+            # Calculate amount
+            if input_conc_units == "nM":
+                if output_amt_unit == "fmol":
+                    output_amt = input_vol * input_conc
+                elif output_amt_unit == "ng":
+                    output_amt = formula.ng_to_fmol(input_conc, size_bp) * input_vol
+            elif input_conc_units == "ng/ul":
+                if output_amt_unit == "fmol":
+                    output_amt = formula.ng_ul_to_nM(input_conc, size_bp) * input_vol
+                elif output_amt_unit == "ng":
+                    output_amt = input_conc * input_vol
+            logging.info(
+                f"Calculated amount -> '{args.amt_out['udf']}': {output_amt:.2f}"
+            )
+
+            # Update volume UDF of output artifact
+            udf_tools.put(art_out, args.amt_out["udf"], round(output_amt, 2))
+            logging.info(f"Assigned UDF '{args.amt_out['udf']}': {output_amt:.2f}")
+
+        except AssertionError as e:
+            logging.error(f"Assertion error: \n{str(e)}")
+            logging.warning(f"Skipping artifact {art_out.name}.")
+            continue
+
+
 def parse_udf_arg(arg_string: str) -> dict:
-    """Parse UDF argument string into key-value pairs, and validate.
+    """Parse UDF argument string into a dictionary.
 
     Example:
 
@@ -195,23 +278,59 @@ def parse_udf_arg(arg_string: str) -> dict:
 
 
 def main():
-    """Set up log, LIMS instance and parse args.
+    f"""Set up log, LIMS instance and parse args.
 
     Example 1:
 
-        python scripts/calc_input_volumes.py \
+        python {__file__} \
         --pid           24-885698 \
+        --calc          'volume_to_use' \
+        --log           'Calculate input volume log' \
+        --vol_in        udf='Volume (ul)',source='input' \
+        --conc_in       udf='Concentration',source='input' \
+        --conc_units_in udf='Conc. Units',source='input' \
+        --size_in       udf='Size (bp)',source='output',recursive=True \
+        --amt_out       udf='Input Amount (fmol)' \
+        --vol_out       udf='Volume (ul)'
+
+    Example 2:
+
+        python {__file__} \
+        --pid           24-885698 \
+        --calc          'amount' \
         --log           "Calculate library amount log" \
         --vol_in        udf='Library volume (uL)' \
         --conc_in       udf='Library Conc. (ng/ul)' \
         --size_in       udf='Size (bp)',recursive=True \
         --amt_out       udf='Library Amount (fmol)' \
+
+    Example 3:
+
+        python {__file__} \
+        --pid           24-885698 \
+        --calc          'volume_to_use' \
+        --log           'Calculate loading volume log' \
+        --vol_in        udf='Library volume (uL)' \
+        --conc_in       udf='Library Conc. (ng/ul)' \
+        --size_in       udf='Size (bp)',recursive=True \
+        --amt_out       udf='ONT flow cell loading amount (fmol)' \
+        --vol_out       udf='Library to load (uL)'
+
     """
+
     # Parse args
     parser = ArgumentParser(description=DESC)
 
     # Process ID
     parser.add_argument("--pid", type=str, help="Lims ID for current Process")
+
+    # Calculation type
+    parser.add_argument(
+        "--calc",
+        type=str,
+        choices=["volume_to_use", "amount"],
+        help="Which function to use for calculations",
+    )
 
     # Log file slot
     parser.add_argument("--log", type=str, help="Which log file slot to use")
@@ -238,11 +357,16 @@ def main():
         type=parse_udf_arg,
         help="Ingoing concentration units.",
     )
-    # UDF to calculate
     parser.add_argument(
         "--amt_out",
         type=parse_udf_arg,
         help="Outgoing amount.",
+    )
+    # UDF to calculate
+    parser.add_argument(
+        "--vol_out",
+        type=parse_udf_arg,
+        help="Outgoing volume.",
     )
 
     args = parser.parse_args()
@@ -257,6 +381,7 @@ def main():
         "_".join(
             [
                 SCRIPT_NAME,
+                args.calc,
                 process.id,
                 TIMESTAMP,
                 process.technician.name.replace(" ", ""),
@@ -272,8 +397,13 @@ def main():
         level=logging.INFO,
     )
 
+    import ipdb
+
+    ipdb.set_trace()
+
     try:
-        calc_input_volume(process, args)
+        function_to_use = eval(args.calc)
+        function_to_use(process, args)
     except Exception as e:
         # Post error to LIMS GUI
         logging.error(str(e), exc_info=True)
