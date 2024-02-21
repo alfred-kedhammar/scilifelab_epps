@@ -400,9 +400,10 @@ def main():
     # Initialize logging
     logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
     logging.info(
-        f"Launched in step {process.type.name} ({process.id}){TIMESTAMP} by {process.technician.name}."
+        f"Launched in step {process.type.name} ({process.id}) by {process.technician.name}."
     )
-    logging.info(f"Arguments: {args}")
+    for arg in vars(args):
+        logging.info(f"Argument '{arg}': {getattr(args, arg)}")
 
     try:
         function_to_use = eval(args.calc)
