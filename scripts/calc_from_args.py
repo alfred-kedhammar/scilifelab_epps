@@ -116,7 +116,7 @@ def volume_to_use(process: Process, args: Namespace):
                 vol_required = min(
                     formula.fmol_to_ng(output_amt, size_bp) / input_conc, input_vol
                 )
-            logging.info(f"Calculated required volume {vol_required:.2f} uL.")
+            logging.info(f"Calculated required volume -> {vol_required:.2f} uL.")
 
             # Adress case of volume depletion
             if vol_required > input_vol:
@@ -133,9 +133,7 @@ def volume_to_use(process: Process, args: Namespace):
             else:
                 vol_to_take = vol_required
 
-            logging.info(
-                f"Calculated vol to take -> '{args.vol_out['udf']}': {vol_to_take:.2f}"
-            )
+            logging.info(f"Determined volume to take -> {vol_to_take:.2f} uL")
 
             # Update volume UDF of output artifact
             udf_tools.put(art_out, args.vol_out["udf"], round(vol_to_take, 2))
