@@ -29,42 +29,57 @@ def fetch_from_arg(
 ) -> int | float | str:
     """Branching decision-making function. Determine HOW to fetch UDFs given the argument dictionary."""
 
-    if arg_dict["recursive"]:
-        if arg_dict["source"] == "input":
-            use_current = False
-        elif arg_dict["source"] == "output":
-            use_current = True
-        else:
-            raise AssertionError(f"Invalid source '{arg_dict['source']}'")
-        value, history = udf_tools.fetch_last(
-            currentStep=process,
-            art_tuple=art_tuple,
-            target_udfs=arg_dict["udf"],
-            use_current=use_current,
-            print_history=True,
-        )
-    else:
-        if arg_dict["source"] == "input":
-            art = art_tuple[0]["uri"]
-        elif arg_dict["source"] == "output":
-            art = art_tuple[1]["uri"]
-        else:
-            raise AssertionError(f"Invalid source '{arg_dict['source']}'")
-        history = None
-        value = udf_tools.fetch(art, arg_dict["udf"])
+    history = None
 
-    log_str = " ".join(
-        [
-            f"Fetched UDF '{arg_dict['udf']}': {value}",
-            f"from {arg_dict['source']} artifact",
-            f"'{art_tuple[0]['uri'].name if arg_dict['source'] == 'input' else art_tuple[0]['uri'].name }'.",
-        ]
-    )
+    # Start branching decision-making
+    if arg_dict["source"] == "step":
+        # Fetch UDF from master step field of current step
+        value = process.udf[arg_dict["udf"]]
+    else:
+        if arg_dict["recursive"]:
+            # Fetch UDF recursively, back-tracking the input-output tuple
+            if arg_dict["source"] == "input":
+                use_current = False
+            else:
+                assert arg_dict["source"] == "output"
+                use_current = True
+
+            value, history = udf_tools.fetch_last(
+                currentStep=process,
+                art_tuple=art_tuple,
+                target_udfs=arg_dict["udf"],
+                use_current=use_current,
+                print_history=True,
+            )
+        else:
+            # Fetch UDF from either input or output artifact
+            if arg_dict["source"] == "input":
+                art = art_tuple[0]["uri"]
+            elif arg_dict["source"] == "output":
+                art = art_tuple[1]["uri"]
+            else:
+                raise AssertionError
+            value = udf_tools.fetch(art, arg_dict["udf"])
+
+    # Explicate from where the UDF was fetched
+    if arg_dict["source"] == "input":
+        source_name = art_tuple[0]["uri"].name
+    elif arg_dict["source"] == "output":
+        source_name = art_tuple[1]["uri"].name
+    elif arg_dict["source"] == "step":
+        source_name = f"{process.type.name} (ID: {process.id})"
+    else:
+        raise AssertionError
+
+    # Log what has been done
+    log_str = f"Fetched UDF '{arg_dict['udf']}': {value} from {arg_dict['source']} '{source_name}'."
+
     if history:
         history_yaml = yaml.load(history, Loader=yaml.FullLoader)
         last_step_name = history_yaml[-1]["Step name"]
         last_step_id = history_yaml[-1]["Step ID"]
         log_str += f"\n\tUDF recusively fetched from: '{last_step_name}' (ID: '{last_step_id}')"
+
     logging.info(log_str)
 
     return value
@@ -259,7 +274,7 @@ def parse_udf_arg(arg_string: str) -> dict:
         if key == "udf":
             arg_dict[key] = value
         elif key == "source":
-            assert value in ["input", "output"]
+            assert value in ["input", "output", "step"]
             arg_dict[key] = value
         elif key == "recursive":
             assert value in ["True", "False"]
