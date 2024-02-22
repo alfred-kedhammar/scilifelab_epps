@@ -25,9 +25,8 @@ TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
-def generate_samplesheets(process, lims, args):
-    """
-    === Sample sheet columns ===
+def generate_MinKNOW_samplesheet(process, lims, args):
+    """=== Sample sheet columns ===
 
     flow_cell_id                e.g. PAM96489
     position_id                 [1-3A-G] for PromethION, else None
@@ -58,54 +57,14 @@ def generate_samplesheets(process, lims, args):
     FLO-MIN114 (MinION R10.4.1)
     FLO-FLG114 (Flongle R10.4.1)
 
-    === Outputs ===
-
-    ONT_samplesheet_lims-step_yymmdd_hhmmss.csv
     """
-
-    minknow_samplesheet_file = (
-        minknow_samplesheet_for_qc(process)
-        if "ONT QC" in process.type.name
-        else minknow_samplesheet_default(process)
-    )
-    upload_file(
-        minknow_samplesheet_file,
-        "ONT sample sheet",
-        process,
-        lims,
-    )
-    shutil.copyfile(
-        minknow_samplesheet_file,
-        f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
-    )
-    os.remove(minknow_samplesheet_file)
-
-    if "ONT QC" in process.type.name:
-        anglerfish_samplesheet_file = anglerfish_samplesheet(process)
-        upload_file(
-            anglerfish_samplesheet_file,
-            "Anglerfish sample sheet",
-            process,
-            lims,
-        )
-        shutil.copyfile(
-            anglerfish_samplesheet_file,
-            f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/{anglerfish_samplesheet_file}",
-        )
-        os.remove(anglerfish_samplesheet_file)
-
-
-def minknow_samplesheet_default(process):
     arts = [art for art in process.all_outputs() if art.type == "Analyte"]
     arts.sort(key=lambda art: art.id)
 
     rows = []
     for art in arts:
-        row = {
-            "flow_cell_id": art.udf.get("ONT flow cell ID"),
-            "position_id": art.udf.get("ONT flow cell position"),
-            "sample_id": strip_characters(art.name),
-            "experiment_id": f"{process.id}",
+        # Start building the row in the samplesheet corresponding to the current artifact
+        ss_row = {
             "flow_cell_product_code": process.udf["ONT flow cell type"].split(" ")[0],
             "flow_cell_type": process.udf["ONT flow cell type"]
             .split(" ")[1]
@@ -113,32 +72,54 @@ def minknow_samplesheet_default(process):
             "kit": get_kit_string(process),
         }
 
-        if "PromethION" in row["flow_cell_type"]:
+        # Some samplesheet columns will be different for QC runs
+        if args.qc:
+            ss_row["flow_cell_id"] = process.udf.get("ONT flow cell ID")
+            ss_row["position_id"] = process.udf.get("ONT flow cell position")
+            ss_row[
+                "sample_id"
+            ] = f"QC_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
+            ss_row["experiment_id"] = f"QC_{process.id}"
+        else:
+            ss_row["flow_cell_id"] = art.udf.get("ONT flow cell ID")
+            ss_row["position_id"] = art.udf.get("ONT flow cell position")
+            ss_row["sample_id"] = strip_characters(art.name)
+            ss_row["experiment_id"] = f"{process.id}"
+
+        if "PromethION" in ss_row["flow_cell_type"]:
             assert (
-                row["position_id"] != "None"
+                ss_row["position_id"] != "None"
             ), "Positions must be specified for PromethION flow cells."
 
-        # Add extra columns for barcodes
-        if len(art.reagent_labels) > 0:
-            assert (
-                process.udf.get("ONT expansion kit") != "None"
-            ), f"Barcodes found in pool {art.name}, but no barcode kit specified."
-        if process.udf.get("ONT expansion kit") != "None":
-            assert (
-                len(art.reagent_labels) > 0
-            ), f"No barcodes found within pool {art.name}"
-            label_tuples = [(e[0], e[1]) for e in zip(art.samples, art.reagent_labels)]
-            label_tuples.sort(key=str)
-            for sample, label in label_tuples:
-                row["alias"] = strip_characters(sample.name)
-                row["barcode"] = strip_characters(
-                    "barcode" + label[0:2]
-                )  # TODO double check extraction of barcode number
-                rows.append(row.copy())
+        # Add extra columns for barcodes, if needed
+        if args.qc:
+            # For QC, ONT barcodes are assigned via sample UDFs
+            pass
         else:
-            rows.append(row)
+            # For default runs, ONT barcodes are assigned as reagent labels
+            if process.udf.get("ONT expansion kit") == "None":
+                # No barcodes
+                assert (
+                    len(art.reagent_labels) == 0
+                ), f"ONT expansion kit was not supplied, but {art.name} contains barcodes."
+                rows.append(ss_row)
+            else:
+                # Yes barcodes
+                assert (
+                    len(art.reagent_labels) > 0
+                ), f"No barcodes found within pool {art.name}"
 
-        assert "" not in row.values(), "All fields must be populated."
+                label_tuples = [
+                    (e[0], e[1]) for e in zip(art.samples, art.reagent_labels)
+                ]
+                label_tuples.sort(key=str)
+                for sample, label in label_tuples:
+                    ss_row["alias"] = strip_characters(sample.name)
+                    ss_row["barcode"] = strip_characters("barcode" + label[0:2])
+                    # Keep appending rows to the samplesheet for each barcode in the pool
+                    rows.append(ss_row.copy())
+
+        assert "" not in ss_row.values(), "All fields must be populated."
 
     df = pd.DataFrame(rows)
 
@@ -166,7 +147,17 @@ def minknow_samplesheet_default(process):
         f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv",
     )
 
-    return file_name
+    upload_file(
+        file_name,
+        "MinKNOW sample sheet",
+        process,
+        lims,
+    )
+
+    shutil.move(
+        file_name,
+        f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
+    )
 
 
 def minknow_samplesheet_for_qc(process):
@@ -264,132 +255,6 @@ def minknow_samplesheet_for_qc(process):
     return file_name
 
 
-def anglerfish_samplesheet(process):
-    measurements = []
-
-    # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
-    sample_pattern = re.compile(r"P\d{5}_\d{3,4}")
-    for art in process.all_outputs():
-        if re.search(sample_pattern, art.name):
-            measurements.append(art)
-
-    ont_barcode_bools = [
-        udf_tools.fetch(art, "ONT Barcode Well", on_fail=None) is not None
-        for art in measurements
-    ]
-
-    if all(ont_barcode_bools):
-        ont_barcodes = True
-    elif not any(ont_barcode_bools):
-        ont_barcodes = False
-    else:
-        raise AssertionError(
-            "ONT barcodes must be present either for all samples or for none."
-        )
-
-    rows = []
-
-    # Iterate through the samples
-    for sample in measurements:
-        if ont_barcodes:
-            barcode_well = udf_tools.fetch(sample, "ONT Barcode Well")
-
-            if barcode_well not in well2num:
-                barcode_well = barcode_well[0] + ":" + barcode_well[1:]
-            barcode_int = well2num[barcode_well]
-
-            fastq_path = f"./fastq_pass/barcode{str(barcode_int).zfill(2)}/*.fastq.gz"  # Assuming the Anglerfish working dir is the ONT run dir TODO
-
-        elif not ont_barcodes:
-            fastq_path = "./fastq_pass/*.fastq.gz"
-
-        index_seq_list, adaptors_name = get_index_info(sample)
-
-        # For multi-index samples, append multiple rows
-        for index_seq in index_seq_list:
-            row = {
-                "sample_name": sample.name,
-                "adaptors": adaptors_name,
-                "index": index_seq,
-                "fastq_path": fastq_path,
-            }
-
-            rows.append(row)
-
-    df = pd.DataFrame(rows)
-    df.sort_values(by="sample_name", inplace=True)
-
-    file_name = f"Anglerfish_samplesheet_{process.id}_{TIMESTAMP}.csv"
-    df.to_csv(
-        file_name,
-        header=False,
-        index=False,
-    )
-
-    return file_name
-
-
-def get_index_info(sample):
-    """
-    Input: LIMS API measurement object
-
-    Output: tuple(
-        List of indexes (either i7 or i7-i5),
-        The name of the adaptors as defined in Anglerfish config
-        )
-    """
-
-    index_seq = None
-
-    assert (
-        len(sample.reagent_labels) == 1
-    ), f"Multiple reagent labels found for sample {sample.name}"
-
-    label = sample.reagent_labels[0]
-
-    index_pattern = re.compile("[ACTG]{4,}-?[ACTG]{4,}")
-
-    ### Get the index sequence ####
-
-    # 1) Look for idx sequence contained directly in .reagent_labels attribute
-    index_search = re.search(index_pattern, label)
-
-    if index_search:
-        index_seq = index_search.group()
-
-    else:
-        # 2) Look for idx among 10X idxs
-        if label in idxs_10x:
-            idx_10x_list = idxs_10x[label]
-
-            if len(idx_10x_list) == 2:
-                # Return i7-i5
-                index_seq = "-".join(idx_10x_list)
-            elif len(idx_10x_list) == 4:
-                # Return list of combination i7 idxs
-                index_seq = idx_10x_list
-            else:
-                raise AssertionError("Unrecognized format of 10X index.")
-
-    ### Get the name of the adaptors ###
-
-    # For now, only support truseq and truseq_dual adaptors TODO
-    if "-" in index_seq:
-        adaptors_name = "truseq_dual"
-    else:
-        adaptors_name = "truseq"
-
-    # Return
-
-    if index_seq:
-        if not isinstance(index_seq, list):
-            index_seq = [index_seq]
-        return index_seq, adaptors_name
-
-    else:
-        assert index_search, f"No index information found for sample {sample.name}"
-
-
 def upload_file(file_name, file_slot, process, lims):
     for out in process.all_outputs():
         if out.name == file_slot:
@@ -452,6 +317,7 @@ def main():
     parser = ArgumentParser(description=DESC)
     parser.add_argument("--pid", type=str, help="Lims ID for current Process")
     parser.add_argument("--log", type=str, help="Which log file slot to use")
+    parser.add_argument("--qc", action="store_true", help="Generate QC samplesheet")
     args = parser.parse_args()
 
     # Set up LIMS
@@ -488,7 +354,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        generate_samplesheets(process, lims, args)
+        generate_MinKNOW_samplesheet(process, lims, args)
     except Exception as e:
         # Post error to LIMS GUI
         logging.error(str(e), exc_info=True)
