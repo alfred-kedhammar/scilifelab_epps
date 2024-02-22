@@ -187,7 +187,7 @@ def amount(process: Process, args: Namespace):
                     input_conc_units = "nM"
                 else:
                     raise AssertionError(
-                        f"No concentration units can inferred for {art_out.name}."
+                        f"Can't infer units from '{args.conc_in['udf']}' for {art_out.name}."
                     )
                 logging.info(
                     f"Inferred unit of UDF '{args.conc_in['udf']}': {input_conc_units}."
@@ -211,12 +211,12 @@ def amount(process: Process, args: Namespace):
                 if output_amt_unit == "fmol":
                     output_amt = input_vol * input_conc
                 elif output_amt_unit == "ng":
-                    output_amt = formula.ng_to_fmol(input_conc, size_bp) * input_vol
+                    output_amt = formula.fmol_to_ng(input_vol * input_conc, size_bp)
             elif input_conc_units == "ng/ul":
                 if output_amt_unit == "fmol":
-                    output_amt = formula.ng_ul_to_nM(input_conc, size_bp) * input_vol
+                    output_amt = formula.ng_to_fmol(input_vol * input_conc, size_bp)
                 elif output_amt_unit == "ng":
-                    output_amt = input_conc * input_vol
+                    output_amt = input_vol * input_conc
             logging.info(
                 f"Calculating amount: {input_vol} ul of {input_conc} {input_conc_units} at {size_bp} bp -> {output_amt:.2f} {output_amt_unit}"
             )
