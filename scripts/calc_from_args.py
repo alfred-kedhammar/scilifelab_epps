@@ -116,7 +116,9 @@ def volume_to_use(process: Process, args: Namespace):
                 vol_required = min(
                     formula.fmol_to_ng(output_amt, size_bp) / input_conc, input_vol
                 )
-            logging.info(f"Calculated required volume -> {vol_required:.2f} uL.")
+            logging.info(
+                f"Calculating required volume: {output_amt} fmol of {input_conc} {input_conc_units} at {size_bp} bp -> {vol_required:.2f} ul."
+            )
 
             # Adress case of volume depletion
             if vol_required > input_vol:
@@ -216,7 +218,7 @@ def amount(process: Process, args: Namespace):
                 elif output_amt_unit == "ng":
                     output_amt = input_conc * input_vol
             logging.info(
-                f"Calculated amount -> '{args.amt_out['udf']}': {output_amt:.2f}"
+                f"Calculating amount: {input_vol} ul of {input_conc} {input_conc_units} at {size_bp} bp -> {output_amt:.2f} {output_amt_unit}"
             )
 
             # Update volume UDF of output artifact
