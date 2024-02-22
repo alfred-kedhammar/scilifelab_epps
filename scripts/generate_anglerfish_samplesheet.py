@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 import os
 import re
 import shutil
@@ -21,9 +22,10 @@ Used to generate MinKNOW (and Anglerfish) samplesheets.
 """
 
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
+SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
-def main(lims, args):
+def generate_samplesheets(process, lims, args):
     """
     === Sample sheet columns ===
 
@@ -60,47 +62,41 @@ def main(lims, args):
 
     ONT_samplesheet_lims-step_yymmdd_hhmmss.csv
     """
-    try:
-        currentStep = Process(lims, id=args.pid)
 
-        minknow_samplesheet_file = (
-            minknow_samplesheet_for_qc(currentStep)
-            if "MinION QC" in currentStep.type.name
-            else minknow_samplesheet_default(currentStep)
-        )
+    minknow_samplesheet_file = (
+        minknow_samplesheet_for_qc(process)
+        if "ONT QC" in process.type.name
+        else minknow_samplesheet_default(process)
+    )
+    upload_file(
+        minknow_samplesheet_file,
+        "ONT sample sheet",
+        process,
+        lims,
+    )
+    shutil.copyfile(
+        minknow_samplesheet_file,
+        f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
+    )
+    os.remove(minknow_samplesheet_file)
+
+    if "ONT QC" in process.type.name:
+        anglerfish_samplesheet_file = anglerfish_samplesheet(process)
         upload_file(
-            minknow_samplesheet_file,
-            "ONT sample sheet",
-            currentStep,
+            anglerfish_samplesheet_file,
+            "Anglerfish sample sheet",
+            process,
             lims,
         )
         shutil.copyfile(
-            minknow_samplesheet_file,
-            f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{minknow_samplesheet_file}",
+            anglerfish_samplesheet_file,
+            f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/{anglerfish_samplesheet_file}",
         )
-        os.remove(minknow_samplesheet_file)
-
-        if "MinION QC" in currentStep.type.name:
-            anglerfish_samplesheet_file = anglerfish_samplesheet(currentStep)
-            upload_file(
-                anglerfish_samplesheet_file,
-                "Anglerfish sample sheet",
-                currentStep,
-                lims,
-            )
-            shutil.copyfile(
-                anglerfish_samplesheet_file,
-                f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/{anglerfish_samplesheet_file}",
-            )
-            os.remove(anglerfish_samplesheet_file)
-
-    except AssertionError as e:
-        sys.stderr.write(str(e))
-        sys.exit(2)
+        os.remove(anglerfish_samplesheet_file)
 
 
-def minknow_samplesheet_default(currentStep):
-    arts = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
+def minknow_samplesheet_default(process):
+    arts = [art for art in process.all_outputs() if art.type == "Analyte"]
     arts.sort(key=lambda art: art.id)
 
     rows = []
@@ -109,14 +105,12 @@ def minknow_samplesheet_default(currentStep):
             "flow_cell_id": art.udf.get("ONT flow cell ID"),
             "position_id": art.udf.get("ONT flow cell position"),
             "sample_id": strip_characters(art.name),
-            "experiment_id": f"{currentStep.id}",
-            "flow_cell_product_code": currentStep.udf["ONT flow cell type"].split(" ")[
-                0
-            ],
-            "flow_cell_type": currentStep.udf["ONT flow cell type"]
+            "experiment_id": f"{process.id}",
+            "flow_cell_product_code": process.udf["ONT flow cell type"].split(" ")[0],
+            "flow_cell_type": process.udf["ONT flow cell type"]
             .split(" ")[1]
             .strip("()"),
-            "kit": get_kit_string(currentStep),
+            "kit": get_kit_string(process),
         }
 
         if "PromethION" in row["flow_cell_type"]:
@@ -127,9 +121,9 @@ def minknow_samplesheet_default(currentStep):
         # Add extra columns for barcodes
         if len(art.reagent_labels) > 0:
             assert (
-                currentStep.udf.get("ONT expansion kit") != "None"
+                process.udf.get("ONT expansion kit") != "None"
             ), f"Barcodes found in pool {art.name}, but no barcode kit specified."
-        if currentStep.udf.get("ONT expansion kit") != "None":
+        if process.udf.get("ONT expansion kit") != "None":
             assert (
                 len(art.reagent_labels) > 0
             ), f"No barcodes found within pool {art.name}"
@@ -169,24 +163,24 @@ def minknow_samplesheet_default(currentStep):
 
     file_name = write_minknow_csv(
         df,
-        f"{currentStep.id}_ONT_samplesheet_{TIMESTAMP}_{currentStep.technician.name.replace(' ','')}.csv",
+        f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv",
     )
 
     return file_name
 
 
-def minknow_samplesheet_for_qc(currentStep):
+def minknow_samplesheet_for_qc(process):
     measurements = []
 
     # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
     sample_pattern = re.compile(r"P\d{5}_\d{3,4}")
-    for art in currentStep.all_outputs():
+    for art in process.all_outputs():
         if re.search(sample_pattern, art.name):
             measurements.append(art)
 
     # Build an input output map objects omitting the files
     art_tuples = []
-    for art_tuple in currentStep.input_output_maps:
+    for art_tuple in process.input_output_maps:
         if art_tuple[1]["uri"].id in [m.id for m in measurements]:
             art_tuples.append(art_tuple)
         else:
@@ -195,7 +189,7 @@ def minknow_samplesheet_for_qc(currentStep):
     rows = []
 
     # Iterate through the input Illumina pools one by one
-    for pool in currentStep.all_inputs():
+    for pool in process.all_inputs():
         # Find all outputs belonging to the current Illumina pool
         pool_samples = [
             art_tuple[1]["uri"]
@@ -215,11 +209,11 @@ def minknow_samplesheet_for_qc(currentStep):
         barcode_well = barcode_wells_in_pool[0]
 
         # Assert well looks like a well, e.g. "A:11", "G4", "C:1"
-        barcode_well_pattern = re.compile("^[A-H]:?([1-9]$|(1[0-2])$)")
+        barcode_well_pattern = re.compile(r"^[A-H]:?([1-9]$|(1[0-2])$)")
 
         if barcode_well:
             assert (
-                currentStep.udf.get("ONT expansion kit") != "None"
+                process.udf.get("ONT expansion kit") != "None"
             ), "ONT Barcodes have been assigned, but no 'ONT expansion kit' is specified."
 
             assert re.match(
@@ -231,21 +225,19 @@ def minknow_samplesheet_for_qc(currentStep):
             barcode_int = well2num[barcode_well]
         else:
             assert (
-                currentStep.udf.get("ONT expansion kit") == "None"
+                process.udf.get("ONT expansion kit") == "None"
             ), "ONT Barcodes have not been assigned."
 
         row = {
             "position_id": "None",
-            "flow_cell_id": currentStep.udf["ONT flow cell ID"],
+            "flow_cell_id": process.udf["ONT flow cell ID"],
             "sample_id": f"QC_{art.name}",
-            "experiment_id": f"{currentStep.id}",
-            "flow_cell_product_code": currentStep.udf["ONT flow cell type"].split(" ")[
-                0
-            ],
-            "flow_cell_type": currentStep.udf["ONT flow cell type"]
+            "experiment_id": f"{process.id}",
+            "flow_cell_product_code": process.udf["ONT flow cell type"].split(" ")[0],
+            "flow_cell_type": process.udf["ONT flow cell type"]
             .split(" ")[1]
             .strip("()"),
-            "kit": get_kit_string(currentStep),
+            "kit": get_kit_string(process),
         }
 
         if barcode_well:
@@ -262,7 +254,7 @@ def minknow_samplesheet_for_qc(currentStep):
         ), "Nanopore barcodes must be specified for either ALL samples, or NONE."
 
         assert len(df.barcode.unique()) == len(
-            currentStep.all_inputs()
+            process.all_inputs()
         ), "Nanopore barcodes are shared between Illumina pools"
 
     file_name = write_minknow_csv(
@@ -272,12 +264,12 @@ def minknow_samplesheet_for_qc(currentStep):
     return file_name
 
 
-def anglerfish_samplesheet(currentStep):
+def anglerfish_samplesheet(process):
     measurements = []
 
     # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
     sample_pattern = re.compile(r"P\d{5}_\d{3,4}")
-    for art in currentStep.all_outputs():
+    for art in process.all_outputs():
         if re.search(sample_pattern, art.name):
             measurements.append(art)
 
@@ -327,7 +319,7 @@ def anglerfish_samplesheet(currentStep):
     df = pd.DataFrame(rows)
     df.sort_values(by="sample_name", inplace=True)
 
-    file_name = f"Anglerfish_samplesheet_{currentStep.id}_{TIMESTAMP}.csv"
+    file_name = f"Anglerfish_samplesheet_{process.id}_{TIMESTAMP}.csv"
     df.to_csv(
         file_name,
         header=False,
@@ -398,8 +390,8 @@ def get_index_info(sample):
         assert index_search, f"No index information found for sample {sample.name}"
 
 
-def upload_file(file_name, file_slot, currentStep, lims):
-    for out in currentStep.all_outputs():
+def upload_file(file_name, file_slot, process, lims):
+    for out in process.all_outputs():
         if out.name == file_slot:
             for f in out.files:
                 lims.request_session.delete(f.uri)
@@ -444,10 +436,10 @@ def strip_characters(input_string):
     return shortened_string
 
 
-def get_kit_string(currentStep):
+def get_kit_string(process):
     """Combine prep kit and expansion kit UDFs (if any) into space-separated string"""
-    prep_kit = currentStep.udf.get("ONT prep kit")
-    expansion_kit = currentStep.udf.get("ONT expansion kit")
+    prep_kit = process.udf.get("ONT prep kit")
+    expansion_kit = process.udf.get("ONT expansion kit")
 
     if expansion_kit != "None":
         prep_kit += f" {expansion_kit.replace('.','-')}"
@@ -455,15 +447,82 @@ def get_kit_string(currentStep):
     return prep_kit
 
 
-if __name__ == "__main__":
+def main():
+    # Parse args
     parser = ArgumentParser(description=DESC)
-    parser.add_argument("--pid", help="Lims id for current Process")
+    parser.add_argument("--pid", type=str, help="Lims ID for current Process")
+    parser.add_argument("--log", type=str, help="Which log file slot to use")
     args = parser.parse_args()
 
+    # Set up LIMS
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
+    process = Process(lims, id=args.pid)
+
+    # Set up logging
+    log_filename: str = (
+        "_".join(
+            [
+                SCRIPT_NAME,
+                process.id,
+                TIMESTAMP,
+                process.technician.name.replace(" ", ""),
+            ]
+        )
+        + ".log"
+    )
+
+    logging.basicConfig(
+        filename=log_filename,
+        filemode="w",
+        format="%(levelname)s: %(message)s",
+        level=logging.INFO,
+    )
+
+    # Start logging
+    logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
+    logging.info(
+        f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
+    )
+    args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
+    logging.info(f"Script called with arguments: \n\t{args_str}")
+
     try:
-        main(lims, args)
+        generate_samplesheets(process, lims, args)
     except Exception as e:
+        # Post error to LIMS GUI
+        logging.error(str(e), exc_info=True)
+        logging.shutdown()
+        upload_file(
+            file_name=log_filename,
+            file_slot=args.log,
+            process=process,
+            lims=lims,
+        )
+        os.remove(log_filename)
         sys.stderr.write(str(e))
         sys.exit(2)
+    else:
+        logging.info("")
+        logging.info("Script completed successfully.")
+        logging.shutdown()
+        upload_file(
+            file_name=log_filename,
+            file_slot=args.log,
+            process=process,
+            lims=lims,
+        )
+        # Check log for errors and warnings
+        log_content = open(log_filename).read()
+        os.remove(log_filename)
+        if "ERROR:" in log_content or "WARNING:" in log_content:
+            sys.stderr.write(
+                "Script finished successfully, but log contains erros or warnings, please have a look."
+            )
+            sys.exit(2)
+        else:
+            sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

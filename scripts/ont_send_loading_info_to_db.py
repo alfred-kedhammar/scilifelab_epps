@@ -11,14 +11,14 @@ from couchdb.client import Database, Document, Row, ViewResults
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
-from ont_generate_samplesheet import (
+from ont_send_reloading_info_to_db import get_ONT_db
+
+from epp_utils import udf_tools
+from scripts.generate_minknow_samplesheet import (
     minknow_samplesheet_default,
     strip_characters,
     upload_file,
 )
-from ont_send_reloading_info_to_db import get_ONT_db
-
-from epp_utils import udf_tools
 
 DESC = """Script for finishing the step to start ONT sequencing in LIMS.
 

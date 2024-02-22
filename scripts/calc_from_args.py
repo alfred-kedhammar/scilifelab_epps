@@ -9,9 +9,9 @@ import yaml
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
-from ont_generate_samplesheet import upload_file
 
 from epp_utils import formula, udf_tools
+from scripts.generate_minknow_samplesheet import upload_file
 
 DESC = """UDF-agnostic script to perform calculations across all artifacts of a step.
 
@@ -403,7 +403,7 @@ def main():
             currentStep=process,
             lims=lims,
         )
-        # Check log for erros and warnings
+        # Check log for errors and warnings
         log_content = open(log_filename).read()
         os.remove(log_filename)
         if "ERROR:" in log_content or "WARNING:" in log_content:

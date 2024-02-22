@@ -13,7 +13,8 @@ from couchdb.client import Database, Document, Row, ViewResults
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
-from ont_generate_samplesheet import upload_file
+
+from scripts.generate_minknow_samplesheet import upload_file
 
 DESC = """Used to record the washing and reloading of ONT flow cells.
 
