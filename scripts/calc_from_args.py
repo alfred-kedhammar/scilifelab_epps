@@ -402,7 +402,7 @@ def main():
         upload_file(
             file_name=log_filename,
             file_slot=args.log,
-            currentStep=process,
+            process=process,
             lims=lims,
         )
         os.remove(log_filename)
@@ -415,7 +415,7 @@ def main():
         upload_file(
             file_name=log_filename,
             file_slot=args.log,
-            currentStep=process,
+            process=process,
             lims=lims,
         )
         # Check log for errors and warnings
