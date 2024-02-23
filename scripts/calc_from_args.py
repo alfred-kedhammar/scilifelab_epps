@@ -6,12 +6,12 @@ from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
 import yaml
+from generate_minknow_samplesheet import upload_file
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
 from epp_utils import formula, udf_tools
-from scripts.generate_minknow_samplesheet import upload_file
 
 DESC = """UDF-agnostic script to perform calculations across all artifacts of a step.
 
