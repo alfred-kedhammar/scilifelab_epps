@@ -317,7 +317,9 @@ def main():
     parser = ArgumentParser(description=DESC)
     parser.add_argument("--pid", type=str, help="Lims ID for current Process")
     parser.add_argument("--log", type=str, help="Which log file slot to use")
-    parser.add_argument("--qc", action="store_true", help="Generate QC samplesheet")
+    parser.add_argument(
+        "--qc", action="store_true", default=False, help="Generate QC samplesheet"
+    )
     args = parser.parse_args()
 
     # Set up LIMS
