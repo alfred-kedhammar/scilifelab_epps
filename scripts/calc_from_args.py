@@ -67,7 +67,7 @@ def fetch_from_arg(
     elif arg_dict["source"] == "output":
         source_name = art_tuple[1]["uri"].name
     elif arg_dict["source"] == "step":
-        source_name = f"{process.type.name} (ID: {process.id})"
+        source_name = process.type.name
     else:
         raise AssertionError
 
@@ -192,7 +192,7 @@ def volume_to_use(process: Process, args: Namespace):
                 val=round(vol_to_take, 2),
             )
             logging.info(
-                f"Assigned {args.vol_out['source']} '{get_UDF_source_name(art_tuple, args.vol_out, process)}' UDF '{args.vol_out['udf']}': {vol_to_take:.2f}"
+                f"Assigned UDF '{args.vol_out['udf']}': {vol_to_take:.2f} for {args.vol_out['source']} '{get_UDF_source_name(art_tuple, args.vol_out, process)}'."
             )
             if vol_required > input_vol:
                 udf_tools.put(
@@ -201,7 +201,7 @@ def volume_to_use(process: Process, args: Namespace):
                     val=round(new_output_amt, 2),
                 )
                 logging.warning(
-                    f"Changed '{args.amt_out['source']}' '{get_UDF_source_name(art_tuple, args.amt_out, process)}' UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
+                    f"Changed UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f} for {args.amt_out['source']} '{get_UDF_source_name(art_tuple, args.amt_out, process)}'."
                 )
         except AssertionError as e:
             logging.error(f"Assertion error: \n{str(e)}")
@@ -286,7 +286,7 @@ def amount(process: Process, args: Namespace):
                 val=round(output_amt, 2),
             )
             logging.info(
-                f"Assigned {args.amt_out['source']} '{get_UDF_source_name(art_tuple, args.amt_out, process)}' UDF '{args.amt_out['udf']}': {output_amt:.2f}"
+                f"Assigned UDF '{args.amt_out['udf']}': {output_amt:.2f} for {args.amt_out['source']} '{get_UDF_source_name(art_tuple, args.amt_out, process)}'."
             )
 
         except AssertionError as e:
