@@ -348,7 +348,7 @@ def main():
     Example 1:
 
         python {__file__} \
-        --pid           24-885698 \
+        --pid		'24-885762' \
         --calc          'volume_to_use' \
         --log           'Calculate input volume log' \
         --vol_in        udf='Volume (ul)',source='input' \
@@ -356,30 +356,30 @@ def main():
         --conc_units_in udf='Conc. Units',source='input' \
         --size_in       udf='Size (bp)',source='output',recursive=True \
         --amt_out       udf='Input Amount (fmol)' \
-        --vol_out       udf='Input Volume (ul)'
+        --vol_out       udf='Input Volume (uL)'
 
     Example 2:
 
         python {__file__} \
-        --pid           24-885698 \
+        --pid		'24-885762' \
         --calc          'amount' \
-        --log           "Calculate library amount log" \
-        --vol_in        udf='Library volume (ul)' \
-        --conc_in       udf='Library Conc. (ng/ul)' \
-        --size_in       udf='Size (bp)',recursive=True \
-        --amt_out       udf='Library Amount (fmol)'
+        --log           'Calculate library amount log' \
+        --vol_in        udf='Eluted Library Volume (ul)',source='step' \
+        --conc_in       udf='Eluted Library Conc. (ng/ul)',source='step' \
+        --size_in       udf='Eluted Library Size (bp)',source='step' \
+        --amt_out       udf='Eluted Library Amount (fmol)',source='step'
 
     Example 3:
 
         python {__file__} \
-        --pid           24-885698 \
+        --pid		'24-885762' \
         --calc          'volume_to_use' \
         --log           'Calculate loading volume log' \
-        --vol_in        udf='Library volume (ul)' \
-        --conc_in       udf='Library Conc. (ng/ul)' \
-        --size_in       udf='Size (bp)',recursive=True \
-        --amt_out       udf='ONT flow cell loading amount (fmol)' \
-        --vol_out       udf='Library to load (ul)'
+        --vol_in        udf='Eluted Library Volume (ul)',source='step' \
+        --conc_in       udf='Eluted Library Conc. (ng/ul)',source='step' \
+        --size_in       udf='Eluted Library Size (bp)',source='step' \
+        --amt_out       udf='Library Loading Amount (fmol)',source='step' \
+        --vol_out       udf='Library Volume to Use for Loading (ul)',source='step'
 
     """
 
