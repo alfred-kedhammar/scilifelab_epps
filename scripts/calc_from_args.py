@@ -78,7 +78,7 @@ def fetch_from_arg(
         history_yaml = yaml.load(history, Loader=yaml.FullLoader)
         last_step_name = history_yaml[-1]["Step name"]
         last_step_id = history_yaml[-1]["Step ID"]
-        log_str += f"\n\tUDF recusively fetched from: '{last_step_name}' (ID: '{last_step_id}')"
+        log_str += f"\n\tUDF recusively fetched from step: '{last_step_name}' (ID: '{last_step_id}')"
 
     logging.info(log_str)
 
@@ -171,7 +171,7 @@ def volume_to_use(process: Process, args: Namespace):
             # Adress case of volume depletion
             if vol_required > input_vol:
                 logging.warning(
-                    f"Volume required ({vol_required:.2f} uL) is greater than the available input '{args.vol_in['udf']}': {input_vol:.2f}."
+                    f"Volume required ({vol_required:.2f} ul) is greater than the available input '{args.vol_in['udf']}': {input_vol:.2f}."
                 )
                 logging.warning("Using all available volume.")
                 vol_to_take = input_vol
@@ -183,7 +183,7 @@ def volume_to_use(process: Process, args: Namespace):
             else:
                 vol_to_take = vol_required
 
-            logging.info(f"Determined volume to take -> {vol_to_take:.2f} uL")
+            logging.info(f"Determined volume to take -> {vol_to_take:.2f} ul.")
 
             # Update UDFs
             udf_tools.put(
@@ -192,7 +192,7 @@ def volume_to_use(process: Process, args: Namespace):
                 val=round(vol_to_take, 2),
             )
             logging.info(
-                f"Assigned {args.vol_out['source']} '{get_UDF_source_name(args.vol_out)}' UDF '{args.vol_out['udf']}': {vol_to_take:.2f}"
+                f"Assigned {args.vol_out['source']} '{get_UDF_source_name(art_tuple, args.vol_out, process)}' UDF '{args.vol_out['udf']}': {vol_to_take:.2f}"
             )
             if vol_required > input_vol:
                 udf_tools.put(
@@ -201,7 +201,7 @@ def volume_to_use(process: Process, args: Namespace):
                     val=round(new_output_amt, 2),
                 )
                 logging.warning(
-                    f"Changed '{args.amt_out['source']}' '{get_UDF_source_name(args.amt_out)}' UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
+                    f"Changed '{args.amt_out['source']}' '{get_UDF_source_name(art_tuple, args.amt_out, process)}' UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
                 )
         except AssertionError as e:
             logging.error(f"Assertion error: \n{str(e)}")
@@ -302,12 +302,12 @@ def parse_udf_arg(arg_string: str) -> dict:
 
         the argument
 
-            --vol_in udf='Volume (uL)',source='input',recursive=False
+            --vol_in udf='Volume (ul)',source='input',recursive=False
 
         will assign
 
             args.vol_in = {
-                'udf': 'Volume (uL)',
+                'udf': 'Volume (ul)',
                 'source': 'input',
                 'recursive': False
             }
@@ -356,7 +356,7 @@ def main():
         --conc_units_in udf='Conc. Units',source='input' \
         --size_in       udf='Size (bp)',source='output',recursive=True \
         --amt_out       udf='Input Amount (fmol)' \
-        --vol_out       udf='Input Volume (uL)'
+        --vol_out       udf='Input Volume (ul)'
 
     Example 2:
 
@@ -364,7 +364,7 @@ def main():
         --pid           24-885698 \
         --calc          'amount' \
         --log           "Calculate library amount log" \
-        --vol_in        udf='Library volume (uL)' \
+        --vol_in        udf='Library volume (ul)' \
         --conc_in       udf='Library Conc. (ng/ul)' \
         --size_in       udf='Size (bp)',recursive=True \
         --amt_out       udf='Library Amount (fmol)'
@@ -375,11 +375,11 @@ def main():
         --pid           24-885698 \
         --calc          'volume_to_use' \
         --log           'Calculate loading volume log' \
-        --vol_in        udf='Library volume (uL)' \
+        --vol_in        udf='Library volume (ul)' \
         --conc_in       udf='Library Conc. (ng/ul)' \
         --size_in       udf='Size (bp)',recursive=True \
         --amt_out       udf='ONT flow cell loading amount (fmol)' \
-        --vol_out       udf='Library to load (uL)'
+        --vol_out       udf='Library to load (ul)'
 
     """
 
