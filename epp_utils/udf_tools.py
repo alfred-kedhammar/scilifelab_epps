@@ -9,19 +9,19 @@ UDFs in in the Genonolics Clarity LIMS API.
 """
 
 
-def put(art: Artifact, target_udf: str, val, on_fail=AssertionError()):
-    """Try to put UDF on artifact, optionally without causing fatal error.
+def put(target: Artifact | Process, target_udf: str, val, on_fail=AssertionError()):
+    """Try to put UDF on artifact or process, optionally without causing fatal error.
     Evaluates true on success and error (default) or on_fail param on failue.
     """
 
-    art.udf[target_udf] = val
+    target.udf[target_udf] = val
 
     try:
-        art.put()
+        target.put()
         return True
 
     except HTTPError:
-        del art.udf[target_udf]
+        del target.udf[target_udf]
         if issubclass(type(on_fail), BaseException):
             raise on_fail
         else:

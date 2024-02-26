@@ -8,7 +8,7 @@ from datetime import datetime as dt
 import yaml
 from generate_minknow_samplesheet import upload_file
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import Process
+from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 
 from epp_utils import formula, udf_tools
@@ -85,6 +85,38 @@ def fetch_from_arg(
     return value
 
 
+def get_UDF_source(
+    art_tuple: tuple, arg_dict: dict, process: Process
+) -> Artifact | Process:
+    """Fetch UDF source for current input-output tuple and UDF arg."""
+
+    if arg_dict["source"] == "input":
+        source = art_tuple[0]["uri"]
+    elif arg_dict["source"] == "output":
+        source = art_tuple[1]["uri"]
+    elif arg_dict["source"] == "step":
+        source = process
+    else:
+        raise AssertionError
+
+    return source
+
+
+def get_UDF_source_name(art_tuple: tuple, arg_dict: dict, process: Process) -> str:
+    """Fetch name of UDF source for current input-output tuple and UDF arg."""
+
+    if arg_dict["source"] == "input":
+        source_name = art_tuple[0]["uri"].name
+    elif arg_dict["source"] == "output":
+        source_name = art_tuple[1]["uri"].name
+    elif arg_dict["source"] == "step":
+        source_name = process.type.name
+    else:
+        raise AssertionError
+
+    return source_name
+
+
 def volume_to_use(process: Process, args: Namespace):
     """Calculate how much volume to use based on a target amount.
 
@@ -94,6 +126,7 @@ def volume_to_use(process: Process, args: Namespace):
 
     for art_tuple in art_tuples:
         try:
+            # Explicate current working input-output tuple
             art_in = art_tuple[0]["uri"]
             art_out = art_tuple[1]["uri"]
             logging.info("")
@@ -113,7 +146,7 @@ def volume_to_use(process: Process, args: Namespace):
                 assert input_conc_units in [
                     "ng/ul",
                     "nM",
-                ], f'Unsupported conc. units "{input_conc_units}" for art {art_in.name}'
+                ], f"Unsupported conc. units '{input_conc_units}'"
             else:
                 if "ng" in args.conc_in["udf"]:
                     input_conc_units = "nM"
@@ -121,7 +154,7 @@ def volume_to_use(process: Process, args: Namespace):
                     input_conc_units = "nM"
                 else:
                     raise AssertionError(
-                        f"No concentration units can inferred for {art_out.name}."
+                        f"No concentration units can inferred from {args.conc_in}."
                     )
 
             # Calculate required volume
@@ -152,17 +185,27 @@ def volume_to_use(process: Process, args: Namespace):
 
             logging.info(f"Determined volume to take -> {vol_to_take:.2f} uL")
 
-            # Update volume UDF of output artifact
-            udf_tools.put(art_out, args.vol_out["udf"], round(vol_to_take, 2))
-            logging.info(f"Assigned UDF '{args.vol_out['udf']}': {vol_to_take:.2f}")
+            # Update UDFs
+            udf_tools.put(
+                target=get_UDF_source(art_tuple, args.vol_out, process),
+                target_udf=args.vol_out["udf"],
+                val=round(vol_to_take, 2),
+            )
+            logging.info(
+                f"Assigned {args.vol_out['source']} '{get_UDF_source_name(args.vol_out)}' UDF '{args.vol_out['udf']}': {vol_to_take:.2f}"
+            )
             if vol_required > input_vol:
-                udf_tools.put(art_out, args.amt_out["udf"], round(new_output_amt, 2))
+                udf_tools.put(
+                    target=get_UDF_source(art_tuple, args.amt_out, process),
+                    target_udf=args.amt_out["udf"],
+                    val=round(new_output_amt, 2),
+                )
                 logging.warning(
-                    f"Changed UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
+                    f"Changed '{args.amt_out['source']}' '{get_UDF_source_name(args.amt_out)}' UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
                 )
         except AssertionError as e:
             logging.error(f"Assertion error: \n{str(e)}")
-            logging.warning(f"Skipping artifact {art_out.name}.")
+            logging.warning("Skipping.")
             continue
 
 
@@ -236,13 +279,19 @@ def amount(process: Process, args: Namespace):
                 f"Calculating amount: {input_vol} ul of {input_conc} {input_conc_units} at {size_bp} bp -> {output_amt:.2f} {output_amt_unit}"
             )
 
-            # Update volume UDF of output artifact
-            udf_tools.put(art_out, args.amt_out["udf"], round(output_amt, 2))
-            logging.info(f"Assigned UDF '{args.amt_out['udf']}': {output_amt:.2f}")
+            # Update amount UDF of output artifact
+            udf_tools.put(
+                target=get_UDF_source(art_tuple, args.amt_out, process),
+                target_udf=args.amt_out["udf"],
+                val=round(output_amt, 2),
+            )
+            logging.info(
+                f"Assigned {args.amt_out['source']} '{get_UDF_source_name(args.amt_out)}' UDF '{args.amt_out['udf']}': {output_amt:.2f}"
+            )
 
         except AssertionError as e:
             logging.error(f"Assertion error: \n{str(e)}")
-            logging.warning(f"Skipping artifact {art_out.name}.")
+            logging.warning("Skipping.")
             continue
 
 
@@ -336,26 +385,18 @@ def main():
 
     # Parse args
     parser = ArgumentParser(description=DESC)
-
-    # Process ID
     parser.add_argument("--pid", type=str, help="Lims ID for current Process")
-
-    # Calculation type
     parser.add_argument(
         "--calc",
         type=str,
         choices=["volume_to_use", "amount"],
         help="Which function to use for calculations",
     )
-
-    # Log file slot
     parser.add_argument("--log", type=str, help="Which log file slot to use")
-
     # UDFs to use for calculations
     udf_args = ["vol_in", "size_in", "conc_in", "conc_units_in", "amt_out", "vol_out"]
     for udf_arg in udf_args:
         parser.add_argument(f"--{udf_arg}", type=parse_udf_arg)
-
     args = parser.parse_args()
 
     # Set up LIMS
