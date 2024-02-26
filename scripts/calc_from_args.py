@@ -286,7 +286,7 @@ def amount(process: Process, args: Namespace):
                 val=round(output_amt, 2),
             )
             logging.info(
-                f"Assigned {args.amt_out['source']} '{get_UDF_source_name(args.amt_out)}' UDF '{args.amt_out['udf']}': {output_amt:.2f}"
+                f"Assigned {args.amt_out['source']} '{get_UDF_source_name(art_tuple, args.amt_out, process)}' UDF '{args.amt_out['udf']}': {output_amt:.2f}"
             )
 
         except AssertionError as e:
