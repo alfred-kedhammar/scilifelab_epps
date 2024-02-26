@@ -72,7 +72,7 @@ def generate_MinKNOW_samplesheet(process, lims, args):
             "kit": get_kit_string(process),
         }
 
-        # Some samplesheet columns will be different for QC runs
+        # For QC runs, some samplesheet columns are generated differently
         if args.qc:
             ss_row["flow_cell_id"] = process.udf.get("ONT flow cell ID")
             ss_row["position_id"] = process.udf.get("ONT flow cell position")
