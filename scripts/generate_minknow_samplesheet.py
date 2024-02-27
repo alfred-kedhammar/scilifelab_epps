@@ -17,8 +17,7 @@ from data.Chromium_10X_indexes import Chromium_10X_indexes as idxs_10x
 from epp_utils import udf_tools
 from epp_utils.formula import well_name2num_96plate as well2num
 
-DESC = """ Script for EPP "Generate ONT Sample Sheet" and file slot(s) "ONT sample sheet" (and optionally "Anglerfish sample sheet").
-Used to generate MinKNOW (and Anglerfish) samplesheets.
+DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
 """
 
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
@@ -184,6 +183,10 @@ def generate_MinKNOW_samplesheet(process, lims, args):
                 assert (
                     ss_row["position_id"] != "None"
                 ), "Positions must be specified for PromethION flow cells."
+            else:
+                assert (
+                    ss_row["position_id"] == "None"
+                ), "Positions must be unassigned for non-PromethION flow cells."
 
             # Add extra columns for barcodes, if needed
 
