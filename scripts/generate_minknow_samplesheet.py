@@ -63,63 +63,91 @@ def generate_MinKNOW_samplesheet(process, lims, args):
 
     rows = []
     for art in arts:
-        # Start building the row in the samplesheet corresponding to the current artifact
-        ss_row = {
-            "flow_cell_product_code": process.udf["ONT flow cell type"].split(" ")[0],
-            "flow_cell_type": process.udf["ONT flow cell type"]
-            .split(" ")[1]
-            .strip("()"),
-            "kit": get_kit_string(process),
-        }
+        # Skip samples in case of error
+        try:
+            # Start building the row in the samplesheet corresponding to the current artifact
+            ss_row = {
+                "flow_cell_product_code": process.udf["ONT flow cell type"].split(" ")[
+                    0
+                ],
+                "flow_cell_type": process.udf["ONT flow cell type"]
+                .split(" ")[1]
+                .strip("()"),
+                "kit": get_kit_string(process),
+            }
 
-        # For QC runs, some samplesheet columns are generated differently
-        if args.qc:
-            ss_row["flow_cell_id"] = process.udf.get("ONT flow cell ID")
-            ss_row["position_id"] = process.udf.get("ONT flow cell position")
-            ss_row[
-                "sample_id"
-            ] = f"QC_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
-            ss_row["experiment_id"] = f"QC_{process.id}"
-        else:
-            ss_row["flow_cell_id"] = art.udf.get("ONT flow cell ID")
-            ss_row["position_id"] = art.udf.get("ONT flow cell position")
-            ss_row["sample_id"] = strip_characters(art.name)
-            ss_row["experiment_id"] = f"{process.id}"
-
-        if "PromethION" in ss_row["flow_cell_type"]:
-            assert (
-                ss_row["position_id"] != "None"
-            ), "Positions must be specified for PromethION flow cells."
-
-        # Add extra columns for barcodes, if needed
-        if args.qc:
-            # For QC, ONT barcodes are assigned via sample UDFs
-            pass
-        else:
-            # For default runs, ONT barcodes are assigned as reagent labels
-            if process.udf.get("ONT expansion kit") == "None":
-                # No barcodes
-                assert (
-                    len(art.reagent_labels) == 0
-                ), f"ONT expansion kit was not supplied, but {art.name} contains barcodes."
-                rows.append(ss_row)
+            # For QC runs, some samplesheet columns are generated differently
+            if args.qc:
+                ss_row["flow_cell_id"] = process.udf.get("ONT flow cell ID")
+                ss_row["position_id"] = process.udf.get("ONT flow cell position")
+                ss_row[
+                    "sample_id"
+                ] = f"QC_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
+                ss_row["experiment_id"] = f"QC_{process.id}"
             else:
-                # Yes barcodes
+                ss_row["flow_cell_id"] = art.udf.get("ONT flow cell ID")
+                ss_row["position_id"] = art.udf.get("ONT flow cell position")
+                ss_row["sample_id"] = strip_characters(art.name)
+                ss_row["experiment_id"] = f"{process.id}"
+
+            if "PromethION" in ss_row["flow_cell_type"]:
                 assert (
-                    len(art.reagent_labels) > 0
-                ), f"No barcodes found within pool {art.name}"
+                    ss_row["position_id"] != "None"
+                ), "Positions must be specified for PromethION flow cells."
 
-                label_tuples = [
-                    (e[0], e[1]) for e in zip(art.samples, art.reagent_labels)
-                ]
-                label_tuples.sort(key=str)
-                for sample, label in label_tuples:
-                    ss_row["alias"] = strip_characters(sample.name)
-                    ss_row["barcode"] = strip_characters("barcode" + label[0:2])
-                    # Keep appending rows to the samplesheet for each barcode in the pool
-                    rows.append(ss_row.copy())
+            # Add extra columns for barcodes, if needed
 
-        assert "" not in ss_row.values(), "All fields must be populated."
+            if args.qc:
+                # For QC, ONT barcodes are assigned via sample UDFs
+                if process.udf.get("ONT expansion kit") == "None":
+                    # No barcodes
+                    assert (
+                        udf_tools.fetch(art, "ONT Barcode Well", on_fail=None) is None
+                    ), f"ONT expansion kit was not supplied, but {art.name} has barcodes assigned."
+                    rows.append(ss_row)
+                else:
+                    # Yes barcodes
+                    barcode_well_string = udf_tools.fetch(
+                        art, "ONT Barcode Well", on_fail=None
+                    )
+                    assert (
+                        barcode_well_string
+                    ), f"No barcode assigned for pool {art.name}"
+
+                    barcode_int = plate96_well_name2num(barcode_well_string)
+                    ss_row["alias"] = strip_characters(art.name)
+                    ss_row["barcode"] = "barcode" + str(barcode_int).zfill(2)
+
+            else:
+                # For default runs, ONT barcodes are assigned via LIMS reagent labels
+                if process.udf.get("ONT expansion kit") == "None":
+                    # No barcodes
+                    assert (
+                        len(art.reagent_labels) == 0
+                    ), f"ONT expansion kit was not supplied, but {art.name} contains barcodes."
+                    rows.append(ss_row)
+                else:
+                    # Yes barcodes
+                    assert (
+                        len(art.reagent_labels) > 0
+                    ), f"No barcodes found within pool {art.name}"
+
+                    label_tuples = [
+                        (e[0], e[1]) for e in zip(art.samples, art.reagent_labels)
+                    ]
+                    label_tuples.sort(key=str)
+                    for sample, label in label_tuples:
+                        ss_row["alias"] = strip_characters(sample.name)
+                        ss_row["barcode"] = strip_characters("barcode" + label[0:2])
+                        # Keep appending rows to the samplesheet for each barcode in the pool
+                        rows.append(ss_row.copy())
+
+            assert "" not in ss_row.values(), "All fields must be populated."
+
+        except AssertionError:
+            logging.error(exc_info=True)
+            logging.warning(f"Skipping {art.name} due to error.")
+            continue
 
     df = pd.DataFrame(rows)
 
@@ -158,6 +186,27 @@ def generate_MinKNOW_samplesheet(process, lims, args):
         file_name,
         f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
     )
+
+
+def plate96_well_name2num(well_name: str) -> int:
+    """Convert 96-plate well name to number, e.g. 'A:1' to 1, 'H:12' to 96.
+
+    Accepts e.g. 'A:1', 'A1', 'A:01', 'A01', 'a:1', 'a1', 'a:01', 'a01'
+    """
+
+    well_name_pattern = (
+        r"^([A-Ha-h]):?(0?[1-9]$|1[0-2]$)"  # Capturing groups are row and column
+    )
+
+    match = re.match(well_name_pattern, well_name)
+    assert match, f"Invalid well name: {well_name}"
+    groups = match.groups()
+    row = groups[0].upper()
+    col = groups[1].lstrip("0")
+
+    cleaned_well_name = f"{row}:{col}"
+
+    return well2num[cleaned_well_name]
 
 
 def minknow_samplesheet_for_qc(process):
@@ -317,9 +366,8 @@ def main():
     parser = ArgumentParser(description=DESC)
     parser.add_argument("--pid", type=str, help="Lims ID for current Process")
     parser.add_argument("--log", type=str, help="Which log file slot to use")
-    parser.add_argument(
-        "--qc", action="store_true", default=False, help="Generate QC samplesheet"
-    )
+    parser.add_argument("--file", type=str, help="Samplesheet file slot")
+    parser.add_argument("--qc", action="store_true", help="Generate QC samplesheet")
     args = parser.parse_args()
 
     # Set up LIMS
@@ -359,7 +407,7 @@ def main():
         generate_MinKNOW_samplesheet(process, lims, args)
     except Exception as e:
         # Post error to LIMS GUI
-        logging.error(str(e), exc_info=True)
+        logging.error(exc_info=True)
         logging.shutdown()
         upload_file(
             file_name=log_filename,
@@ -385,7 +433,7 @@ def main():
         os.remove(log_filename)
         if "ERROR:" in log_content or "WARNING:" in log_content:
             sys.stderr.write(
-                "Script finished successfully, but log contains erros or warnings, please have a look."
+                "Script finished successfully, but log contains errors or warnings, please have a look."
             )
             sys.exit(2)
         else:
