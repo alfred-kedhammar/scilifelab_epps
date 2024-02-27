@@ -65,16 +65,6 @@ def generate_MinKNOW_samplesheet(process, lims, args):
     for art in arts:
         # Skip samples in case of error
         try:
-            # Validate flowcell position
-            flowcell_position = art.udf.get("ONT flow cell position")
-            valid_positions_pattern = r"^[1-3A-G]$|^None$"
-            assert re.match(
-                valid_positions_pattern, flowcell_position
-            ), f"Invalid flow cell position: {flowcell_position}"
-
-            flowcell_id = art.udf.get("ONT flow cell ID")
-            assert flowcell_id, "Flow cell ID must be specified."
-
             # Start building the row in the samplesheet corresponding to the current artifact
             ss_row = {
                 "flow_cell_product_code": process.udf["ONT flow cell type"].split(" ")[
@@ -88,15 +78,20 @@ def generate_MinKNOW_samplesheet(process, lims, args):
 
             # For QC runs, some samplesheet columns are generated differently
             if args.qc:
-                ss_row["flow_cell_id"] = process.udf.get("ONT flow cell ID")
-                ss_row["position_id"] = process.udf.get("ONT flow cell position")
+                ss_row["flow_cell_id"] = process.udf["ONT flow cell ID"]
+                ss_row["position_id"] = re.match(
+                    r"^([1-3A-G]|None)$", process.udf["ONT flow cell position"]
+                ).group()
                 ss_row[
                     "sample_id"
                 ] = f"QC_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
                 ss_row["experiment_id"] = f"QC_{process.id}"
+
             else:
-                ss_row["flow_cell_id"] = flowcell_id
-                ss_row["position_id"] = flowcell_position
+                ss_row["flow_cell_id"] = art.udf["ONT flow cell ID"]
+                ss_row["position_id"] = re.match(
+                    r"^[1-3A-G]$|^None$", art.udf["ONT flow cell position"]
+                ).group()
                 ss_row["sample_id"] = strip_characters(art.name)
                 ss_row["experiment_id"] = f"{process.id}"
 
@@ -159,31 +154,37 @@ def generate_MinKNOW_samplesheet(process, lims, args):
                         # Keep appending rows to the samplesheet for each barcode in the pool
                         rows.append(ss_row.copy())
 
-        except AssertionError:
-            logging.error(exc_info=True)
+        except AssertionError as e:
+            logging.error(str(e), exc_info=True)
             logging.warning(f"Skipping {art.name} due to error.")
             continue
 
     df = pd.DataFrame(rows)
 
-    if len(arts) > 1:
-        assert all(
-            ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
-        ), "Only PromethION flowcells can be grouped together in the same sample sheet."
-        assert (
-            len(arts) <= 24
-        ), "Only up to 24 PromethION flowcells may be started at once."
-    elif len(arts) == 1 and "MinION" in df.flow_cell_type[0]:
-        assert (
-            df.position_id[0] == "None"
-        ), "MinION flow cells should not have a position assigned."
+    import ipdb
 
-    assert (
-        len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
-    ), "All rows must have the same flow cell type and kits"
-    assert (
-        len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
-    ), "All rows must have different flow cell positions and IDs"
+    ipdb.set_trace()
+
+    if args.qc:
+        assert len(df.barcode.unique()) == len(df), "Barcodes must be unique."
+    else:
+        if len(arts) > 1:
+            assert all(
+                ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
+            ), "Only PromethION flowcells can be grouped together in the same sample sheet."
+            assert (
+                len(arts) <= 24
+            ), "Only up to 24 PromethION flowcells may be started at once."
+        elif len(arts) == 1 and "MinION" in df.flow_cell_type[0]:
+            assert (
+                df.position_id[0] == "None"
+            ), "MinION flow cells should not have a position assigned."
+        assert (
+            len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
+        ), "All rows must have the same flow cell type and kits"
+        assert (
+            len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
+        ), "All rows must have different flow cell positions and IDs"
 
     file_name = write_minknow_csv(
         df,
@@ -192,7 +193,7 @@ def generate_MinKNOW_samplesheet(process, lims, args):
 
     upload_file(
         file_name,
-        "MinKNOW sample sheet",
+        args.file,
         process,
         lims,
     )
@@ -422,7 +423,7 @@ def main():
         generate_MinKNOW_samplesheet(process, lims, args)
     except Exception as e:
         # Post error to LIMS GUI
-        logging.error(exc_info=True)
+        logging.error(str(e), exc_info=True)
         logging.shutdown()
         upload_file(
             file_name=log_filename,

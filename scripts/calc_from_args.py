@@ -203,8 +203,8 @@ def volume_to_use(process: Process, args: Namespace):
                 logging.warning(
                     f"Changed UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f} for {args.amt_out['source']} '{get_UDF_source_name(art_tuple, args.amt_out, process)}'."
                 )
-        except AssertionError:
-            logging.error(exc_info=True)
+        except AssertionError as e:
+            logging.error(str(e), exc_info=True)
             logging.warning("Skipping.")
             continue
 
@@ -290,7 +290,7 @@ def amount(process: Process, args: Namespace):
             )
 
         except AssertionError as e:
-            logging.error(f"Assertion error: \n{str(e)}")
+            logging.error(str(e), exc_info=True)
             logging.warning("Skipping.")
             continue
 
@@ -438,7 +438,7 @@ def main():
         function_to_use(process, args)
     except Exception as e:
         # Post error to LIMS GUI
-        logging.error(exc_info=True)
+        logging.error(str(e), exc_info=True)
         logging.shutdown()
         upload_file(
             file_name=log_filename,
