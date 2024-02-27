@@ -58,6 +58,8 @@ def generate_MinKNOW_samplesheet(process, lims, args):
     FLO-FLG114 (Flongle R10.4.1)
 
     """
+    errors = False
+
     arts = [art for art in process.all_outputs() if art.type == "Analyte"]
     arts.sort(key=lambda art: art.id)
 
@@ -157,6 +159,7 @@ def generate_MinKNOW_samplesheet(process, lims, args):
         except AssertionError as e:
             logging.error(str(e), exc_info=True)
             logging.warning(f"Skipping {art.name} due to error.")
+            errors = True
             continue
 
     df = pd.DataFrame(rows)
@@ -182,22 +185,25 @@ def generate_MinKNOW_samplesheet(process, lims, args):
             len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
         ), "All rows must have different flow cell positions and IDs"
 
-    file_name = write_minknow_csv(
-        df,
-        f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv",
-    )
+    if errors:
+        raise AssertionError("Errors occurred during samplesheet generation.")
+    else:
+        file_name = write_minknow_csv(
+            df,
+            f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv",
+        )
 
-    upload_file(
-        file_name,
-        args.file,
-        process,
-        lims,
-    )
+        upload_file(
+            file_name,
+            args.file,
+            process,
+            lims,
+        )
 
-    shutil.move(
-        file_name,
-        f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
-    )
+        shutil.move(
+            file_name,
+            f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
+        )
 
 
 def plate96_well_name2num(well_name: str) -> int:
