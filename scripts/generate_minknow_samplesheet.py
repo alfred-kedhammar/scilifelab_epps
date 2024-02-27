@@ -5,7 +5,7 @@ import os
 import re
 import shutil
 import sys
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
 import pandas as pd
@@ -45,7 +45,7 @@ def plate96_well_name2num(well_name: str) -> int:
     return well2num[cleaned_well_name]
 
 
-def get_kit_string(process):
+def get_kit_string(process: Process) -> str:
     """Combine prep kit and expansion kit UDFs (if any) into space-separated string"""
     prep_kit = process.udf.get("ONT prep kit")
     expansion_kit = process.udf.get("ONT expansion kit")
@@ -56,7 +56,7 @@ def get_kit_string(process):
     return prep_kit
 
 
-def strip_characters(input_string):
+def strip_characters(input_string: str) -> str:
     """Remove potentially problematic characters from string."""
 
     allowed_characters = re.compile("[^a-zA-Z0-9_-]")
@@ -70,7 +70,7 @@ def strip_characters(input_string):
     return shortened_string
 
 
-def write_minknow_csv(df, file_name):
+def write_minknow_csv(df: pd.DataFrame, file_path: str):
     columns = [
         "flow_cell_id",
         "position_id",
@@ -89,24 +89,22 @@ def write_minknow_csv(df, file_name):
 
     df_csv = df.loc[:, columns]
 
-    df_csv.to_csv(file_name, index=False)
+    df_csv.to_csv(file_path, index=False)
 
-    logging.info(f"Samplesheet written to '{file_name}'.")
-
-    return file_name
+    logging.info(f"Samplesheet written to '{file_path}'.")
 
 
-def upload_file(file_name, file_slot, process, lims):
+def upload_file(file_path: str, file_slot: str, process: Process, lims: Lims):
     for out in process.all_outputs():
         if out.name == file_slot:
             for f in out.files:
                 lims.request_session.delete(f.uri)
-            lims.upload_new_file(out, file_name)
+            lims.upload_new_file(out, file_path)
 
-    logging.info(f"'{file_name}' uploaded to LIMS file slot '{file_slot}'.")
+    logging.info(f"'{file_path}' uploaded to LIMS file slot '{file_slot}'.")
 
 
-def generate_MinKNOW_samplesheet(process, lims, args):
+def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
     """=== Sample sheet columns ===
 
     flow_cell_id                e.g. PAM96489
@@ -166,10 +164,10 @@ def generate_MinKNOW_samplesheet(process, lims, args):
                 ss_row["position_id"] = re.match(
                     r"^([1-3][A-G]|None)$", process.udf["ONT flow cell position"]
                 ).group()
+                ss_row["sample_id"] = f"QC_{art.name.id}"
                 ss_row[
-                    "sample_id"
-                ] = f"QC_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
-                ss_row["experiment_id"] = f"QC_{process.id}"
+                    "experiment_id"
+                ] = f"QC_{process.id}_{process.technician.name.replace(' ','')}"
 
             else:
                 ss_row["flow_cell_id"] = art.udf["ONT flow cell ID"]
@@ -277,11 +275,13 @@ def generate_MinKNOW_samplesheet(process, lims, args):
                 == len(arts)
             ), "All rows must have different flow cell positions and IDs"
 
-            logging.info("Generating samplesheet...")
-            file_name = write_minknow_csv(
-                df,
-                f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv",
-            )
+        # Generate samplesheet
+        logging.info("Generating samplesheet...")
+        file_name = f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv"
+        write_minknow_csv(
+            df,
+            file_name,
+        )
 
         return file_name
 
@@ -292,7 +292,7 @@ def main():
     parser.add_argument("--pid", type=str, help="Lims ID for current Process")
     parser.add_argument("--log", type=str, help="Which log file slot to use")
     parser.add_argument("--file", type=str, help="Samplesheet file slot")
-    parser.add_argument("--qc", action="store_true", help="Generate QC samplesheet")
+    parser.add_argument("--qc", action="store_true", help="Whether run is QC")
     args = parser.parse_args()
 
     # Set up LIMS
@@ -329,7 +329,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        file_name = generate_MinKNOW_samplesheet(process, lims, args)
+        file_name = generate_MinKNOW_samplesheet(process, args)
         logging.info("Uploading samplesheet to LIMS...")
         upload_file(
             file_name,
@@ -354,7 +354,7 @@ def main():
         logging.error(str(e), exc_info=True)
         logging.shutdown()
         upload_file(
-            file_name=log_filename,
+            file_path=log_filename,
             file_slot=args.log,
             process=process,
             lims=lims,
@@ -367,7 +367,7 @@ def main():
         logging.info("Script completed successfully.")
         logging.shutdown()
         upload_file(
-            file_name=log_filename,
+            file_path=log_filename,
             file_slot=args.log,
             process=process,
             lims=lims,

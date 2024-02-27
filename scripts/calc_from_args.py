@@ -441,7 +441,7 @@ def main():
         logging.error(str(e), exc_info=True)
         logging.shutdown()
         upload_file(
-            file_name=log_filename,
+            file_path=log_filename,
             file_slot=args.log,
             process=process,
             lims=lims,
@@ -454,7 +454,7 @@ def main():
         logging.info("Script completed successfully.")
         logging.shutdown()
         upload_file(
-            file_name=log_filename,
+            file_path=log_filename,
             file_slot=args.log,
             process=process,
             lims=lims,

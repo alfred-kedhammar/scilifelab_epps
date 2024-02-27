@@ -215,7 +215,7 @@ def main():
         logging.error(e)
         logging.shutdown()
         upload_file(
-            file_name=log_filename,
+            file_path=log_filename,
             file_slot="Database sync log",
             currentStep=process,
             lims=lims,
@@ -226,7 +226,7 @@ def main():
         logging.info("Script completed successfully.")
         logging.shutdown()
         upload_file(
-            file_name=log_filename,
+            file_path=log_filename,
             file_slot="Database sync log",
             currentStep=process,
             lims=lims,

@@ -8,17 +8,17 @@ from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
 from couchdb.client import Database, Document, Row, ViewResults
+from generate_minknow_samplesheet import (
+    generate_MinKNOW_samplesheet,
+    strip_characters,
+    upload_file,
+)
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 from ont_send_reloading_info_to_db import get_ONT_db
 
 from epp_utils import udf_tools
-from scripts.generate_minknow_samplesheet import (
-    minknow_samplesheet_default,
-    strip_characters,
-    upload_file,
-)
 
 DESC = """Script for finishing the step to start ONT sequencing in LIMS.
 
@@ -30,11 +30,13 @@ TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
 SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
-def assert_samplesheet_vs_udfs(process: Process, samplesheet_contents: str):
+def assert_samplesheet_vs_udfs(
+    process: Process, args: Namespace, samplesheet_contents: str
+):
     """Check that the current samplesheet is up to date, by re-generating one from the current UDFs and comparing it to the existing one."""
 
     # Generate new samplesheet from step, then read it and remove the file
-    new_samplesheet_path = minknow_samplesheet_default(process)
+    new_samplesheet_path = generate_MinKNOW_samplesheet(process, args)
     new_samplesheet_contents = open(new_samplesheet_path).read()
     os.remove(new_samplesheet_path)
 
@@ -195,12 +197,12 @@ def process_artifacts(process: Process):
         )
 
 
-def ont_send_loading_info_to_db(process: Process, lims: Lims):
+def ont_send_loading_info_to_db(process: Process, lims: Lims, args: Namespace):
     """Executive script, called once."""
 
     # Get ONT samplesheet file artifact
     file_art: Artifact = [
-        op for op in process.all_outputs() if op.name == "ONT sample sheet"
+        op for op in process.all_outputs() if op.name == "MinKNOW samplesheet"
     ][0]
 
     # If samplesheet file is loaded
@@ -209,7 +211,7 @@ def ont_send_loading_info_to_db(process: Process, lims: Lims):
         samplesheet_contents: str = lims.get_file_contents(uri=file_art.files[0].uri)
 
         logging.info("Checking that the loaded samplesheet is up to date...")
-        assert_samplesheet_vs_udfs(process, samplesheet_contents)
+        assert_samplesheet_vs_udfs(process, args, samplesheet_contents)
 
     process_artifacts(process)
 
@@ -217,7 +219,9 @@ def ont_send_loading_info_to_db(process: Process, lims: Lims):
 def main():
     # Parse args
     parser = ArgumentParser(description=DESC)
-    parser.add_argument("--pid", help="Lims id for current Process")
+    parser.add_argument("--pid", help="Lims ID for current Process")
+    parser.add_argument("--log", type=str, help="Which log file slot to use")
+    parser.add_argument("--qc", action="store_true", help="Whether run is QC")
     args: Namespace = parser.parse_args()
 
     # Set up LIMS
@@ -254,13 +258,13 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        ont_send_loading_info_to_db(process, lims)
+        ont_send_loading_info_to_db(process, lims, args)
     except Exception as e:
         # Post error to LIMS GUI
         logging.error(e)
         logging.shutdown()
         upload_file(
-            file_name=log_filename,
+            file_path=log_filename,
             file_slot="Database sync log",
             currentStep=process,
             lims=lims,
@@ -271,7 +275,7 @@ def main():
         logging.info("Script completed successfully.")
         logging.shutdown()
         upload_file(
-            file_name=log_filename,
+            file_path=log_filename,
             file_slot="Database sync log",
             currentStep=process,
             lims=lims,
