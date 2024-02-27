@@ -92,7 +92,7 @@ def write_minknow_csv(df, file_name):
 
     df_csv.to_csv(file_name, index=False)
 
-    logging.info(f"Samplesheet written to {file_name}.")
+    logging.info(f"Samplesheet written to '{file_name}'.")
 
     return file_name
 
