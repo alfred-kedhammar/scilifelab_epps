@@ -25,6 +25,84 @@ TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
+def plate96_well_name2num(well_name: str) -> int:
+    """Convert 96-plate well name to number, e.g. 'A:1' to 1, 'H:12' to 96.
+
+    Accepts e.g. 'A:1', 'A1', 'A:01', 'A01', 'a:1', 'a1', 'a:01', 'a01'
+    """
+
+    well_name_pattern = (
+        r"^([A-Ha-h]):?(0?[1-9]$|1[0-2]$)"  # Capturing groups are row and column
+    )
+
+    match = re.match(well_name_pattern, well_name)
+    assert match, f"Invalid well name: {well_name}"
+    groups = match.groups()
+    row = groups[0].upper()
+    col = groups[1].lstrip("0")
+
+    cleaned_well_name = f"{row}:{col}"
+
+    return well2num[cleaned_well_name]
+
+
+def get_kit_string(process):
+    """Combine prep kit and expansion kit UDFs (if any) into space-separated string"""
+    prep_kit = process.udf.get("ONT prep kit")
+    expansion_kit = process.udf.get("ONT expansion kit")
+
+    if expansion_kit != "None":
+        prep_kit += f" {expansion_kit.replace('.','-')}"
+
+    return prep_kit
+
+
+def strip_characters(input_string):
+    """Remove potentially problematic characters from string."""
+
+    allowed_characters = re.compile("[^a-zA-Z0-9_-]")
+    # Replace any disallowed characters with underscores
+    subbed_string = allowed_characters.sub("_", input_string)
+
+    # Remove any consecutive underscores
+    string_to_shorten = re.compile("__+")
+    shortened_string = string_to_shorten.sub("_", subbed_string)
+
+    return shortened_string
+
+
+def write_minknow_csv(df, file_name):
+    columns = [
+        "flow_cell_id",
+        "position_id",
+        "sample_id",
+        "experiment_id",
+        "flow_cell_product_code",
+        "kit",
+    ]
+
+    if df.position_id[0] == "None":
+        columns.remove("position_id")
+
+    if "alias" in df.columns and "barcode" in df.columns:
+        columns.append("alias")
+        columns.append("barcode")
+
+    df_csv = df.loc[:, columns]
+
+    df_csv.to_csv(file_name, index=False)
+
+    return file_name
+
+
+def upload_file(file_name, file_slot, process, lims):
+    for out in process.all_outputs():
+        if out.name == file_slot:
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, file_name)
+
+
 def generate_MinKNOW_samplesheet(process, lims, args):
     """=== Sample sheet columns ===
 
@@ -204,179 +282,6 @@ def generate_MinKNOW_samplesheet(process, lims, args):
             file_name,
             f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
         )
-
-
-def plate96_well_name2num(well_name: str) -> int:
-    """Convert 96-plate well name to number, e.g. 'A:1' to 1, 'H:12' to 96.
-
-    Accepts e.g. 'A:1', 'A1', 'A:01', 'A01', 'a:1', 'a1', 'a:01', 'a01'
-    """
-
-    well_name_pattern = (
-        r"^([A-Ha-h]):?(0?[1-9]$|1[0-2]$)"  # Capturing groups are row and column
-    )
-
-    match = re.match(well_name_pattern, well_name)
-    assert match, f"Invalid well name: {well_name}"
-    groups = match.groups()
-    row = groups[0].upper()
-    col = groups[1].lstrip("0")
-
-    cleaned_well_name = f"{row}:{col}"
-
-    return well2num[cleaned_well_name]
-
-
-def minknow_samplesheet_for_qc(process):
-    measurements = []
-
-    # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
-    sample_pattern = re.compile(r"P\d{5}_\d{3,4}")
-    for art in process.all_outputs():
-        if re.search(sample_pattern, art.name):
-            measurements.append(art)
-
-    # Build an input output map objects omitting the files
-    art_tuples = []
-    for art_tuple in process.input_output_maps:
-        if art_tuple[1]["uri"].id in [m.id for m in measurements]:
-            art_tuples.append(art_tuple)
-        else:
-            pass
-
-    rows = []
-
-    # Iterate through the input Illumina pools one by one
-    for pool in process.all_inputs():
-        # Find all outputs belonging to the current Illumina pool
-        pool_samples = [
-            art_tuple[1]["uri"]
-            for art_tuple in art_tuples
-            if art_tuple[0]["uri"].id == pool.id
-        ]
-
-        # Assert ONT barcode wells are correctly populated
-        barcode_wells_in_pool = [
-            udf_tools.fetch(art, "ONT Barcode Well", on_fail=None)
-            for art in pool_samples
-        ]
-
-        assert (
-            len(set(barcode_wells_in_pool)) == 1
-        ), f"All ONT barcodes must be the same within a pool, not the case for pool {pool.name}"
-        barcode_well = barcode_wells_in_pool[0]
-
-        # Assert well looks like a well, e.g. "A:11", "G4", "C:1"
-        barcode_well_pattern = re.compile(r"^[A-H]:?([1-9]$|(1[0-2])$)")
-
-        if barcode_well:
-            assert (
-                process.udf.get("ONT expansion kit") != "None"
-            ), "ONT Barcodes have been assigned, but no 'ONT expansion kit' is specified."
-
-            assert re.match(
-                barcode_well_pattern, barcode_well
-            ), f"The 'ONT Barcode Well' entry '{barcode_well}' in pool {pool.name} doesn't look like a plate well."
-
-            if barcode_well not in well2num:
-                barcode_well = barcode_well[0] + ":" + barcode_well[1:]
-            barcode_int = well2num[barcode_well]
-        else:
-            assert (
-                process.udf.get("ONT expansion kit") == "None"
-            ), "ONT Barcodes have not been assigned."
-
-        row = {
-            "position_id": "None",
-            "flow_cell_id": process.udf["ONT flow cell ID"],
-            "sample_id": f"QC_{art.name}",
-            "experiment_id": f"{process.id}",
-            "flow_cell_product_code": process.udf["ONT flow cell type"].split(" ")[0],
-            "flow_cell_type": process.udf["ONT flow cell type"]
-            .split(" ")[1]
-            .strip("()"),
-            "kit": get_kit_string(process),
-        }
-
-        if barcode_well:
-            row["alias"] = strip_characters(pool.name)
-            row["barcode"] = "barcode" + str(barcode_int).zfill(2)
-
-        rows.append(row)
-
-    df = pd.DataFrame(rows)
-
-    if "barcode" in df.columns:
-        assert all(
-            df.barcode.notna()
-        ), "Nanopore barcodes must be specified for either ALL samples, or NONE."
-
-        assert len(df.barcode.unique()) == len(
-            process.all_inputs()
-        ), "Nanopore barcodes are shared between Illumina pools"
-
-    file_name = write_minknow_csv(
-        df,
-        f"ONT_samplesheet_{df.experiment_id.unique()[0]}_{TIMESTAMP}.csv",
-    )
-    return file_name
-
-
-def upload_file(file_name, file_slot, process, lims):
-    for out in process.all_outputs():
-        if out.name == file_slot:
-            for f in out.files:
-                lims.request_session.delete(f.uri)
-            lims.upload_new_file(out, file_name)
-
-
-def write_minknow_csv(df, file_name):
-    columns = [
-        "flow_cell_id",
-        "position_id",
-        "sample_id",
-        "experiment_id",
-        "flow_cell_product_code",
-        "kit",
-    ]
-
-    if df.position_id[0] == "None":
-        columns.remove("position_id")
-
-    if "alias" in df.columns and "barcode" in df.columns:
-        columns.append("alias")
-        columns.append("barcode")
-
-    df_csv = df.loc[:, columns]
-
-    df_csv.to_csv(file_name, index=False)
-
-    return file_name
-
-
-def strip_characters(input_string):
-    """Remove potentially problematic characters from string."""
-
-    allowed_characters = re.compile("[^a-zA-Z0-9_-]")
-    # Replace any disallowed characters with underscores
-    subbed_string = allowed_characters.sub("_", input_string)
-
-    # Remove any consecutive underscores
-    string_to_shorten = re.compile("__+")
-    shortened_string = string_to_shorten.sub("_", subbed_string)
-
-    return shortened_string
-
-
-def get_kit_string(process):
-    """Combine prep kit and expansion kit UDFs (if any) into space-separated string"""
-    prep_kit = process.udf.get("ONT prep kit")
-    expansion_kit = process.udf.get("ONT expansion kit")
-
-    if expansion_kit != "None":
-        prep_kit += f" {expansion_kit.replace('.','-')}"
-
-    return prep_kit
 
 
 def main():
