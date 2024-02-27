@@ -65,6 +65,16 @@ def generate_MinKNOW_samplesheet(process, lims, args):
     for art in arts:
         # Skip samples in case of error
         try:
+            # Validate flowcell position
+            flowcell_position = art.udf.get("ONT flow cell position")
+            valid_positions_pattern = r"^[1-3A-G]$|^None$"
+            assert re.match(
+                valid_positions_pattern, flowcell_position
+            ), f"Invalid flow cell position: {flowcell_position}"
+
+            flowcell_id = art.udf.get("ONT flow cell ID")
+            assert flowcell_id, "Flow cell ID must be specified."
+
             # Start building the row in the samplesheet corresponding to the current artifact
             ss_row = {
                 "flow_cell_product_code": process.udf["ONT flow cell type"].split(" ")[
@@ -85,8 +95,8 @@ def generate_MinKNOW_samplesheet(process, lims, args):
                 ] = f"QC_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
                 ss_row["experiment_id"] = f"QC_{process.id}"
             else:
-                ss_row["flow_cell_id"] = art.udf.get("ONT flow cell ID")
-                ss_row["position_id"] = art.udf.get("ONT flow cell position")
+                ss_row["flow_cell_id"] = flowcell_id
+                ss_row["position_id"] = flowcell_position
                 ss_row["sample_id"] = strip_characters(art.name)
                 ss_row["experiment_id"] = f"{process.id}"
 
@@ -118,6 +128,9 @@ def generate_MinKNOW_samplesheet(process, lims, args):
                     ss_row["alias"] = strip_characters(art.name)
                     ss_row["barcode"] = "barcode" + str(barcode_int).zfill(2)
 
+                    assert "" not in ss_row.values(), "All fields must be populated."
+                    rows.append(ss_row)
+
             else:
                 # For default runs, ONT barcodes are assigned via LIMS reagent labels
                 if process.udf.get("ONT expansion kit") == "None":
@@ -139,10 +152,12 @@ def generate_MinKNOW_samplesheet(process, lims, args):
                     for sample, label in label_tuples:
                         ss_row["alias"] = strip_characters(sample.name)
                         ss_row["barcode"] = strip_characters("barcode" + label[0:2])
+
+                        assert (
+                            "" not in ss_row.values()
+                        ), "All fields must be populated."
                         # Keep appending rows to the samplesheet for each barcode in the pool
                         rows.append(ss_row.copy())
-
-            assert "" not in ss_row.values(), "All fields must be populated."
 
         except AssertionError:
             logging.error(exc_info=True)
