@@ -344,8 +344,8 @@ def main():
                 file_name,
                 f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
             )
-        except:
-            logging.error("Failed to move samplesheet to ngi-nas-ns.")
+        except BaseException:
+            logging.error("Failed to move samplesheet to ngi-nas-ns.", exc_info=True)
         else:
             logging.info("Samplesheet moved to ngi-nas-ns.")
 
