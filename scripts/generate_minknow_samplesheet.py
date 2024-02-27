@@ -92,6 +92,8 @@ def write_minknow_csv(df, file_name):
 
     df_csv.to_csv(file_name, index=False)
 
+    logging.info(f"Samplesheet written to {file_name}.")
+
     return file_name
 
 
@@ -101,6 +103,8 @@ def upload_file(file_name, file_slot, process, lims):
             for f in out.files:
                 lims.request_session.delete(f.uri)
             lims.upload_new_file(out, file_name)
+
+    logging.info(f"'{file_name}' uploaded to LIMS file slot '{file_slot}'.")
 
 
 def generate_MinKNOW_samplesheet(process, lims, args):
@@ -143,6 +147,7 @@ def generate_MinKNOW_samplesheet(process, lims, args):
 
     rows = []
     for art in arts:
+        logging.info(f"Processing {art.name}...")
         # Skip samples in case of error
         try:
             # Start building the row in the samplesheet corresponding to the current artifact
@@ -242,6 +247,7 @@ def generate_MinKNOW_samplesheet(process, lims, args):
 
     df = pd.DataFrame(rows)
 
+    # Samplesheet-wide assertions
     if args.qc:
         assert len(df.barcode.unique()) == len(df), "Barcodes must be unique."
     else:
@@ -266,11 +272,13 @@ def generate_MinKNOW_samplesheet(process, lims, args):
     if errors:
         raise AssertionError("Errors occurred during samplesheet generation.")
     else:
+        logging.info("Generating samplesheet...")
         file_name = write_minknow_csv(
             df,
             f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv",
         )
 
+        logging.info("Uploading samplesheet to LIMS...")
         upload_file(
             file_name,
             args.file,
@@ -278,10 +286,16 @@ def generate_MinKNOW_samplesheet(process, lims, args):
             lims,
         )
 
-        shutil.move(
-            file_name,
-            f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
-        )
+        logging.info("Moving samplesheet to ngi-nas-ns...")
+        try:
+            shutil.move(
+                file_name,
+                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
+            )
+        except:
+            logging.error("Failed to move samplesheet to ngi-nas-ns.")
+        else:
+            logging.info("Samplesheet moved to ngi-nas-ns.")
 
 
 def main():
