@@ -161,10 +161,6 @@ def generate_MinKNOW_samplesheet(process, lims, args):
 
     df = pd.DataFrame(rows)
 
-    import ipdb
-
-    ipdb.set_trace()
-
     if args.qc:
         assert len(df.barcode.unique()) == len(df), "Barcodes must be unique."
     else:
