@@ -283,24 +283,7 @@ def generate_MinKNOW_samplesheet(process, lims, args):
                 f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv",
             )
 
-            logging.info("Uploading samplesheet to LIMS...")
-            upload_file(
-                file_name,
-                args.file,
-                process,
-                lims,
-            )
-
-            logging.info("Moving samplesheet to ngi-nas-ns...")
-            try:
-                shutil.move(
-                    file_name,
-                    f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
-                )
-            except:
-                logging.error("Failed to move samplesheet to ngi-nas-ns.")
-            else:
-                logging.info("Samplesheet moved to ngi-nas-ns.")
+        return file_name
 
 
 def main():
@@ -346,7 +329,26 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        generate_MinKNOW_samplesheet(process, lims, args)
+        file_name = generate_MinKNOW_samplesheet(process, lims, args)
+        logging.info("Uploading samplesheet to LIMS...")
+        upload_file(
+            file_name,
+            args.file,
+            process,
+            lims,
+        )
+
+        logging.info("Moving samplesheet to ngi-nas-ns...")
+        try:
+            shutil.move(
+                file_name,
+                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
+            )
+        except:
+            logging.error("Failed to move samplesheet to ngi-nas-ns.")
+        else:
+            logging.info("Samplesheet moved to ngi-nas-ns.")
+
     except Exception as e:
         # Post error to LIMS GUI
         logging.error(str(e), exc_info=True)

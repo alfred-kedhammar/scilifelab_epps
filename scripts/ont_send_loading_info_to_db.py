@@ -27,6 +27,7 @@ appends LIMS-specific information to the ONT run in StatusDB.
 """
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
+SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
 def assert_samplesheet_vs_udfs(process: Process, samplesheet_contents: str):
@@ -232,7 +233,7 @@ def main():
     log_filename: str = (
         "_".join(
             [
-                "ont-db-loading",
+                SCRIPT_NAME,
                 process.id,
                 TIMESTAMP,
                 process.technician.name.replace(" ", ""),
@@ -247,6 +248,14 @@ def main():
         format="%(levelname)s: %(message)s",
         level=logging.INFO,
     )
+
+    # Start logging
+    logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
+    logging.info(
+        f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
+    )
+    args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
+    logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
         ont_send_loading_info_to_db(process, lims)
