@@ -164,7 +164,7 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
                 ss_row["position_id"] = re.match(
                     r"^([1-3][A-G]|None)$", process.udf["ONT flow cell position"]
                 ).group()
-                ss_row["sample_id"] = f"QC_{art.name.id}"
+                ss_row["sample_id"] = f"QC_{art.name}"
                 ss_row[
                     "experiment_id"
                 ] = f"QC_{process.id}_{process.technician.name.replace(' ','')}"
