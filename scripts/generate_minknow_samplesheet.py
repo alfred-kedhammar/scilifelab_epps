@@ -139,7 +139,7 @@ def generate_MinKNOW_samplesheet(process, lims, args):
     FLO-FLG114 (Flongle R10.4.1)
 
     """
-    errors = False
+    errors = []
 
     arts = [art for art in process.all_outputs() if art.type == "Analyte"]
     arts.sort(key=lambda art: art.id)
@@ -245,60 +245,62 @@ def generate_MinKNOW_samplesheet(process, lims, args):
         except AssertionError as e:
             logging.error(str(e), exc_info=True)
             logging.warning(f"Skipping {art.name} due to error.")
-            errors = True
+            errors.append(art.name)
             continue
 
-    df = pd.DataFrame(rows)
-
-    # Samplesheet-wide assertions
-    if args.qc:
-        assert len(df.barcode.unique()) == len(df), "Barcodes must be unique."
-    else:
-        if len(arts) > 1:
-            assert all(
-                ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
-            ), "Only PromethION flowcells can be grouped together in the same sample sheet."
-            assert (
-                len(arts) <= 24
-            ), "Only up to 24 PromethION flowcells may be started at once."
-        elif len(arts) == 1 and "MinION" in df.flow_cell_type[0]:
-            assert (
-                df.position_id[0] == "None"
-            ), "MinION flow cells should not have a position assigned."
-        assert (
-            len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
-        ), "All rows must have the same flow cell type and kits"
-        assert (
-            len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
-        ), "All rows must have different flow cell positions and IDs"
-
     if errors:
-        raise AssertionError("Errors occurred during samplesheet generation.")
+        raise AssertionError(f"Errors occurred when parsing artifacts {errors}")
     else:
-        logging.info("Generating samplesheet...")
-        file_name = write_minknow_csv(
-            df,
-            f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv",
-        )
+        df = pd.DataFrame(rows)
 
-        logging.info("Uploading samplesheet to LIMS...")
-        upload_file(
-            file_name,
-            args.file,
-            process,
-            lims,
-        )
-
-        logging.info("Moving samplesheet to ngi-nas-ns...")
-        try:
-            shutil.move(
-                file_name,
-                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
-            )
-        except:
-            logging.error("Failed to move samplesheet to ngi-nas-ns.")
+        # Samplesheet-wide assertions
+        if args.qc:
+            assert len(df.barcode.unique()) == len(df), "Barcodes must be unique."
         else:
-            logging.info("Samplesheet moved to ngi-nas-ns.")
+            if len(arts) > 1:
+                assert all(
+                    ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
+                ), "Only PromethION flowcells can be grouped together in the same sample sheet."
+                assert (
+                    len(arts) <= 24
+                ), "Only up to 24 PromethION flowcells may be started at once."
+            elif len(arts) == 1 and "MinION" in df.flow_cell_type[0]:
+                assert (
+                    df.position_id[0] == "None"
+                ), "MinION flow cells should not have a position assigned."
+            assert (
+                len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
+            ), "All rows must have the same flow cell type and kits"
+            assert (
+                len(df.position_id.unique())
+                == len(df.flow_cell_id.unique())
+                == len(arts)
+            ), "All rows must have different flow cell positions and IDs"
+
+            logging.info("Generating samplesheet...")
+            file_name = write_minknow_csv(
+                df,
+                f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv",
+            )
+
+            logging.info("Uploading samplesheet to LIMS...")
+            upload_file(
+                file_name,
+                args.file,
+                process,
+                lims,
+            )
+
+            logging.info("Moving samplesheet to ngi-nas-ns...")
+            try:
+                shutil.move(
+                    file_name,
+                    f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
+                )
+            except:
+                logging.error("Failed to move samplesheet to ngi-nas-ns.")
+            else:
+                logging.info("Samplesheet moved to ngi-nas-ns.")
 
 
 def main():
