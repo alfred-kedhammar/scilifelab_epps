@@ -170,7 +170,7 @@ def generate_MinKNOW_samplesheet(process, lims, args):
             else:
                 ss_row["flow_cell_id"] = art.udf["ONT flow cell ID"]
                 ss_row["position_id"] = re.match(
-                    r"^[1-3A-G]$|^None$", art.udf["ONT flow cell position"]
+                    r"^([1-3A-G]|None)$", art.udf["ONT flow cell position"]
                 ).group()
                 ss_row["sample_id"] = strip_characters(art.name)
                 ss_row["experiment_id"] = f"{process.id}"
