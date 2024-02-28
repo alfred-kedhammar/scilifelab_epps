@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240228.1
+
+Add PCR instrument logbook automation for Visium CytAssist protocol steps.
+
 ## 20240215.1
 
 Treat RAD-seq as regular pooling step, requested by Hamid.

@@ -110,11 +110,17 @@ lims_process_record = {
     "Capture And Wash (SS XT) 4.0": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]}
     },
+    "Decrosslinking and/or Destaining": {
+        "lims_instrument": {"dest_file": "PCR"},
+    },
     "Denature, Dilute and Load Sample (MiSeq) 4.0": {
         "udf_Instrument Used": {
             "dest_file": "MiSeq",
             "details": ["Flowcell ID", "RGT#s"],
         }
+    },
+    "Deparafinization, H&E, Tissue Imaging": {
+        "lims_instrument": {"dest_file": "PCR"},
     },
     "Diluting Samples": {
         "lims_instrument": {
@@ -152,6 +158,9 @@ lims_process_record = {
         "udf_Bravo": {"dest_file": "Bravo", "details": ["Processname"]},
     },
     "Enrich DNA fragments (TruSeq RNA) 4.0": {"lims_instrument": {"dest_file": "PCR"}},
+    "Fixation, H&E, Tissue Imaging": {
+        "lims_instrument": {"dest_file": "PCR"},
+    },
     "Fragment Analyzer QC (DNA) 4.0": {
         "lims_instrument": {
             "dest_file": "FragmentAnalyzer",
