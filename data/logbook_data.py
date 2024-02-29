@@ -462,7 +462,10 @@ lims_process_record = {
         "udf_PCR Machine": {"dest_file": "PCR"},
     },
     "Selection, cDNA Synthesis and Library Construction": {
-        "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]}
+        "lims_instrument": {
+            "dest_file": ["Bravo", "Biomek"],
+            "details": ["Processname"],
+        }
     },
     "Setup Workset/Plate": {
         "lims_instrument": {

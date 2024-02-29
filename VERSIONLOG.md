@@ -1,8 +1,12 @@
 # Scilifelab_epps Version Log
 
-## 20240228.1
+## 20240229.2
 
 Add PCR instrument logbook automation for Visium CytAssist protocol steps.
+
+## 20240229.1
+
+Add Biomek to "Selection, cDNA Synthesis and Library Construction" step.
 
 ## 20240215.1
 
