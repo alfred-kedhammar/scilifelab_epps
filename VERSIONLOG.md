@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240305.1
+
+Add CytAssist electronic logbook.
+
 ## 20240229.2
 
 Add PCR instrument logbook automation for Visium CytAssist protocol steps.

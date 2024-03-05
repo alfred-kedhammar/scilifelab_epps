@@ -1,4 +1,4 @@
-""" This module contains reusable formulas and mappings """
+"""This module contains reusable formulas and mappings"""
 
 # Functions for switching between molarity and weight
 # To keep things explicit, define four functions from the same formula
