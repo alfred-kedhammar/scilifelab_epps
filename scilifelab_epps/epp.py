@@ -62,7 +62,6 @@ def set_field(element):
 
 
 class EppLogger:
-
     """Context manager for logging module useful for EPP script execution.
 
     This context manager (CM) automatically logs what script that is executed,
