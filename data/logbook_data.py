@@ -110,6 +110,9 @@ lims_process_record = {
     "Capture And Wash (SS XT) 4.0": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]}
     },
+    "CytAssist Probe release and Extension": {
+        "lims_instrument": {"dest_file": "CytAssist", "details": ["Processname"]}
+    },
     "Decrosslinking and/or Destaining": {
         "lims_instrument": {"dest_file": "PCR"},
     },
@@ -522,4 +525,5 @@ GDoc_logbook = {
     "Qubit": {"File": "1-sByQA6XVrbli0V24n4CxdxogLUlRlGvykkxOpBG-_U"},
     "Speedvac": {"File": "1Dk7qPJeNmzKtHWEdNkZ4yLB0FycjREqqIhNhInZ8G9g"},
     "Tecan": {"File": "1DUBEL8DBf0lnXJjIIjowQf2PrftMo9ECXpeNrDodM4s"},
+    "CytAssist": {"File": "1sV0qefMAixVlnxGzB2q-YfcSl8a5Y69mAl555KfhU7Q"},
 }
