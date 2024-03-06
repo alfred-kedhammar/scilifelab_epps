@@ -5,6 +5,9 @@ import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
+import numpy as np
+import pandas as pd
+import tabulate
 import yaml
 from generate_minknow_samplesheet import upload_file
 from genologics.config import BASEURI, PASSWORD, USERNAME
@@ -209,6 +212,144 @@ def volume_to_use(process: Process, args: Namespace):
             continue
 
 
+def equimolar_pooling(process: Process, args: Namespace):
+    """Perform equimolar pooling based on a target molar amount or volume."""
+
+    step_tuples = udf_tools.get_art_tuples(process)
+
+    pools = [art for art in process.all_outputs() if art.type == "Analyte"]
+    pools.sort(key=lambda pool: pool.name)
+
+    # Iterate across every pool
+    for pool in pools:
+        logging.info("")
+        logging.info(f"Processing pool '{pool.name}'...")
+
+        # Subset tuples of current pool
+        pool_tuples = [
+            art_tuple for art_tuple in step_tuples if art_tuple[1]["uri"].id == pool.id
+        ]
+
+        # Start collecting dataframe rows
+        pool_data_rows = []
+
+        # Iterate across all pool inputs
+        for art_tuple in pool_tuples:
+            cols = {}
+
+            art_in = art_tuple[0]["uri"]
+            art_out = art_tuple[1]["uri"]
+            logging.info("")
+            logging.info(
+                f"Processing input '{art_in.name}' -> output '{art_out.name}'..."
+            )
+
+            # Get info specified by script arguments
+            cols["size_bp"] = fetch_from_arg(art_tuple, args.size_in, process)
+            cols["input_conc"] = fetch_from_arg(art_tuple, args.conc_in, process)
+            cols["input_vol"] = fetch_from_arg(art_tuple, args.vol_in, process)
+            if hasattr(args, "conc_units_in"):
+                cols["input_conc_units"] = fetch_from_arg(
+                    art_tuple, args.conc_units_in, process
+                )
+                assert (
+                    cols["input_conc_units"] in ["ng/ul", "nM"]
+                ), f'Unsupported conc. units "{cols["input_conc_units"]}" for art {art_in.name}'
+            else:
+                # Infer concentration unit
+                if "ng/ul" in args.conc_in["udf"]:
+                    cols["input_conc_units"] = "ng/ul"
+                elif "nM" in args.conc_in["udf"]:
+                    cols["input_conc_units"] = "nM"
+                else:
+                    raise AssertionError(
+                        f"Can't infer units from '{args.conc_in['udf']}' for {art_out.name}."
+                    )
+                logging.info(
+                    f"Inferred unit of UDF '{args.conc_in['udf']}': {cols['input_conc_units']}."
+                )
+
+            # Infer amount unit
+            if "fmol" in args.amt_out["udf"]:
+                cols["output_amt_unit"] = "fmol"
+            elif "ng" in args.amt_out["udf"]:
+                cols["output_amt_unit"] = "ng"
+            else:
+                raise AssertionError(
+                    f"Can't infer units from '{args.amt_out['udf']}' for art {art_out.name}"
+                )
+            logging.info(
+                f"Inferred unit of UDF '{args.amt_out['udf']}': {cols['output_amt_unit']}."
+            )
+
+            pool_data_rows.append(cols)
+
+        df_pool = pd.DataFrame(pool_data_rows)
+        df_pool.index = [art_tuple[0]["uri"].name for art_tuple in pool_tuples]
+
+        logging.info(
+            f"Collected data for pool '{pool.name}':\n{tabulate.tabulate(df_pool, headers=df_pool.columns)}"
+        )
+
+        assert (
+            df_pool.output_amt_unit.unique().size == 1
+        ), "Inconsistent output amount units."
+
+        # Get a column with consistent concentration units
+        df_pool["input_conc_nM"] = df_pool.apply(
+            lambda x: x["input_conc"]
+            if x["input_conc_units"] == "nM"
+            else formula.ng_ul_to_nM(x["input_conc"], x["size_bp"]),
+            axis=1,
+        )
+
+        # Get concentrations proportions between samples
+        df_pool["prop_nM"] = df_pool.input_conc_nM / sum(df_pool.input_conc_nM)
+        # Inverse the concentration proportions to get the volume proportions for equimolar pooling
+        df_pool["prop_nM_inv"] = (1 / df_pool["prop_nM"]) / sum(1 / df_pool["prop_nM"])
+
+        # If amount is specified, use for calculations and ignore target vol
+        if fetch_from_arg(pool_tuples[0], args.amt_out, process):
+            pool_target_amt_fmol = fetch_from_arg(pool_tuples[0], args.amt_out, process)
+            pool_target_vol = None
+
+            target_amt_fmol = pool_target_amt_fmol / len(df_pool)
+
+            # Apply molar proportions to target amount to get transfer volumes
+            df_pool["transfer_vol_ul"] = np.minimum(
+                target_amt_fmol / df_pool.input_conc_nM, df_pool.input_vol
+            )
+            pool_transfer_vol = sum(df_pool.transfer_vol_ul)
+            df_pool["transfer_amt_fmol"] = (
+                df_pool.transfer_vol_ul * df_pool.input_conc_nM
+            )
+            pool_transfer_amt_fmol = sum(df_pool.transfer_amt_fmol)
+
+        # If amount is omitted but not target volume, use target volume for calculations
+        elif fetch_from_arg(pool_tuples[0], args.vol_out, process):  # TODO
+            pool_target_amt_fmol = None
+            pool_target_vol = fetch_from_arg(pool_tuples[0], args.vol_out, process)
+
+            # Apply molar proportions to target volume to get transfer amounts
+            df_pool["transfer_vol_ul"] = np.minimum(
+                pool_target_vol * df_pool.prop_nM_inv, df_pool.input_vol
+            )
+            pool_transfer_vol = sum(df_pool.transfer_vol_ul)
+            df_pool["transfer_amt_fmol"] = (
+                df_pool.transfer_vol_ul * df_pool.input_conc_nM
+            )
+            pool_transfer_amt_fmol = sum(df_pool.transfer_amt_fmol)
+        else:
+            raise AssertionError(
+                f"No target amount or volume specified for pool '{pool.name}'"
+            )
+
+        # Evaluate target fraction
+        df_pool["molar_percentage"] = (
+            df_pool.transfer_amt_fmol / sum(df_pool.transfer_amt_fmol) * 100
+        )
+
+
 def amount(process: Process, args: Namespace):
     """Calculate amount.
 
@@ -348,7 +489,7 @@ def main():
     Example 1:
 
         python {__file__} \
-        --pid		'24-885762' \
+        --pid		    '24-885762' \
         --calc          'volume_to_use' \
         --log           'Calculate input volume log' \
         --vol_in        udf='Volume (ul)',source='input' \
@@ -361,7 +502,7 @@ def main():
     Example 2:
 
         python {__file__} \
-        --pid		'24-885762' \
+        --pid		    '24-885762' \
         --calc          'amount' \
         --log           'Calculate library amount log' \
         --vol_in        udf='Eluted Library Volume (ul)',source='step' \
@@ -372,7 +513,7 @@ def main():
     Example 3:
 
         python {__file__} \
-        --pid		'24-885762' \
+        --pid		    '24-885762' \
         --calc          'volume_to_use' \
         --log           'Calculate loading volume log' \
         --vol_in        udf='Eluted Library Volume (ul)',source='step' \
@@ -380,6 +521,18 @@ def main():
         --size_in       udf='Eluted Library Size (bp)',source='step' \
         --amt_out       udf='Library Loading Amount (fmol)',source='step' \
         --vol_out       udf='Library Volume to Use for Loading (ul)',source='step'
+
+    Example 4:
+
+        python {__file__} \
+        --pid		    '24-885819' \
+        --calc          'equimolar_pooling' \
+        --log           'Calculate pooling log' \
+        --vol_in        udf='Eluted Volume (ul)' \
+        --conc_in       udf='Eluted Concentration (ng/ul)' \
+        --size_in       udf='Size (bp)',recursive=True \
+        --amt_out       udf='Amount (fmol)' \
+        --vol_out       udf='Total Volume (uL)'
 
     """
 
