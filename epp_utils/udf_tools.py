@@ -105,7 +105,7 @@ def fetch_from_tuple(
         return on_fail
 
 
-def fetch(art: Artifact, target_udfs: Union[str, list], on_fail=AssertionError):
+def fetch(art: Artifact, target_udfs: Union[str, list], on_fail=AssertionError()):
     """Try to fetch UDF from artifact, optionally without causing fatar error.
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
