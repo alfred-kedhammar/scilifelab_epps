@@ -28,41 +28,11 @@ SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
 def fetch_from_arg(
-    art_tuple: tuple, arg_dict: dict, process: Process
+    art_tuple: tuple, arg_dict: dict, process: Process, on_fail=AssertionError
 ) -> int | float | str:
     """Branching decision-making function. Determine HOW to fetch UDFs given the argument dictionary."""
 
     history = None
-
-    # Start branching decision-making
-    if arg_dict["source"] == "step":
-        # Fetch UDF from master step field of current step
-        value = process.udf[arg_dict["udf"]]
-    else:
-        if arg_dict["recursive"]:
-            # Fetch UDF recursively, back-tracking the input-output tuple
-            if arg_dict["source"] == "input":
-                use_current = False
-            else:
-                assert arg_dict["source"] == "output"
-                use_current = True
-
-            value, history = udf_tools.fetch_last(
-                currentStep=process,
-                art_tuple=art_tuple,
-                target_udfs=arg_dict["udf"],
-                use_current=use_current,
-                print_history=True,
-            )
-        else:
-            # Fetch UDF from either input or output artifact
-            if arg_dict["source"] == "input":
-                art = art_tuple[0]["uri"]
-            elif arg_dict["source"] == "output":
-                art = art_tuple[1]["uri"]
-            else:
-                raise AssertionError
-            value = udf_tools.fetch(art, arg_dict["udf"])
 
     # Explicate from where the UDF was fetched
     if arg_dict["source"] == "input":
@@ -72,7 +42,46 @@ def fetch_from_arg(
     elif arg_dict["source"] == "step":
         source_name = process.type.name
     else:
-        raise AssertionError
+        raise AssertionError(f"Invalid source for {arg_dict}")
+
+    try:
+        # Start branching decision-making
+        if arg_dict["source"] == "step":
+            # Fetch UDF from master step field of current step
+            value = process.udf[arg_dict["udf"]]
+        else:
+            if arg_dict["recursive"]:
+                # Fetch UDF recursively, back-tracking the input-output tuple
+                if arg_dict["source"] == "input":
+                    use_current = False
+                else:
+                    assert arg_dict["source"] == "output"
+                    use_current = True
+
+                value, history = udf_tools.fetch_last(
+                    currentStep=process,
+                    art_tuple=art_tuple,
+                    target_udfs=arg_dict["udf"],
+                    use_current=use_current,
+                    print_history=True,
+                )
+            else:
+                # Fetch UDF from either input or output artifact
+                if arg_dict["source"] == "input":
+                    art = art_tuple[0]["uri"]
+                elif arg_dict["source"] == "output":
+                    art = art_tuple[1]["uri"]
+                else:
+                    raise AssertionError
+                value = udf_tools.fetch(art, arg_dict["udf"])
+
+    except AssertionError:
+        if isinstance(on_fail, type) and issubclass(on_fail, Exception):
+            raise on_fail(
+                f"Could not find matching UDF '{arg_dict['udf']}' from {arg_dict['source']} '{source_name}'"
+            )
+        else:
+            return on_fail
 
     # Log what has been done
     log_str = f"Fetched UDF '{arg_dict['udf']}': {value} from {arg_dict['source']} '{source_name}'."
@@ -308,46 +317,62 @@ def equimolar_pooling(process: Process, args: Namespace):
         # Inverse the concentration proportions to get the volume proportions for equimolar pooling
         df_pool["prop_nM_inv"] = (1 / df_pool["prop_nM"]) / sum(1 / df_pool["prop_nM"])
 
+        # Get target parameters for pool
+        pool_target_amt_fmol = fetch_from_arg(
+            pool_tuples[0], args.amt_out, process, on_fail=None
+        )
+        pool_target_vol = fetch_from_arg(
+            pool_tuples[0], args.vol_out, process, on_fail=None
+        )
+
         # If amount is specified, use for calculations and ignore target vol
-        if fetch_from_arg(pool_tuples[0], args.amt_out, process):
-            pool_target_amt_fmol = fetch_from_arg(pool_tuples[0], args.amt_out, process)
-            pool_target_vol = None
+        if pool_target_amt_fmol:
+            logging.info(
+                f"Basing calculations on pool target amount '{args.amt_out['udf']}': {pool_target_amt_fmol:.1f} fmol."
+            )
+            sample_target_amt_fmol = pool_target_amt_fmol / len(df_pool)
 
-            target_amt_fmol = pool_target_amt_fmol / len(df_pool)
-
-            # Apply molar proportions to target amount to get transfer volumes
+            # Calculate transfer volumes
             df_pool["transfer_vol_ul"] = np.minimum(
-                target_amt_fmol / df_pool.input_conc_nM, df_pool.input_vol
+                sample_target_amt_fmol / df_pool.input_conc_nM, df_pool.input_vol
             )
-            pool_transfer_vol = sum(df_pool.transfer_vol_ul)
-            df_pool["transfer_amt_fmol"] = (
-                df_pool.transfer_vol_ul * df_pool.input_conc_nM
-            )
-            pool_transfer_amt_fmol = sum(df_pool.transfer_amt_fmol)
 
         # If amount is omitted but not target volume, use target volume for calculations
-        elif fetch_from_arg(pool_tuples[0], args.vol_out, process):  # TODO
-            pool_target_amt_fmol = None
-            pool_target_vol = fetch_from_arg(pool_tuples[0], args.vol_out, process)
+        elif pool_target_vol:
+            logging.info(
+                f"Basing calculations on pool target volume '{args.vol_out['udf']}': {pool_target_vol:.1f} ul."
+            )
 
             # Apply molar proportions to target volume to get transfer amounts
             df_pool["transfer_vol_ul"] = np.minimum(
                 pool_target_vol * df_pool.prop_nM_inv, df_pool.input_vol
             )
-            pool_transfer_vol = sum(df_pool.transfer_vol_ul)
-            df_pool["transfer_amt_fmol"] = (
-                df_pool.transfer_vol_ul * df_pool.input_conc_nM
-            )
-            pool_transfer_amt_fmol = sum(df_pool.transfer_amt_fmol)
         else:
             raise AssertionError(
                 f"No target amount or volume specified for pool '{pool.name}'"
             )
 
+        # Calculate final amounts and volumes
+        df_pool["transfer_amt_fmol"] = df_pool.transfer_vol_ul * df_pool.input_conc_nM
+        pool_vol = sum(df_pool.transfer_vol_ul)
+        pool_amt_fmol = sum(df_pool.transfer_amt_fmol)
+
         # Evaluate target fraction
-        df_pool["molar_percentage"] = (
-            df_pool.transfer_amt_fmol / sum(df_pool.transfer_amt_fmol) * 100
+        df_pool["molar_percentage"] = df_pool.transfer_amt_fmol / pool_amt_fmol * 100
+
+        logging_str = "\n".join(
+            [
+                f"Finalized calculations for pool '{pool.name}':",
+                f"Target amount: {pool_target_amt_fmol:.1f} fmol",
+                f"Target volume: {pool_target_vol:.1f} ul"
+                if pool_target_vol
+                else "Target volume: None",
+                f"Final amount: {pool_amt_fmol:.1f} fmol",
+                f"Total volume: {pool_vol:.1f} ul",
+                tabulate.tabulate(df_pool, headers=df_pool.columns),
+            ]
         )
+        logging.info(logging_str)
 
 
 def amount(process: Process, args: Namespace):
