@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240307.1
+
+Add PCR machine as UDF to "CytAssist Probe Release and Extension".
+
 ## 20240305.1
 
 Add CytAssist electronic logbook.
