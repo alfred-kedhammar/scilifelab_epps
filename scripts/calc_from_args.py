@@ -278,7 +278,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        function_to_use = eval(f"{methods}.{args.calc}")
+        function_to_use = getattr(methods, args.calc)
         function_to_use(process, args)
     except Exception as e:
         # Post error to LIMS GUI
