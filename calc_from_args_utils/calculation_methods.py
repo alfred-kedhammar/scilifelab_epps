@@ -250,9 +250,15 @@ def equimolar_pooling(process: Process, args: Namespace):
         df_pool["transfer_amt_fmol"] = df_pool.transfer_vol_ul * df_pool.input_conc_nM
         pool_vol = sum(df_pool.transfer_vol_ul)
         pool_amt_fmol = sum(df_pool.transfer_amt_fmol)
+        # Calculate the average fragment size of the pool, weighted by the transfer amounts
+        pool_size = round(
+            np.average(df_pool["size_bp"], weights=df_pool["transfer_amt_fmol"])
+        )
 
-        # Evaluate target fraction
-        df_pool["molar_percentage"] = df_pool.transfer_amt_fmol / pool_amt_fmol * 100
+        # Evaluate target fraction to 1 decimal
+        df_pool["molar_percentage"] = (
+            df_pool.transfer_amt_fmol / pool_amt_fmol * 100
+        ).round(1)
 
         logging_str = "\n".join(
             [
@@ -265,13 +271,15 @@ def equimolar_pooling(process: Process, args: Namespace):
                 else "Target volume: None",
                 f"Final amount: {pool_amt_fmol:.1f} fmol",
                 f"Total volume: {pool_vol:.1f} ul",
+                f"Average size: {pool_size} bp",
                 tabulate.tabulate(df_pool, headers=df_pool.columns),
             ]
         )
         logging.info(logging_str)
 
+        # Flag samples pooled off-target by more than a promille
         non_equimolar_samples = df_pool[
-            df_pool.molar_percentage != 100 / len(df_pool)
+            df_pool.molar_percentage != round(100 / len(df_pool), 1)
         ].index
         for non_equimolar_sample in non_equimolar_samples:
             logging.warning(
@@ -287,6 +295,11 @@ def equimolar_pooling(process: Process, args: Namespace):
         logging.info(
             f"Assigned '{pool.name}' UDF '{args.vol_out['udf']}': {pool_vol:.1f}"
         )
+        if args.size_out:
+            pool.udf[args.size_out["udf"]] = round(pool_size, 1)
+            logging.info(
+                f"Assigned '{pool.name}' UDF '{args.size_out['udf']}': {pool_size:.1f}"
+            )
         pool.put()
 
 

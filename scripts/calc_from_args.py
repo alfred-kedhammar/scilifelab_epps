@@ -134,7 +134,15 @@ def main():
     )
     parser.add_argument("--log", type=str, help="Which log file slot to use")
     # UDFs to use for calculations
-    udf_args = ["vol_in", "size_in", "conc_in", "conc_units_in", "amt_out", "vol_out"]
+    udf_args = [
+        "vol_in",
+        "size_in",
+        "conc_in",
+        "conc_units_in",
+        "amt_out",
+        "vol_out",
+        "size_out",
+    ]
     for udf_arg in udf_args:
         parser.add_argument(f"--{udf_arg}", type=parse_udf_arg)
     args = parser.parse_args()
