@@ -184,10 +184,6 @@ def equimolar_pooling(process: Process, args: Namespace):
         df_pool = pd.DataFrame(pool_data_rows)
         df_pool.index = [art_tuple[0]["uri"].name for art_tuple in pool_tuples]
 
-        logging.info(
-            f"Collected data for pool '{pool.name}':\n{tabulate.tabulate(df_pool, headers=df_pool.columns)}"
-        )
-
         assert (
             df_pool.output_amt_unit.unique().size == 1
         ), "Inconsistent output amount units."
@@ -260,20 +256,24 @@ def equimolar_pooling(process: Process, args: Namespace):
             df_pool.transfer_amt_fmol / pool_amt_fmol * 100
         ).round(1)
 
-        logging_str = "\n".join(
-            [
-                f"Finalized calculations for pool '{pool.name}':",
-                f"Target amount: {pool_target_amt_fmol:.1f} fmol"
-                if pool_target_amt_fmol
-                else "Target amount: None",
-                f"Target volume: {pool_target_vol:.1f} ul"
-                if pool_target_vol
-                else "Target volume: None",
-                f"Final amount: {pool_amt_fmol:.1f} fmol",
-                f"Total volume: {pool_vol:.1f} ul",
-                f"Average size: {pool_size} bp",
-                tabulate.tabulate(df_pool, headers=df_pool.columns),
-            ]
+        logging_str = (
+            "\n"
+            + "\n".join(
+                [
+                    f"\nFinalized calculations for pool '{pool.name}':",
+                    f"Target amount: {pool_target_amt_fmol:.1f} fmol"
+                    if pool_target_amt_fmol
+                    else "Target amount: None",
+                    f"Target volume: {pool_target_vol:.1f} ul"
+                    if pool_target_vol
+                    else "Target volume: None",
+                    f"Final amount: {pool_amt_fmol:.1f} fmol",
+                    f"Total volume: {pool_vol:.1f} ul",
+                    f"Average size: {pool_size} bp",
+                    tabulate.tabulate(df_pool, headers=df_pool.columns),
+                ]
+            )
+            + "\n"
         )
         logging.info(logging_str)
 
