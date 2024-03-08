@@ -257,7 +257,9 @@ def equimolar_pooling(process: Process, args: Namespace):
         logging_str = "\n".join(
             [
                 f"Finalized calculations for pool '{pool.name}':",
-                f"Target amount: {pool_target_amt_fmol:.1f} fmol",
+                f"Target amount: {pool_target_amt_fmol:.1f} fmol"
+                if pool_target_amt_fmol
+                else "Target amount: None",
                 f"Target volume: {pool_target_vol:.1f} ul"
                 if pool_target_vol
                 else "Target volume: None",
