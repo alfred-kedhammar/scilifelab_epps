@@ -145,7 +145,7 @@ def equimolar_pooling(process: Process, args: Namespace):
             cols["size_bp"] = fetch_from_arg(art_tuple, args.size_in, process)
             cols["input_conc"] = fetch_from_arg(art_tuple, args.conc_in, process)
             cols["input_vol"] = fetch_from_arg(art_tuple, args.vol_in, process)
-            if hasattr(args, "conc_units_in"):
+            if args.conc_units_in:
                 cols["input_conc_units"] = str(
                     fetch_from_arg(art_tuple, args.conc_units_in, process)
                 )
