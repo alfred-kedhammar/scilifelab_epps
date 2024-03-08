@@ -232,10 +232,16 @@ def equimolar_pooling(process: Process, args: Namespace):
             df_pool["transfer_vol_ul"] = np.minimum(
                 pool_target_vol * df_pool.prop_nM_inv, df_pool.input_vol
             )
+
         else:
             raise AssertionError(
                 f"No target amount or volume specified for pool '{pool.name}'"
             )
+
+        # Warn about sample depletion
+        depleted_samples = df_pool[df_pool.input_vol == df_pool.transfer_vol_ul].index
+        for depleted_sample in depleted_samples:
+            logging.warning(f"Volume depletion in sample: {depleted_sample}.")
 
         # Calculate final amounts and volumes
         df_pool["transfer_amt_fmol"] = df_pool.transfer_vol_ul * df_pool.input_conc_nM
@@ -258,6 +264,18 @@ def equimolar_pooling(process: Process, args: Namespace):
             ]
         )
         logging.info(logging_str)
+
+        non_equimolar_samples = df_pool[
+            df_pool.molar_percentage != 100 / len(df_pool)
+        ].index
+        for non_equimolar_sample in non_equimolar_samples:
+            logging.warning(
+                f"Non-equimolar pooling  of sample: {non_equimolar_sample}."
+            )
+
+        # Update UDFs
+        pool.udf[args.amt_out["udf"]] = round(pool_amt_fmol, 2)
+        pool.udf[args.vol_out["udf"]] = round(pool_vol, 1)
 
 
 def amount(process: Process, args: Namespace):
