@@ -1,0 +1,109 @@
+#!/usr/bin/env python
+import logging
+
+import yaml
+from genologics.entities import Artifact, Process
+
+from epp_utils import udf_tools
+
+
+def fetch_from_arg(
+    art_tuple: tuple, arg_dict: dict, process: Process, on_fail=AssertionError
+) -> int | float | str:
+    """Branching decision-making function. Determine HOW to fetch UDFs given the argument dictionary."""
+
+    history = None
+
+    # Explicate from where the UDF was fetched
+    if arg_dict["source"] == "input":
+        source_name = art_tuple[0]["uri"].name
+    elif arg_dict["source"] == "output":
+        source_name = art_tuple[1]["uri"].name
+    elif arg_dict["source"] == "step":
+        source_name = process.type.name
+    else:
+        raise AssertionError(f"Invalid source for {arg_dict}")
+
+    try:
+        # Start branching decision-making
+        if arg_dict["source"] == "step":
+            # Fetch UDF from master step field of current step
+            value = process.udf[arg_dict["udf"]]
+        else:
+            if arg_dict["recursive"]:
+                # Fetch UDF recursively, back-tracking the input-output tuple
+                if arg_dict["source"] == "input":
+                    use_current = False
+                else:
+                    assert arg_dict["source"] == "output"
+                    use_current = True
+
+                value, history = udf_tools.fetch_last(
+                    currentStep=process,
+                    art_tuple=art_tuple,
+                    target_udfs=arg_dict["udf"],
+                    use_current=use_current,
+                    print_history=True,
+                )
+            else:
+                # Fetch UDF from either input or output artifact
+                if arg_dict["source"] == "input":
+                    art = art_tuple[0]["uri"]
+                elif arg_dict["source"] == "output":
+                    art = art_tuple[1]["uri"]
+                else:
+                    raise AssertionError
+                value = udf_tools.fetch(art, arg_dict["udf"])
+
+    except AssertionError:
+        if isinstance(on_fail, type) and issubclass(on_fail, Exception):
+            raise on_fail(
+                f"Could not find matching UDF '{arg_dict['udf']}' from {arg_dict['source']} '{source_name}'"
+            )
+        else:
+            return on_fail
+
+    # Log what has been done
+    log_str = f"Fetched UDF '{arg_dict['udf']}': {value} from {arg_dict['source']} '{source_name}'."
+
+    if history:
+        history_yaml = yaml.load(history, Loader=yaml.FullLoader)
+        last_step_name = history_yaml[-1]["Step name"]
+        last_step_id = history_yaml[-1]["Step ID"]
+        log_str += f"\n\tUDF recusively fetched from step: '{last_step_name}' (ID: '{last_step_id}')"
+
+    logging.info(log_str)
+
+    return value
+
+
+def get_UDF_source(
+    art_tuple: tuple, arg_dict: dict, process: Process
+) -> Artifact | Process:
+    """Fetch UDF source for current input-output tuple and UDF arg."""
+
+    if arg_dict["source"] == "input":
+        source = art_tuple[0]["uri"]
+    elif arg_dict["source"] == "output":
+        source = art_tuple[1]["uri"]
+    elif arg_dict["source"] == "step":
+        source = process
+    else:
+        raise AssertionError
+
+    return source
+
+
+def get_UDF_source_name(art_tuple: tuple, arg_dict: dict, process: Process) -> str:
+    """Fetch name of UDF source for current input-output tuple and UDF arg."""
+
+    if arg_dict["source"] == "input":
+        source_name = art_tuple[0]["uri"].name
+    elif arg_dict["source"] == "output":
+        source_name = art_tuple[1]["uri"].name
+    elif arg_dict["source"] == "step":
+        source_name = process.type.name
+    else:
+        raise AssertionError
+
+    return source_name

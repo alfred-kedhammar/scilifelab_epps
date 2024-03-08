@@ -372,9 +372,9 @@ def main(lims, pid):
                 not in process.udf["Comments"]
             ):
                 process.udf["Comments"] += "\n\n"
-                process.udf[
-                    "Comments"
-                ] += "**Warnings from Verify Indexes and Placement EPP: **\n"
+                process.udf["Comments"] += (
+                    "**Warnings from Verify Indexes and Placement EPP: **\n"
+                )
                 process.udf["Comments"] += "\n".join(message)
             process.put()
     else:

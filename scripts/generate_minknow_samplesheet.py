@@ -13,7 +13,6 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
-from data.Chromium_10X_indexes import Chromium_10X_indexes as idxs_10x
 from epp_utils import udf_tools
 from epp_utils.formula import well_name2num_96plate as well2num
 

@@ -166,9 +166,9 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame):
                         "Representation Within Run (%)": "repr_total_pc",
                     }
                     if barcode_well:
-                        udfs_to_cols[
-                            "Representation Within Barcode (%)"
-                        ] = "repr_within_barcode_pc"
+                        udfs_to_cols["Representation Within Barcode (%)"] = (
+                            "repr_within_barcode_pc"
+                        )
 
                     # Start putting UDFs
                     for udf, col in udfs_to_cols.items():

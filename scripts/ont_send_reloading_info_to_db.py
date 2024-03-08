@@ -35,7 +35,7 @@ def send_reloading_info_to_db(process: Process, lims: Lims):
 
     runs = []
     for art_tuple in arts:
-        run: dict = parse_run(art_tuple)
+        run: dict | None = parse_run(art_tuple)
         if run:
             runs.append(run)
 
@@ -90,7 +90,7 @@ def send_reloading_info_to_db(process: Process, lims: Lims):
         raise AssertionError()
 
 
-def parse_run(art: Artifact) -> dict:
+def parse_run(art: Artifact) -> dict | None:
     """For each art, assert UDFs and return parsed dictionary"""
 
     fc = {}
@@ -144,8 +144,8 @@ def check_times_list(times_list: list[str]):
     """Check that a list of comma-separated times is sequential and valid."""
     prev_hours, prev_minutes = 0, 0
     for time in times_list:
-        hours, minutes = time.split(":")
-        hours, minutes = int(hours), int(minutes)
+        _hours, _minutes = time.split(":")
+        hours, minutes = int(_hours), int(_minutes)
         assert hours > prev_hours or (
             hours == prev_hours and minutes > prev_minutes
         ), f"Times in field {times_list} are non-sequential."
