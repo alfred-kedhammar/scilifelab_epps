@@ -278,7 +278,14 @@ def equimolar_pooling(process: Process, args: Namespace):
 
         # Update UDFs
         pool.udf[args.amt_out["udf"]] = round(pool_amt_fmol, 2)
+        logging.info(
+            f"Assigned '{pool.name}' UDF '{args.amt_out['udf']}': {pool_amt_fmol:.2f}"
+        )
         pool.udf[args.vol_out["udf"]] = round(pool_vol, 1)
+        logging.info(
+            f"Assigned '{pool.name}' UDF '{args.vol_out['udf']}': {pool_vol:.1f}"
+        )
+        pool.put()
 
 
 def amount(process: Process, args: Namespace):
