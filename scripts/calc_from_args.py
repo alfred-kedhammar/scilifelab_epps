@@ -129,7 +129,7 @@ def main():
     parser.add_argument(
         "--calc",
         type=str,
-        choices=["volume_to_use", "amount"],
+        choices=["volume_to_use", "amount", "equimolar_pooling"],
         help="Which function to use for calculations",
     )
     parser.add_argument("--log", type=str, help="Which log file slot to use")
