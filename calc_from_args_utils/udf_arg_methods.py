@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import logging
+from typing import Any
 
 import yaml
 from genologics.entities import Artifact, Process
@@ -9,7 +10,7 @@ from epp_utils import udf_tools
 
 def fetch_from_arg(
     art_tuple: tuple, arg_dict: dict, process: Process, on_fail=AssertionError
-) -> int | float | str:
+) -> Any:
     """Branching decision-making function. Determine HOW to fetch UDFs given the argument dictionary."""
 
     history = None

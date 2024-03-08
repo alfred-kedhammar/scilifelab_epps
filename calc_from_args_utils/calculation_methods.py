@@ -35,10 +35,10 @@ def volume_to_use(process: Process, args: Namespace):
             )
 
             # Get info specified by script arguments
-            size_bp = float(fetch_from_arg(art_tuple, args.size_in, process))
-            input_conc = float(fetch_from_arg(art_tuple, args.conc_in, process))
-            input_vol = float(fetch_from_arg(art_tuple, args.vol_in, process))
-            output_amt = float(fetch_from_arg(art_tuple, args.amt_out, process))
+            size_bp = fetch_from_arg(art_tuple, args.size_in, process)
+            input_conc = fetch_from_arg(art_tuple, args.conc_in, process)
+            input_vol = fetch_from_arg(art_tuple, args.vol_in, process)
+            output_amt = fetch_from_arg(art_tuple, args.amt_out, process)
             if args.conc_units_in:
                 input_conc_units = fetch_from_arg(
                     art_tuple, args.conc_units_in, process
@@ -142,9 +142,9 @@ def equimolar_pooling(process: Process, args: Namespace):
             )
 
             # Get info specified by script arguments
-            cols["size_bp"] = float(fetch_from_arg(art_tuple, args.size_in, process))
-            cols["input_conc"] = float(fetch_from_arg(art_tuple, args.conc_in, process))
-            cols["input_vol"] = float(fetch_from_arg(art_tuple, args.vol_in, process))
+            cols["size_bp"] = fetch_from_arg(art_tuple, args.size_in, process)
+            cols["input_conc"] = fetch_from_arg(art_tuple, args.conc_in, process)
+            cols["input_vol"] = fetch_from_arg(art_tuple, args.vol_in, process)
             if hasattr(args, "conc_units_in"):
                 cols["input_conc_units"] = str(
                     fetch_from_arg(art_tuple, args.conc_units_in, process)
@@ -206,11 +206,11 @@ def equimolar_pooling(process: Process, args: Namespace):
         df_pool["prop_nM_inv"] = (1 / df_pool["prop_nM"]) / sum(1 / df_pool["prop_nM"])
 
         # Get target parameters for pool
-        pool_target_amt_fmol = float(
-            fetch_from_arg(pool_tuples[0], args.amt_out, process, on_fail=None)
+        pool_target_amt_fmol: float | None = fetch_from_arg(
+            pool_tuples[0], args.amt_out, process, on_fail=None
         )
-        pool_target_vol = float(
-            fetch_from_arg(pool_tuples[0], args.vol_out, process, on_fail=None)
+        pool_target_vol: float | None = fetch_from_arg(
+            pool_tuples[0], args.vol_out, process, on_fail=None
         )
 
         # If amount is specified, use for calculations and ignore target vol
@@ -298,9 +298,9 @@ def amount(process: Process, args: Namespace):
             )
 
             # Get info specified by script arguments
-            size_bp = float(fetch_from_arg(art_tuple, args.size_in, process))
-            input_conc = float(fetch_from_arg(art_tuple, args.conc_in, process))
-            input_vol = float(fetch_from_arg(art_tuple, args.vol_in, process))
+            size_bp = fetch_from_arg(art_tuple, args.size_in, process)
+            input_conc = fetch_from_arg(art_tuple, args.conc_in, process)
+            input_vol = fetch_from_arg(art_tuple, args.vol_in, process)
             if args.conc_units_in:
                 input_conc_units = str(
                     fetch_from_arg(art_tuple, args.conc_units_in, process)

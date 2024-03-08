@@ -23,7 +23,7 @@ Information is parsed from LIMS and uploaded to the CouchDB database nanopore_ru
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
 
 
-def send_reloading_info_to_db(process: Process, lims: Lims):
+def send_reloading_info_to_db(process: Process):
     """For all samples/flowcells, use the run name to find the correct database entry.
 
     Then update the document "lims" json object nest with the reloading information.
