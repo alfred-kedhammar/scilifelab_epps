@@ -50,6 +50,8 @@ def assert_samplesheet_vs_udfs(
         raise AssertionError(
             "The current sample sheet doesn't correspond to the current UDFs."
         )
+    else:
+        logging.info("Samplesheet is up to date.")
 
 
 def udfs_matches_run_name(art: Artifact) -> bool:
