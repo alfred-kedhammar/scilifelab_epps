@@ -266,7 +266,7 @@ def main():
         upload_file(
             file_path=log_filename,
             file_slot=args.log,
-            currentStep=process,
+            process=process,
             lims=lims,
         )
         sys.stderr.write(str(e))
@@ -277,7 +277,7 @@ def main():
         upload_file(
             file_path=log_filename,
             file_slot=args.log,
-            currentStep=process,
+            process=process,
             lims=lims,
         )
         sys.exit(0)
