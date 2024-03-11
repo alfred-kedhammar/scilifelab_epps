@@ -53,7 +53,7 @@ def assert_samplesheet_vs_udfs(
 def udfs_matches_run_name(art: Artifact) -> bool:
     """Check that artifact run name is not contradicted by other UDFs."""
 
-    matches = True
+    matches: bool = True
     _yyyymmdd, _hhmm, pos, fc_id, _hash = art.udf["ONT run name"].split("_")
 
     if art.udf["ONT flow cell ID"] != fc_id:
@@ -65,10 +65,7 @@ def udfs_matches_run_name(art: Artifact) -> bool:
         msg = f"Mismatch between UDFs 'ONT flow cell position': '{art.udf['ONT flow cell position']}' and 'ONT run name': '{art.udf['ONT run name']}'"
         logging.error(msg)
 
-    if matches:
-        return True
-    else:
-        return False
+    return matches
 
 
 def get_matching_rows(
@@ -202,7 +199,7 @@ def ont_send_loading_info_to_db(process: Process, lims: Lims, args: Namespace):
 
     # Get ONT samplesheet file artifact
     file_art: Artifact = [
-        op for op in process.all_outputs() if op.name == "MinKNOW samplesheet"
+        op for op in process.all_outputs() if op.name == args.samplesheet
     ][0]
 
     # If samplesheet file is loaded
@@ -219,8 +216,11 @@ def ont_send_loading_info_to_db(process: Process, lims: Lims, args: Namespace):
 def main():
     # Parse args
     parser = ArgumentParser(description=DESC)
-    parser.add_argument("--pid", help="Lims ID for current Process")
+    parser.add_argument("--pid", type=str, help="Lims ID for current Process")
     parser.add_argument("--log", type=str, help="Which log file slot to use")
+    parser.add_argument(
+        "--samplesheet", type=str, help="Which samplesheet file slot to use"
+    )
     parser.add_argument("--qc", action="store_true", help="Whether run is QC")
     args: Namespace = parser.parse_args()
 
@@ -265,7 +265,7 @@ def main():
         logging.shutdown()
         upload_file(
             file_path=log_filename,
-            file_slot="Database sync log",
+            file_slot=args.log,
             currentStep=process,
             lims=lims,
         )
@@ -276,7 +276,7 @@ def main():
         logging.shutdown()
         upload_file(
             file_path=log_filename,
-            file_slot="Database sync log",
+            file_slot=args.log,
             currentStep=process,
             lims=lims,
         )
