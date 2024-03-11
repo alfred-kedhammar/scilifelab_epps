@@ -48,14 +48,18 @@ def volume_to_use(process: Process, args: Namespace):
                     "nM",
                 ], f"Unsupported conc. units '{input_conc_units}'"
             else:
-                if "ng" in args.conc_in["udf"]:
-                    input_conc_units = "nM"
+                # Infer concentration unit
+                if "ng/ul" in args.conc_in["udf"]:
+                    input_conc_units = "ng/ul"
                 elif "nM" in args.conc_in["udf"]:
                     input_conc_units = "nM"
                 else:
                     raise AssertionError(
-                        f"No concentration units can inferred from {args.conc_in}."
+                        f"Can't infer units from '{args.conc_in['udf']}' for {art_out.name}."
                     )
+                logging.info(
+                    f"Inferred unit of UDF '{args.conc_in['udf']}': {input_conc_units}."
+                )
 
             # Calculate required volume
             if input_conc_units == "nM":
