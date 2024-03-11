@@ -185,57 +185,29 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
                 ), "Positions must be unassigned for non-PromethION flow cells."
 
             # Add extra columns for barcodes, if needed
-            if args.qc:
-                # For QC, ONT barcodes are assigned via sample UDFs
-                if process.udf.get("ONT expansion kit") == "None":
-                    # No barcodes
-                    assert (
-                        udf_tools.fetch(art, "ONT Barcode Well", on_fail=None) is None
-                    ), f"ONT expansion kit was not supplied, but {art.name} has barcodes assigned."
-                    rows.append(ss_row)
-                else:
-                    # Yes barcodes
-                    barcode_well_string = udf_tools.fetch(
-                        art, "ONT Barcode Well", on_fail=None
-                    )
-                    assert (
-                        barcode_well_string
-                    ), f"No barcode assigned for pool {art.name}"
+            if process.udf.get("ONT expansion kit") == "None":
+                # No barcodes
+                assert (
+                    len(art.reagent_labels) == 0
+                ), f"ONT expansion kit was not supplied, but {art.name} contains barcodes."
+                rows.append(ss_row)
+            else:
+                # Yes barcodes
+                assert (
+                    len(art.reagent_labels) > 0
+                ), f"No barcodes found within pool {art.name}"
 
-                    barcode_int = plate96_well_name2num(barcode_well_string)
-                    ss_row["alias"] = strip_characters(art.name)
-                    ss_row["barcode"] = "barcode" + str(barcode_int).zfill(2)
+                label_tuples = [
+                    (e[0], e[1]) for e in zip(art.samples, art.reagent_labels)
+                ]
+                label_tuples.sort(key=str)
+                for sample, label in label_tuples:
+                    ss_row["alias"] = strip_characters(sample.name)
+                    ss_row["barcode"] = strip_characters("barcode" + label[0:2])
 
                     assert "" not in ss_row.values(), "All fields must be populated."
-                    rows.append(ss_row)
-
-            else:
-                # For default runs, ONT barcodes are assigned via LIMS reagent labels
-                if process.udf.get("ONT expansion kit") == "None":
-                    # No barcodes
-                    assert (
-                        len(art.reagent_labels) == 0
-                    ), f"ONT expansion kit was not supplied, but {art.name} contains barcodes."
-                    rows.append(ss_row)
-                else:
-                    # Yes barcodes
-                    assert (
-                        len(art.reagent_labels) > 0
-                    ), f"No barcodes found within pool {art.name}"
-
-                    label_tuples = [
-                        (e[0], e[1]) for e in zip(art.samples, art.reagent_labels)
-                    ]
-                    label_tuples.sort(key=str)
-                    for sample, label in label_tuples:
-                        ss_row["alias"] = strip_characters(sample.name)
-                        ss_row["barcode"] = strip_characters("barcode" + label[0:2])
-
-                        assert (
-                            "" not in ss_row.values()
-                        ), "All fields must be populated."
-                        # Keep appending rows to the samplesheet for each barcode in the pool
-                        rows.append(ss_row.copy())
+                    # Keep appending rows to the samplesheet for each barcode in the pool
+                    rows.append(ss_row.copy())
 
         except AssertionError as e:
             logging.error(str(e), exc_info=True)
