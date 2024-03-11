@@ -103,7 +103,7 @@ def upload_file(file_path: str, file_slot: str, process: Process, lims: Lims):
     logging.info(f"'{file_path}' uploaded to LIMS file slot '{file_slot}'.")
 
 
-def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
+def generate_MinKNOW_samplesheet(process: Process, qc: bool):
     """=== Sample sheet columns ===
 
     flow_cell_id                E.g. 'PAM96489'
@@ -160,9 +160,9 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
 
             # Start building the row in the samplesheet corresponding to the current artifact
             ss_row = {
-                "experiment_id": process.id if not args.qc else f"QC_{process.id}",
+                "experiment_id": process.id if not qc else f"QC_{process.id}",
                 "sample_id": strip_characters(art.name)
-                if not args.qc
+                if not qc
                 else f"QC_{strip_characters(art.name)}",
                 "flow_cell_product_code": flowcell_product_code,
                 "flow_cell_type": flow_cell_type,
@@ -288,7 +288,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        file_name = generate_MinKNOW_samplesheet(process, args)
+        file_name = generate_MinKNOW_samplesheet(process=process, qc=args.qc)
         logging.info("Uploading samplesheet to LIMS...")
         upload_file(
             file_name,
