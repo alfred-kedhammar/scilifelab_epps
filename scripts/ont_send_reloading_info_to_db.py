@@ -21,6 +21,7 @@ Information is parsed from LIMS and uploaded to the CouchDB database nanopore_ru
 """
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
+SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
 def send_reloading_info_to_db(process: Process):
@@ -180,6 +181,7 @@ def main():
     # Parse args
     parser = ArgumentParser(description=DESC)
     parser.add_argument("--pid", help="Lims id for current Process")
+    parser.add_argument("--log", type=str, help="Which log file slot to use")
     args = parser.parse_args()
 
     # Set up LIMS
@@ -191,7 +193,7 @@ def main():
     log_filename: str = (
         "_".join(
             [
-                "ont-db-reloading",
+                SCRIPT_NAME,
                 process.id,
                 TIMESTAMP,
                 process.technician.name.replace(" ", ""),
@@ -207,6 +209,14 @@ def main():
         level=logging.INFO,
     )
 
+    # Start logging
+    logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
+    logging.info(
+        f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
+    )
+    args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
+    logging.info(f"Script called with arguments: \n\t{args_str}")
+
     try:
         send_reloading_info_to_db(process, lims)
     except Exception as e:
@@ -215,7 +225,7 @@ def main():
         logging.shutdown()
         upload_file(
             file_path=log_filename,
-            file_slot="Database sync log",
+            file_slot=args.log,
             currentStep=process,
             lims=lims,
         )
@@ -226,7 +236,7 @@ def main():
         logging.shutdown()
         upload_file(
             file_path=log_filename,
-            file_slot="Database sync log",
+            file_slot=args.log,
             currentStep=process,
             lims=lims,
         )
