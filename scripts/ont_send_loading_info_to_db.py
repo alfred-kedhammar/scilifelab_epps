@@ -36,6 +36,8 @@ def assert_samplesheet_vs_udfs(
     """Check that the current samplesheet is up to date, by re-generating one from the current UDFs and comparing it to the existing one."""
 
     # Generate new samplesheet from step, then read it and remove the file
+    logger = logging.getLogger("generate_minknow_samplesheet")
+    logger.setLevel(logging.ERROR)
     new_samplesheet_path = generate_MinKNOW_samplesheet(process, args)
     new_samplesheet_contents = open(new_samplesheet_path).read()
     os.remove(new_samplesheet_path)
