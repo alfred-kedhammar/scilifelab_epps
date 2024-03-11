@@ -160,19 +160,16 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
 
             # Start building the row in the samplesheet corresponding to the current artifact
             ss_row = {
-                "experiment_id": process.id,
-                "sample_id": strip_characters(art.name),
+                "experiment_id": process.id if not args.qc else f"QC_{process.id}",
+                "sample_id": strip_characters(art.name)
+                if not args.qc
+                else f"QC_{strip_characters(art.name)}",
                 "flow_cell_product_code": flowcell_product_code,
                 "flow_cell_type": flow_cell_type,
                 "kit": get_kit_string(process),
                 "flow_cell_id": art.udf["ONT flow cell ID"],
                 "position_id": art.udf["ONT flow cell position"],
             }
-
-            # For QC runs, prepend the names with "QC_"
-            if args.qc:
-                ss_row["sample_id"] = f"QC_{ss_row['sample_id']}"
-                ss_row["experiment_id"] = f"QC_{ss_row['experiment_id']}"
 
             # Assert position makes sense with the flowcell type
             if "PromethION" in ss_row["flow_cell_type"]:
@@ -222,26 +219,23 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
     df = pd.DataFrame(rows)
 
     # Samplesheet-wide assertions
-    if args.qc:
-        assert len(df.barcode.unique()) == len(df), "Barcodes must be unique."
-    else:
-        if len(arts) > 1:
-            assert all(
-                ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
-            ), "Only PromethION flowcells can be grouped together in the same sample sheet."
-            assert (
-                len(arts) <= 24
-            ), "Only up to 24 PromethION flowcells may be started at once."
-        elif len(arts) == 1 and "MinION" in df.flow_cell_type[0]:
-            assert (
-                df.position_id[0] == "None"
-            ), "MinION flow cells should not have a position assigned."
+    if len(arts) > 1:
+        assert all(
+            ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
+        ), "Only PromethION flowcells can be grouped together in the same sample sheet."
         assert (
-            len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
-        ), "All rows must have the same flow cell type and kits"
+            len(arts) <= 24
+        ), "Only up to 24 PromethION flowcells may be started at once."
+    elif len(arts) == 1 and "MinION" in df.flow_cell_type[0]:
         assert (
-            len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
-        ), "All rows must have different flow cell positions and IDs"
+            df.position_id[0] == "None"
+        ), "MinION flow cells should not have a position assigned."
+    assert (
+        len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
+    ), "All rows must have the same flow cell type and kits"
+    assert (
+        len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
+    ), "All rows must have different flow cell positions and IDs"
 
     # Generate samplesheet
     logging.info("Generating samplesheet...")
