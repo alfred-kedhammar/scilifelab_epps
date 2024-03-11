@@ -165,20 +165,14 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
                 "flow_cell_product_code": flowcell_product_code,
                 "flow_cell_type": flow_cell_type,
                 "kit": get_kit_string(process),
+                "flow_cell_id": art.udf["ONT flow cell ID"],
+                "position_id": art.udf["ONT flow cell position"],
             }
 
             # For QC runs, prepend the names with "QC_"
             if args.qc:
                 ss_row["sample_id"] = f"QC_{ss_row['sample_id']}"
                 ss_row["experiment_id"] = f"QC_{ss_row['experiment_id']}"
-
-            # For QC runs, some columns are fetched from step UDFs instead of sample UDFs
-            if args.qc:
-                ss_row["flow_cell_id"] = process.udf["ONT flow cell ID"]
-                ss_row["position_id"] = process.udf["ONT flow cell position"]
-            else:
-                ss_row["flow_cell_id"] = art.udf["ONT flow cell ID"]
-                ss_row["position_id"] = art.udf["ONT flow cell position"]
 
             # Assert position makes sense with the flowcell type
             if "PromethION" in ss_row["flow_cell_type"]:
