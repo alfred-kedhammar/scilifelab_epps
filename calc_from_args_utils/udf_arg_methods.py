@@ -13,15 +13,20 @@ def fetch_from_arg(
 ) -> Any:
     """Branching decision-making function. Determine HOW to fetch UDFs given the argument dictionary."""
 
-    history = None
+    history: str | None = None
+    source: Artifact | Process
+    source_name: str
 
     # Explicate from where the UDF was fetched
     if arg_dict["source"] == "input":
-        source_name = art_tuple[0]["uri"].name
+        source = art_tuple[0]["uri"]
+        source_name = source.name
     elif arg_dict["source"] == "output":
-        source_name = art_tuple[1]["uri"].name
+        source = art_tuple[1]["uri"]
+        source_name = source.name
     elif arg_dict["source"] == "step":
-        source_name = process.type.name
+        source = process
+        source_name = source.type.name
     else:
         raise AssertionError(f"Invalid source for {arg_dict}")
 
@@ -47,20 +52,19 @@ def fetch_from_arg(
                     print_history=True,
                 )
             else:
-                # Fetch UDF from either input or output artifact
-                if arg_dict["source"] == "input":
-                    art = art_tuple[0]["uri"]
-                elif arg_dict["source"] == "output":
-                    art = art_tuple[1]["uri"]
-                else:
-                    raise AssertionError
-                value = udf_tools.fetch(art, arg_dict["udf"])
+                # Fetch UDF from input or output artifact
+                value = udf_tools.fetch(source, arg_dict["udf"])
 
     except AssertionError:
         if isinstance(on_fail, type) and issubclass(on_fail, Exception):
-            raise on_fail(
-                f"Could not find matching UDF '{arg_dict['udf']}' from {arg_dict['source']} '{source_name}'"
+            found_udfs = source.udf.items()
+            msg = "\n".join(
+                [
+                    f"Could not find matching UDF '{arg_dict['udf']}' from {arg_dict['source']} '{source_name}'",
+                    f"Found UDFs: {found_udfs}",
+                ]
             )
+            raise on_fail(msg)
         else:
             return on_fail
 
