@@ -89,8 +89,6 @@ def write_minknow_csv(df: pd.DataFrame, file_path: str):
 
     df_csv.to_csv(file_path, index=False)
 
-    logging.info(f"Samplesheet written to '{file_path}'.")
-
 
 def upload_file(file_path: str, file_slot: str, process: Process, lims: Lims):
     for out in process.all_outputs():
@@ -142,8 +140,6 @@ def generate_MinKNOW_samplesheet(process: Process, qc: bool):
 
     rows = []
     for art in arts:
-        logging.info(f"Processing {art.name}...")
-
         # In case of errors, skip to next artifact
         try:
             # Assert flowcell type is written in a valid format
@@ -237,7 +233,6 @@ def generate_MinKNOW_samplesheet(process: Process, qc: bool):
     ), "All rows must have different flow cell positions and IDs"
 
     # Generate samplesheet
-    logging.info("Generating samplesheet...")
     file_name = f"MinKNOW_samplesheet_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv"
     write_minknow_csv(df, file_name)
 
