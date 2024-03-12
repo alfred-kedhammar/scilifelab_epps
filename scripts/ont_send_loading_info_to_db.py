@@ -127,6 +127,7 @@ def update_doc(doc, db: Database, process: Process, art: Artifact):
         "load_vol": art.udf["Volume to take (uL)"],
         "library_name": art.name,
         "library_id": art.id,
+        "barcodes": art.reagent_labels,
         "projects": [
             {"name": project.name, "id": project.id}
             for project in set([sample.project for sample in art.samples])
