@@ -73,7 +73,11 @@ def udfs_matches_run_name(art: Artifact) -> bool:
 
 
 def get_matching_rows(
-    art: Artifact, process: Process, view: ViewResults, run_name: str
+    art: Artifact,
+    process: Process,
+    view: ViewResults,
+    run_name: str | None,
+    qc: bool,
 ) -> list[Row]:
     """Find the rows in the database view that match the given artifact."""
     matching_rows = []
@@ -89,11 +93,15 @@ def get_matching_rows(
 
     # If run name is not supplied, try to find it in the database, assuming it follows the samplesheet naming convention
     else:
+        minknow_sample_name = (
+            strip_characters(art.name) if not qc else f"QC_{strip_characters(art.name)}"
+        )
+        minknow_experiment_name = process.id if not qc else f"QC_{process.id}"
         # Define query pattern
         if art.udf["ONT flow cell position"]:
-            pattern = rf"{process.id}/{strip_characters(art.name)}/[^/]*_{art.udf['ONT flow cell position']}_{art.udf['ONT flow cell ID']}_[^/]*"
+            pattern = rf"{minknow_experiment_name}/{minknow_sample_name}/[^/]*_{art.udf['ONT flow cell position']}_{art.udf['ONT flow cell ID']}_[^/]*"
         else:
-            pattern = rf"{process.id}/{strip_characters(art.name)}/[^/]*_{art.udf['ONT flow cell ID']}_[^/]*"
+            pattern = rf"{minknow_experiment_name}/{minknow_sample_name}/[^/]*_{art.udf['ONT flow cell ID']}_[^/]*"
         logging.info(
             f"No run name supplied. Quering the database for run with path pattern '{pattern}'."
         )
@@ -136,7 +144,7 @@ def update_doc(doc, db: Database, process: Process, art: Artifact):
     db[doc.id] = doc
 
 
-def process_artifacts(process: Process):
+def process_artifacts(process: Process, qc: bool):
     """Iterate across artifacts and update the database with the loading information."""
     arts: list[Artifact] = [
         art for art in process.all_outputs() if art.type == "Analyte"
@@ -159,7 +167,7 @@ def process_artifacts(process: Process):
                 continue
 
         # Get matching run docs
-        matching_rows: list[Row] = get_matching_rows(art, process, view, run_name)
+        matching_rows: list[Row] = get_matching_rows(art, process, view, run_name, qc)
 
         if len(matching_rows) == 0:
             logging.warning("Run was not found in the database. Skipping.")
@@ -214,7 +222,7 @@ def ont_send_loading_info_to_db(process: Process, lims: Lims, args: Namespace):
         logging.info("Checking that the loaded samplesheet is up to date...")
         assert_samplesheet_vs_udfs(process, args, samplesheet_contents)
 
-    process_artifacts(process)
+    process_artifacts(process=process, qc=args.qc)
 
 
 def main():
