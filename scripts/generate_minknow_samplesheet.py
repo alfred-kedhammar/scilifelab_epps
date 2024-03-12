@@ -274,7 +274,7 @@ def main():
     logging.basicConfig(
         filename=log_filename,
         filemode="w",
-        format="%(pathname)s - %(levelname)s: %(message)s",
+        format="%(levelname)s: %(message)s",
         level=logging.INFO,
     )
 
