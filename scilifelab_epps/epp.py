@@ -468,3 +468,47 @@ def get_well_number(art: Artifact, count_per: str) -> int:
         raise AssertionError
 
     return well_num
+
+
+def get_pools_of_pool(pool: Artifact) -> list[Artifact] | None:
+    """For a pool of pools, get the pools of the pool
+    :)
+    """
+
+    # Instantiate return list
+    constituents = []
+
+    # Set argument as current pool
+    current_pool = pool
+    logging.info(
+        f"Tracking pool '{current_pool.name}' in '{current_pool.parent_process.type.name}'"
+    )
+
+    try:
+        # Loop until return, or as long as there is a parent process
+        while current_pool.parent_process:
+            current_pp = current_pool.parent_process
+            logging.info(f"Backtracking to parent process {current_pp.type.name}")
+
+            input_arts = []
+            for io_tuple in current_pp.input_output_maps:
+                input_art = io_tuple[0]["uri"]
+                output_art = io_tuple[1]["uri"]
+                if input_art.type == "Analyte" and output_art.id == current_pool.id:
+                    input_arts.append(io_tuple[0]["uri"])
+
+            logging.info(f"Parent process has {len(input_arts)} input Artifacts.")
+            if len(input_arts) > 1:
+                logging.info("Found pool constituents.")
+                for subpool in input_arts:
+                    for io_tuple in subpool.parent_process.input_output_maps:
+                        if io_tuple[1]["uri"].id == subpool.id:
+                            constituents.append(io_tuple[0]["uri"])
+                break
+
+            else:
+                logging.info("Continuing backtracking.")
+                current_pool = input_arts[0]
+
+    except AttributeError:
+        return None
