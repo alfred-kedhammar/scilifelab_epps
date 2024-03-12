@@ -5,7 +5,7 @@ import os
 import re
 import shutil
 import sys
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser
 from datetime import datetime as dt
 
 import pandas as pd
@@ -13,7 +13,6 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
-from epp_utils import udf_tools
 from epp_utils.formula import well_name2num_96plate as well2num
 
 DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
