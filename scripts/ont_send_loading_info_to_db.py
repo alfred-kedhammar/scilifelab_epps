@@ -116,23 +116,22 @@ def get_matching_rows(
 
 def update_doc(doc, db: Database, process: Process, art: Artifact):
     """Update a given document with the given artifact's loading information."""
-    # Which projects are contained in the library?
-    projects = [
-        {"name": project.name, "id": project.id}
-        for project in set([sample.project for sample in art.samples])
-    ]
 
     # Info to add to the db doc
     dict_to_add = {
         "step_name": process.type.name,
         "step_id": process.id,
         "timestamp": TIMESTAMP,
-        "projects": projects,
         "operator": process.technician.name,
-        "library_name": strip_characters(art.name),
-        "library_id": art.id,
         "load_fmol": art.udf["ONT flow cell loading amount (fmol)"],
         "load_vol": art.udf["Volume to take (uL)"],
+        "library_name": art.name,
+        "library_id": art.id,
+        "projects": [
+            {"name": project.name, "id": project.id}
+            for project in set([sample.project for sample in art.samples])
+        ],
+        "samples": [{"name": sample.name, "id": sample.id} for sample in art.samples],
     }
 
     if "lims" not in doc:
