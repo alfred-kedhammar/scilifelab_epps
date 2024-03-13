@@ -239,7 +239,7 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
     return df
 
 
-def sync_run_to_db_doc(
+def write_to_doc(
     doc: Document, db: Database, process: Process, art: Artifact, args: Namespace
 ):
     """Update a given document with the given artifact's loading information."""
@@ -266,7 +266,7 @@ def sync_run_to_db_doc(
     db[doc.id] = doc
 
 
-def ont_send_loading_info_to_db(process: Process, args: Namespace, lims: Lims):
+def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
     """Executive script, called once."""
 
     # Assert samplesheet, if any, makes sense in the context of the step UDFs
@@ -324,7 +324,7 @@ def ont_send_loading_info_to_db(process: Process, args: Namespace, lims: Lims):
         logging.info(f"Assigning UDF 'ONT run name': '{doc_run_name}'.")
         udf_tools.put(art, "ONT run name", doc_run_name)
 
-        sync_run_to_db_doc(doc, db, process, art, args)
+        write_to_doc(doc, db, process, art, args)
         logging.info(f"'{doc_run_name}' was found and updated successfully.")
         arts_successful.append(art)
 
@@ -385,7 +385,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        ont_send_loading_info_to_db(process, lims, args)
+        sync_runs_to_db(process, lims, args)
     except Exception as e:
         # Post error to LIMS GUI
         logging.error(e)
