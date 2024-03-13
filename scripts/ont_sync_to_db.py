@@ -388,7 +388,7 @@ def main():
         sync_runs_to_db(process, lims, args)
     except Exception as e:
         # Post error to LIMS GUI
-        logging.error(e)
+        logging.error(e, exc_info=True)
         logging.shutdown()
         upload_file(
             file_path=log_filename,
