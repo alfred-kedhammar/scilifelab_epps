@@ -14,6 +14,7 @@ from genologics.entities import Process
 from genologics.lims import Lims
 
 from epp_utils.formula import well_name2num_96plate as well2num
+from scilifelab_epps.epp import upload_file
 
 DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
 """
@@ -88,16 +89,6 @@ def write_minknow_csv(df: pd.DataFrame, file_path: str):
     df_csv = df.loc[:, columns]
 
     df_csv.to_csv(file_path, index=False)
-
-
-def upload_file(file_path: str, file_slot: str, process: Process, lims: Lims):
-    for out in process.all_outputs():
-        if out.name == file_slot:
-            for f in out.files:
-                lims.request_session.delete(f.uri)
-            lims.upload_new_file(out, file_path)
-
-    logging.info(f"'{file_path}' uploaded to LIMS file slot '{file_slot}'.")
 
 
 def generate_MinKNOW_samplesheet(process: Process, qc: bool):

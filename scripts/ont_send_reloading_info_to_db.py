@@ -10,10 +10,11 @@ from datetime import datetime as dt
 import couchdb
 import yaml
 from couchdb.client import Database, Document, Row, ViewResults
-from generate_minknow_samplesheet import upload_file
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
+
+from scilifelab_epps.epp import upload_file
 
 DESC = """Used to record the washing and reloading of ONT flow cells.
 

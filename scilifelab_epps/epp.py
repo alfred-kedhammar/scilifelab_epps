@@ -17,6 +17,7 @@ from time import localtime, strftime
 import pkg_resources
 from genologics.config import MAIN_LOG
 from genologics.entities import Artifact, Process
+from genologics.lims import Lims
 from pkg_resources import DistributionNotFound
 from requests import HTTPError
 
@@ -520,3 +521,18 @@ def traceback_to_step(
 
     except AttributeError:
         return None, None
+
+
+def upload_file(
+    file_path: str, file_slot: str, process: Process, lims: Lims, remove=True
+):
+    for out in process.all_outputs():
+        if out.name == file_slot:
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, file_path)
+
+    logging.info(f"'{file_path}' uploaded to LIMS file slot '{file_slot}'.")
+    if remove:
+        os.remove(file_path)
+        logging.info(f"'{file_path}' removed from local filesystem.")

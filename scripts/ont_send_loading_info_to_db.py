@@ -8,17 +8,14 @@ from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
 from couchdb.client import Database, Document, Row, ViewResults
-from generate_minknow_samplesheet import (
-    generate_MinKNOW_samplesheet,
-    strip_characters,
-    upload_file,
-)
+from generate_minknow_samplesheet import generate_MinKNOW_samplesheet, strip_characters
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 from ont_send_reloading_info_to_db import get_ONT_db
 
 from epp_utils import udf_tools
+from scilifelab_epps.epp import upload_file
 
 DESC = """Script for finishing the step to start ONT sequencing in LIMS.
 
