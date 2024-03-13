@@ -487,10 +487,10 @@ def get_matching_inputs(
         return None
 
 
-def traceback_to_step(art: Artifact, step_name: str) -> Process | None:
-    """For a pool of pools, get the pools of the pool
-    :)
-    """
+def traceback_to_step(
+    art: Artifact, step_name: str
+) -> tuple[Process, list[Artifact]] | tuple[None, None]:
+    """For an artifact and a target step name, try to backtrack and return the target step and it's matching input Artifacts."""
 
     # Set argument as current pool
     current_art = art
@@ -508,7 +508,7 @@ def traceback_to_step(art: Artifact, step_name: str) -> Process | None:
 
             if current_pp.type.name == step_name:
                 logging.info("Found matching step. Returning.")
-                return current_pp
+                return current_pp, input_arts
             elif len(input_arts) > 1:
                 # Can't keep backtracking
                 msg = f"Output artifact {current_art.name} in step {current_pp} has multiple inputs. Can't traceback further."
@@ -519,4 +519,4 @@ def traceback_to_step(art: Artifact, step_name: str) -> Process | None:
                 current_art = input_arts[0]
 
     except AttributeError:
-        return None
+        return None, None
