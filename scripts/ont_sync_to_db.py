@@ -285,8 +285,8 @@ def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
     for art in arts:
         logging.info(f"Processing '{art.name}'...")
 
-        run_name: str = udf_tools.fetch(art, "ONT run name", on_fail=None)
-        if run_name:
+        run_name: str | None = udf_tools.fetch(art, "ONT run name", on_fail=None)
+        if run_name is not None:
             # Assert run name is not contradicted by other UDFs
             if not udfs_matches_run_name(art):
                 logging.warning("Run name contradicted by other UDFs. Skipping.")
