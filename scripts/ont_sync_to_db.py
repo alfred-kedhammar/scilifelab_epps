@@ -385,7 +385,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        sync_runs_to_db(process, lims, args)
+        sync_runs_to_db(process=process, lims=lims, args=args)
     except Exception as e:
         # Post error to LIMS GUI
         logging.error(e, exc_info=True)
