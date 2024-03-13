@@ -92,17 +92,8 @@ def get_matching_db_rows(
     """Find the rows in the database view that match the given artifact."""
     matching_rows = []
 
-    # If the run name is supplied, query the database directly
-    if run_name:
-        logging.info(
-            f"Full run name supplied. Quering the database for run '{run_name}'."
-        )
-        for row in view.rows:
-            if run_name == row.key:
-                matching_rows.append(row)
-
     # If run name is not supplied, try to find it in the database, assuming it follows the samplesheet naming convention
-    else:
+    if run_name is None:
         minknow_sample_name = (
             strip_characters(art.name) if not qc else f"QC_{strip_characters(art.name)}"
         )
@@ -119,6 +110,15 @@ def get_matching_db_rows(
         for row in view.rows:
             query = row.value["TACA_run_path"]
             if re.match(pattern, query):
+                matching_rows.append(row)
+
+    # If the run name is supplied, query the database directly
+    else:
+        logging.info(
+            f"Full run name supplied. Quering the database for run '{run_name}'."
+        )
+        for row in view.rows:
+            if run_name == row.key:
                 matching_rows.append(row)
 
     return matching_rows
