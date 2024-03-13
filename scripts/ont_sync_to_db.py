@@ -270,7 +270,7 @@ def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
     """Executive script, called once."""
 
     # Assert samplesheet, if any, makes sense in the context of the step UDFs
-    assert_samplesheet(process, args, lims)
+    assert_samplesheet(process=process, args=args, lims=lims)
 
     arts: list[Artifact] = [
         art for art in process.all_outputs() if art.type == "Analyte"
