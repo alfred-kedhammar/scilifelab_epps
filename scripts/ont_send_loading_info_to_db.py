@@ -7,6 +7,7 @@ import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
+import pandas as pd
 from couchdb.client import Database, Document, Row, ViewResults
 from generate_minknow_samplesheet import generate_MinKNOW_samplesheet, strip_characters
 from genologics.config import BASEURI, PASSWORD, USERNAME
@@ -15,7 +16,7 @@ from genologics.lims import Lims
 from ont_send_reloading_info_to_db import get_ONT_db
 
 from epp_utils import udf_tools
-from scilifelab_epps.epp import upload_file
+from scilifelab_epps.epp import traceback_to_step, upload_file
 
 DESC = """Script for finishing the step to start ONT sequencing in LIMS.
 
@@ -27,14 +28,25 @@ TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
 SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
-def assert_samplesheet_vs_udfs(
-    process: Process, args: Namespace, samplesheet_contents: str
-):
-    """Check that the current samplesheet is up to date, by re-generating one from the current UDFs and comparing it to the existing one."""
+def assert_samplesheet(process: Process, args: Namespace, lims: Lims):
+    """Check that there isn't a loaded samplesheet that is contradicted by the step UDFs."""
+
+    # Get ONT samplesheet file artifact
+    file_art: Artifact = [
+        op for op in process.all_outputs() if op.name == args.samplesheet
+    ][0]
+
+    # If samplesheet file is loaded
+    if file_art.files:
+        logging.info("Detected samplesheet.")
+        samplesheet_contents: str = lims.get_file_contents(uri=file_art.files[0].uri)
+
+        logging.info("Checking that the loaded samplesheet is up to date...")
+    else:
+        logging.info("No samplesheet file loaded.")
+        return True
 
     # Generate new samplesheet from step, then read it and remove the file
-    logger = logging.getLogger("generate_minknow_samplesheet")
-    logger.setLevel(logging.ERROR)
     new_samplesheet_path = generate_MinKNOW_samplesheet(process=process, qc=args.qc)
     new_samplesheet_contents = open(new_samplesheet_path).read()
     os.remove(new_samplesheet_path)
@@ -49,6 +61,7 @@ def assert_samplesheet_vs_udfs(
         )
     else:
         logging.info("Samplesheet is up to date.")
+        return True
 
 
 def udfs_matches_run_name(art: Artifact) -> bool:
@@ -69,7 +82,7 @@ def udfs_matches_run_name(art: Artifact) -> bool:
     return matches
 
 
-def get_matching_rows(
+def get_matching_db_rows(
     art: Artifact,
     process: Process,
     view: ViewResults,
@@ -111,8 +124,127 @@ def get_matching_rows(
     return matching_rows
 
 
-def update_doc(doc, db: Database, process: Process, art: Artifact):
+def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
+    """For an ONT sequencing library, compile a dataframe with sample-level information.
+
+    Will necessitate none, single or double demultiplexing.
+    """
+
+    logging.info(f"Compiling sample-level information for library '{library.name}'...")
+
+    # Instantiate rows list
+    rows = []
+
+    # See if library can be backtracked to an ONT pooling step
+    ont_pooling_step, ont_pooling_inputs = traceback_to_step(library, args.pooling_step)
+
+    # If there was ONT pooling...
+    if ont_pooling_step:
+        # Iterate across ONT pooling inputs
+        for ont_pooling_input in ont_pooling_inputs:
+            assert len(ont_pooling_input.reagent_labels) == 1
+            ont_barcode = ont_pooling_input.reagent_labels[0]
+
+            if args.qc:
+                logging.info(
+                    "Library assumed to consist of ONT-barcoded Illumina library pool(s) with sample indexes."
+                )
+
+                # Trace the ONT pooling input back to the barcoding step to elucidate samples and indexes
+                ont_barcoding_step, illumina_pools = traceback_to_step(
+                    ont_pooling_input, args.barcoding_step
+                )
+                assert ont_barcoding_step
+                assert len(illumina_pools) == 1
+                illumina_pool = illumina_pools[0]
+
+                # ONT barcode AND Illumina index-level demultiplexing
+                for illumina_sample, illumina_index in zip(
+                    illumina_pool.samples, illumina_pool.reagent_labels
+                ):
+                    rows.append(
+                        {
+                            "sample_name": illumina_sample.name,
+                            "sample_id": illumina_sample.id,
+                            "project_name": illumina_sample.project.name,
+                            "project_id": illumina_sample.project.id,
+                            "illumina_index": illumina_index,
+                            "illumina_pool_name": illumina_pool.name,
+                            "illumina_pool_id": illumina_pool.id,
+                            "ont_barcode": ont_barcode,
+                            "ont_pool_name": ont_pooling_input.name,
+                            "ont_pool_id": ont_pooling_input.id,
+                        }
+                    )
+
+            else:
+                logging.info("Library assumed to consist of ONT-barcoded sample(s).")
+                assert len(ont_pooling_input.reagent_labels) == 1
+
+                # ONT barcode-level demultiplexing
+                for ont_sample, ont_barcode in zip(
+                    ont_pooling_input.samples, ont_pooling_input.reagent_labels
+                ):
+                    rows.append(
+                        {
+                            "sample_name": ont_sample.name,
+                            "sample_id": ont_sample.id,
+                            "project_name": ont_sample.project.name,
+                            "project_id": ont_sample.project.id,
+                            "ont_barcode": ont_barcode,
+                            "ont_pool_name": ont_pooling_input.name,
+                            "ont_pool_id": ont_pooling_input.id,
+                        }
+                    )
+    # If there was no ONT pooling...
+    else:
+        if args.qc:
+            logging.info(
+                "Library assumed to consist of single Illumina library pool with sample indexes."
+            )
+
+            # Illumina index-level demultiplexing
+            for illumina_sample, illumina_index in zip(
+                library.samples, library.reagent_labels
+            ):
+                rows.append(
+                    {
+                        "sample_name": illumina_sample.name,
+                        "sample_id": illumina_sample.id,
+                        "project_name": illumina_sample.project.name,
+                        "project_id": illumina_sample.project.id,
+                        "illumina_index": illumina_index,
+                        "illumina_pool_name": illumina_pool.name,
+                        "illumina_pool_id": illumina_pool.id,
+                        "ont_barcode": ont_barcode,
+                        "ont_pool_name": ont_pooling_input.name,
+                        "ont_pool_id": ont_pooling_input.id,
+                    }
+                )
+        else:
+            logging.info("Library assumed to consist of single ONT library.")
+
+            # No demultiplexing
+            rows.append(
+                {
+                    "sample_name": library.name,
+                    "sample_id": library.id,
+                    "project_name": library.project.name,
+                    "project_id": library.project.id,
+                }
+            )
+
+    df = pd.DataFrame(rows)
+
+    return df
+
+
+def sync_run_to_db_doc(
+    doc: Document, db: Database, process: Process, art: Artifact, args: Namespace
+):
     """Update a given document with the given artifact's loading information."""
+
+    sample_df = get_sample_dataframe(art, args)
 
     # Info to add to the db doc
     dict_to_add = {
@@ -122,14 +254,7 @@ def update_doc(doc, db: Database, process: Process, art: Artifact):
         "operator": process.technician.name,
         "load_fmol": art.udf["ONT flow cell loading amount (fmol)"],
         "load_vol": art.udf["Volume to take (uL)"],
-        "library_name": art.name,
-        "library_id": art.id,
-        "barcodes": art.reagent_labels,
-        "projects": [
-            {"name": project.name, "id": project.id}
-            for project in set([sample.project for sample in art.samples])
-        ],
-        "samples": [{"name": sample.name, "id": sample.id} for sample in art.samples],
+        "sample_data": sample_df.to_dict(orient="records"),
     }
 
     if "lims" not in doc:
@@ -141,8 +266,12 @@ def update_doc(doc, db: Database, process: Process, art: Artifact):
     db[doc.id] = doc
 
 
-def process_artifacts(process: Process, qc: bool):
-    """Iterate across artifacts and update the database with the loading information."""
+def ont_send_loading_info_to_db(process: Process, args: Namespace, lims: Lims):
+    """Executive script, called once."""
+
+    # Assert samplesheet, if any, makes sense in the context of the step UDFs
+    assert_samplesheet(process, args, lims)
+
     arts: list[Artifact] = [
         art for art in process.all_outputs() if art.type == "Analyte"
     ]
@@ -164,7 +293,9 @@ def process_artifacts(process: Process, qc: bool):
                 continue
 
         # Get matching run docs
-        matching_rows: list[Row] = get_matching_rows(art, process, view, run_name, qc)
+        matching_rows: list[Row] = get_matching_db_rows(
+            art, process, view, run_name, args.qc
+        )
 
         if len(matching_rows) == 0:
             logging.warning("Run was not found in the database. Skipping.")
@@ -189,11 +320,11 @@ def process_artifacts(process: Process, qc: bool):
                 f"UDF Run name '{run_name}' contradicted by database run name '{doc_run_name}'. Skipping."
             )
             continue
-        else:
-            logging.info(f"Assigning UDF 'ONT run name': '{doc_run_name}'.")
-            udf_tools.put(art, "ONT run name", doc_run_name)
 
-        update_doc(doc, db, process, art)
+        logging.info(f"Assigning UDF 'ONT run name': '{doc_run_name}'.")
+        udf_tools.put(art, "ONT run name", doc_run_name)
+
+        sync_run_to_db_doc(doc, db, process, art, args)
         logging.info(f"'{doc_run_name}' was found and updated successfully.")
         arts_successful.append(art)
 
@@ -201,25 +332,6 @@ def process_artifacts(process: Process, qc: bool):
         raise AssertionError(
             f"Only {len(arts_successful)} out of {len(arts)} artifacts were successfully updated. Check log."
         )
-
-
-def ont_send_loading_info_to_db(process: Process, lims: Lims, args: Namespace):
-    """Executive script, called once."""
-
-    # Get ONT samplesheet file artifact
-    file_art: Artifact = [
-        op for op in process.all_outputs() if op.name == args.samplesheet
-    ][0]
-
-    # If samplesheet file is loaded
-    if file_art.files:
-        logging.info("Detected samplesheet.")
-        samplesheet_contents: str = lims.get_file_contents(uri=file_art.files[0].uri)
-
-        logging.info("Checking that the loaded samplesheet is up to date...")
-        assert_samplesheet_vs_udfs(process, args, samplesheet_contents)
-
-    process_artifacts(process=process, qc=args.qc)
 
 
 def main():
@@ -231,6 +343,12 @@ def main():
         "--samplesheet", type=str, help="Which samplesheet file slot to use"
     )
     parser.add_argument("--qc", action="store_true", help="Whether run is QC")
+    parser.add_argument(
+        "--pooling_step", type=str, help="Name of pooling step to traceback to"
+    )
+    parser.add_argument(
+        "--barcoding_step", type=str, help="Name of barcoding step to traceback to"
+    )
     args: Namespace = parser.parse_args()
 
     # Set up LIMS
