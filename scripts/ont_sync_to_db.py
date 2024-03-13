@@ -304,8 +304,8 @@ def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
         elif len(matching_rows) > 1:
             matching_run_names = [row.key for row in matching_rows]
             logging.warning("Query was found in multiple instances in the database: ")
-            for run_name in matching_run_names:
-                logging.warning(f"Matching run name: '{run_name}'.")
+            for matching_run_name in matching_run_names:
+                logging.warning(f"Matching run name: '{matching_run_name}'.")
             logging.warning("Contact a database administrator. Skipping.")
             continue
 
@@ -315,7 +315,7 @@ def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
 
         logging.info(f"Found matching run '{doc_run_name}' in the database.")
 
-        if run_name and run_name != doc_run_name:
+        if run_name is not None and run_name != doc_run_name:
             logging.error(
                 f"UDF Run name '{run_name}' contradicted by database run name '{doc_run_name}'. Skipping."
             )
