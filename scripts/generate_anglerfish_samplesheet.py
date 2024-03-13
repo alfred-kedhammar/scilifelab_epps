@@ -9,7 +9,6 @@ from argparse import ArgumentParser
 from datetime import datetime as dt
 
 import pandas as pd
-from generate_minknow_samplesheet import upload_file
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
@@ -17,6 +16,7 @@ from genologics.lims import Lims
 from data.Chromium_10X_indexes import Chromium_10X_indexes as idxs_10x
 from epp_utils import udf_tools
 from epp_utils.formula import well_name2num_96plate as well2num
+from scilifelab_epps.epp import upload_file
 
 DESC = """Script to generate Anglerfish samplesheet for ONT runs.
 """
