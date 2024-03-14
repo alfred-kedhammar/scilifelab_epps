@@ -194,13 +194,13 @@ def main():
             process=process,
             lims=lims,
         )
-        os.remove(log_filename)
         sys.stderr.write(str(e))
         sys.exit(2)
     else:
         logging.info("")
         logging.info("Script completed successfully.")
         logging.shutdown()
+        log_content = open(log_filename).read()
         upload_file(
             file_path=log_filename,
             file_slot=args.log,
@@ -208,8 +208,6 @@ def main():
             lims=lims,
         )
         # Check log for errors and warnings
-        log_content = open(log_filename).read()
-        os.remove(log_filename)
         if "ERROR:" in log_content or "WARNING:" in log_content:
             sys.stderr.write(
                 "Script finished successfully, but log contains errors or warnings, please have a look."
