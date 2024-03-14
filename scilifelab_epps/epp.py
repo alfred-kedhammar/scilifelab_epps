@@ -520,7 +520,7 @@ def traceback_to_step(
                 current_art = input_arts[0]
 
     except AttributeError:
-        return None, None
+        return (None, None)
 
 
 def upload_file(
