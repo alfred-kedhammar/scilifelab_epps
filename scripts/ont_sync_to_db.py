@@ -127,7 +127,9 @@ def get_matching_db_rows(
 def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
     """For an ONT sequencing library, compile a dataframe with sample-level information.
 
-    Will necessitate none, single or double demultiplexing.
+    Will backtrack the library to previous pooling and barcoding steps (if any) to elucidate
+    sample and index information and decide whether to demultiplex at the level of
+    ONT barcodes, Illumina indices, both or neither.
     """
 
     logging.info(f"Compiling sample-level information for library '{library.name}'...")
@@ -142,25 +144,26 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
     else:
         ont_pooling_step = None
 
-    # If there was ONT pooling...
+    # If there was ONT pooling
     if ont_pooling_step:
         # Iterate across ONT pooling inputs
         for ont_pooling_input in ont_pooling_inputs:
             assert len(ont_pooling_input.reagent_labels) == 1
             ont_barcode = ont_pooling_input.reagent_labels[0]
 
-            if args.qc:
-                logging.info(
-                    "Library assumed to consist of ONT-barcoded Illumina library pool(s) with sample indexes."
-                )
+            # Trace the ONT pooling input back to the barcoding step to elucidate samples and indexes
+            ont_barcoding_step, ont_barcoding_inputs = traceback_to_step(
+                ont_pooling_input, args.barcoding_step
+            )
+            assert ont_barcoding_step
+            assert len(ont_barcoding_inputs) == 1
+            ont_barcoding_input = ont_barcoding_inputs[0]
 
-                # Trace the ONT pooling input back to the barcoding step to elucidate samples and indexes
-                ont_barcoding_step, illumina_pools = traceback_to_step(
-                    ont_pooling_input, args.barcoding_step
+            if len(ont_barcoding_input.samples) > 1:
+                logging.info(
+                    "Library assumed to consist of ONT-barcoded Illumina libaries with sample indexes."
                 )
-                assert ont_barcoding_step
-                assert len(illumina_pools) == 1
-                illumina_pool = illumina_pools[0]
+                illumina_pool = ont_barcoding_input
 
                 # ONT barcode AND Illumina index-level demultiplexing
                 for illumina_sample, illumina_index in zip(
@@ -200,13 +203,25 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
                             "ont_pool_id": ont_pooling_input.id,
                         }
                     )
-    # If there was no ONT pooling...
+
+    # If there was no ONT pooling
     else:
-        if args.qc:
+        if library.samples == 1:
+            logging.info("Library assumed to consist of single ONT library.")
+            # No demultiplexing
+            rows.append(
+                {
+                    "sample_name": library.name,
+                    "sample_id": library.id,
+                    "project_name": library.project.name,
+                    "project_id": library.project.id,
+                }
+            )
+
+        else:
             logging.info(
                 "Library assumed to consist of single Illumina library pool with sample indexes."
             )
-
             # Illumina index-level demultiplexing
             for illumina_sample, illumina_index in zip(
                 library.samples, library.reagent_labels
@@ -225,18 +240,6 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
                         "ont_pool_id": ont_pooling_input.id,
                     }
                 )
-        else:
-            logging.info("Library assumed to consist of single ONT library.")
-
-            # No demultiplexing
-            rows.append(
-                {
-                    "sample_name": library.name,
-                    "sample_id": library.id,
-                    "project_name": library.project.name,
-                    "project_id": library.project.id,
-                }
-            )
 
     df = pd.DataFrame(rows)
 
