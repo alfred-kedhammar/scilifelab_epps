@@ -136,10 +136,14 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
     rows = []
 
     # See if library can be backtracked to an ONT pooling step
-    ont_pooling_step, ont_pooling_inputs = traceback_to_step(library, args.pooling_step)
+    pooling_traceback = traceback_to_step(library, args.pooling_step)
+    if pooling_traceback:
+        ont_pooling_step, ont_pooling_inputs = pooling_traceback
+    else:
+        ont_pooling_step = None
 
     # If there was ONT pooling...
-    if ont_pooling_step is not None:
+    if ont_pooling_step:
         # Iterate across ONT pooling inputs
         for ont_pooling_input in ont_pooling_inputs:
             assert len(ont_pooling_input.reagent_labels) == 1

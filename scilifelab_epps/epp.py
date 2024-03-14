@@ -490,7 +490,7 @@ def get_matching_inputs(
 
 def traceback_to_step(
     art: Artifact, step_name: str
-) -> tuple[Process, list[Artifact]] | tuple[None, None]:
+) -> tuple[Process, list[Artifact]] | None:
     """For an artifact and a target step name, try to backtrack and return the target step and it's matching input Artifacts."""
 
     # Set argument as current pool
@@ -519,8 +519,8 @@ def traceback_to_step(
                 # Continue backtracking
                 current_art = input_arts[0]
 
-    except (AttributeError, TypeError):
-        return (None, None)
+    except AttributeError:
+        return None
 
 
 def upload_file(
