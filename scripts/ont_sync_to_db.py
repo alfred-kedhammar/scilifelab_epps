@@ -74,7 +74,10 @@ def udfs_matches_run_name(art: Artifact) -> bool:
         matches = False
         msg = f"Mismatch between UDFs 'ONT flow cell ID': '{art.udf['ONT flow cell ID']}' and 'ONT run name': '{art.udf['ONT run name']}'"
         logging.error(msg)
-    if art.udf["ONT flow cell position"] != pos:
+    if (
+        art.udf["ONT flow cell position"] != "None"
+        and art.udf["ONT flow cell position"] != pos
+    ):
         matches = False
         msg = f"Mismatch between UDFs 'ONT flow cell position': '{art.udf['ONT flow cell position']}' and 'ONT run name': '{art.udf['ONT run name']}'"
         logging.error(msg)
@@ -99,7 +102,7 @@ def get_matching_db_rows(
         )
         minknow_experiment_name = process.id if not qc else f"QC_{process.id}"
         # Define query pattern
-        if art.udf["ONT flow cell position"]:
+        if art.udf["ONT flow cell position"] != "None":
             pattern = rf"{minknow_experiment_name}/{minknow_sample_name}/[^/]*_{art.udf['ONT flow cell position']}_{art.udf['ONT flow cell ID']}_[^/]*"
         else:
             pattern = rf"{minknow_experiment_name}/{minknow_sample_name}/[^/]*_{art.udf['ONT flow cell ID']}_[^/]*"
