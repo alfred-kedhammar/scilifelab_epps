@@ -489,7 +489,7 @@ def get_matching_inputs(
 
 
 def traceback_to_step(
-    art: Artifact, step_name: str
+    art: Artifact, step_name: str, allow_multiple_inputs: bool = False
 ) -> tuple[Process, list[Artifact]] | None:
     """For an artifact and a target step name, try to backtrack and return the target step and it's matching input Artifacts."""
 
@@ -511,10 +511,12 @@ def traceback_to_step(
                 logging.info("Found matching step. Returning.")
                 return current_pp, input_arts
             elif len(input_arts) > 1:
-                # Can't keep backtracking
                 msg = f"Output artifact {current_art.name} in step {current_pp} has multiple inputs. Can't traceback further."
-                logging.error(msg)
-                raise AssertionError(msg)
+                logging.info(msg)
+                if allow_multiple_inputs:
+                    return None
+                else:
+                    raise AssertionError(msg)
             else:
                 # Continue backtracking
                 current_art = input_arts[0]

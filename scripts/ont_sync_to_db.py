@@ -141,7 +141,9 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
     rows = []
 
     # See if library can be backtracked to an ONT pooling step
-    pooling_traceback = traceback_to_step(library, args.pooling_step)
+    pooling_traceback = traceback_to_step(
+        library, args.pooling_step, allow_multiple_inputs=True
+    )
     if pooling_traceback:
         ont_pooling_step, ont_pooling_inputs = pooling_traceback
     else:
