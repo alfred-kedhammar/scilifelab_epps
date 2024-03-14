@@ -247,7 +247,7 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
 
     df = pd.DataFrame(rows)
     logging.info(
-        f"Sample-level information compiled for library '{library.name}':\n{tabulate(df)}"
+        f"Sample-level information compiled for library '{library.name}':\n{tabulate(df, headers=df.columns)}"
     )
 
     return df
