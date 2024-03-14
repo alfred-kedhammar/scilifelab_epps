@@ -519,7 +519,7 @@ def traceback_to_step(
                 # Continue backtracking
                 current_art = input_arts[0]
 
-    except AttributeError:
+    except (AttributeError, TypeError):
         return (None, None)
 
 
