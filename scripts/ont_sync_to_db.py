@@ -208,13 +208,14 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
     else:
         if len(library.samples) == 1:
             logging.info("Library assumed to consist of single ONT library.")
+            sample = library.samples[0]
             # No demultiplexing
             rows.append(
                 {
                     "sample_name": library.name,
                     "sample_id": library.id,
-                    "project_name": library.project.name,
-                    "project_id": library.project.id,
+                    "project_name": sample.project.name,
+                    "project_id": sample.project.id,
                 }
             )
 
