@@ -1,5 +1,37 @@
 # Scilifelab_epps Version Log
 
+## 20240307.1
+
+Add PCR machine as UDF to "CytAssist Probe Release and Extension".
+
+## 20240305.1
+
+Add CytAssist electronic logbook.
+
+## 20240229.2
+
+Add PCR instrument logbook automation for Visium CytAssist protocol steps.
+
+## 20240229.1
+
+Add Biomek to "Selection, cDNA Synthesis and Library Construction" step.
+
+## 20240215.1
+
+Treat RAD-seq as regular pooling step, requested by Hamid.
+
+## 20240208.1
+
+In Anglerfish parsing, only try to assign barcode-specific UDFs for barcoded samples.
+
+## 20240130.1
+
+Handle Anglerfish result parsing for runs W/O ONT barcodes
+
+## 20240126.1
+
+Discover latest anglerfish run even if embedded in subdir of run dir
+
 ## 20240122.1
 
 Enable copy_field_art2samp to copy values from Aggregate QC steps

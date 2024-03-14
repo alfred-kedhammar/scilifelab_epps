@@ -265,23 +265,7 @@ def aliquot_fixed_volume(currentStep, lims, volume, log):
 def prepooling(currentStep, lims):
     log = []
 
-    if zika_utils.verify_step(
-        currentStep, targets=[("", "Library Pooling (RAD-seq) v1.0")]
-    ):
-        zika_methods.pool(
-            currentStep=currentStep,
-            lims=lims,
-            udfs={
-                "target_amt": "Amount for prep (ng)",
-                "target_vol": "Final Volume (uL)",
-                "target_conc": None,
-                "final_amt": "Amount for prep (ng)",
-                "final_vol": "Final Volume (uL)",
-                "final_conc": None,
-            },
-        )
-
-    elif currentStep.instrument.name == "Zika":
+    if currentStep.instrument.name == "Zika":
         zika_methods.pool(
             currentStep=currentStep,
             lims=lims,
@@ -464,12 +448,12 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                                         total_volume,
                                     ]
                                 ):
-                                    art_tuple[1]["uri"].udf[
-                                        "Amount for prep (ng)"
-                                    ] = float(amount_for_prep)
-                                    art_tuple[1]["uri"].udf[
-                                        "Total Volume (uL)"
-                                    ] = float(final_volume)
+                                    art_tuple[1]["uri"].udf["Amount for prep (ng)"] = (
+                                        float(amount_for_prep)
+                                    )
+                                    art_tuple[1]["uri"].udf["Total Volume (uL)"] = (
+                                        float(final_volume)
+                                    )
                                     art_tuple[1]["uri"].udf[
                                         "Amount taken from plate (ng)"
                                     ] = float(amount_taken_from_plate)
@@ -597,15 +581,15 @@ def dilution(currentStep):
                                 art_tuple[0]["uri"].udf["Volume (ul)"]
                                 >= min_vol_for_dilution
                             ):
-                                art_tuple[1]["uri"].udf[
-                                    "Volume to take (uL)"
-                                ] = min_vol_for_dilution
-                                art_tuple[1]["uri"].udf[
-                                    "Final Concentration"
-                                ] = art_tuple[1]["uri"].udf["Concentration"]
-                                art_tuple[1]["uri"].udf[
-                                    "Final Volume (uL)"
-                                ] = min_vol_for_dilution
+                                art_tuple[1]["uri"].udf["Volume to take (uL)"] = (
+                                    min_vol_for_dilution
+                                )
+                                art_tuple[1]["uri"].udf["Final Concentration"] = (
+                                    art_tuple[1]["uri"].udf["Concentration"]
+                                )
+                                art_tuple[1]["uri"].udf["Final Volume (uL)"] = (
+                                    min_vol_for_dilution
+                                )
                                 logContext.write(
                                     "WARN : Sample {} located {} {} has a LOWER conc than {}. Take {} ul directly into the dilution plate.\n".format(
                                         art_tuple[1]["uri"].samples[0].name,
@@ -677,12 +661,12 @@ def dilution(currentStep):
                                         art_tuple[1]["uri"].udf[
                                             "Final Concentration"
                                         ] = final_conc
-                                        art_tuple[1]["uri"].udf[
-                                            "Final Volume (uL)"
-                                        ] = float(
-                                            art_tuple[1]["uri"].udf["Concentration"]
-                                            * MIN_WARNING_VOLUME
-                                            / final_conc
+                                        art_tuple[1]["uri"].udf["Final Volume (uL)"] = (
+                                            float(
+                                                art_tuple[1]["uri"].udf["Concentration"]
+                                                * MIN_WARNING_VOLUME
+                                                / final_conc
+                                            )
                                         )
                                         logContext.write(
                                             "INFO : Sample {} looks okay.\n".format(
@@ -722,12 +706,12 @@ def dilution(currentStep):
                                     * min_vol_for_dilution
                                     / art_tuple[1]["uri"].udf["Concentration"]
                                 )
-                                art_tuple[1]["uri"].udf[
-                                    "Final Concentration"
-                                ] = min_required_conc
-                                art_tuple[1]["uri"].udf[
-                                    "Final Volume (uL)"
-                                ] = min_vol_for_dilution
+                                art_tuple[1]["uri"].udf["Final Concentration"] = (
+                                    min_required_conc
+                                )
+                                art_tuple[1]["uri"].udf["Final Volume (uL)"] = (
+                                    min_vol_for_dilution
+                                )
                                 logContext.write(
                                     "INFO : Sample {} looks okay.\n".format(
                                         art_tuple[1]["uri"].samples[0].name

@@ -35,8 +35,8 @@ def find_latest_flowcell_run(currentStep: Process) -> str:
 
 
 def find_latest_anglerfish_run(latest_flowcell_run_path: str) -> str:
-    anglerfish_query = f"{latest_flowcell_run_path}/*anglerfish_run*"
-    anglerfish_glob = glob.glob(anglerfish_query)
+    anglerfish_query = f"{latest_flowcell_run_path}/**/anglerfish_run*"
+    anglerfish_glob = glob.glob(anglerfish_query, recursive=True)
 
     assert (
         len(anglerfish_glob) != 0
@@ -88,7 +88,9 @@ def parse_data(df_raw: pd.DataFrame):
         # Sample reads divided by sum of all sample reads w. the same barcode
         lambda row: row["num_reads"]
         / df[df["ont_barcode"] == row["ont_barcode"]]["num_reads"].sum()
-        * 100,
+        * 100
+        if not pd.isna(row["ont_barcode"])
+        else None,
         axis=1,
     )
 
@@ -112,15 +114,6 @@ def ont_barcode_well2name(barcode_well: str) -> str:
 
 
 def fill_udfs(currentStep: Process, df: pd.DataFrame):
-    # Dictate which LIMS UDF corresponds to which column in the dataframe
-    udfs_to_cols = {
-        "# Reads": "num_reads",
-        "Avg. Read Length": "mean_read_len",
-        "Std. Read Length": "std_read_len",
-        "Representation Within Run (%)": "repr_total_pc",
-        "Representation Within Barcode (%)": "repr_within_barcode_pc",
-    }
-
     # Get Illumina pools
     illumina_pools = [
         input_art
@@ -141,21 +134,41 @@ def fill_udfs(currentStep: Process, df: pd.DataFrame):
 
             for illumina_sample in illumina_samples:
                 try:
-                    barcode_name = ont_barcode_well2name(
-                        fetch(illumina_sample, "ONT Barcode Well")
+                    # Get ONT barcode well, if there is one
+                    barcode_well = fetch(
+                        illumina_sample, "ONT Barcode Well", on_fail=None
                     )
 
-                    # Subset df to the current ONT barcode
-                    df_barcode = df[df["ont_barcode"] == barcode_name]
+                    if barcode_well:
+                        barcode_name = ont_barcode_well2name(barcode_well)
 
-                    # Further subset df to the current Illumina sample
-                    df_sample = df_barcode[
-                        df_barcode["sample_name"] == illumina_sample.name
-                    ]
+                        # Subset df to the current ONT barcode
+                        df_barcode = df[df["ont_barcode"] == barcode_name]
+
+                        # Subset df to the current Illumina sample
+                        df_sample = df_barcode[
+                            df_barcode["sample_name"] == illumina_sample.name
+                        ]
+
+                    else:
+                        # Subset df to the current Illumina sample
+                        df_sample = df[df["sample_name"] == illumina_sample.name]
 
                     assert (
                         len(df_sample) == 1
                     ), f"Multiple entries matching both Illumina sample name {illumina_sample.name} and ONT barcode {barcode_name} was found in the dataframe."
+
+                    # Determine which UDFs to assign
+                    udfs_to_cols = {
+                        "# Reads": "num_reads",
+                        "Avg. Read Length": "mean_read_len",
+                        "Std. Read Length": "std_read_len",
+                        "Representation Within Run (%)": "repr_total_pc",
+                    }
+                    if barcode_well:
+                        udfs_to_cols["Representation Within Barcode (%)"] = (
+                            "repr_within_barcode_pc"
+                        )
 
                     # Start putting UDFs
                     for udf, col in udfs_to_cols.items():
