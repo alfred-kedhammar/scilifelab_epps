@@ -239,11 +239,8 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
                         "project_name": illumina_sample.project.name,
                         "project_id": illumina_sample.project.id,
                         "illumina_index": illumina_index,
-                        "illumina_pool_name": illumina_pool.name,
-                        "illumina_pool_id": illumina_pool.id,
-                        "ont_barcode": ont_barcode,
-                        "ont_pool_name": ont_pooling_input.name,
-                        "ont_pool_id": ont_pooling_input.id,
+                        "illumina_pool_name": library.name,
+                        "illumina_pool_id": library.id,
                     }
                 )
 
