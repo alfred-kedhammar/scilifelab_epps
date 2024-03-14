@@ -193,6 +193,7 @@ def main():
             file_slot=args.log,
             process=process,
             lims=lims,
+            remove=True,
         )
         sys.stderr.write(str(e))
         sys.exit(2)
@@ -206,6 +207,7 @@ def main():
             file_slot=args.log,
             process=process,
             lims=lims,
+            remove=True,
         )
         # Check log for errors and warnings
         if "ERROR:" in log_content or "WARNING:" in log_content:
