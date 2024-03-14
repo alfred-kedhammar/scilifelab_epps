@@ -206,7 +206,7 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
 
     # If there was no ONT pooling
     else:
-        if library.samples == 1:
+        if len(library.samples) == 1:
             logging.info("Library assumed to consist of single ONT library.")
             # No demultiplexing
             rows.append(
