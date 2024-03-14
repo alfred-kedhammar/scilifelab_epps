@@ -167,18 +167,25 @@ def generate_MinKNOW_samplesheet(process: Process, qc: bool):
                     ss_row["position_id"] == "None"
                 ), "Positions must be unassigned for non-PromethION flow cells."
 
+            ont_barcode_label_pattern = r"^\d{2}_[A-H][0-1]?\d_NB\d{2} \([ACGT]+\)$"
+
             # Add extra columns for barcodes, if needed
             if process.udf.get("ONT expansion kit") == "None":
                 # No barcodes
-                assert (
-                    len(art.reagent_labels) == 0
-                ), f"ONT expansion kit was not supplied, but {art.name} contains barcodes."
+                for label in art.reagent_labels:
+                    assert not re.match(
+                        ont_barcode_label_pattern, label
+                    ), "ONT expansion kit is set to 'None', but library contains labels that look like ONT barcodes."
                 rows.append(ss_row)
             else:
                 # Yes barcodes
                 assert (
                     len(art.reagent_labels) > 0
                 ), f"No barcodes found within pool {art.name}"
+                for label in art.reagent_labels:
+                    assert re.match(
+                        ont_barcode_label_pattern, label
+                    ), "Library contains labels that do not look like ONT barcodes."
 
                 label_tuples = [
                     (e[0], e[1]) for e in zip(art.samples, art.reagent_labels)
