@@ -14,6 +14,7 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 from ont_send_reloading_info_to_db import get_ONT_db
+from tabulate import tabulate
 
 from epp_utils import udf_tools
 from scilifelab_epps.epp import traceback_to_step, upload_file
@@ -245,6 +246,9 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
                 )
 
     df = pd.DataFrame(rows)
+    logging.info(
+        f"Sample-level information compiled for library '{library.name}':\n{tabulate(df)}"
+    )
 
     return df
 
