@@ -309,7 +309,7 @@ def gen_Miseq_settings(pro):
 
 def is_key_empty_in_all_dicts(key, list_of_dicts):
     for dictionary in list_of_dicts:
-        if key not in dictionary or dictionary[key] != '':
+        if key not in dictionary or dictionary[key] != "":
             return False
     return True
 
@@ -331,7 +331,8 @@ def gen_Miseq_data(pro):
         "Operator",
         "Sample_Project",
     ]
-    key_order = ["fc",
+    key_order = [
+        "fc",
         "lane",
         "sn",
         "sn",
@@ -342,7 +343,7 @@ def gen_Miseq_data(pro):
         "ct",
         "rc",
         "op",
-        "pj"
+        "pj",
     ]
     for out in pro.all_outputs():
         if out.type == "Analyte":
@@ -461,7 +462,10 @@ def gen_Miseq_data(pro):
                                 )
                                 data.append(sp_obj_sub)
                     # NoIndex cases
-                    elif idxs[0].replace(",", "").upper() == "NOINDEX" or (idxs[0].replace(",", "").upper() == '' and idxs[1].replace(",", "").upper() == ''):
+                    elif idxs[0].replace(",", "").upper() == "NOINDEX" or (
+                        idxs[0].replace(",", "").upper() == ""
+                        and idxs[1].replace(",", "").upper() == ""
+                    ):
                         sp_obj["idx1"] = ""
                         sp_obj["idx2"] = ""
                         data.append(sp_obj)
@@ -715,6 +719,7 @@ def find_barcode(sample_idxs, sample, process):
                     pass
                 else:
                     find_barcode(sample_idxs, sample, art.parent_process)
+
 
 def test():
     log = []

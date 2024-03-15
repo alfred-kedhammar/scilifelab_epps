@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240315.2
+
+ruff format linting
+
 ## 20240315.1
 
 Handle special cases for Miseq samplesheet

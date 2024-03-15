@@ -195,9 +195,9 @@ def fill_process_fields(demux_process, process_stats):
     if "Maximum % Undetermined Reads per Lane" not in demux_process.udf:
         thresholds.set_undet_indexes_perc()
         try:
-            demux_process.udf["Maximum % Undetermined Reads per Lane"] = (
-                thresholds.undet_indexes_perc
-            )
+            demux_process.udf[
+                "Maximum % Undetermined Reads per Lane"
+            ] = thresholds.undet_indexes_perc
             logger.info(
                 "Maximum percentage of undetermined per lane set to {} %".format(
                     demux_process.udf["Maximum % Undetermined Reads per Lane"]
@@ -466,9 +466,9 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                                 target_file.udf["# Reads"] = (
                                                     inp.udf["Reads PF (M) R1"] * 1000000
                                                 )
-                                                target_file.udf["# Read Pairs"] = (
-                                                    target_file.udf["# Reads"]
-                                                )
+                                                target_file.udf[
+                                                    "# Read Pairs"
+                                                ] = target_file.udf["# Reads"]
                                     logger.info(
                                         "{}# Reads".format(target_file.udf["# Reads"])
                                     )
@@ -508,9 +508,9 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                                 target_file.udf["# Reads"] = inp.udf[
                                                     "Clusters PF R1"
                                                 ]
-                                                target_file.udf["# Read Pairs"] = (
-                                                    target_file.udf["# Reads"]
-                                                )
+                                                target_file.udf[
+                                                    "# Read Pairs"
+                                                ] = target_file.udf["# Reads"]
                                     logger.info(
                                         "{}# Reads".format(target_file.udf["# Reads"])
                                     )
