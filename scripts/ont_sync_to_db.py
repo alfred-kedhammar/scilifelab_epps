@@ -258,7 +258,7 @@ def write_to_doc(
 ):
     """Update a given document with the given artifact's loading information."""
 
-    sample_df = get_sample_dataframe(art, args)
+    sample_df = get_sample_dataframe(library=art, args=args)
 
     # Info to add to the db doc
     dict_to_add = {
