@@ -149,9 +149,7 @@ class RunQC:
             path_id = cont_name
         try:
             self.file_path = glob.glob(
-                "/srv/ngi-nas-ns/{}/*{}/Unaligned/" "Basecall_Stats_*/".format(
-                    data_folder, path_id
-                )
+                f"/srv/ngi-nas-ns/{data_folder}/*{path_id}/Unaligned/" "Basecall_Stats_*/"
             )[0]
         except:
             sys.exit("Failed to get file path")
@@ -243,15 +241,11 @@ class RunQC:
             warn = "WARNING: "
             if self.high_index_yield:
                 self.high_index_yield = ", ".join(list(set(self.high_index_yield)))
-                warn = "{} High yield of unexpected index on lane(s): {} ." "".format(
-                    warn, self.high_index_yield
-                )
+                warn = f"{warn} High yield of unexpected index on lane(s): {self.high_index_yield} ." ""
             if self.high_lane_yield:
                 self.high_lane_yield = ", ".join(list(set(self.high_lane_yield)))
                 warn = (
-                    "{} High total yield of unexpected index on lane(s): " "{}.".format(
-                        warn, self.high_lane_yield
-                    )
+                    f"{warn} High total yield of unexpected index on lane(s): " f"{self.high_lane_yield}."
                 )
             warn = warn + "Please check the Metrics file!"
             self.abstract.insert(0, warn)
@@ -419,10 +413,8 @@ class LaneQC:
         else:
             self.reads_threshold = int(self.exp_samp_clust * 0.5)
             qc_logg = (
-                "Index yield - expected index: {}. Value based on nr of "
-                "sampels in the lane: {}, and run type {}.".format(
-                    self.reads_threshold, self.nr_lane_samps, self.run_type
-                )
+                f"Index yield - expected index: {self.reads_threshold}. Value based on nr of "
+                f"sampels in the lane: {self.nr_lane_samps}, and run type {self.run_type}."
             )
             print(qc_logg, file=self.qc_log_file)
 
@@ -454,16 +446,14 @@ class LaneQC:
                 "Threshold for Undemultiplexed Index Yield"
             ]
             qc_logg = (
-                "Index yield - un expected index: {}. Value set by user." "".format(
-                    self.thres_un_exp_ind
-                )
+                f"Index yield - un expected index: {self.thres_un_exp_ind}. Value set by user." ""
             )
             print(qc_logg, file=self.qc_log_file)
         else:
             self.thres_un_exp_ind = int(self.exp_samp_clust * 0.1)
             qc_logg = (
-                "Index yield - un expected index: {}. Value set to 10% "
-                "of expected index yield".format(self.thres_un_exp_ind)
+                f"Index yield - un expected index: {self.thres_un_exp_ind}. Value set to 10% "
+                "of expected index yield"
             )
             print(qc_logg, file=self.qc_log_file)
 

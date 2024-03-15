@@ -316,9 +316,7 @@ def find_barcode(sample_idxs, sample, process):
                             )
                         ):
                             sys.stderr.write(
-                                "INDEX FORMAT ERROR: Sample {} has a bad format or unknown index category\n".format(
-                                    sample.name
-                                )
+                                f"INDEX FORMAT ERROR: Sample {sample.name} has a bad format or unknown index category\n"
                             )
                             sys.exit(2)
                 reagent_label_name = art.reagent_labels[0].upper().replace(" ", "")

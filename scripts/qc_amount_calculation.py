@@ -51,17 +51,11 @@ def apply_calculations(artifacts, udf1, op, udf2, unit_amount_map, process):
             udf2_value = artifact.udf[udf2]
 
         logging.info(
-            (
-                "Updating: Artifact id: {}, "
-                "result_udf: {}, udf1: {}, "
-                "operator: {}, udf2: {}"
-            ).format(
-                artifact.id,
-                artifact.udf.get(result_udf, 0),
-                artifact.udf[udf1],
-                op,
-                udf2_value,
-            )
+            
+                f"Updating: Artifact id: {artifact.id}, "
+                f"result_udf: {artifact.udf.get(result_udf, 0)}, udf1: {artifact.udf[udf1]}, "
+                f"operator: {op}, udf2: {udf2_value}"
+            
         )
         prod = eval(f"{artifact.udf[udf1]}{op}{udf2_value}")
         if dil_fold:
@@ -105,9 +99,9 @@ def check_udf_is_defined(artifacts, udf):
             filtered_artifacts.append(artifact)
         else:
             logging.warning(
-                (
-                    "Found artifact for sample {} with {} " "undefined/blank, skipping"
-                ).format(artifact.samples[0].name, udf)
+                
+                    f"Found artifact for sample {artifact.samples[0].name} with {udf} " "undefined/blank, skipping"
+                
             )
             incorrect_artifacts.append(artifact)
     return filtered_artifacts, incorrect_artifacts
@@ -123,16 +117,14 @@ def check_udf_has_value(artifacts, udf, value):
         elif udf in artifact.udf:
             incorrect_artifacts.append(artifact)
             logging.warning(
-                ("Filtered out artifact for sample: {}" ", due to wrong {}").format(
-                    artifact.samples[0].name, udf
-                )
+                f"Filtered out artifact for sample: {artifact.samples[0].name}" f", due to wrong {udf}"
             )
         else:
             incorrect_artifacts.append(artifact)
             logging.warning(
-                (
-                    "Filtered out artifact for sample: {}" ", due to undefined/blank {}"
-                ).format(artifact.samples[0].name, udf)
+                
+                    f"Filtered out artifact for sample: {artifact.samples[0].name}" f", due to undefined/blank {udf}"
+                
             )
 
     return filtered_artifacts, incorrect_artifacts

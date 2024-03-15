@@ -216,9 +216,7 @@ def compute_transfer_volume(currentStep, lims, log):
                 vols = lazy_volumes(valid_inputs, final_vol)
                 if sum(vols) > MAX_WARNING_VOLUME:
                     log.append(
-                        "ERROR: Total volume of pool {} is too high: {}. Redo the calculations manually!".format(
-                            pool.name, sum(vols)
-                        )
+                        f"ERROR: Total volume of pool {pool.name} is too high: {sum(vols)}. Redo the calculations manually!"
                     )
                 pool.udf["Normalized conc. (nM)"] = conc
             else:
@@ -226,9 +224,7 @@ def compute_transfer_volume(currentStep, lims, log):
                 # Calculate and add the theoretical pool conc:
                 if sum(vols) > MAX_WARNING_VOLUME:
                     log.append(
-                        "ERROR: Total volume of pool {} is too high: {}. Redo the calculations manually!".format(
-                            pool.name, sum(vols)
-                        )
+                        f"ERROR: Total volume of pool {pool.name} is too high: {sum(vols)}. Redo the calculations manually!"
                     )
                 z = list(zip([s["conc"] for s in valid_inputs], vols))
                 v = sum(x[0] * x[1] for x in z) / sum(vols)
@@ -475,14 +471,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                                     ] = float(amount_taken_from_plate)
                                     art_tuple[1]["uri"].put()
                                 csvContext.write(
-                                    "{},{},{},{},{},{}\n".format(
-                                        source_fc,
-                                        source_well,
-                                        volume,
-                                        dest_fc,
-                                        dest_well,
-                                        final_volume,
-                                    )
+                                    f"{source_fc},{source_well},{volume},{dest_fc},{dest_well},{final_volume}\n"
                                 )
                             else:
                                 logContext.write(
@@ -501,9 +490,7 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                                 total_volume,
                             ) = calc_vol(art_tuple, logContext, checkTheLog)
                             csvContext.write(
-                                "{},{},{},{},{}\n".format(
-                                    source_fc, source_well, volume, dest_fc, dest_well
-                                )
+                                f"{source_fc},{source_well},{volume},{dest_fc},{dest_well}\n"
                             )
 
         df = pd.read_csv("bravo.csv", header=None)
@@ -814,26 +801,20 @@ def normalization(current_step):
                 except:
                     src_tot_volume = 999999
                     log.append(
-                        "WARNING: No volume found for input sample {}".format(
-                            src.samples[0].name
-                        )
+                        f"WARNING: No volume found for input sample {src.samples[0].name}"
                     )
                 try:
                     src_volume = float(dest.udf["Volume to take (uL)"])
                 except:
                     sys.stderr.write(
-                        "Field 'Volume to take (uL)' is empty for artifact {}\n".format(
-                            dest.name
-                        )
+                        f"Field 'Volume to take (uL)' is empty for artifact {dest.name}\n"
                     )
                     sys.exit(2)
                 if "Concentration" in src.udf:
                     src_conc = src.udf["Concentration"]
                     if src.udf["Conc. Units"] != "nM":
                         log.append(
-                            "ERROR: No valid concentration found for sample {}".format(
-                                src.samples[0].name
-                            )
+                            f"ERROR: No valid concentration found for sample {src.samples[0].name}"
                         )
                 elif "Normalized conc. (nM)" in src.udf:
                     src_conc = src.udf["Normalized conc. (nM)"]
@@ -850,9 +831,7 @@ def normalization(current_step):
                     dest_conc = dest.udf["Normalized conc. (nM)"]
                 except:
                     sys.stderr.write(
-                        "Field 'Normalized conc. (nM)' is empty for artifact {}\n".format(
-                            dest.name
-                        )
+                        f"Field 'Normalized conc. (nM)' is empty for artifact {dest.name}\n"
                     )
                     sys.exit(2)
                 if src_conc < dest_conc:
@@ -864,26 +843,15 @@ def normalization(current_step):
                     # exceeded but still do the calculation:
                     if src_volume > src_tot_volume:
                         log.append(
-                            "WARNING: Not enough available volume of sample {}".format(
-                                src.samples[0].name
-                            )
+                            f"WARNING: Not enough available volume of sample {src.samples[0].name}"
                         )
                     final_volume = src_conc * src_volume / dest_conc
                     if final_volume > MAX_WARNING_VOLUME:
                         log.append(
-                            "WARNING: Maximum volume exceeded for sample {}".format(
-                                src.samples[0].name
-                            )
+                            f"WARNING: Maximum volume exceeded for sample {src.samples[0].name}"
                         )
                     csv.write(
-                        "{},{},{},{},{},{}\n".format(
-                            src_plate,
-                            src_well,
-                            src_volume,
-                            dest_plate,
-                            dest_well,
-                            final_volume,
-                        )
+                        f"{src_plate},{src_well},{src_volume},{dest_plate},{dest_well},{final_volume}\n"
                     )
     if log:
         with open("bravo.log", "w") as log_context:
@@ -930,9 +898,7 @@ def sample_dilution_before_QC(currentStep):
                         input_vol = aggregate_vol
                     except KeyError:
                         logContext.write(
-                            "WARNING : Sample {} does not have aggregated values for concentration or volume. Trying with customer values instead.\n".format(
-                                sample_name
-                            )
+                            f"WARNING : Sample {sample_name} does not have aggregated values for concentration or volume. Trying with customer values instead.\n"
                         )
                         # Retrieve customer values for concentration and volume
                         try:
@@ -942,9 +908,7 @@ def sample_dilution_before_QC(currentStep):
                             input_vol = customer_vol
                         except KeyError:
                             logContext.write(
-                                "ERROR : Sample {} does not have customer values for concentration or volume. It will be skipped.\n".format(
-                                    sample_name
-                                )
+                                f"ERROR : Sample {sample_name} does not have customer values for concentration or volume. It will be skipped.\n"
                             )
                             checkTheLog[0] = True
                             continue
@@ -954,9 +918,7 @@ def sample_dilution_before_QC(currentStep):
                         # Error when the input volume is lower than the minimum pipetting volume
                         if input_vol < MIN_WARNING_VOLUME:
                             logContext.write(
-                                "ERROR : Sample {} has too little volume for dilution.\n".format(
-                                    sample_name
-                                )
+                                f"ERROR : Sample {sample_name} has too little volume for dilution.\n"
                             )
                             checkTheLog[0] = True
                             continue
@@ -968,9 +930,7 @@ def sample_dilution_before_QC(currentStep):
                                 ]
                                 if vol_taken > input_vol:
                                     logContext.write(
-                                        "ERROR : Sample {} has a volume {} uL which is not enough for taking {} uL.\n".format(
-                                            sample_name, customer_vol, vol_taken
-                                        )
+                                        f"ERROR : Sample {sample_name} has a volume {customer_vol} uL which is not enough for taking {vol_taken} uL.\n"
                                     )
                                     checkTheLog[0] = True
                                     continue
@@ -1003,9 +963,7 @@ def sample_dilution_before_QC(currentStep):
                             except KeyError:
                                 # Error when no value is set
                                 logContext.write(
-                                    "ERROR : Sample {} does not have a preset value.\n".format(
-                                        sample_name
-                                    )
+                                    f"ERROR : Sample {sample_name} does not have a preset value.\n"
                                 )
                                 checkTheLog[0] = True
                                 continue
@@ -1018,14 +976,7 @@ def sample_dilution_before_QC(currentStep):
                         art_tuple[1]["uri"].put()
                         if mode == "Dilution to a new plate":
                             csvContext.write(
-                                "{},{},{},{},{},{}\n".format(
-                                    source_fc,
-                                    source_well,
-                                    vol_taken,
-                                    dest_fc,
-                                    dest_well,
-                                    final_vol,
-                                )
+                                f"{source_fc},{source_well},{vol_taken},{dest_fc},{dest_well},{final_vol}\n"
                             )
                         elif mode == "Add EB to original plate":
                             csvContext.write(
@@ -1035,17 +986,13 @@ def sample_dilution_before_QC(currentStep):
                             )
                     elif final_vol > MAX_WARNING_VOLUME:
                         logContext.write(
-                            "ERROR : Sample {} will have a dilution higher than max allowed volume {}.\n".format(
-                                sample_name, MAX_WARNING_VOLUME
-                            )
+                            f"ERROR : Sample {sample_name} will have a dilution higher than max allowed volume {MAX_WARNING_VOLUME}.\n"
                         )
                         checkTheLog[0] = True
                         continue
                     elif final_conc > input_conc:
                         logContext.write(
-                            "ERROR : Sample {} will have a final concentration higher than the input concentration {}.\n".format(
-                                sample_name, input_conc
-                            )
+                            f"ERROR : Sample {sample_name} will have a final concentration higher than the input concentration {input_conc}.\n"
                         )
                         checkTheLog[0] = True
                         continue
@@ -1125,9 +1072,7 @@ def calc_vol(art_tuple, logContext, checkTheLog):
 
         max_volume_warning = ""
         if final_volume > MAX_WARNING_VOLUME:
-            max_volume_warning = "NOTE! Total dilution volume higher than {}!".format(
-                MAX_WARNING_VOLUME
-            )
+            max_volume_warning = f"NOTE! Total dilution volume higher than {MAX_WARNING_VOLUME}!"
 
         try:
             if art_tuple[0]["uri"].parent_process.type.name == "Diluting Samples":

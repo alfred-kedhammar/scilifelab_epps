@@ -23,9 +23,7 @@ from scilifelab_epps.epp import EppLogger
 def apply_calculations(lims, artifacts, conc_udf, size_udf, unit_udf, epp_logger):
     for artifact in artifacts:
         logging.info(
-            ("Updating: Artifact id: {}, " "Concentration: {}, Size: {}, ").format(
-                artifact.id, artifact.udf[conc_udf], artifact.udf[size_udf]
-            )
+            f"Updating: Artifact id: {artifact.id}, " f"Concentration: {artifact.udf[conc_udf]}, Size: {artifact.udf[size_udf]}, "
         )
         artifact.udf[conc_udf] = ng_ul_to_nM(
             artifact.udf[conc_udf], artifact.udf[size_udf]
@@ -44,9 +42,9 @@ def check_udf_is_defined(artifacts, udf):
             filtered_artifacts.append(artifact)
         else:
             logging.warning(
-                (
-                    "Found artifact for sample {} with {} " "undefined/blank, skipping"
-                ).format(artifact.samples[0].name, udf)
+                
+                    f"Found artifact for sample {artifact.samples[0].name} with {udf} " "undefined/blank, skipping"
+                
             )
             incorrect_artifacts.append(artifact)
     return filtered_artifacts, incorrect_artifacts
@@ -62,16 +60,14 @@ def check_udf_has_value(artifacts, udf, value):
         elif udf in artifact.udf:
             incorrect_artifacts.append(artifact)
             logging.warning(
-                ("Filtered out artifact for sample: {}" ", due to wrong {}").format(
-                    artifact.samples[0].name, udf
-                )
+                f"Filtered out artifact for sample: {artifact.samples[0].name}" f", due to wrong {udf}"
             )
         else:
             incorrect_artifacts.append(artifact)
             logging.warning(
-                (
-                    "Filtered out artifact for sample: {}" ", due to undefined/blank {}"
-                ).format(artifact.samples[0].name, udf)
+                
+                    f"Filtered out artifact for sample: {artifact.samples[0].name}" f", due to undefined/blank {udf}"
+                
             )
 
     return filtered_artifacts, incorrect_artifacts
