@@ -14,7 +14,6 @@ from genologics.entities import Process
 from genologics.lims import Lims
 from ont_sync_to_db import get_ont_library_contents
 
-from epp_utils.formula import well_name2num_96plate as well2num
 from scilifelab_epps.epp import traceback_to_step, upload_file
 
 DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
