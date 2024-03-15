@@ -167,7 +167,7 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
 
             if len(ont_barcoding_input.samples) > 1:
                 logging.info(
-                    "Library assumed to consist of ONT-barcoded Illumina libaries with sample indexes."
+                    "Library categorized as consisting of ONT-barcoded Illumina library pools with sample indexes."
                 )
                 illumina_pool = ont_barcoding_input
 
@@ -191,7 +191,9 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
                     )
 
             else:
-                logging.info("Library assumed to consist of ONT-barcoded sample(s).")
+                logging.info(
+                    "Library categorized as consisting of ONT-barcoded samples."
+                )
                 assert len(ont_pooling_input.reagent_labels) == 1
 
                 # ONT barcode-level demultiplexing
@@ -213,7 +215,7 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
     # If there was no ONT pooling
     else:
         if len(library.samples) == 1:
-            logging.info("Library assumed to consist of single ONT library.")
+            logging.info("Library categorized as consisting of single sample.")
             sample = library.samples[0]
             # No demultiplexing
             rows.append(
@@ -227,7 +229,7 @@ def get_sample_dataframe(library: Artifact, args: Namespace) -> pd.DataFrame:
 
         else:
             logging.info(
-                "Library assumed to consist of single Illumina library pool with sample indexes."
+                "Library categorized as consisting of single Illumina library pool with sample indexes."
             )
             # Illumina index-level demultiplexing
             for illumina_sample, illumina_index in zip(
@@ -258,7 +260,7 @@ def write_to_doc(
 ):
     """Update a given document with the given artifact's loading information."""
 
-    sample_df = get_sample_dataframe(library=art, args=args)
+    library_df = get_sample_dataframe(library=art, args=args)
 
     # Info to add to the db doc
     dict_to_add = {
@@ -268,7 +270,7 @@ def write_to_doc(
         "operator": process.technician.name,
         "load_fmol": art.udf["ONT flow cell loading amount (fmol)"],
         "load_vol": art.udf["Volume to take (uL)"],
-        "sample_data": sample_df.to_dict(orient="records"),
+        "sample_data": library_df.to_dict(orient="records"),
     }
 
     if "lims" not in doc:
