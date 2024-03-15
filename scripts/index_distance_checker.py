@@ -316,9 +316,7 @@ def find_barcode(sample_idxs, sample, process):
                             )
                         ):
                             sys.stderr.write(
-                                "INDEX FORMAT ERROR: Sample {} has a bad format or unknown index category\n".format(
-                                    sample.name
-                                )
+                                f"INDEX FORMAT ERROR: Sample {sample.name} has a bad format or unknown index category\n"
                             )
                             sys.exit(2)
                 reagent_label_name = art.reagent_labels[0].upper().replace(" ", "")
@@ -372,9 +370,9 @@ def main(lims, pid):
                 not in process.udf["Comments"]
             ):
                 process.udf["Comments"] += "\n\n"
-                process.udf[
-                    "Comments"
-                ] += "**Warnings from Verify Indexes and Placement EPP: **\n"
+                process.udf["Comments"] += (
+                    "**Warnings from Verify Indexes and Placement EPP: **\n"
+                )
                 process.udf["Comments"] += "\n".join(message)
             process.put()
     else:

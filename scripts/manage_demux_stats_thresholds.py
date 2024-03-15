@@ -106,9 +106,7 @@ class Thresholds:
         if not self.Q30:
             self.problem_handler(
                 "exit",
-                "No predefined Q30 threshold (see doc 1618). Instrument: {}, Chemistry: {}, Read Length: {}".format(
-                    self.instrument, self.chemistry, self.read_length
-                ),
+                f"No predefined Q30 threshold (see doc 1618). Instrument: {self.instrument}, Chemistry: {self.chemistry}, Read Length: {self.read_length}",
             )
 
     def set_exp_lane_clust(self):
@@ -153,7 +151,5 @@ class Thresholds:
         if not self.exp_lane_clust:
             self.problem_handler(
                 "exit",
-                "No predefined clusters per lane threshold. Instrument: {}, Chemistry: {}, Read Length: {}".format(
-                    self.instrument, self.chemistry, self.read_length
-                ),
+                f"No predefined clusters per lane threshold. Instrument: {self.instrument}, Chemistry: {self.chemistry}, Read Length: {self.read_length}",
             )

@@ -401,9 +401,8 @@ class CopyField:
             )
 
         logging.info(
-            ("Copying from element with id: {} to element with " " id: {}").format(
-                self.s_elt.id, self.d_elt.id
-            )
+            f"Copying from element with id: {self.s_elt.id} to element with "
+            f" id: {self.d_elt.id}"
         )
 
     def _log_after_change(self):

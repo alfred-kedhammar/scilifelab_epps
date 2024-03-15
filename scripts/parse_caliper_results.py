@@ -138,9 +138,7 @@ def parse_caliper_results(process):
                 set_field(out)
             else:
                 log.append(
-                    "No record of sample {} in well {} in the Caliper WellTable file.".format(
-                        NGISAMPLE_PAT.findall(out.name)[0], out.location[1]
-                    )
+                    f"No record of sample {NGISAMPLE_PAT.findall(out.name)[0]} in well {out.location[1]} in the Caliper WellTable file."
                 )
 
     print("".join(log), file=sys.stderr)

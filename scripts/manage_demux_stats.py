@@ -195,9 +195,9 @@ def fill_process_fields(demux_process, process_stats):
     if "Maximum % Undetermined Reads per Lane" not in demux_process.udf:
         thresholds.set_undet_indexes_perc()
         try:
-            demux_process.udf[
-                "Maximum % Undetermined Reads per Lane"
-            ] = thresholds.undet_indexes_perc
+            demux_process.udf["Maximum % Undetermined Reads per Lane"] = (
+                thresholds.undet_indexes_perc
+            )
             logger.info(
                 "Maximum percentage of undetermined per lane set to {} %".format(
                     demux_process.udf["Maximum % Undetermined Reads per Lane"]
@@ -408,9 +408,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                         else samplesum[sample][attr] + default_value
                                     )
                                     logger.info(
-                                        "{} field not found. Setting default value: {}".format(
-                                            attr, default_value
-                                        )
+                                        f"{attr} field not found. Setting default value: {default_value}"
                                     )
 
                                 else:
@@ -466,9 +464,9 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                                 target_file.udf["# Reads"] = (
                                                     inp.udf["Reads PF (M) R1"] * 1000000
                                                 )
-                                                target_file.udf[
-                                                    "# Read Pairs"
-                                                ] = target_file.udf["# Reads"]
+                                                target_file.udf["# Read Pairs"] = (
+                                                    target_file.udf["# Reads"]
+                                                )
                                     logger.info(
                                         "{}# Reads".format(target_file.udf["# Reads"])
                                     )
@@ -508,9 +506,9 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                                 target_file.udf["# Reads"] = inp.udf[
                                                     "Clusters PF R1"
                                                 ]
-                                                target_file.udf[
-                                                    "# Read Pairs"
-                                                ] = target_file.udf["# Reads"]
+                                                target_file.udf["# Read Pairs"] = (
+                                                    target_file.udf["# Reads"]
+                                                )
                                     logger.info(
                                         "{}# Reads".format(target_file.udf["# Reads"])
                                     )
@@ -583,9 +581,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                     if thing == sample and thing == current_name:
                                         if k == "count":
                                             logger.info(
-                                                "Setting values for sample {} of lane {}".format(
-                                                    thing, lane_no
-                                                )
+                                                f"Setting values for sample {thing} of lane {lane_no}"
                                             )
                                         # Average for percentages
                                         elif k in [
@@ -669,9 +665,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
             if list(target_file.udf.items()) == [] and current_name != "Undetermined":
                 problem_handler(
                     "exit",
-                    'Lanebarcode mismatch. Expected sample "{}" of lane "{}", found "{}"'.format(
-                        current_name, lane_no, sample
-                    ),
+                    f'Lanebarcode mismatch. Expected sample "{current_name}" of lane "{lane_no}", found "{sample}"',
                 )
 
             # Push lane into lims
@@ -706,15 +700,11 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                 ):
                     problem_handler(
                         "warning",
-                        "Undemultiplexed reads for lane {} was {} ({})% thus exceeding defined limit.".format(
-                            lane_no, undet_lane_reads, found_undet
-                        ),
+                        f"Undemultiplexed reads for lane {lane_no} was {undet_lane_reads} ({found_undet})% thus exceeding defined limit.",
                     )
                 else:
                     logger.info(
-                        "Found {} ({}%) undemultiplexed reads for lane {}.".format(
-                            undet_lane_reads, found_undet, lane_no
-                        )
+                        f"Found {undet_lane_reads} ({found_undet}%) undemultiplexed reads for lane {lane_no}."
                     )
 
     if undet_included:

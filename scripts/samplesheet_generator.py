@@ -790,9 +790,7 @@ def main(lims, args):
             if os.path.exists(f"/srv/ngi-nas-ns/samplesheets/nextseq/{thisyear}"):
                 try:
                     with open(
-                        "/srv/ngi-nas-ns/samplesheets/nextseq/{}/{}.csv".format(
-                            thisyear, nextseq_fc
-                        ),
+                        f"/srv/ngi-nas-ns/samplesheets/nextseq/{thisyear}/{nextseq_fc}.csv",
                         "w",
                     ) as sf:
                         sf.write(content)
@@ -819,9 +817,7 @@ def main(lims, args):
             if os.path.exists(f"/srv/ngi-nas-ns/samplesheets/nanopore/{thisyear}"):
                 try:
                     with open(
-                        "/srv/ngi-nas-ns/samplesheets/nanopore/{}/{}.csv".format(
-                            thisyear, fc_name
-                        ),
+                        f"/srv/ngi-nas-ns/samplesheets/nanopore/{thisyear}/{fc_name}.csv",
                         "w",
                     ) as sf:
                         sf.write(content)

@@ -140,9 +140,7 @@ def main(args, lims):
                 ):
                     status = "FAILED"
                     if not err_out:
-                        err_out = "One or several samples has a raw SD above {:d} and concentration CV above {:d}. Check the output file for details.".format(
-                            SD_LIMIT, CV_LIMIT
-                        )
+                        err_out = f"One or several samples has a raw SD above {SD_LIMIT:d} and concentration CV above {CV_LIMIT:d}. Check the output file for details."
 
             outp.qc_flag = status
             outp.put()

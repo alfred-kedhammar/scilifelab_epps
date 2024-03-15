@@ -78,9 +78,7 @@ def get_data(csv_content, log):
             if row[sample_index] in data:
                 # Sample is duplicated, drop the key
                 log.append(
-                    "sample {} has two rows in the Qubit CSV file. Please check the file manually.".format(
-                        row[sample_index]
-                    )
+                    f"sample {row[sample_index]} has two rows in the Qubit CSV file. Please check the file manually."
                 )
                 del data[row[sample_index]]
 
@@ -169,15 +167,11 @@ def get_qbit_csv_data(process):
         )
     if missing_samples:
         log.append(
-            "{}/{} samples are missing in the Qubit Result File.".format(
-                missing_samples, len(process.result_files())
-            )
+            f"{missing_samples}/{len(process.result_files())} samples are missing in the Qubit Result File."
         )
     if bad_format:
         log.append(
-            "There are {} badly formatted samples in Qubit Result File. Please fix these to get proper results.".format(
-                bad_format
-            )
+            f"There are {bad_format} badly formatted samples in Qubit Result File. Please fix these to get proper results."
         )
 
     print("".join(log), file=sys.stderr)

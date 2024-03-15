@@ -172,13 +172,9 @@ def prepare_QC_details(project, sample_table, library=False):
                             lower_than_threshold_counter += 1
             conc_unit = list(conc_units)[0] if k == "Concentration" else ""
             if lower_than_threshold_counter != 0:
-                QC_details += "**{}**: {} samples lower than threshold {}{}.\n".format(
-                    k, lower_than_threshold_counter, low_threshold, conc_unit
-                )
+                QC_details += f"**{k}**: {lower_than_threshold_counter} samples lower than threshold {low_threshold}{conc_unit}.\n"
             if higher_than_threshold_counter != 0:
-                QC_details += "**{}**: {} samples higher than threshold {}{}.\n".format(
-                    k, higher_than_threshold_counter, high_threshold, conc_unit
-                )
+                QC_details += f"**{k}**: {higher_than_threshold_counter} samples higher than threshold {high_threshold}{conc_unit}.\n"
     return QC_details
 
 
@@ -224,11 +220,7 @@ def make_summary(lims, process, sample_table, library):
                         if i[0] == container and i[1] == "PASSED"
                     ]
                 )
-                comments += "\nContainer **{}**: {}/{} samples passed QC.\n".format(
-                    container,
-                    passed_sample_number_by_container,
-                    total_sample_number_by_container,
-                )
+                comments += f"\nContainer **{container}**: {passed_sample_number_by_container}/{total_sample_number_by_container} samples passed QC.\n"
                 container_sample_table = {
                     k: v for k, v in sample_table.items() if v["container"] == container
                 }
@@ -249,8 +241,8 @@ def make_summary(lims, process, sample_table, library):
             comments,
         )
         noteobj[key]["note"] = note
-        noteobj[key]["user"] = "{} {}".format(
-            process.technician.first_name, process.technician.last_name
+        noteobj[key]["user"] = (
+            f"{process.technician.first_name} {process.technician.last_name}"
         )
         noteobj[key]["email"] = process.technician.email
         noteobj[key]["category"] = "Lab"

@@ -70,10 +70,8 @@ class AppQC:
     def logging(self):
         """Collects and prints logging info."""
         self.abstract.append(
-            "qc-flaggs uploaded for {} out of {} samples."
-            "See App_QC_file for details.".format(
-                self.nr_samps_updat, self.nr_samps_tot
-            )
+            f"qc-flaggs uploaded for {self.nr_samps_updat} out of {self.nr_samps_tot} samples."
+            "See App_QC_file for details."
         )
         if self.missing_samps:
             self.abstract.append(

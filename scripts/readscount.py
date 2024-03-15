@@ -66,9 +66,7 @@ def main(lims, args, logger):
             except KeyError as e:
                 print(e)
                 logging.warning(
-                    "No reads minimum found, cannot set the status auto flag for sample {}".format(
-                        sample.name
-                    )
+                    f"No reads minimum found, cannot set the status auto flag for sample {sample.name}"
                 )
                 errnb += 1
 
@@ -77,9 +75,7 @@ def main(lims, args, logger):
             output_artifact.put()
         elif (output_artifact.type == "Analyte") and len(output_artifact.samples) != 1:
             logging.error(
-                "Found {} samples for the ouput analyte {}, that should not happen".format(
-                    len(output_artifact.samples()), output_artifact.id
-                )
+                f"Found {len(output_artifact.samples())} samples for the ouput analyte {output_artifact.id}, that should not happen"
             )
         elif (
             output_artifact.type == "ResultFile"
@@ -181,9 +177,7 @@ def sumreads(sample, summary):
                     )[0]
                 except TypeError:
                     logging.error(
-                        "Did not manage to get sequencing process for artifact {}".format(
-                            inart.id
-                        )
+                        f"Did not manage to get sequencing process for artifact {inart.id}"
                     )
                 else:
                     if (

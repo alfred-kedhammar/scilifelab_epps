@@ -93,9 +93,7 @@ def calculate_volume_limsapi(process, use_total_lysate):
                     output.put()
                 else:
                     error_messages.append(
-                        "ERROR: Amount for prep (ng) is higher than Total Amount (ng) for sample {}.".format(
-                            output.name
-                        )
+                        f"ERROR: Amount for prep (ng) is higher than Total Amount (ng) for sample {output.name}."
                     )
             else:
                 error_messages.append(
