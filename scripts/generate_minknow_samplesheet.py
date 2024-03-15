@@ -84,8 +84,8 @@ def get_ont_library_contents(
                             "illumina_pool_name": illumina_pool.name,
                             "illumina_pool_id": illumina_pool.id,
                             "ont_barcode": ont_barcode,
-                            "ont_pool_name": ont_pooling_input.name,
-                            "ont_pool_id": ont_pooling_input.id,
+                            "ont_pool_name": ont_library.name,
+                            "ont_pool_id": ont_library.id,
                         }
                     )
 
@@ -106,8 +106,8 @@ def get_ont_library_contents(
                             "project_name": ont_sample.project.name,
                             "project_id": ont_sample.project.id,
                             "ont_barcode": ont_barcode,
-                            "ont_pool_name": ont_pooling_input.name,
-                            "ont_pool_id": ont_pooling_input.id,
+                            "ont_pool_name": ont_library.name,
+                            "ont_pool_id": ont_library.id,
                         }
                     )
 
