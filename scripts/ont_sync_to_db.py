@@ -7,17 +7,19 @@ import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
-import pandas as pd
 from couchdb.client import Database, Document, Row, ViewResults
-from generate_minknow_samplesheet import generate_MinKNOW_samplesheet, sanitize_string
+from generate_minknow_samplesheet import (
+    generate_MinKNOW_samplesheet,
+    get_ont_library_contents,
+    sanitize_string,
+)
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 from ont_send_reloading_info_to_db import get_ONT_db
-from tabulate import tabulate
 
 from epp_utils import udf_tools
-from scilifelab_epps.epp import traceback_to_step, upload_file
+from scilifelab_epps.epp import upload_file
 
 DESC = """Script for finishing the step to start ONT sequencing in LIMS.
 
@@ -126,137 +128,6 @@ def get_matching_db_rows(
                 matching_rows.append(row)
 
     return matching_rows
-
-
-def get_ont_library_contents(
-    ont_library: Artifact, ont_pooling_step_name: str, ont_barcoding_step_name: str
-) -> pd.DataFrame:
-    """For an ONT sequencing library, compile a dataframe with sample-level information.
-
-    Will backtrack the library to previous pooling and barcoding steps (if any) to elucidate
-    sample and index information and decide whether to demultiplex at the level of
-    ONT barcodes, Illumina indices, both or neither.
-    """
-
-    logging.info(
-        f"Compiling sample-level information for library '{ont_library.name}'..."
-    )
-
-    # Instantiate rows list
-    rows = []
-
-    # See if library can be backtracked to an ONT pooling step
-    pooling_traceback = traceback_to_step(
-        ont_library, ont_pooling_step_name, allow_multiple_inputs=True
-    )
-    if pooling_traceback:
-        ont_pooling_step, ont_pooling_inputs = pooling_traceback
-    else:
-        ont_pooling_step = None
-
-    # If there was ONT pooling
-    if ont_pooling_step:
-        # Iterate across ONT pooling inputs
-        for ont_pooling_input in ont_pooling_inputs:
-            assert len(ont_pooling_input.reagent_labels) == 1
-            ont_barcode = ont_pooling_input.reagent_labels[0]
-
-            # Trace the ONT pooling input back to the barcoding step to elucidate samples and indexes
-            ont_barcoding_step, ont_barcoding_inputs = traceback_to_step(
-                ont_pooling_input, ont_barcoding_step_name
-            )
-            assert ont_barcoding_step
-            assert len(ont_barcoding_inputs) == 1
-            ont_barcoding_input = ont_barcoding_inputs[0]
-
-            if len(ont_barcoding_input.samples) > 1:
-                logging.info(
-                    "Library categorized as consisting of ONT-barcoded Illumina library pools with sample indexes."
-                )
-                illumina_pool = ont_barcoding_input
-
-                # ONT barcode AND Illumina index-level demultiplexing
-                for illumina_sample, illumina_index in zip(
-                    illumina_pool.samples, illumina_pool.reagent_labels
-                ):
-                    rows.append(
-                        {
-                            "sample_name": illumina_sample.name,
-                            "sample_id": illumina_sample.id,
-                            "project_name": illumina_sample.project.name,
-                            "project_id": illumina_sample.project.id,
-                            "illumina_index": illumina_index,
-                            "illumina_pool_name": illumina_pool.name,
-                            "illumina_pool_id": illumina_pool.id,
-                            "ont_barcode": ont_barcode,
-                            "ont_pool_name": ont_pooling_input.name,
-                            "ont_pool_id": ont_pooling_input.id,
-                        }
-                    )
-
-            else:
-                logging.info(
-                    "Library categorized as consisting of ONT-barcoded samples."
-                )
-                assert len(ont_pooling_input.reagent_labels) == 1
-
-                # ONT barcode-level demultiplexing
-                for ont_sample, ont_barcode in zip(
-                    ont_pooling_input.samples, ont_pooling_input.reagent_labels
-                ):
-                    rows.append(
-                        {
-                            "sample_name": ont_sample.name,
-                            "sample_id": ont_sample.id,
-                            "project_name": ont_sample.project.name,
-                            "project_id": ont_sample.project.id,
-                            "ont_barcode": ont_barcode,
-                            "ont_pool_name": ont_pooling_input.name,
-                            "ont_pool_id": ont_pooling_input.id,
-                        }
-                    )
-
-    # If there was no ONT pooling
-    else:
-        if len(ont_library.samples) == 1:
-            logging.info("Library categorized as consisting of single sample.")
-            sample = ont_library.samples[0]
-            # No demultiplexing
-            rows.append(
-                {
-                    "sample_name": ont_library.name,
-                    "sample_id": ont_library.id,
-                    "project_name": sample.project.name,
-                    "project_id": sample.project.id,
-                }
-            )
-
-        else:
-            logging.info(
-                "Library categorized as consisting of single Illumina library pool with sample indexes."
-            )
-            # Illumina index-level demultiplexing
-            for illumina_sample, illumina_index in zip(
-                ont_library.samples, ont_library.reagent_labels
-            ):
-                rows.append(
-                    {
-                        "sample_name": illumina_sample.name,
-                        "sample_id": illumina_sample.id,
-                        "project_name": illumina_sample.project.name,
-                        "project_id": illumina_sample.project.id,
-                        "illumina_index": illumina_index,
-                        "illumina_pool_name": ont_library.name,
-                        "illumina_pool_id": ont_library.id,
-                    }
-                )
-
-    df = pd.DataFrame(rows)
-    logging.info(
-        f"Sample-level information compiled for library '{ont_library.name}':\n{tabulate(df, headers=df.columns)}"
-    )
-
-    return df
 
 
 def write_to_doc(
