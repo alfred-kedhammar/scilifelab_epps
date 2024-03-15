@@ -5,16 +5,17 @@ import os
 import re
 import shutil
 import sys
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
 import pandas as pd
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
+from ont_sync_to_db import get_ont_library_contents
 
 from epp_utils.formula import well_name2num_96plate as well2num
-from scilifelab_epps.epp import upload_file
+from scilifelab_epps.epp import traceback_to_step, upload_file
 
 DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
 """
@@ -55,18 +56,22 @@ def get_kit_string(process: Process) -> str:
     return prep_kit
 
 
-def strip_characters(input_string: str) -> str:
+def sanitize_string(string: str) -> str:
     """Remove potentially problematic characters from string."""
 
+    # Patterns
     allowed_characters = re.compile("[^a-zA-Z0-9_-]")
+    consecutive_underscores = re.compile("__+")
+
     # Replace any disallowed characters with underscores
-    subbed_string = allowed_characters.sub("_", input_string)
-
+    string = allowed_characters.sub("_", string)
     # Remove any consecutive underscores
-    string_to_shorten = re.compile("__+")
-    shortened_string = string_to_shorten.sub("_", subbed_string)
+    string = consecutive_underscores.sub("_", string)
+    # Remove heading/trailing underscores
+    string = string[1:] if string.startswith("_") else string
+    string = string[:-1] if string.endswith("_") else string
 
-    return shortened_string
+    return string
 
 
 def write_minknow_csv(df: pd.DataFrame, file_path: str):
@@ -91,7 +96,7 @@ def write_minknow_csv(df: pd.DataFrame, file_path: str):
     df_csv.to_csv(file_path, index=False)
 
 
-def generate_MinKNOW_samplesheet(process: Process, qc: bool):
+def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
     """=== Sample sheet columns ===
 
     flow_cell_id                E.g. 'PAM96489'
@@ -126,13 +131,23 @@ def generate_MinKNOW_samplesheet(process: Process, qc: bool):
         "FLO-FLG114 (Flongle R10.4.1)",
     ]
 
-    arts = [art for art in process.all_outputs() if art.type == "Analyte"]
-    arts.sort(key=lambda art: art.id)
+    ont_libraries = [art for art in process.all_outputs() if art.type == "Analyte"]
+    ont_libraries.sort(key=lambda art: art.id)
 
     rows = []
-    for art in arts:
+    for ont_library in ont_libraries:
         # In case of errors, skip to next artifact
         try:
+            # Perform sample-level demultiplexing on the library to see if it's a QC run
+            # i.e. if the ONT pooling inputs consist of Illumina pools
+            library_df = get_ont_library_contents(
+                ont_library=ont_library,
+                ont_pooling_step_name=args.pooling_step,
+                ont_barcoding_step_name=args.barcoding_step,
+            )
+            qc = True if "illumina_index" in library_df.columns else False
+            ont_barcodes = True if "ont_barcode" in library_df.columns else False
+
             # Assert flowcell type is written in a valid format
             assert (
                 process.udf["ONT flow cell type"] in valid_flowcell_type_strings
@@ -145,64 +160,64 @@ def generate_MinKNOW_samplesheet(process: Process, qc: bool):
             )
 
             # Start building the row in the samplesheet corresponding to the current artifact
-            ss_row = {
+            row = {
                 "experiment_id": process.id if not qc else f"QC_{process.id}",
-                "sample_id": strip_characters(art.name)
+                "sample_id": sanitize_string(ont_library.name)
                 if not qc
-                else f"QC_{strip_characters(art.name)}",
+                else f"QC_{sanitize_string(ont_library.name)}",
                 "flow_cell_product_code": flowcell_product_code,
                 "flow_cell_type": flow_cell_type,
                 "kit": get_kit_string(process),
-                "flow_cell_id": art.udf["ONT flow cell ID"],
-                "position_id": art.udf["ONT flow cell position"],
+                "flow_cell_id": ont_library.udf["ONT flow cell ID"],
+                "position_id": ont_library.udf["ONT flow cell position"],
             }
 
             # Assert position makes sense with the flowcell type
-            if "PromethION" in ss_row["flow_cell_type"]:
+            if "PromethION" in row["flow_cell_type"]:
                 assert (
-                    ss_row["position_id"] != "None"
+                    row["position_id"] != "None"
                 ), "Positions must be specified for PromethION flow cells."
             else:
                 assert (
-                    ss_row["position_id"] == "None"
+                    row["position_id"] == "None"
                 ), "Positions must be unassigned for non-PromethION flow cells."
 
             ont_barcode_label_pattern = r"^\d{2}_[A-H][0-1]?\d_NB\d{2} \([ACGT]+\)$"
 
-            # Add extra columns for barcodes, if needed
             if process.udf.get("ONT expansion kit") == "None":
-                # No barcodes
-                for label in art.reagent_labels:
-                    assert not re.match(
-                        ont_barcode_label_pattern, label
-                    ), "ONT expansion kit is set to 'None', but library contains labels that look like ONT barcodes."
-                rows.append(ss_row)
+                assert not ont_barcodes, "ONT expansion kit is set to 'None', but library contains labels that look like ONT barcodes."
+            # Add extra columns for barcodes, if needed
             else:
-                # Yes barcodes
-                assert (
-                    len(art.reagent_labels) > 0
-                ), f"No barcodes found within pool {art.name}"
-                for label in art.reagent_labels:
+                assert ont_barcodes, f"No barcodes found within pool {ont_library.name}"
+
+                for label in ont_library.reagent_labels:
                     assert re.match(
                         ont_barcode_label_pattern, label
                     ), "Library contains labels that do not look like ONT barcodes."
 
-                label_tuples = [
-                    (e[0], e[1]) for e in zip(art.samples, art.reagent_labels)
-                ]
-                label_tuples.sort(key=str)
-                for sample, label in label_tuples:
-                    ss_row["alias"] = strip_characters(sample.name)
-                    ss_row["barcode"] = strip_characters("barcode" + label[0:2])
+                # Append rows for each barcode
+                _, ont_pooling_inputs = traceback_to_step(
+                    ont_library, args.pooling_step, allow_multiple_inputs=True
+                )
 
-                    assert "" not in ss_row.values(), "All fields must be populated."
+                for ont_pooling_input in ont_pooling_inputs:
+                    row["alias"] = sanitize_string(ont_pooling_input.name)
+                    assert re.match(
+                        ont_barcode_label_pattern, ont_pooling_input.reagent_labels[0]
+                    )
+                    row["barcode"] = sanitize_string(
+                        "barcode" + ont_pooling_input.reagent_labels[0][0:2]
+                    )
+                    assert re.match(r"barcode\d{2}", row["barcode"])
+                    assert "" not in row.values(), "All fields must be populated."
+
                     # Keep appending rows to the samplesheet for each barcode in the pool
-                    rows.append(ss_row.copy())
+                    rows.append(row.copy())
 
         except AssertionError as e:
             logging.error(str(e), exc_info=True)
-            logging.warning(f"Skipping {art.name} due to error.")
-            errors.append(art.name)
+            logging.warning(f"Skipping {ont_library.name} due to error.")
+            errors.append(ont_library.name)
             continue
 
     # Abort on errors processing samples, else compile samplesheet
@@ -212,14 +227,14 @@ def generate_MinKNOW_samplesheet(process: Process, qc: bool):
     df = pd.DataFrame(rows)
 
     # Samplesheet-wide assertions
-    if len(arts) > 1:
+    if len(ont_libraries) > 1:
         assert all(
             ["PromethION" in fc_type for fc_type in df.flow_cell_type.unique()]
         ), "Only PromethION flowcells can be grouped together in the same sample sheet."
         assert (
-            len(arts) <= 24
+            len(ont_libraries) <= 24
         ), "Only up to 24 PromethION flowcells may be started at once."
-    elif len(arts) == 1 and "MinION" in df.flow_cell_type[0]:
+    elif len(ont_libraries) == 1 and "MinION" in df.flow_cell_type[0]:
         assert (
             df.position_id[0] == "None"
         ), "MinION flow cells should not have a position assigned."
@@ -227,7 +242,9 @@ def generate_MinKNOW_samplesheet(process: Process, qc: bool):
         len(df.flow_cell_product_code.unique()) == len(df.kit.unique()) == 1
     ), "All rows must have the same flow cell type and kits"
     assert (
-        len(df.position_id.unique()) == len(df.flow_cell_id.unique()) == len(arts)
+        len(df.position_id.unique())
+        == len(df.flow_cell_id.unique())
+        == len(ont_libraries)
     ), "All rows must have different flow cell positions and IDs"
 
     # Generate samplesheet
@@ -243,7 +260,8 @@ def main():
     parser.add_argument("--pid", type=str, help="Lims ID for current Process")
     parser.add_argument("--log", type=str, help="Which log file slot to use")
     parser.add_argument("--file", type=str, help="Samplesheet file slot")
-    parser.add_argument("--qc", action="store_true", help="Whether run is QC")
+    parser.add_argument("--pooling_step", type=str, help="Name of ONT pooling step")
+    parser.add_argument("--barcoding_step", type=str, help="Name of ONT barcoding step")
     args = parser.parse_args()
 
     # Set up LIMS
@@ -280,7 +298,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        file_name = generate_MinKNOW_samplesheet(process=process, qc=args.qc)
+        file_name = generate_MinKNOW_samplesheet(process=process, args=args)
         logging.info("Uploading samplesheet to LIMS...")
         upload_file(
             file_name,
