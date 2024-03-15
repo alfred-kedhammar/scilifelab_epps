@@ -24,27 +24,6 @@ TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
-def plate96_well_name2num(well_name: str) -> int:
-    """Convert 96-plate well name to number, e.g. 'A:1' to 1, 'H:12' to 96.
-
-    Accepts e.g. 'A:1', 'A1', 'A:01', 'A01', 'a:1', 'a1', 'a:01', 'a01'
-    """
-
-    well_name_pattern = (
-        r"^([A-Ha-h]):?(0?[1-9]$|1[0-2]$)"  # Capturing groups are row and column
-    )
-
-    match = re.match(well_name_pattern, well_name)
-    assert match, f"Invalid well name: {well_name}"
-    groups = match.groups()
-    row = groups[0].upper()
-    col = groups[1].lstrip("0")
-
-    cleaned_well_name = f"{row}:{col}"
-
-    return well2num[cleaned_well_name]
-
-
 def get_kit_string(process: Process) -> str:
     """Combine prep kit and expansion kit UDFs (if any) into space-separated string"""
     prep_kit = process.udf.get("ONT prep kit")
