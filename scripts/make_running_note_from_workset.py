@@ -60,9 +60,7 @@ def main(lims, args):
         running_note["_id"] = f"{pid}:{datetime.datetime.timestamp(key)}"
         write_note_to_couch(pid, key, running_note, lims.get_uri())
         log.append(
-            "Updated project {} : {}, {} samples in this workset".format(
-                pid, pj.name, len(datamap[pid])
-            )
+            f"Updated project {pid} : {pj.name}, {len(datamap[pid])} samples in this workset"
         )
 
     with open("EPP_Notes.log", "w") as flog:

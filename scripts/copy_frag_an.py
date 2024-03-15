@@ -91,9 +91,7 @@ def get_data(csv_content, log):
                 else:
                     # Multiple sample entris for one sample, drop the key
                     log.append(
-                        "sample {} has multiple entries in the Quality Table File. Please check the file manually.".format(
-                            row[sample_index]
-                        )
+                        f"sample {row[sample_index]} has multiple entries in the Quality Table File. Please check the file manually."
                     )
                     try:
                         del data[row[sample_index]]
@@ -132,9 +130,7 @@ def get_data(csv_content, log):
                 # Multiple sample entris for one sample, clear the existing values
                 else:
                     log.append(
-                        "sample {} has multiple entries in the Smear Analysis Result File. Please check the file manually.".format(
-                            row[sample_index]
-                        )
+                        f"sample {row[sample_index]} has multiple entries in the Smear Analysis Result File. Please check the file manually."
                     )
                     try:
                         del data[row[sample_index]]
@@ -186,9 +182,7 @@ def get_frag_an_csv_data(process):
             missing_samples += 1
     if missing_samples:
         log.append(
-            "{}/{} samples are missing in the Result File.".format(
-                missing_samples, len(process.result_files())
-            )
+            f"{missing_samples}/{len(process.result_files())} samples are missing in the Result File."
         )
     print("".join(log), file=sys.stderr)
 

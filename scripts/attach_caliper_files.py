@@ -95,14 +95,12 @@ def main(lims, args, epp_logger):
 
     warning = ""
     if len(artifact_missing_file):
-        warning = "Did not find any file for {} artifact(s). ".format(
-            len(artifact_missing_file)
+        warning = (
+            f"Did not find any file for {len(artifact_missing_file)} artifact(s). "
         )
 
     if len(artifact_multiple_file):
-        warning += "Found multiple files for {} artifact(s), none of these were uploaded.".format(
-            len(artifact_multiple_file)
-        )
+        warning += f"Found multiple files for {len(artifact_multiple_file)} artifact(s), none of these were uploaded."
 
     if warning:
         warning = "Warning: " + warning
