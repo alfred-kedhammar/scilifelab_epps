@@ -60,16 +60,15 @@ def sanitize_string(string: str) -> str:
     """Remove potentially problematic characters from string."""
 
     # Patterns
-    allowed_characters = re.compile("[^a-zA-Z0-9_-]")
+    disallowed_characters = re.compile("[^a-zA-Z0-9_-]")
     consecutive_underscores = re.compile("__+")
 
     # Replace any disallowed characters with underscores
-    string = allowed_characters.sub("_", string)
+    string = disallowed_characters.sub("_", string)
     # Remove any consecutive underscores
     string = consecutive_underscores.sub("_", string)
     # Remove heading/trailing underscores
-    string = string[1:] if string.startswith("_") else string
-    string = string[:-1] if string.endswith("_") else string
+    string = string.strip("_")
 
     return string
 
