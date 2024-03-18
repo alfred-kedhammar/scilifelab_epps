@@ -67,16 +67,14 @@ def get_ont_library_contents(
             ont_barcoding_input = ont_barcoding_inputs[0]
 
             if len(ont_barcoding_input.samples) > 1:
-                pool_contents_msg += f"\t- '{ont_barcoding_input.name}': An Illumina library pool with sample indexes:"
+                pool_contents_msg += f"\n\t- '{ont_barcoding_input.name}': An Illumina library pool with containing indexed samples:"
                 illumina_pool = ont_barcoding_input
 
                 # ONT barcode AND Illumina index-level demultiplexing
                 for illumina_sample, illumina_index in zip(
                     illumina_pool.samples, illumina_pool.reagent_labels
                 ):
-                    pool_contents_msg += (
-                        f"\n\t- '{illumina_sample.name}' with index '{illumina_index}'."
-                    )
+                    pool_contents_msg += f"\n\t\t- '{illumina_sample.name}' with index '{illumina_index}'."
                     rows.append(
                         {
                             "sample_name": illumina_sample.name,
