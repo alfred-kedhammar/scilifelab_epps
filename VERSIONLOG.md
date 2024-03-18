@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240318.1
+
+Add lane yield threshold for NovaSeqXPlus 1.5B FC
+
 ## 20240315.2
 
 ruff format linting
