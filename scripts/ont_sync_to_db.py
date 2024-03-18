@@ -23,7 +23,7 @@ from scilifelab_epps.epp import upload_file
 
 DESC = """Script for finishing the step to start ONT sequencing in LIMS.
 
-Makes sure there are no discprepancies in the provided information and
+Makes sure there are no discrepancies in the provided information and
 appends LIMS-specific information to the ONT run in StatusDB.
 """
 
@@ -50,7 +50,7 @@ def assert_samplesheet(process: Process, args: Namespace, lims: Lims):
         return True
 
     # Generate new samplesheet from step, then read it and remove the file
-    new_samplesheet_path = generate_MinKNOW_samplesheet(process=process, qc=args.qc)
+    new_samplesheet_path = generate_MinKNOW_samplesheet(process=process, args=args)
     new_samplesheet_contents = open(new_samplesheet_path).read()
     os.remove(new_samplesheet_path)
 
