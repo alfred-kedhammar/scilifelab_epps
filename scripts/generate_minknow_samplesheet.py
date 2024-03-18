@@ -51,6 +51,8 @@ def get_ont_library_contents(
 
     # If there was ONT pooling
     if ont_pooling_step:
+        logging.info("Sequencing library appears to consist of an ONT-barcoded pool.")
+        pool_contents_msg = "The ONT-barcoded pool in turn appears to consist of:"
         # Iterate across ONT pooling inputs
         for ont_pooling_input in ont_pooling_inputs:
             assert len(ont_pooling_input.reagent_labels) == 1
@@ -65,15 +67,16 @@ def get_ont_library_contents(
             ont_barcoding_input = ont_barcoding_inputs[0]
 
             if len(ont_barcoding_input.samples) > 1:
-                logging.info(
-                    "Library categorized as consisting of ONT-barcoded Illumina library pools with sample indexes."
-                )
+                pool_contents_msg += f"\t- '{ont_barcoding_input.name}': An Illumina library pool with sample indexes:"
                 illumina_pool = ont_barcoding_input
 
                 # ONT barcode AND Illumina index-level demultiplexing
                 for illumina_sample, illumina_index in zip(
                     illumina_pool.samples, illumina_pool.reagent_labels
                 ):
+                    pool_contents_msg += (
+                        f"\n\t- '{illumina_sample.name}' with index '{illumina_index}'."
+                    )
                     rows.append(
                         {
                             "sample_name": illumina_sample.name,
@@ -90,10 +93,8 @@ def get_ont_library_contents(
                     )
 
             else:
-                logging.info(
-                    "Library categorized as consisting of ONT-barcoded samples."
-                )
                 assert len(ont_pooling_input.reagent_labels) == 1
+                pool_contents_msg += f"\n - '{ont_pooling_input.name}: A single sample."
 
                 # ONT barcode-level demultiplexing
                 for ont_sample, ont_barcode in zip(
@@ -110,6 +111,7 @@ def get_ont_library_contents(
                             "ont_pool_id": ont_library.id,
                         }
                     )
+            logging.info(pool_contents_msg)
 
     # If there was no ONT pooling
     else:
