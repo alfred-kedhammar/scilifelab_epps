@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import os
 import sys
 from argparse import ArgumentParser
 
@@ -8,37 +7,45 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
-
 DESC = """EPP for checking the placement of sample indexes for lib prep
 Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """
+
 
 # get the index layout for each plate
 def get_index_layout(process):
     data = {}
     for container in process.output_containers():
-        data[container.id] = {'name' : container.name}
+        data[container.id] = {"name": container.name}
         index_layout = {}
-        used_col = set()
         for k, v in container.placements.items():
-            row = k.split(':')[0]
-            col = k.split(':')[1]
-            new_k = '0' + col + row if len(col)==1 else col + row
+            row = k.split(":")[0]
+            col = k.split(":")[1]
+            new_k = "0" + col + row if len(col) == 1 else col + row
             index_layout[new_k] = v.reagent_labels[0]
-        data[container.id]['index_layout'] = index_layout
+        data[container.id]["index_layout"] = index_layout
     return data
+
 
 # Very the placement of indexes
 def verify_index_placement(data):
     message = []
     for container_id, container_info in data.items():
-        sorted_wells = sorted(list(container_info['index_layout'].keys()))
+        sorted_wells = sorted(list(container_info["index_layout"].keys()))
         last_well = sorted_wells[-1]
-        index_placement = [container_info['index_layout'][well] for well in sorted_wells]
-        sorted_indexes = sorted(list(container_info['index_layout'].values()))
+        index_placement = [
+            container_info["index_layout"][well] for well in sorted_wells
+        ]
+        sorted_indexes = sorted(list(container_info["index_layout"].values()))
         # Check if there is/are skipped wells in between of samples
         used_cols = sorted(list(set([well[:2] for well in sorted_wells])))
-        full_plate_wells = sorted(['0'+str(col)+row if len(str(col))==1 else str(col) + row for col in range(1,int(max(used_cols))+1) for row in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']])
+        full_plate_wells = sorted(
+            [
+                "0" + str(col) + row if len(str(col)) == 1 else str(col) + row
+                for col in range(1, int(max(used_cols)) + 1)
+                for row in ["A", "B", "C", "D", "E", "F", "G", "H"]
+            ]
+        )
         empty_wells = []
         for well in full_plate_wells:
             if well != last_well:
@@ -48,12 +55,16 @@ def verify_index_placement(data):
                 break
         if empty_wells:
             message.append(
-                "WARNING! Plate {}: Empty wells in between of samples detected!".format(container_info['name'])
+                "WARNING! Plate {}: Empty wells in between of samples detected!".format(
+                    container_info["name"]
+                )
             )
         # Check if indexes are placed by coloumn
         if index_placement != sorted_indexes:
             message.append(
-                "WARNING! Plate {}: The orders of indexes and wells do NOT match!".format(container_info['name'])
+                "WARNING! Plate {}: The orders of indexes and wells do NOT match!".format(
+                    container_info["name"]
+                )
             )
     return message
 
@@ -71,8 +82,7 @@ def main(lims, pid):
                 + "\n".join(message)
             )
         elif (
-            "Warnings from Indexes Placement checker EPP"
-            not in process.udf["Comments"]
+            "Warnings from Indexes Placement checker EPP" not in process.udf["Comments"]
         ):
             process.udf["Comments"] += "\n\n"
             process.udf["Comments"] += (
