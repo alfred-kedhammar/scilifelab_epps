@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240319.1
+
+New EPP for checking index placement for inhouse workset
+
 ## 20240318.1
 
 Add lane yield threshold for NovaSeqXPlus 1.5B FC
