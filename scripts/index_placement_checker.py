@@ -75,7 +75,7 @@ def main(lims, pid):
     message = verify_index_placement(data)
 
     if message:
-        print("; ".join(message), file=sys.stderr)
+        sys.stderr.write("; ".join(message))
         if not process.udf.get("Comments"):
             process.udf["Comments"] = (
                 "**Warnings from Indexes Placement checker EPP: **\n"
@@ -90,6 +90,7 @@ def main(lims, pid):
             )
             process.udf["Comments"] += "\n".join(message)
         process.put()
+        sys.exit(2)
     else:
         print("No issue detected with indexes or placement", file=sys.stderr)
 
