@@ -102,10 +102,18 @@ def main(lims, pid):
                     process.udf["Comments"][:start_index]
                     + process.udf["Comments"][end_index + len(warning_end) + 1 :]
                 )
-                process.udf["Comments"] += warning_start
-                process.udf["Comments"] += "\n".join(message)
-                process.udf["Comments"] += f"\n@{tech_username}\n"
-                process.udf["Comments"] += warning_end
+                if not process.udf.get("Comments"):
+                    process.udf["Comments"] = (
+                        warning_start
+                        + "\n".join(message)
+                        + f"\n@{tech_username}\n"
+                        + warning_end
+                    )
+                else:
+                    process.udf["Comments"] += warning_start
+                    process.udf["Comments"] += "\n".join(message)
+                    process.udf["Comments"] += f"\n@{tech_username}\n"
+                    process.udf["Comments"] += warning_end
         process.put()
         sys.exit(2)
     else:
