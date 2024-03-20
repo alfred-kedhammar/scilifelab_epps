@@ -296,29 +296,35 @@ def prepare_index_table(process):
     return data, message
 
 
-def find_barcode(sample_idxs, sample, process):
+def find_barcode(sample_idxs, sample, process, ):
     # print "trying to find {} barcode in {}".format(sample.name, process.name)
     for art in process.all_inputs():
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
                 if process.type.name == "Library Pooling (Finished Libraries) 4.0":
-                    reagent_label_name = art.reagent_labels[0].upper()
-                    if reagent_label_name and reagent_label_name != "NOINDEX":
-                        if (
-                            IDX_PAT.findall(reagent_label_name)
-                            and len(IDX_PAT.findall(reagent_label_name)) > 1
-                        ) or (
-                            not (
+                    if len(art.reagent_labels) > 1:
+                        sys.stderr.write(
+                            f"INDEX FORMAT ERROR: Sample {sample.name} has a bad format or unknown index category\n"
+                        )
+                        sys.exit(2)
+                    else:
+                        reagent_label_name = art.reagent_labels[0].upper()
+                        if reagent_label_name and reagent_label_name != "NOINDEX":
+                            if (
                                 IDX_PAT.findall(reagent_label_name)
-                                or TENX_SINGLE_PAT.findall(reagent_label_name)
-                                or TENX_DUAL_PAT.findall(reagent_label_name)
-                                or SMARTSEQ_PAT.findall(reagent_label_name)
-                            )
-                        ):
-                            sys.stderr.write(
-                                f"INDEX FORMAT ERROR: Sample {sample.name} has a bad format or unknown index category\n"
-                            )
-                            sys.exit(2)
+                                and len(IDX_PAT.findall(reagent_label_name)) > 1
+                            ) or (
+                                not (
+                                    IDX_PAT.findall(reagent_label_name)
+                                    or TENX_SINGLE_PAT.findall(reagent_label_name)
+                                    or TENX_DUAL_PAT.findall(reagent_label_name)
+                                    or SMARTSEQ_PAT.findall(reagent_label_name)
+                                )
+                            ):
+                                sys.stderr.write(
+                                    f"INDEX FORMAT ERROR: Sample {sample.name} has a bad format or unknown index category\n"
+                                )
+                                sys.exit(2)
                 reagent_label_name = art.reagent_labels[0].upper().replace(" ", "")
                 idxs = (
                     TENX_SINGLE_PAT.findall(reagent_label_name)
