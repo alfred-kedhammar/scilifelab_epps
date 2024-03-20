@@ -40,7 +40,7 @@ def verify_index_placement(lims, process, data):
         index_set_lims = lims.get_reagent_types(name=sorted_indexes[0])[0].category
         index_set_udf = process.udf.get("Index Set")
         # Check if the index set selected in LIMS matches with the one selected in UDF
-        if index_type_lims != index_type_udf:
+        if index_set_lims != index_set_udf:
             message.append(
                 "WARNING! Plate {}: Selected index set {} does NOT match with {}!".format(
                     container_info["name"],
