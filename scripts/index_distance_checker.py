@@ -296,7 +296,7 @@ def prepare_index_table(process):
     return data, message
 
 
-def find_barcode(sample_idxs, sample, process, ):
+def find_barcode(sample_idxs, sample, process):
     # print "trying to find {} barcode in {}".format(sample.name, process.name)
     for art in process.all_inputs():
         if sample in art.samples:
