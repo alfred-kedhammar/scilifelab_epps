@@ -72,7 +72,6 @@ def verify_index_placement(data):
 def main(lims, pid):
     process = Process(lims, id=pid)
     tech_username = process.technician.username
-    tech_email = process.technician.email
     data = get_index_layout(process)
     message = verify_index_placement(data)
 
@@ -82,35 +81,57 @@ def main(lims, pid):
             process.udf["Comments"] = (
                 "**Warnings from Indexes Placement checker EPP: **\n"
                 + "\n".join(message)
-                + "@{}\n".format(tech_username)
+                + f"@{tech_username}\n"
                 + "== End of Indexes Placement checker EPP warnings ==\n"
             )
         else:
-            start_index = process.udf["Comments"].find("**Warnings from Indexes Placement checker EPP: **\n")
-            end_index = process.udf["Comments"].rfind("== End of Indexes Placement checker EPP warnings ==\n")
+            start_index = process.udf["Comments"].find(
+                "**Warnings from Indexes Placement checker EPP: **\n"
+            )
+            end_index = process.udf["Comments"].rfind(
+                "== End of Indexes Placement checker EPP warnings ==\n"
+            )
             # No existing warning message
             if start_index == -1:
                 process.udf["Comments"] += "\n\n"
-                process.udf["Comments"] += "**Warnings from Indexes Placement checker EPP: **\n"
+                process.udf["Comments"] += (
+                    "**Warnings from Indexes Placement checker EPP: **\n"
+                )
                 process.udf["Comments"] += "\n".join(message)
-                process.udf["Comments"] += "@{}\n".format(tech_username)
-                process.udf["Comments"] += "== End of Indexes Placement checker EPP warnings ==\n"
+                process.udf["Comments"] += f"@{tech_username}\n"
+                process.udf["Comments"] += (
+                    "== End of Indexes Placement checker EPP warnings ==\n"
+                )
             # Update warning message
             else:
-                process.udf["Comments"] = process.udf["Comments"][:start_index] + process.udf["Comments"][end_index+1:]
-                process.udf["Comments"] += "**Warnings from Indexes Placement checker EPP: **\n"
+                process.udf["Comments"] = (
+                    process.udf["Comments"][:start_index]
+                    + process.udf["Comments"][end_index + 1 :]
+                )
+                process.udf["Comments"] += (
+                    "**Warnings from Indexes Placement checker EPP: **\n"
+                )
                 process.udf["Comments"] += "\n".join(message)
-                process.udf["Comments"] += "@{}\n".format(tech_username)
-                process.udf["Comments"] += "== End of Indexes Placement checker EPP warnings ==\n"
+                process.udf["Comments"] += f"@{tech_username}\n"
+                process.udf["Comments"] += (
+                    "== End of Indexes Placement checker EPP warnings ==\n"
+                )
         process.put()
         sys.exit(2)
     else:
         print("No issue detected with indexes or placement", file=sys.stderr)
         # Clear previous warning messages if the error has been corrected
         if process.udf.get("Comments"):
-            start_index = process.udf["Comments"].find("**Warnings from Indexes Placement checker EPP: **\n")
-            end_index = process.udf["Comments"].rfind("== End of Indexes Placement checker EPP warnings ==\n")
-            process.udf["Comments"] = process.udf["Comments"][:start_index] + process.udf["Comments"][end_index+1:]
+            start_index = process.udf["Comments"].find(
+                "**Warnings from Indexes Placement checker EPP: **\n"
+            )
+            end_index = process.udf["Comments"].rfind(
+                "== End of Indexes Placement checker EPP warnings ==\n"
+            )
+            process.udf["Comments"] = (
+                process.udf["Comments"][:start_index]
+                + process.udf["Comments"][end_index + 1 :]
+            )
             process.put()
 
 
