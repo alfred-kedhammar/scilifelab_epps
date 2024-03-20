@@ -43,9 +43,7 @@ def verify_index_placement(lims, process, data):
         if index_set_lims != index_set_udf:
             message.append(
                 "WARNING! Plate {}: Selected index set {} does NOT match with {}!".format(
-                    container_info["name"],
-                    index_set_lims,
-                    index_set_udf
+                    container_info["name"], index_set_lims, index_set_udf
                 )
             )
         # Check if there is/are skipped wells in between of samples
