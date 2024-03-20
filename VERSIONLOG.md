@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240320.2
+
+Improve warning messages for index_distance_checker
+
 ## 20240320.1
 
 Add cDNA QC in comments_to_running_notes
