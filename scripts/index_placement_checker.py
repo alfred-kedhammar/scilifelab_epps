@@ -74,63 +74,49 @@ def main(lims, pid):
     tech_username = process.technician.username
     data = get_index_layout(process)
     message = verify_index_placement(data)
+    warning_start = "**Warnings from Indexes Placement checker EPP: **\n"
+    warning_end = "== End of Indexes Placement checker EPP warnings =="
 
     if message:
         sys.stderr.write("; ".join(message))
         if not process.udf.get("Comments"):
             process.udf["Comments"] = (
-                "**Warnings from Indexes Placement checker EPP: **\n"
+                warning_start
                 + "\n".join(message)
-                + f"@{tech_username}\n"
-                + "== End of Indexes Placement checker EPP warnings ==\n"
+                + f"\n@{tech_username}\n"
+                + warning_end
             )
         else:
-            start_index = process.udf["Comments"].find(
-                "**Warnings from Indexes Placement checker EPP: **\n"
-            )
-            end_index = process.udf["Comments"].rfind(
-                "== End of Indexes Placement checker EPP warnings ==\n"
-            )
+            start_index = process.udf["Comments"].find(warning_start)
+            end_index = process.udf["Comments"].rfind(warning_end)
             # No existing warning message
             if start_index == -1:
                 process.udf["Comments"] += "\n\n"
-                process.udf["Comments"] += (
-                    "**Warnings from Indexes Placement checker EPP: **\n"
-                )
+                process.udf["Comments"] += warning_start
                 process.udf["Comments"] += "\n".join(message)
-                process.udf["Comments"] += f"@{tech_username}\n"
-                process.udf["Comments"] += (
-                    "== End of Indexes Placement checker EPP warnings ==\n"
-                )
+                process.udf["Comments"] += f"\n@{tech_username}\n"
+                process.udf["Comments"] += warning_end
             # Update warning message
             else:
                 process.udf["Comments"] = (
                     process.udf["Comments"][:start_index]
-                    + process.udf["Comments"][end_index + 1 :]
+                    + process.udf["Comments"][end_index + len(warning_end) + 1 :]
                 )
-                process.udf["Comments"] += (
-                    "**Warnings from Indexes Placement checker EPP: **\n"
-                )
+                process.udf["Comments"] += warning_start
                 process.udf["Comments"] += "\n".join(message)
-                process.udf["Comments"] += f"@{tech_username}\n"
-                process.udf["Comments"] += (
-                    "== End of Indexes Placement checker EPP warnings ==\n"
-                )
+                process.udf["Comments"] += f"\n@{tech_username}\n"
+                process.udf["Comments"] += warning_end
         process.put()
         sys.exit(2)
     else:
         print("No issue detected with indexes or placement", file=sys.stderr)
         # Clear previous warning messages if the error has been corrected
         if process.udf.get("Comments"):
-            start_index = process.udf["Comments"].find(
-                "**Warnings from Indexes Placement checker EPP: **\n"
-            )
-            end_index = process.udf["Comments"].rfind(
-                "== End of Indexes Placement checker EPP warnings ==\n"
-            )
+            start_index = process.udf["Comments"].find(warning_start)
+            end_index = process.udf["Comments"].rfind(warning_end)
             process.udf["Comments"] = (
                 process.udf["Comments"][:start_index]
-                + process.udf["Comments"][end_index + 1 :]
+                + process.udf["Comments"][end_index + len(warning_end) + 1 :]
             )
             process.put()
 
