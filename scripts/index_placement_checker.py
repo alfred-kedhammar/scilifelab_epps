@@ -28,7 +28,7 @@ def get_index_layout(process):
 
 
 # Very the placement of indexes
-def verify_index_placement(data):
+def verify_index_placement(lims, process, data):
     message = []
     for container_id, container_info in data.items():
         sorted_wells = sorted(list(container_info["index_layout"].keys()))
@@ -37,6 +37,17 @@ def verify_index_placement(data):
             container_info["index_layout"][well] for well in sorted_wells
         ]
         sorted_indexes = sorted(list(container_info["index_layout"].values()))
+        index_set_lims = lims.get_reagent_types(name=sorted_indexes[0])[0].category
+        index_set_udf = process.udf.get("Index Set")
+        # Check if the index set selected in LIMS matches with the one selected in UDF
+        if index_type_lims != index_type_udf:
+            message.append(
+                "WARNING! Plate {}: Selected index set {} does NOT match with {}!".format(
+                    container_info["name"],
+                    index_set_lims,
+                    index_set_udf
+                )
+            )
         # Check if there is/are skipped wells in between of samples
         used_cols = sorted(list(set([well[:2] for well in sorted_wells])))
         full_plate_wells = sorted(
@@ -73,7 +84,7 @@ def main(lims, pid):
     process = Process(lims, id=pid)
     tech_username = process.technician.username
     data = get_index_layout(process)
-    message = verify_index_placement(data)
+    message = verify_index_placement(lims, process, data)
     warning_start = "**Warnings from Indexes Placement checker EPP: **\n"
     warning_end = "== End of Indexes Placement checker EPP warnings =="
 

@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240320.3
+
+Enable index_placement_checker to verify index set
+
 ## 20240320.2
 
 Improve warning messages for index_distance_checker
