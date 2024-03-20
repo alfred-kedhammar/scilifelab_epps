@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240320.1
+
+Add cDNA QC in comments_to_running_notes
+
 ## 20240319.1
 
 New EPP for checking index placement for inhouse workset
