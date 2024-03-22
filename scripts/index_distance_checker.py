@@ -302,23 +302,29 @@ def find_barcode(sample_idxs, sample, process):
         if sample in art.samples:
             if len(art.samples) == 1 and art.reagent_labels:
                 if process.type.name == "Library Pooling (Finished Libraries) 4.0":
-                    reagent_label_name = art.reagent_labels[0].upper()
-                    if reagent_label_name and reagent_label_name != "NOINDEX":
-                        if (
-                            IDX_PAT.findall(reagent_label_name)
-                            and len(IDX_PAT.findall(reagent_label_name)) > 1
-                        ) or (
-                            not (
+                    if len(art.reagent_labels) > 1:
+                        sys.stderr.write(
+                            f"INDEX FORMAT ERROR: Sample {sample.name} has a bad format or unknown index category\n"
+                        )
+                        sys.exit(2)
+                    else:
+                        reagent_label_name = art.reagent_labels[0].upper()
+                        if reagent_label_name and reagent_label_name != "NOINDEX":
+                            if (
                                 IDX_PAT.findall(reagent_label_name)
-                                or TENX_SINGLE_PAT.findall(reagent_label_name)
-                                or TENX_DUAL_PAT.findall(reagent_label_name)
-                                or SMARTSEQ_PAT.findall(reagent_label_name)
-                            )
-                        ):
-                            sys.stderr.write(
-                                f"INDEX FORMAT ERROR: Sample {sample.name} has a bad format or unknown index category\n"
-                            )
-                            sys.exit(2)
+                                and len(IDX_PAT.findall(reagent_label_name)) > 1
+                            ) or (
+                                not (
+                                    IDX_PAT.findall(reagent_label_name)
+                                    or TENX_SINGLE_PAT.findall(reagent_label_name)
+                                    or TENX_DUAL_PAT.findall(reagent_label_name)
+                                    or SMARTSEQ_PAT.findall(reagent_label_name)
+                                )
+                            ):
+                                sys.stderr.write(
+                                    f"INDEX FORMAT ERROR: Sample {sample.name} has a bad format or unknown index category\n"
+                                )
+                                sys.exit(2)
                 reagent_label_name = art.reagent_labels[0].upper().replace(" ", "")
                 idxs = (
                     TENX_SINGLE_PAT.findall(reagent_label_name)
@@ -350,6 +356,7 @@ def find_barcode(sample_idxs, sample, process):
 
 def main(lims, pid):
     process = Process(lims, id=pid)
+    tech_username = process.technician.username
     data, message = prepare_index_table(process)
     if process.type.name == "Library Pooling (Finished Libraries) 4.0":
         message += verify_placement(data)
@@ -357,27 +364,60 @@ def main(lims, pid):
         message += verify_samplename(data)
     else:
         message = check_index_distance(data)
+    warning_start = "**Warnings from Verify Indexes and Placement EPP: **\n"
+    warning_end = "== End of Verify Indexes and Placement EPP warnings =="
     if message:
-        print("; ".join(message), file=sys.stderr)
+        sys.stderr.write("; ".join(message))
         if process.type.name == "Library Pooling (Finished Libraries) 4.0":
             if not process.udf.get("Comments"):
                 process.udf["Comments"] = (
-                    "**Warnings from Verify Indexes and Placement EPP: **\n"
+                    warning_start
                     + "\n".join(message)
+                    + f"\n@{tech_username}\n"
+                    + warning_end
                 )
-            elif (
-                "Warnings from Verify Indexes and Placement EPP"
-                not in process.udf["Comments"]
-            ):
-                process.udf["Comments"] += "\n\n"
-                process.udf["Comments"] += (
-                    "**Warnings from Verify Indexes and Placement EPP: **\n"
-                )
-                process.udf["Comments"] += "\n".join(message)
+            else:
+                start_index = process.udf["Comments"].find(warning_start)
+                end_index = process.udf["Comments"].rfind(warning_end)
+                # No existing warning message
+                if start_index == -1:
+                    process.udf["Comments"] += "\n\n"
+                    process.udf["Comments"] += warning_start
+                    process.udf["Comments"] += "\n".join(message)
+                    process.udf["Comments"] += f"\n@{tech_username}\n"
+                    process.udf["Comments"] += warning_end
+                # Update warning message
+                else:
+                    process.udf["Comments"] = (
+                        process.udf["Comments"][:start_index]
+                        + process.udf["Comments"][end_index + len(warning_end) + 1 :]
+                    )
+                    if not process.udf.get("Comments"):
+                        process.udf["Comments"] = (
+                            warning_start
+                            + "\n".join(message)
+                            + f"\n@{tech_username}\n"
+                            + warning_end
+                        )
+                    else:
+                        process.udf["Comments"] += warning_start
+                        process.udf["Comments"] += "\n".join(message)
+                        process.udf["Comments"] += f"\n@{tech_username}\n"
+                        process.udf["Comments"] += warning_end
             process.put()
+        sys.exit(2)
     else:
         print("No issue detected with indexes or placement", file=sys.stderr)
         message.append("No issue detected with indexes or placement")
+        # Clear previous warning messages if the error has been corrected
+        if process.udf.get("Comments"):
+            start_index = process.udf["Comments"].find(warning_start)
+            end_index = process.udf["Comments"].rfind(warning_end)
+            process.udf["Comments"] = (
+                process.udf["Comments"][:start_index]
+                + process.udf["Comments"][end_index + len(warning_end) + 1 :]
+            )
+            process.put()
 
     with open("index_checker.log", "w") as logContext:
         logContext.write("\n".join(message))
