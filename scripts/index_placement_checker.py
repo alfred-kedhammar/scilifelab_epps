@@ -89,9 +89,10 @@ def verify_index_placement(lims, process, data):
             container_info["index_layout"]
         ):
             for well in sorted_wells:
-                index_no = int(
-                    INDEX_NO_PAT.findall(container_info["index_layout"][well])[0]
-                ) % 96
+                index_no = (
+                    int(INDEX_NO_PAT.findall(container_info["index_layout"][well])[0])
+                    % 96
+                )
                 index_no = index_no if index_no != 0 else 96
                 if index_no != full_plate_wells.index(well) + 1:
                     message.append(
