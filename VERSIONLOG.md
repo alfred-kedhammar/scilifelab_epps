@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240325.1
+
+Upgrade index_placement_checker to check expected index position
+
 ## 20240320.4
 
 Enable index_distance_checker to catch case that one sample with multiple indexes

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import re
 import sys
 from argparse import ArgumentParser
 
@@ -10,6 +11,8 @@ from genologics.lims import Lims
 DESC = """EPP for checking the placement of sample indexes for lib prep
 Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """
+
+INDEX_NO_PAT = re.compile("(?<=_)(?!.*nt_)\d+(?=\D|$)")
 
 
 # get the index layout for each plate
@@ -37,9 +40,9 @@ def verify_index_placement(lims, process, data):
             container_info["index_layout"][well] for well in sorted_wells
         ]
         sorted_indexes = sorted(list(container_info["index_layout"].values()))
+        # Check if the index set selected in LIMS matches with the one selected in UDF
         index_set_lims = lims.get_reagent_types(name=sorted_indexes[0])[0].category
         index_set_udf = process.udf.get("Index Set")
-        # Check if the index set selected in LIMS matches with the one selected in UDF
         if index_set_lims != index_set_udf:
             message.append(
                 "WARNING! Plate {}: Selected index set {} does NOT match with {}!".format(
@@ -75,6 +78,29 @@ def verify_index_placement(lims, process, data):
                     container_info["name"]
                 )
             )
+        # If applies, check if the layouts of indexes match with their expected wells
+        index_nos = []
+        for well in sorted_wells:
+            index_no = INDEX_NO_PAT.findall(container_info["index_layout"][well])
+            if index_no and len(index_no) == 1:
+                index_nos.append(index_no[0])
+        ## Only perform this check when the number of unique captured indexes matches with samples
+        if index_nos and len(list(set(index_nos))) == len(
+            container_info["index_layout"]
+        ):
+            for well in sorted_wells:
+                index_no = int(
+                    INDEX_NO_PAT.findall(container_info["index_layout"][well])[0]
+                )
+                if index_no != full_plate_wells.index(well) + 1:
+                    message.append(
+                        "WARNING! Plate {}: Index {} expected in {} but detected in {}!".format(
+                            container_info["name"],
+                            container_info["index_layout"][well],
+                            full_plate_wells[index_no - 1],
+                            well,
+                        )
+                    )
     return message
 
 
