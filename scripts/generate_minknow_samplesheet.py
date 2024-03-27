@@ -152,8 +152,10 @@ def get_ont_library_contents(
     logging.info(pool_contents_msg)
 
     df = pd.DataFrame(rows)
+    table_str = tabulate(df, headers=df.columns)
+    indented_table_str = "\n".join(["\t" + line for line in table_str.split("\n")])
     logging.info(
-        f"Sample-level information compiled for library '{ont_library.name}':\n{tabulate(df, headers=df.columns)}"
+        f"Sample-level information compiled for library '{ont_library.name}':\n{indented_table_str}"
     )
 
     return df
