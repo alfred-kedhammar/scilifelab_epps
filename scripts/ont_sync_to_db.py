@@ -139,6 +139,8 @@ def write_to_doc(
         ont_library=art,
         ont_pooling_step_name=args.pooling_step,
         ont_barcoding_step_name=args.barcoding_step,
+        list_contents=True,
+        print_dataframe=True,
     )
 
     # Info to add to the db doc

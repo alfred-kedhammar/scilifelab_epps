@@ -24,7 +24,11 @@ SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
 def get_ont_library_contents(
-    ont_library: Artifact, ont_pooling_step_name: str, ont_barcoding_step_name: str
+    ont_library: Artifact,
+    ont_pooling_step_name: str,
+    ont_barcoding_step_name: str,
+    list_contents: bool = False,
+    print_dataframe: bool = False,
 ) -> pd.DataFrame:
     """For an ONT sequencing library, compile a dataframe with sample-level information.
 
@@ -149,14 +153,16 @@ def get_ont_library_contents(
                 )
                 pool_contents_msg += f"\n - '{illumina_sample.name}': Illumina sample with index '{illumina_index}'."
 
-    logging.info(pool_contents_msg)
+    if list_contents:
+        logging.info(pool_contents_msg)
 
     df = pd.DataFrame(rows)
     table_str = tabulate(df, headers=df.columns)
     indented_table_str = "\n".join(["\t" + line for line in table_str.split("\n")])
-    logging.info(
-        f"Sample-level information compiled for library '{ont_library.name}':\n{indented_table_str}"
-    )
+    if print_dataframe:
+        logging.info(
+            f"Sample-level information compiled for library '{ont_library.name}':\n{indented_table_str}"
+        )
 
     return df
 
