@@ -49,10 +49,12 @@ def get_ont_library_contents(
     else:
         ont_pooling_step = None
 
+    pool_contents_msg = "Library consists of:"
+
     # If there was ONT pooling
     if ont_pooling_step:
-        logging.info("Sequencing library appears to consist of an ONT-barcoded pool.")
-        pool_contents_msg = "The ONT-barcoded pool in turn appears to consist of:"
+        pool_contents_msg += f"\n - {ont_library.name}: ONT-barcoded pool"
+
         # Iterate across ONT pooling inputs
         for ont_pooling_input in ont_pooling_inputs:
             assert len(ont_pooling_input.reagent_labels) == 1
@@ -66,15 +68,16 @@ def get_ont_library_contents(
             assert len(ont_barcoding_inputs) == 1
             ont_barcoding_input = ont_barcoding_inputs[0]
 
+            # If the barcoding input in turn consists of multiple samples, assume it's an Illumina pool
             if len(ont_barcoding_input.samples) > 1:
-                pool_contents_msg += f"\n\t- '{ont_barcoding_input.name}': An Illumina library pool with containing indexed samples:"
+                pool_contents_msg += f"\n\t - '{ont_barcoding_input.name}': Illumina indexed pool with ONT-barcode '{ont_barcode}'"
                 illumina_pool = ont_barcoding_input
 
                 # ONT barcode AND Illumina index-level demultiplexing
                 for illumina_sample, illumina_index in zip(
                     illumina_pool.samples, illumina_pool.reagent_labels
                 ):
-                    pool_contents_msg += f"\n\t\t- '{illumina_sample.name}' with index '{illumina_index}'."
+                    pool_contents_msg += f"\n\t\t - '{illumina_sample.name}': Illumina sample with index '{illumina_index}'."
                     rows.append(
                         {
                             "sample_name": illumina_sample.name,
@@ -90,9 +93,9 @@ def get_ont_library_contents(
                         }
                     )
 
+            # If the barcoding input consists of a single sample, don't perform any further demultiplexing
             else:
                 assert len(ont_pooling_input.reagent_labels) == 1
-                pool_contents_msg += f"\n - '{ont_pooling_input.name}: A single sample."
 
                 # ONT barcode-level demultiplexing
                 for ont_sample, ont_barcode in zip(
@@ -109,13 +112,14 @@ def get_ont_library_contents(
                             "ont_pool_id": ont_library.id,
                         }
                     )
-            logging.info(pool_contents_msg)
+                pool_contents_msg += f"\n\t - '{ont_pooling_input.name}: ONT sample with barcode '{ont_barcode}'"
 
     # If there was no ONT pooling
     else:
+        # If the library consists of a single sample, don't perform any demultiplexing
         if len(ont_library.samples) == 1:
-            logging.info("Library categorized as consisting of single sample.")
             sample = ont_library.samples[0]
+            pool_contents_msg += f"\n - {sample.name}: Non-labeled sample"
             # No demultiplexing
             rows.append(
                 {
@@ -126,10 +130,8 @@ def get_ont_library_contents(
                 }
             )
 
+        # If the library consists of multiple samples, assume it's an Illumina pool
         else:
-            logging.info(
-                "Library categorized as consisting of single Illumina library pool with sample indexes."
-            )
             # Illumina index-level demultiplexing
             for illumina_sample, illumina_index in zip(
                 ont_library.samples, ont_library.reagent_labels
@@ -145,6 +147,9 @@ def get_ont_library_contents(
                         "illumina_pool_id": ont_library.id,
                     }
                 )
+                pool_contents_msg += f"\n - '{illumina_sample.name}': Illumina sample with index '{illumina_index}'."
+
+    logging.info(pool_contents_msg)
 
     df = pd.DataFrame(rows)
     logging.info(
