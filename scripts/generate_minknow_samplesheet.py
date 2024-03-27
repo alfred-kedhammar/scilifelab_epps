@@ -53,7 +53,7 @@ def get_ont_library_contents(
 
     # If there was ONT pooling
     if ont_pooling_step:
-        pool_contents_msg += f"\n - {ont_library.name}: ONT-barcoded pool"
+        pool_contents_msg += f"\n - '{ont_library.name}': ONT-barcoded pool"
 
         # Iterate across ONT pooling inputs
         for ont_pooling_input in ont_pooling_inputs:
