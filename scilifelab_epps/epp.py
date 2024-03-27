@@ -94,7 +94,7 @@ class EppLogger:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # If no exception has occured in block, turn off logging.
+        # If no exception has occurred in block, turn off logging.
         if not exc_type:
             logging.shutdown()
             sys.stderr = self.saved_stderr
@@ -402,7 +402,8 @@ class CopyField:
             )
 
         logging.info(
-            f"Copying from element with id: {self.s_elt.id} to element with " f" id: {self.d_elt.id}"
+            f"Copying from element with id: {self.s_elt.id} to element with "
+            f" id: {self.d_elt.id}"
         )
 
     def _log_after_change(self):
@@ -501,12 +502,12 @@ def traceback_to_step(
         # Loop until return, or as long as there is a parent process
         while current_art.parent_process:
             current_pp = current_art.parent_process
-            logging.info(f"Backtracking to parent process '{current_pp.type.name}'")
+            logging.debug(f"Backtracking to parent process '{current_pp.type.name}'")
 
             input_arts = get_matching_inputs(current_pp, current_art)
 
             if current_pp.type.name == step_name:
-                logging.info("Found matching step. Returning.")
+                logging.debug("Found matching step. Returning.")
                 return current_pp, input_arts
             elif len(input_arts) > 1:
                 msg = f"Output artifact {current_art.name} in step {current_pp} has multiple inputs. Can't traceback further."
