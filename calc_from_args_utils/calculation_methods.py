@@ -81,9 +81,6 @@ def volume_to_use(process: Process, args: Namespace):
 
                 # Apply fraction of target / available volume to target amount
                 new_output_amt = vol_to_take / vol_required * output_amt
-                logging.info(
-                    f"Updating amount used -> '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f}"
-                )
             else:
                 vol_to_take = vol_required
 
