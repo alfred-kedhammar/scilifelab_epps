@@ -39,7 +39,7 @@ def volume_to_use(process: Process, args: Namespace):
             input_conc = fetch_from_arg(art_tuple, args.conc_in, process)
             input_vol = fetch_from_arg(art_tuple, args.vol_in, process)
             assert "fmol" in args.amt_out["udf"], "Target amount must be in fmol."
-            output_amt = fetch_from_arg(art_tuple, args.amt_out, process)
+            target_output_amt = fetch_from_arg(art_tuple, args.amt_out, process)
             if args.conc_units_in:
                 input_conc_units = fetch_from_arg(
                     art_tuple, args.conc_units_in, process
@@ -64,11 +64,13 @@ def volume_to_use(process: Process, args: Namespace):
 
             # Calculate required volume
             if input_conc_units == "nM":
-                vol_required = output_amt / input_conc
+                vol_required = target_output_amt / input_conc
             elif input_conc_units == "ng/ul":
-                vol_required = formula.fmol_to_ng(output_amt, size_bp) / input_conc
+                vol_required = (
+                    formula.fmol_to_ng(target_output_amt, size_bp) / input_conc
+                )
             logging.info(
-                f"Calculating required volume: {output_amt} fmol of {input_conc} {input_conc_units} at {size_bp} bp -> {vol_required:.2f} ul."
+                f"Calculating required volume: {target_output_amt} fmol of {input_conc} {input_conc_units} at {size_bp} bp -> {vol_required:.2f} ul."
             )
 
             # Address case of volume depletion
@@ -80,9 +82,13 @@ def volume_to_use(process: Process, args: Namespace):
                 vol_to_take = input_vol
 
                 # Apply fraction of target / available volume to target amount
-                new_output_amt = vol_to_take / vol_required * output_amt
+                output_amt = vol_to_take / vol_required * target_output_amt
+                logging.warning(
+                    f"Changing output '{args.amt_out['udf']}': {target_output_amt} -> {output_amt:.2f} for {args.amt_out['source']} '{get_UDF_source_name(art_tuple, args.amt_out, process)}'."
+                )
             else:
                 vol_to_take = vol_required
+                output_amt = target_output_amt
 
             logging.info(f"Determined volume to take -> {vol_to_take:.2f} ul.")
 
@@ -95,15 +101,16 @@ def volume_to_use(process: Process, args: Namespace):
             logging.info(
                 f"Assigned UDF '{args.vol_out['udf']}': {vol_to_take:.2f} for {args.vol_out['source']} '{get_UDF_source_name(art_tuple, args.vol_out, process)}'."
             )
-            if vol_required > input_vol:
-                udf_tools.put(
-                    target=get_UDF_source(art_tuple, args.amt_out, process),
-                    target_udf=args.amt_out["udf"],
-                    val=round(new_output_amt, 2),
-                )
-                logging.warning(
-                    f"Changed UDF '{args.amt_out['udf']}': {output_amt} -> {new_output_amt:.2f} for {args.amt_out['source']} '{get_UDF_source_name(art_tuple, args.amt_out, process)}'."
-                )
+
+            udf_tools.put(
+                target=get_UDF_source(art_tuple, args.amt_out, process),
+                target_udf=args.amt_out["udf"],
+                val=round(output_amt, 2),
+            )
+            logging.info(
+                f"Assigned UDF '{args.amt_out['udf']}': {output_amt:.2f} for {args.amt_out['source']} '{get_UDF_source_name(art_tuple, args.amt_out, process)}'."
+            )
+
         except AssertionError as e:
             logging.error(str(e), exc_info=True)
             logging.warning("Skipping.")
