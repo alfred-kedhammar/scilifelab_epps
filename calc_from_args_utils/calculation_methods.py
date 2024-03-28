@@ -38,6 +38,7 @@ def volume_to_use(process: Process, args: Namespace):
             size_bp = fetch_from_arg(art_tuple, args.size_in, process)
             input_conc = fetch_from_arg(art_tuple, args.conc_in, process)
             input_vol = fetch_from_arg(art_tuple, args.vol_in, process)
+            assert "fmol" in args.amt_out["udf"], "Target amount must be in fmol."
             output_amt = fetch_from_arg(art_tuple, args.amt_out, process)
             if args.conc_units_in:
                 input_conc_units = fetch_from_arg(
