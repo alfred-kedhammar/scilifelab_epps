@@ -65,14 +65,12 @@ def volume_to_use(process: Process, args: Namespace):
             if input_conc_units == "nM":
                 vol_required = output_amt / input_conc
             elif input_conc_units == "ng/ul":
-                vol_required = min(
-                    formula.fmol_to_ng(output_amt, size_bp) / input_conc, input_vol
-                )
+                vol_required = formula.fmol_to_ng(output_amt, size_bp) / input_conc
             logging.info(
                 f"Calculating required volume: {output_amt} fmol of {input_conc} {input_conc_units} at {size_bp} bp -> {vol_required:.2f} ul."
             )
 
-            # Adress case of volume depletion
+            # Address case of volume depletion
             if vol_required > input_vol:
                 logging.warning(
                     f"Volume required ({vol_required:.2f} ul) is greater than the available input '{args.vol_in['udf']}': {input_vol:.2f}."
