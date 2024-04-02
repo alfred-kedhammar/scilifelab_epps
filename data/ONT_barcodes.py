@@ -104,7 +104,7 @@ ont_barcode_labels = [
 ]
 
 # Full dict
-ont_barcodes = [
+ONT_BARCODES = [
     {
         "label": barcode,
         "num": int(barcode[0:2].lstrip("0")),

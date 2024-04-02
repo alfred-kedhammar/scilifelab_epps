@@ -14,7 +14,7 @@ from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 from tabulate import tabulate
 
-from data.ONT_barcodes import ONT_BARCODE_LABEL_PATTERN, ont_barcodes_well2label
+from data.ONT_barcodes import ONT_BARCODE_LABEL_PATTERN, ONT_BARCODES
 from epp_utils.udf_tools import fetch
 from scilifelab_epps.epp import traceback_to_step, upload_file
 
@@ -42,6 +42,10 @@ def get_ont_library_contents(
 
     """
 
+    ont_barcode_from_well = {
+        ont_barcode["well"]: ont_barcode for ont_barcode in ONT_BARCODES
+    }
+
     logging.info(
         f"Compiling sample-level information for library '{ont_library.name}'..."
     )
@@ -57,11 +61,13 @@ def get_ont_library_contents(
     # (4) No labels
 
     # See if library can be backtracked to an ONT pooling step
-    traceback_result = traceback_to_step(
+    ont_pooling_traceback = traceback_to_step(
         ont_library, ont_pooling_step_name, allow_multiple_inputs=True
     )
-    if traceback_result is not None:
-        _ont_pooling_step, ont_pooling_inputs, ont_pooling_output = traceback_result
+    if ont_pooling_traceback is not None:
+        _ont_pooling_step, ont_pooling_inputs, ont_pooling_output = (
+            ont_pooling_traceback
+        )
 
     if ont_pooling_inputs:
         # Remaining possibilities:
@@ -72,43 +78,48 @@ def get_ont_library_contents(
 
         # Iterate across ONT pooling inputs
         for ont_pooling_input in ont_pooling_inputs:
-            udf_ont_barcode_well = fetch(
-                ont_pooling_input, "ONT Barcode Well", on_fail=None
-            )
-
-            if len(ont_pooling_input.samples) > 1 and udf_ont_barcode_well:
+            if len(ont_pooling_input.samples) > 1:
                 # Remaining possibilities:
                 # (1) ONT-barcodes and Illumina indexes
-                ont_barcode = ont_barcodes_well2label[
+
+                udf_ont_barcode_well = fetch(
+                    ont_pooling_input, "ONT Barcode Well", on_fail=None
+                )
+                assert udf_ont_barcode_well, f"Pooling input '{ont_pooling_input.name}' consists of multiple samples, but has not been assigned an ONT barcode."
+                ont_barcode = ont_barcode_from_well[
                     udf_ont_barcode_well.upper().replace(":", "")
                 ]
+
                 pool_contents_msg += f"\n\t - '{ont_pooling_input.name}': Illumina indexed pool with ONT-barcode '{ont_barcode}'"
 
-                for illumina_sample, illumina_index in zip(
+                for sample, illumina_index in zip(
                     ont_pooling_input.samples, ont_pooling_input.reagent_labels
                 ):
-                    pool_contents_msg += f"\n\t\t - '{illumina_sample.name}': Illumina sample with index '{illumina_index}'."
+                    pool_contents_msg += f"\n\t\t - '{sample.name}': Illumina sample with index '{illumina_index}'."
                     rows.append(
                         {
-                            "sample_name": illumina_sample.name,
-                            "sample_id": illumina_sample.id,
-                            "project_name": illumina_sample.project.name,
-                            "project_id": illumina_sample.project.id,
+                            "sample_name": sample.name,
+                            "sample_id": sample.id,
+                            "project_name": sample.project.name,
+                            "project_id": sample.project.id,
                             "illumina_index": illumina_index,
                             "illumina_pool_name": ont_pooling_input.name,
                             "illumina_pool_id": ont_pooling_input.id,
                             "ont_barcode": ont_barcode,
-                            "ont_pool_name": ont_library.name,
-                            "ont_pool_id": ont_library.id,
+                            "ont_pool_name": ont_pooling_output.name,
+                            "ont_pool_id": ont_pooling_output.id,
                         }
                     )
 
-            # Case 2: Pooling input consists of a single sample --> ONT demux
             elif len(ont_pooling_input.samples) == 1:
-                assert len(ont_pooling_input.reagent_labels) == 1
+                # Remaining possibilities:
+                # (2) ONT-barcodes only
+                assert (
+                    len(ont_pooling_input.reagent_labels) == 1
+                ), f"ONT-pooling input '{ont_pooling_input.name}' lacks any reagent labels."
 
                 # ONT barcode-level demultiplexing
-                for ont_sample, udf_ont_barcode_well in zip(
+                for ont_sample, ont_barcode in zip(
                     ont_pooling_input.samples, ont_pooling_input.reagent_labels
                 ):
                     rows.append(
@@ -117,53 +128,54 @@ def get_ont_library_contents(
                             "sample_id": ont_sample.id,
                             "project_name": ont_sample.project.name,
                             "project_id": ont_sample.project.id,
-                            "ont_barcode": udf_ont_barcode_well,
-                            "ont_pool_name": ont_library.name,
-                            "ont_pool_id": ont_library.id,
+                            "ont_barcode": ont_barcode,
+                            "ont_pool_name": ont_pooling_output.name,
+                            "ont_pool_id": ont_pooling_output.id,
                         }
                     )
                 pool_contents_msg += f"\n\t - '{ont_pooling_input.name}: ONT sample with barcode '{udf_ont_barcode_well}'"
 
+            else:
+                raise AssertionError(
+                    f"ONT-pooling input '{ont_pooling_input.name}' lacks any samples."
+                )
+
     else:
         # Remaining possibilities:
-        # (3) Illumina-indexed library
-        # (4) Illumina-indexed single-sample
-        # (5) Unlabeled sample
+        # (3) Illumina-indexes only
+        # (4) No labels
 
-        if len(ont_library.reagent_labels) == 0:
+        if len(ont_library.reagent_labels) > 0:
             # Remaining possibilities:
-            # (5) Unlabeled sample
+            # (3) Illumina-indexes only
+            for sample, illumina_index in zip(
+                ont_library.samples, ont_library.reagent_labels
+            ):
+                rows.append(
+                    {
+                        "sample_name": sample.name,
+                        "sample_id": sample.id,
+                        "project_name": sample.project.name,
+                        "project_id": sample.project.id,
+                        "illumina_index": illumina_index,
+                    }
+                )
+                pool_contents_msg += f"\n - '{sample.name}': Illumina sample with index '{illumina_index}'."
+
+        else:
+            # Remaining possibilities:
+            # (4) No labels
             sample = ont_library.samples[0]
             pool_contents_msg += f"\n - {sample.name}: Non-labeled sample"
 
             rows.append(
                 {
-                    "sample_name": ont_library.name,
-                    "sample_id": ont_library.id,
+                    "sample_name": sample.name,
+                    "sample_id": sample.id,
                     "project_name": sample.project.name,
                     "project_id": sample.project.id,
                 }
             )
-
-        else:
-            # Remaining possibilities:
-            # (3) Illumina-indexed library
-            # (4) Illumina-indexed single-sample
-            for illumina_sample, illumina_index in zip(
-                ont_library.samples, ont_library.reagent_labels
-            ):
-                rows.append(
-                    {
-                        "sample_name": illumina_sample.name,
-                        "sample_id": illumina_sample.id,
-                        "project_name": illumina_sample.project.name,
-                        "project_id": illumina_sample.project.id,
-                        "illumina_index": illumina_index,
-                        "illumina_pool_name": ont_library.name,
-                        "illumina_pool_id": ont_library.id,
-                    }
-                )
-                pool_contents_msg += f"\n - '{illumina_sample.name}': Illumina sample with index '{illumina_index}'."
 
     if list_contents:
         logging.info(pool_contents_msg)
