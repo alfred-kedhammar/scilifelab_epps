@@ -4,14 +4,14 @@ from typing import Union
 from genologics.entities import Artifact, Process
 from requests.exceptions import HTTPError
 
-DESC = """This is a submodule for defining reuasble functions to handle artifact
+DESC = """This is a submodule for defining reusable functions to handle artifact
 UDFs in in the Genologics Clarity LIMS API.
 """
 
 
 def put(target: Artifact | Process, target_udf: str, val, on_fail=AssertionError):
     """Try to put UDF on artifact or process, optionally without causing fatal error.
-    Evaluates true on success and error (default) or on_fail param on failue.
+    Evaluates true on success and error (default) or on_fail param on failure.
     """
 
     target.udf[target_udf] = val
@@ -82,7 +82,7 @@ def get_art_tuples(currentStep: Process) -> list:
 
 def fetch_from_tuple(art_tuple: tuple, target_udfs: str | list, on_fail=AssertionError):
     """Try to fetch UDF based on input/output tuple of step that is missing either input or output artifacts,
-    optionally without causing fatar error.
+    optionally without causing fatal error.
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
@@ -108,7 +108,7 @@ def fetch_from_tuple(art_tuple: tuple, target_udfs: str | list, on_fail=Assertio
 
 
 def fetch(art: Artifact, target_udfs: Union[str, list], on_fail=AssertionError):
-    """Try to fetch UDF from artifact, optionally without causing fatar error.
+    """Try to fetch UDF from artifact, optionally without causing fatal error.
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
