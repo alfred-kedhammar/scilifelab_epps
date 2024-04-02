@@ -14,6 +14,7 @@ from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 from tabulate import tabulate
 
+from data.ONT_barcodes import ONT_BARCODE_LABEL_PATTERN
 from scilifelab_epps.epp import traceback_to_step, upload_file
 
 DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
@@ -21,9 +22,6 @@ DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
 
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
-
-# Capture groups are: (1) barcode well, (2) barcode number, (3) barcode sequence
-ONT_BARCODE_LABEL_PATTERN = r"\d{2}_([A-H][0-1]?\d)_NB(\d{2}) \(([ACGT]+)\)$"
 
 
 def get_ont_library_contents(
@@ -60,25 +58,17 @@ def get_ont_library_contents(
 
         # Iterate across ONT pooling inputs
         for ont_pooling_input in ont_pooling_inputs:
-            assert len(ont_pooling_input.reagent_labels) == 1
-            ont_barcode = ont_pooling_input.reagent_labels[0]
-
-            # Trace the ONT pooling input back to the barcoding step to elucidate samples and indexes
-            ont_barcoding_step, ont_barcoding_inputs = traceback_to_step(
-                ont_pooling_input, ont_barcoding_step_name
-            )
-            assert ont_barcoding_step
-            assert len(ont_barcoding_inputs) == 1
-            ont_barcoding_input = ont_barcoding_inputs[0]
-
-            # If the barcoding input in turn consists of multiple samples, assume it's an Illumina pool
-            if len(ont_barcoding_input.samples) > 1:
-                pool_contents_msg += f"\n\t - '{ont_barcoding_input.name}': Illumina indexed pool with ONT-barcode '{ont_barcode}'"
-                illumina_pool = ont_barcoding_input
+            # Pooling input is itself a pool
+            if (
+                len(ont_pooling_input.samples) > 1
+                and ont_pooling_input.udf["ONT Barcode"] != "None"
+            ):
+                ont_barcode = ont_pooling_input.udf["ONT Barcode"]
+                pool_contents_msg += f"\n\t - '{ont_pooling_input.name}': Illumina indexed pool with ONT-barcode '{ont_barcode}'"
 
                 # ONT barcode AND Illumina index-level demultiplexing
                 for illumina_sample, illumina_index in zip(
-                    illumina_pool.samples, illumina_pool.reagent_labels
+                    ont_pooling_input.samples, ont_pooling_input.reagent_labels
                 ):
                     pool_contents_msg += f"\n\t\t - '{illumina_sample.name}': Illumina sample with index '{illumina_index}'."
                     rows.append(
@@ -88,16 +78,16 @@ def get_ont_library_contents(
                             "project_name": illumina_sample.project.name,
                             "project_id": illumina_sample.project.id,
                             "illumina_index": illumina_index,
-                            "illumina_pool_name": illumina_pool.name,
-                            "illumina_pool_id": illumina_pool.id,
+                            "illumina_pool_name": ont_pooling_input.name,
+                            "illumina_pool_id": ont_pooling_input.id,
                             "ont_barcode": ont_barcode,
                             "ont_pool_name": ont_library.name,
                             "ont_pool_id": ont_library.id,
                         }
                     )
 
-            # If the barcoding input consists of a single sample, don't perform any further demultiplexing
-            else:
+            # Pooling input consists of a single sample
+            elif len(ont_pooling_input.samples) == 1:
                 assert len(ont_pooling_input.reagent_labels) == 1
 
                 # ONT barcode-level demultiplexing
