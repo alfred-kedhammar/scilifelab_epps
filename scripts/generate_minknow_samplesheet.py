@@ -22,6 +22,9 @@ DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
+# Capture groups are: (1) barcode well, (2) barcode number, (3) barcode sequence
+ONT_BARCODE_LABEL_PATTERN = r"\d{2}_([A-H][0-1]?\d)_NB(\d{2}) \(([ACGT]+)\)$"
+
 
 def get_ont_library_contents(
     ont_library: Artifact,
@@ -45,18 +48,14 @@ def get_ont_library_contents(
     rows = []
 
     # See if library can be backtracked to an ONT pooling step
-    pooling_traceback = traceback_to_step(
+    _ont_pooling_step, ont_pooling_inputs = traceback_to_step(
         ont_library, ont_pooling_step_name, allow_multiple_inputs=True
     )
-    if pooling_traceback:
-        ont_pooling_step, ont_pooling_inputs = pooling_traceback
-    else:
-        ont_pooling_step = None
 
     pool_contents_msg = "Library consists of:"
 
     # If there was ONT pooling
-    if ont_pooling_step:
+    if ont_pooling_inputs:
         pool_contents_msg += f"\n - '{ont_library.name}': ONT-barcoded pool"
 
         # Iterate across ONT pooling inputs
@@ -303,8 +302,6 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
                     row["position_id"] == "None"
                 ), "Positions must be unassigned for non-PromethION flow cells."
 
-            ont_barcode_label_pattern = r"^\d{2}_[A-H][0-1]?\d_NB\d{2} \([ACGT]+\)$"
-
             if process.udf.get("ONT expansion kit") == "None":
                 assert not ont_barcodes, "ONT expansion kit is set to 'None', but library contains labels that look like ONT barcodes."
             # Add extra columns for barcodes, if needed
@@ -313,7 +310,7 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
 
                 for label in ont_library.reagent_labels:
                     assert re.match(
-                        ont_barcode_label_pattern, label
+                        ONT_BARCODE_LABEL_PATTERN, label
                     ), "Library contains labels that do not look like ONT barcodes."
 
                 # Append rows for each barcode
@@ -324,7 +321,7 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
                 for ont_pooling_input in ont_pooling_inputs:
                     row["alias"] = sanitize_string(ont_pooling_input.name)
                     assert re.match(
-                        ont_barcode_label_pattern, ont_pooling_input.reagent_labels[0]
+                        ONT_BARCODE_LABEL_PATTERN, ont_pooling_input.reagent_labels[0]
                     )
                     row["barcode"] = sanitize_string(
                         "barcode" + ont_pooling_input.reagent_labels[0][0:2]
