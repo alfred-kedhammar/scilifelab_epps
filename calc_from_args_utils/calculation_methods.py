@@ -117,6 +117,140 @@ def volume_to_use(process: Process, args: Namespace):
             continue
 
 
+def summarize_pooling(process: Process, args: Namespace):
+    """Summarize stats for a pool, based on the UDFs of it's constituent samples."""
+
+    step_tuples = udf_tools.get_art_tuples(process)
+
+    pools = [art for art in process.all_outputs() if art.type == "Analyte"]
+    pools.sort(key=lambda pool: pool.name)
+
+    # Iterate across every pool
+    for pool in pools:
+        logging.info("")
+        logging.info(f"Processing pool '{pool.name}'...")
+
+        # Subset tuples of current pool
+        pool_tuples = [
+            art_tuple for art_tuple in step_tuples if art_tuple[1]["uri"].id == pool.id
+        ]
+
+        # Start collecting dataframe rows
+        pool_data_rows = []
+
+        # Iterate across all pool inputs
+        for art_tuple in pool_tuples:
+            cols: dict[str, float | str] = {}
+
+            art_in = art_tuple[0]["uri"]
+            art_out = art_tuple[1]["uri"]
+            logging.info("")
+            logging.info(
+                f"Processing input '{art_in.name}' -> output '{art_out.name}'..."
+            )
+
+            # Get info specified by script arguments
+            cols["size_bp"] = fetch_from_arg(art_tuple, args.size_in, process)
+            cols["input_conc"] = fetch_from_arg(art_tuple, args.conc_in, process)
+            cols["input_vol"] = fetch_from_arg(art_tuple, args.vol_in, process)
+            if args.conc_units_in:
+                cols["input_conc_units"] = str(
+                    fetch_from_arg(art_tuple, args.conc_units_in, process)
+                )
+                assert (
+                    cols["input_conc_units"] in ["ng/ul", "nM"]
+                ), f'Unsupported conc. units "{cols["input_conc_units"]}" for art {art_in.name}'
+            else:
+                # Infer concentration unit
+                if "ng/ul" in args.conc_in["udf"]:
+                    cols["input_conc_units"] = "ng/ul"
+                elif "nM" in args.conc_in["udf"]:
+                    cols["input_conc_units"] = "nM"
+                else:
+                    raise AssertionError(
+                        f"Can't infer units from '{args.conc_in['udf']}' for {art_out.name}."
+                    )
+                logging.info(
+                    f"Inferred unit of UDF '{args.conc_in['udf']}': {cols['input_conc_units']}."
+                )
+
+            # Infer amount unit
+            if "fmol" in args.amt_out["udf"]:
+                cols["output_amt_unit"] = "fmol"
+            elif "ng" in args.amt_out["udf"]:
+                cols["output_amt_unit"] = "ng"
+            else:
+                raise AssertionError(
+                    f"Can't infer units from '{args.amt_out['udf']}' for art {art_out.name}"
+                )
+            logging.info(
+                f"Inferred unit of UDF '{args.amt_out['udf']}': {cols['output_amt_unit']}."
+            )
+
+            pool_data_rows.append(cols)
+
+        df_pool = pd.DataFrame(pool_data_rows)
+        df_pool.index = [art_tuple[0]["uri"].name for art_tuple in pool_tuples]
+
+        assert (
+            df_pool.output_amt_unit.unique().size == 1
+        ), "Inconsistent output amount units."
+
+        # Get a column with consistent concentration units
+        df_pool["input_conc_nM"] = df_pool.apply(
+            lambda x: x["input_conc"]
+            if x["input_conc_units"] == "nM"
+            else formula.ng_ul_to_nM(x["input_conc"], x["size_bp"]),
+            axis=1,
+        )
+
+        df_pool["transfer_amt_fmol"] = df_pool.input_vol * df_pool.input_conc_nM
+
+        # Get simple pool stats by summarizing ingoing volumes and amounts of the consituent samples
+        pool_vol = sum(df_pool.input_vol)
+        pool_amt_fmol = sum(df_pool.transfer_amt_fmol)
+        # Calculate the average fragment size of the pool, weighted by the transfer amounts
+        pool_size = round(
+            np.average(df_pool["size_bp"], weights=df_pool["transfer_amt_fmol"])
+        )
+
+        # Evaluate target fraction to 1 decimal
+        df_pool["molar_percentage"] = (
+            df_pool.transfer_amt_fmol / pool_amt_fmol * 100
+        ).round(1)
+
+        logging_str = (
+            "\n"
+            + "\n".join(
+                [
+                    f"\nFinalized calculations for pool '{pool.name}':",
+                    f"Final amount: {pool_amt_fmol:.1f} fmol",
+                    f"Total volume: {pool_vol:.1f} ul",
+                    f"Average size: {pool_size} bp",
+                    tabulate.tabulate(df_pool, headers=df_pool.columns),
+                ]
+            )
+            + "\n"
+        )
+        logging.info(logging_str)
+
+        # Update UDFs
+        pool.udf[args.amt_out["udf"]] = round(pool_amt_fmol, 2)
+        logging.info(
+            f"Assigned '{pool.name}' UDF '{args.amt_out['udf']}': {pool_amt_fmol:.2f}"
+        )
+        pool.udf[args.vol_out["udf"]] = round(pool_vol, 1)
+        logging.info(
+            f"Assigned '{pool.name}' UDF '{args.vol_out['udf']}': {pool_vol:.1f}"
+        )
+        if args.size_out:
+            pool.udf[args.size_out["udf"]] = round(pool_size, 1)
+            logging.info(
+                f"Assigned '{pool.name}' UDF '{args.size_out['udf']}': {pool_size:.1f}"
+            )
+        pool.put()
+
+
 def equimolar_pooling(process: Process, args: Namespace):
     """Perform equimolar pooling based on a target molar amount or volume."""
 
