@@ -111,9 +111,7 @@ ont_barcodes_num2label = {
 }
 
 # Barcode well to label
-ont_barcodes_well2label = {
-    int(barcode.split("_")[1]): barcode for barcode in ont_barcodes
-}
+ont_barcodes_well2label = {barcode.split("_")[1]: barcode for barcode in ont_barcodes}
 
 # Barcode number to sequence
 ont_barcodes_num2seq = {
