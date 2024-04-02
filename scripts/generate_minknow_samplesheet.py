@@ -28,7 +28,6 @@ SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 def get_ont_library_contents(
     ont_library: Artifact,
     ont_pooling_step_name: str,
-    ont_barcoding_step_name: str,
     list_contents: bool = False,
     print_dataframe: bool = False,
 ) -> pd.DataFrame:
@@ -65,14 +64,13 @@ def get_ont_library_contents(
         ont_library, ont_pooling_step_name, allow_multiple_inputs=True
     )
     if ont_pooling_traceback is not None:
-        _ont_pooling_step, ont_pooling_inputs, ont_pooling_output = (
-            ont_pooling_traceback
-        )
-
-    if ont_pooling_inputs:
         # Remaining possibilities:
         # (1) ONT-barcodes and Illumina indexes
         # (2) ONT-barcodes only
+
+        _ont_pooling_step, ont_pooling_inputs, ont_pooling_output = (
+            ont_pooling_traceback
+        )
 
         pool_contents_msg += f"\n - '{ont_pooling_output.name}': ONT-barcoded pool"
 
@@ -288,7 +286,6 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
             library_df = get_ont_library_contents(
                 ont_library=ont_library,
                 ont_pooling_step_name=args.pooling_step,
-                ont_barcoding_step_name=args.barcoding_step,
             )
             qc = True if "illumina_index" in library_df.columns else False
             ont_barcodes = True if "ont_barcode" in library_df.columns else False
