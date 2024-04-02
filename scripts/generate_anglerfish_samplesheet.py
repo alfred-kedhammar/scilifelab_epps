@@ -154,8 +154,13 @@ def get_index_info(sample):
 def main():
     # Parse args
     parser = ArgumentParser(description=DESC)
-    parser.add_argument("--pid", type=str, help="Lims ID for current Process")
-    parser.add_argument("--log", type=str, help="Which log file slot to use")
+    parser.add_argument("--pid", type=str, help="Lims ID for current Process.")
+    parser.add_argument(
+        "--log", type=str, help="Which file slot to use for the script log."
+    )
+    parser.add_argument(
+        "--file", type=str, help="Which file slot to use for the samplesheet."
+    )
     args = parser.parse_args()
 
     # Set up LIMS
