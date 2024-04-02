@@ -3,8 +3,8 @@
 # Capture groups are: (1) barcode well, (2) barcode number, (3) barcode sequence
 ONT_BARCODE_LABEL_PATTERN = r"\d{2}_([A-H][0-1]?\d)_NB(\d{2}) \(([ACGT]+)\)$"
 
-# List of ONT barcodes, pulled from LIMS labels 'Nanopore native barcodes v2' 2024-04-02 by Alfred Kedhammar
-ont_barcodes = [
+# List of ONT barcode labels, pulled from LIMS labels 'Nanopore native barcodes v2' 2024-04-02 by Alfred Kedhammar
+ont_barcode_labels = [
     "01_A1_NB01 (CACAAAGACACCGACAACTTTCTT)",
     "02_B1_NB02 (ACAGACGACTACAAACGGAATCGA)",
     "03_C1_NB03 (CCTGGTAACTGGGACACAAGACTC)",
@@ -103,18 +103,13 @@ ont_barcodes = [
     "96_H12_NB96 (CTGAACGGTCATAGAGTCCACCAT)",
 ]
 
-## Helpful dictionaries for looking up barcodes
-
-# Barcode number to label
-ont_barcodes_num2label = {
-    int(barcode[0:2].lstrip("0")): barcode for barcode in ont_barcodes
-}
-
-# Barcode well to label
-ont_barcodes_well2label = {barcode.split("_")[1]: barcode for barcode in ont_barcodes}
-
-# Barcode number to sequence
-ont_barcodes_num2seq = {
-    int(barcode[0:2].lstrip("0")): barcode.split(" ")[-1][1:-1]
-    for barcode in ont_barcodes
-}
+# Full dict
+ont_barcodes = [
+    {
+        "label": barcode,
+        "num": int(barcode[0:2].lstrip("0")),
+        "well": barcode.split("_")[1],
+        "seq": barcode.split(" ")[-1][1:-1],
+    }
+    for barcode in ont_barcode_labels
+]
