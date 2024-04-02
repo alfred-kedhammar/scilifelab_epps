@@ -138,7 +138,6 @@ def write_to_doc(
     library_df = get_ont_library_contents(
         ont_library=art,
         ont_pooling_step_name=args.pooling_step,
-        ont_barcoding_step_name=args.barcoding_step,
         list_contents=True,
         print_dataframe=True,
     )
