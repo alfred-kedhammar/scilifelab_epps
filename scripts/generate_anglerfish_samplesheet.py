@@ -241,7 +241,7 @@ def main():
         os.remove(log_filename)
         if "ERROR:" in log_content or "WARNING:" in log_content:
             sys.stderr.write(
-                "Script finished successfully, but log contains erros or warnings, please have a look."
+                "Script finished successfully, but log contains errors or warnings, please have a look."
             )
             sys.exit(2)
         else:
