@@ -506,7 +506,7 @@ def traceback_to_step(
 
             input_arts = get_matching_inputs(current_pp, current_art)
 
-            if current_pp.type.name == step_name:
+            if step_name in current_pp.type.name:
                 logging.debug("Found matching step. Returning.")
                 return current_pp, input_arts
             elif len(input_arts) > 1:
