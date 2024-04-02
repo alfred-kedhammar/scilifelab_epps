@@ -103,12 +103,20 @@ ont_barcodes = [
     "96_H12_NB96 (CTGAACGGTCATAGAGTCCACCAT)",
 ]
 
-# Keyed by barcode number
+## Helpful dictionaries for looking up barcodes
+
+# Barcode number to label
 ont_barcodes_num2label = {
     int(barcode[0:2].lstrip("0")): barcode for barcode in ont_barcodes
 }
 
-# Keyed by well name
+# Barcode well to label
 ont_barcodes_well2label = {
     int(barcode.split("_")[1]): barcode for barcode in ont_barcodes
+}
+
+# Barcode number to sequence
+ont_barcodes_num2seq = {
+    int(barcode[0:2].lstrip("0")): barcode.split(" ")[-1][1:-1]
+    for barcode in ont_barcodes
 }
