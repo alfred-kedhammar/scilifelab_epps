@@ -14,7 +14,8 @@ from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 from tabulate import tabulate
 
-from data.ONT_barcodes import ONT_BARCODE_LABEL_PATTERN
+from data.ONT_barcodes import ONT_BARCODE_LABEL_PATTERN, ont_barcodes_well2label
+from epp_utils.udf_tools import fetch
 from scilifelab_epps.epp import traceback_to_step, upload_file
 
 DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
@@ -36,37 +37,53 @@ def get_ont_library_contents(
     Will backtrack the library to previous pooling and barcoding steps (if any) to elucidate
     sample and index information and decide whether to demultiplex at the level of
     ONT barcodes, Illumina indices, both or neither.
+
+    The logic is a bit messy to accommodate both the QC and non-QC workflows.
+
     """
 
     logging.info(
         f"Compiling sample-level information for library '{ont_library.name}'..."
     )
+    pool_contents_msg = f"ONT sequencing library '{ont_library.name}' consists of:"
 
-    # Instantiate rows list
+    # Instantiate list to collect dataframe rows
     rows = []
 
+    # Remaining possibilities:
+    # (1) ONT-barcodes and Illumina indexes
+    # (2) ONT-barcodes only
+    # (3) Illumina-indexes only
+    # (4) No labels
+
     # See if library can be backtracked to an ONT pooling step
-    _ont_pooling_step, ont_pooling_inputs = traceback_to_step(
+    traceback_result = traceback_to_step(
         ont_library, ont_pooling_step_name, allow_multiple_inputs=True
     )
+    if traceback_result is not None:
+        _ont_pooling_step, ont_pooling_inputs, ont_pooling_output = traceback_result
 
-    pool_contents_msg = "Library consists of:"
-
-    # If there was ONT pooling
     if ont_pooling_inputs:
-        pool_contents_msg += f"\n - '{ont_library.name}': ONT-barcoded pool"
+        # Remaining possibilities:
+        # (1) ONT-barcodes and Illumina indexes
+        # (2) ONT-barcodes only
+
+        pool_contents_msg += f"\n - '{ont_pooling_output.name}': ONT-barcoded pool"
 
         # Iterate across ONT pooling inputs
         for ont_pooling_input in ont_pooling_inputs:
-            # Pooling input is itself a pool
-            if (
-                len(ont_pooling_input.samples) > 1
-                and ont_pooling_input.udf["ONT Barcode"] != "None"
-            ):
-                ont_barcode = ont_pooling_input.udf["ONT Barcode"]
+            udf_ont_barcode_well = fetch(
+                ont_pooling_input, "ONT Barcode Well", on_fail=None
+            )
+
+            if len(ont_pooling_input.samples) > 1 and udf_ont_barcode_well:
+                # Remaining possibilities:
+                # (1) ONT-barcodes and Illumina indexes
+                ont_barcode = ont_barcodes_well2label[
+                    udf_ont_barcode_well.upper().replace(":", "")
+                ]
                 pool_contents_msg += f"\n\t - '{ont_pooling_input.name}': Illumina indexed pool with ONT-barcode '{ont_barcode}'"
 
-                # ONT barcode AND Illumina index-level demultiplexing
                 for illumina_sample, illumina_index in zip(
                     ont_pooling_input.samples, ont_pooling_input.reagent_labels
                 ):
@@ -86,12 +103,12 @@ def get_ont_library_contents(
                         }
                     )
 
-            # Pooling input consists of a single sample
+            # Case 2: Pooling input consists of a single sample --> ONT demux
             elif len(ont_pooling_input.samples) == 1:
                 assert len(ont_pooling_input.reagent_labels) == 1
 
                 # ONT barcode-level demultiplexing
-                for ont_sample, ont_barcode in zip(
+                for ont_sample, udf_ont_barcode_well in zip(
                     ont_pooling_input.samples, ont_pooling_input.reagent_labels
                 ):
                     rows.append(
@@ -100,20 +117,25 @@ def get_ont_library_contents(
                             "sample_id": ont_sample.id,
                             "project_name": ont_sample.project.name,
                             "project_id": ont_sample.project.id,
-                            "ont_barcode": ont_barcode,
+                            "ont_barcode": udf_ont_barcode_well,
                             "ont_pool_name": ont_library.name,
                             "ont_pool_id": ont_library.id,
                         }
                     )
-                pool_contents_msg += f"\n\t - '{ont_pooling_input.name}: ONT sample with barcode '{ont_barcode}'"
+                pool_contents_msg += f"\n\t - '{ont_pooling_input.name}: ONT sample with barcode '{udf_ont_barcode_well}'"
 
-    # If there was no ONT pooling
     else:
-        # If the library consists of a single sample, don't perform any demultiplexing
-        if len(ont_library.samples) == 1:
+        # Remaining possibilities:
+        # (3) Illumina-indexed library
+        # (4) Illumina-indexed single-sample
+        # (5) Unlabeled sample
+
+        if len(ont_library.reagent_labels) == 0:
+            # Remaining possibilities:
+            # (5) Unlabeled sample
             sample = ont_library.samples[0]
             pool_contents_msg += f"\n - {sample.name}: Non-labeled sample"
-            # No demultiplexing
+
             rows.append(
                 {
                     "sample_name": ont_library.name,
@@ -123,9 +145,10 @@ def get_ont_library_contents(
                 }
             )
 
-        # If the library consists of multiple samples, assume it's an Illumina pool
         else:
-            # Illumina index-level demultiplexing
+            # Remaining possibilities:
+            # (3) Illumina-indexed library
+            # (4) Illumina-indexed single-sample
             for illumina_sample, illumina_index in zip(
                 ont_library.samples, ont_library.reagent_labels
             ):
@@ -304,9 +327,13 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
                     ), "Library contains labels that do not look like ONT barcodes."
 
                 # Append rows for each barcode
-                _, ont_pooling_inputs = traceback_to_step(
+                traceback_result = traceback_to_step(
                     ont_library, args.pooling_step, allow_multiple_inputs=True
                 )
+                if traceback_result is not None:
+                    _ont_pooling_step, ont_pooling_inputs, _ont_pooling_output = (
+                        traceback_result
+                    )
 
                 for ont_pooling_input in ont_pooling_inputs:
                     row["alias"] = sanitize_string(ont_pooling_input.name)
