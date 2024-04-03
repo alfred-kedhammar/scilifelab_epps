@@ -405,11 +405,30 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
 def main():
     # Parse args
     parser = ArgumentParser(description=DESC)
-    parser.add_argument("--pid", type=str, help="Lims ID for current Process")
-    parser.add_argument("--log", type=str, help="Which log file slot to use")
-    parser.add_argument("--file", type=str, help="Samplesheet file slot")
-    parser.add_argument("--pooling_step", type=str, help="Name of ONT pooling step")
-    parser.add_argument("--barcoding_step", type=str, help="Name of ONT barcoding step")
+    parser.add_argument(
+        "--pid",
+        required=True,
+        type=str,
+        help="Lims ID for current Process",
+    )
+    parser.add_argument(
+        "--log",
+        required=True,
+        type=str,
+        help="Which log file slot to use",
+    )
+    parser.add_argument(
+        "--file",
+        required=True,
+        type=str,
+        help="Samplesheet file slot",
+    )
+    parser.add_argument(
+        "--pooling_step",
+        required=True,
+        type=str,
+        help="Name of ONT pooling step",
+    )
     args = parser.parse_args()
 
     # Set up LIMS
