@@ -59,7 +59,8 @@ def generate_anglerfish_samplesheet(process):
                 barcode_well = barcode_well[0] + ":" + barcode_well[1:]
             barcode_int = well2num[barcode_well]
 
-            fastq_path = f"./fastq_pass/barcode{str(barcode_int).zfill(2)}/*.fastq.gz"  # Assuming the Anglerfish working dir is the ONT run dir TODO
+            # Assuming the Anglerfish working dir is the ONT run dir
+            fastq_path = f"./fastq_pass/barcode{str(barcode_int).zfill(2)}/*.fastq.gz"
 
         elif not ont_barcodes:
             fastq_path = "./fastq_pass/*.fastq.gz"
@@ -154,12 +155,23 @@ def get_index_info(sample):
 def main():
     # Parse args
     parser = ArgumentParser(description=DESC)
-    parser.add_argument("--pid", type=str, help="Lims ID for current Process.")
     parser.add_argument(
-        "--log", type=str, help="Which file slot to use for the script log."
+        "--pid",
+        required=True,
+        type=str,
+        help="Lims ID for current Process.",
     )
     parser.add_argument(
-        "--file", type=str, help="Which file slot to use for the samplesheet."
+        "--log",
+        required=True,
+        type=str,
+        help="Which file slot to use for the script log.",
+    )
+    parser.add_argument(
+        "--file",
+        required=True,
+        type=str,
+        help="Which file slot to use for the samplesheet.",
     )
     args = parser.parse_args()
 
