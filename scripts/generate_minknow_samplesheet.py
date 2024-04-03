@@ -41,7 +41,7 @@ def get_ont_library_contents(
 
     """
 
-    ont_barcode_well2label = {
+    ont_barcode_well2label: dict[str:str] = {
         ont_barcode["well"]: ont_barcode["label"] for ont_barcode in ONT_BARCODES
     }
 
