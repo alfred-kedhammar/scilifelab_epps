@@ -9,9 +9,11 @@ from argparse import ArgumentParser
 from datetime import datetime as dt
 
 import pandas as pd
+from generate_minknow_samplesheet import get_ont_library_contents
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
+from data.ONT_barcodes import ONT_BARCODES
 
 from data.Chromium_10X_indexes import Chromium_10X_indexes as idxs_10x
 from epp_utils import udf_tools
@@ -25,8 +27,41 @@ TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
-def generate_anglerfish_samplesheet(process):
-    # TODO rewrite this to be based on the library dataframe
+def generate_anglerfish_samplesheet(process, args):
+    """Generate an Anglerfish samplesheet.
+
+    The samplesheet is a headerless .csv-file in which the columns correspond to:
+    'sample_name', 'adaptors', 'index', 'fastq_path'
+    """
+
+    ont_libraries = [art for art in process.all_outputs() if art.type == "Analyte"]
+    assert (
+        len(ont_libraries) == 1
+    ), "Samplesheet can only be generated for a single sequencing library."
+    ont_library = ont_libraries[0]
+
+    df = get_ont_library_contents(
+        ont_library=ont_library,
+        ont_pooling_step_name=args.pooling_step,
+    )
+
+    # Get dict to map ONT barcode label to it's properties
+    label2dict = {ont_barcode["label"]: ont_barcode for ont_barcode in ONT_BARCODES}
+
+    # Add columns pertaining to barcode properties
+    if "ont_barcode" in df.columns:
+        for i in ["num", "well", "seq"]:
+            df[f"ont_barcode_{i}"] = df["ont_barcode"].apply(
+                lambda barcode_label: label2dict[barcode_label][i]
+            )
+
+        df["fastq_path"] = df["ont_barcode_num"].apply(
+            lambda num: f"./fastq_pass/barcode{str(num).zfill(2)}/*.fastq.gz"
+        )
+    else:
+        df["fastq_path"] = "./fastq_pass/*.fastq.gz"
+
+    ## TODO old
 
     measurements = []
 
@@ -175,6 +210,12 @@ def main():
         type=str,
         help="Which file slot to use for the samplesheet.",
     )
+    parser.add_argument(
+        "--pooling_step",
+        required=True,
+        type=str,
+        help="Name of ONT pooling step",
+    )
     args = parser.parse_args()
 
     # Set up LIMS
@@ -211,7 +252,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        file_name = generate_anglerfish_samplesheet(process)
+        file_name = generate_anglerfish_samplesheet(process, args)
 
         logging.info("Uploading samplesheet to LIMS...")
         upload_file(
