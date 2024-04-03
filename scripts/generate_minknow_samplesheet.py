@@ -41,8 +41,8 @@ def get_ont_library_contents(
 
     """
 
-    ont_barcode_from_well = {
-        ont_barcode["well"]: ont_barcode for ont_barcode in ONT_BARCODES
+    ont_barcode_well2label = {
+        ont_barcode["well"]: ont_barcode["label"] for ont_barcode in ONT_BARCODES
     }
 
     logging.info(
@@ -84,7 +84,7 @@ def get_ont_library_contents(
                     ont_pooling_input, "ONT Barcode Well", on_fail=None
                 )
                 assert udf_ont_barcode_well, f"Pooling input '{ont_pooling_input.name}' consists of multiple samples, but has not been assigned an ONT barcode."
-                ont_barcode = ont_barcode_from_well[
+                ont_barcode = ont_barcode_well2label[
                     udf_ont_barcode_well.upper().replace(":", "")
                 ]
 
@@ -324,38 +324,35 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
                     row["position_id"] == "None"
                 ), "Positions must be unassigned for non-PromethION flow cells."
 
+            # If there are ONT barcodes, append rows for each barcode
             if process.udf.get("ONT expansion kit") == "None":
-                assert not ont_barcodes, "ONT expansion kit is set to 'None', but library contains labels that look like ONT barcodes."
-            # Add extra columns for barcodes, if needed
-            else:
-                assert ont_barcodes, f"No barcodes found within pool {ont_library.name}"
+                assert not ont_barcodes, f"ONT expansion kit is set to 'None', but library '{ont_library.name}' appears to contain ONT barcodes."
+                rows.append(row)
 
-                for label in ont_library.reagent_labels:
-                    assert re.match(
-                        ONT_BARCODE_LABEL_PATTERN, label
-                    ), "Library contains labels that do not look like ONT barcodes."
+            else:
+                assert ont_barcodes, f"ONT expansion kit is assigned, but no ONT barcodes were found within library {ont_library.name}"
 
                 # Append rows for each barcode
-                traceback_result = traceback_to_step(
-                    ont_library, args.pooling_step, allow_multiple_inputs=True
+                alias_column_name = "illumina_pool_name" if qc else "ont_pool_name"
+                barcode_rows_data = (
+                    library_df[[alias_column_name, "ont_barcode"]]
+                    .drop_duplicates()
+                    .sort_values(by=alias_column_name)
+                    .to_dict(orient="records")
                 )
-                if traceback_result is not None:
-                    _ont_pooling_step, ont_pooling_inputs, _ont_pooling_output = (
-                        traceback_result
-                    )
 
-                for ont_pooling_input in ont_pooling_inputs:
-                    row["alias"] = sanitize_string(ont_pooling_input.name)
-                    assert re.match(
-                        ONT_BARCODE_LABEL_PATTERN, ont_pooling_input.reagent_labels[0]
+                for barcode_row_data in barcode_rows_data:
+                    row["alias"] = sanitize_string(barcode_row_data[alias_column_name])
+                    barcode_label_match = re.match(
+                        ONT_BARCODE_LABEL_PATTERN,
+                        barcode_row_data["ont_barcode"],
                     )
-                    row["barcode"] = sanitize_string(
-                        "barcode" + ont_pooling_input.reagent_labels[0][0:2]
-                    )
+                    barcode_id = barcode_label_match.group(2)
+                    row["barcode"] = f"barcode{barcode_id}"
+
                     assert re.match(r"barcode\d{2}", row["barcode"])
                     assert "" not in row.values(), "All fields must be populated."
 
-                    # Keep appending rows to the samplesheet for each barcode in the pool
                     rows.append(row.copy())
 
         except AssertionError as e:
