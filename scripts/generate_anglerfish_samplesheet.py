@@ -26,6 +26,8 @@ SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
 def generate_anglerfish_samplesheet(process):
+    # TODO rewrite this to be based on the library dataframe
+
     measurements = []
 
     # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
