@@ -33,7 +33,7 @@ def get_ont_library_contents(
 ) -> pd.DataFrame:
     """For an ONT sequencing library, compile a dataframe with sample-level information.
 
-    Will backtrack the library to previous pooling and barcoding steps (if any) to elucidate
+    Will backtrack the library to previous pooling step (if any) to elucidate
     sample and index information and decide whether to demultiplex at the level of
     ONT barcodes, Illumina indices, both or neither.
 
@@ -80,6 +80,7 @@ def get_ont_library_contents(
                 # Remaining possibilities:
                 # (1) ONT-barcodes and Illumina indexes
 
+                # ONT barcodes on Illumina libraries are assigned via UDFs rather than reagent labels, since LIMS can't handle double demultiplexing
                 udf_ont_barcode_well = fetch(
                     ont_pooling_input, "ONT Barcode Well", on_fail=None
                 )
@@ -120,6 +121,7 @@ def get_ont_library_contents(
                 for ont_sample, ont_barcode in zip(
                     ont_pooling_input.samples, ont_pooling_input.reagent_labels
                 ):
+                    pool_contents_msg += f"\n\t - '{ont_pooling_input.name}: ONT sample with barcode '{udf_ont_barcode_well}'"
                     rows.append(
                         {
                             "sample_name": ont_sample.name,
@@ -131,7 +133,6 @@ def get_ont_library_contents(
                             "ont_pool_id": ont_pooling_output.id,
                         }
                     )
-                pool_contents_msg += f"\n\t - '{ont_pooling_input.name}: ONT sample with barcode '{udf_ont_barcode_well}'"
 
             else:
                 raise AssertionError(
@@ -149,6 +150,7 @@ def get_ont_library_contents(
             for sample, illumina_index in zip(
                 ont_library.samples, ont_library.reagent_labels
             ):
+                pool_contents_msg += f"\n - '{sample.name}': Illumina sample with index '{illumina_index}'."
                 rows.append(
                     {
                         "sample_name": sample.name,
@@ -156,16 +158,17 @@ def get_ont_library_contents(
                         "project_name": sample.project.name,
                         "project_id": sample.project.id,
                         "illumina_index": illumina_index,
+                        "illumina_pool_name": ont_library.name,
+                        "illumina_pool_id": ont_library.id,
                     }
                 )
-                pool_contents_msg += f"\n - '{sample.name}': Illumina sample with index '{illumina_index}'."
 
         else:
             # Remaining possibilities:
             # (4) No labels
             sample = ont_library.samples[0]
-            pool_contents_msg += f"\n - {sample.name}: Non-labeled sample"
 
+            pool_contents_msg += f"\n - {sample.name}: Non-labeled sample"
             rows.append(
                 {
                     "sample_name": sample.name,
@@ -288,7 +291,11 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
                 ont_pooling_step_name=args.pooling_step,
             )
             qc = True if "illumina_index" in library_df.columns else False
+            logging.info(f"'{ont_library.name}' parsed as {'QC' if qc else 'user'} run")
             ont_barcodes = True if "ont_barcode" in library_df.columns else False
+            logging.info(
+                f"'{ont_library.name}' parsed as containing {'' if ont_barcodes else 'no '}ONT barcodes"
+            )
 
             # Assert flowcell type is written in a valid format
             assert (
