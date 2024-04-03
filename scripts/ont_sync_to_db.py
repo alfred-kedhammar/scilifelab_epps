@@ -93,22 +93,17 @@ def get_matching_db_rows(
     process: Process,
     view: ViewResults,
     run_name: str | None,
-    qc: bool,
 ) -> list[Row]:
     """Find the rows in the database view that match the given artifact."""
     matching_rows = []
 
     # If run name is not supplied, try to find it in the database, assuming it follows the samplesheet naming convention
     if run_name is None:
-        minknow_sample_name = (
-            sanitize_string(art.name) if not qc else f"QC_{sanitize_string(art.name)}"
-        )
-        minknow_experiment_name = process.id if not qc else f"QC_{process.id}"
         # Define query pattern
         if art.udf["ONT flow cell position"] != "None":
-            pattern = rf"{minknow_experiment_name}/{minknow_sample_name}/[^/]*_{art.udf['ONT flow cell position']}_{art.udf['ONT flow cell ID']}_[^/]*"
+            pattern = rf"(QC_)?{process.id}/(QC_)?{sanitize_string(art.name)}/[^/]*_{art.udf['ONT flow cell position']}_{art.udf['ONT flow cell ID']}_[^/]*"
         else:
-            pattern = rf"{minknow_experiment_name}/{minknow_sample_name}/[^/]*_{art.udf['ONT flow cell ID']}_[^/]*"
+            pattern = rf"(QC_)?{process.id}/(QC_)?{sanitize_string(art.name)}/[^/]*_{art.udf['ONT flow cell ID']}_[^/]*"
         logging.info(
             f"No run name supplied. Quering the database for run with path pattern '{pattern}'."
         )
@@ -189,9 +184,7 @@ def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
                 continue
 
         # Get matching run docs
-        matching_rows: list[Row] = get_matching_db_rows(
-            art, process, view, run_name, args.qc
-        )
+        matching_rows: list[Row] = get_matching_db_rows(art, process, view, run_name)
 
         if len(matching_rows) == 0:
             logging.warning("Run was not found in the database. Skipping.")
@@ -233,17 +226,28 @@ def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
 def main():
     # Parse args
     parser = ArgumentParser(description=DESC)
-    parser.add_argument("--pid", type=str, help="Lims ID for current Process")
-    parser.add_argument("--log", type=str, help="Which log file slot to use")
     parser.add_argument(
-        "--samplesheet", type=str, help="Which samplesheet file slot to use"
-    )
-    parser.add_argument("--qc", action="store_true", help="Whether run is QC")
-    parser.add_argument(
-        "--pooling_step", type=str, help="Name of pooling step to traceback to"
+        "--pid",
+        type=str,
+        help="Lims ID for current Process",
     )
     parser.add_argument(
-        "--barcoding_step", type=str, help="Name of barcoding step to traceback to"
+        "--log",
+        required=True,
+        type=str,
+        help="Which log file slot to use",
+    )
+    parser.add_argument(
+        "--samplesheet",
+        required=True,
+        type=str,
+        help="Which samplesheet file slot to use",
+    )
+    parser.add_argument(
+        "--pooling_step",
+        required=True,
+        type=str,
+        help="Name of pooling step to traceback to",
     )
     args: Namespace = parser.parse_args()
 
