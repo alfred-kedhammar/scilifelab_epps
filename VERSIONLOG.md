@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240407.1
+
+Add lane yield threshold for NovaSeqXPlus 25B FC
+
 ## 20240325.1
 
 Upgrade index_placement_checker to check expected index position
