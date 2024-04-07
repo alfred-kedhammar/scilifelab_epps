@@ -35,6 +35,7 @@ class Thresholds:
             "NextSeq 2000 P3",
             "10B",
             "1.5B",
+            "25B",
         ]
 
         if (
@@ -138,6 +139,8 @@ class Thresholds:
                 self.exp_lane_clust = 1000e6
             elif self.chemistry == "1.5B":
                 self.exp_lane_clust = 600e6
+            elif self.chemistry == "25B":
+                self.exp_lane_clust = 2500e6
         elif self.instrument == "NextSeq":
             if self.chemistry == "NextSeq Mid":
                 self.exp_lane_clust = 25e6
