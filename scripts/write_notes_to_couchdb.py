@@ -78,15 +78,17 @@ def write_note_to_couch(pid, timestamp, note, lims):
             trans_table = proj_coord_name.maketrans("áéíóú", "aeiou")
             proj_coord_name_trans = proj_coord_name.translate(trans_table)
             proj_coord = ".".join(proj_coord_name_trans.split()) + "@scilifelab.se"
-            text = "A note has been created from LIMS in the project {}, {}! The note is as follows\n\
+            text = (
+                "A note has been created from LIMS in the project {}, {}! The note is as follows\n\
             >{} - {}{}\
             >{}".format(
-                pid,
-                doc["project_name"],
-                note["user"],
-                time_in_format,
-                note.get("category"),
-                note,
+                    pid,
+                    doc["project_name"],
+                    note["user"],
+                    time_in_format,
+                    note.get("category"),
+                    note,
+                )
             )
 
             html = '<html>\
