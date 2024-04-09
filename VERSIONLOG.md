@@ -6,6 +6,10 @@ Fix issue that sys stderr blocks a step to be completed
 
 ## 20240407.1
 
+Add Genstat URL in running notes
+
+## 20240407.1
+
 Add lane yield threshold for NovaSeqXPlus 25B FC
 
 ## 20240325.1
