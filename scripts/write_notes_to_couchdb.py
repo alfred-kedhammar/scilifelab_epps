@@ -15,8 +15,11 @@ import yaml
 
 def write_note_to_couch(pid, timestamp, note, lims):
     configf = "~/.statusdb_cred.yaml"
+    config_genstat = "~/config/genstat-conf.yaml"
     with open(os.path.expanduser(configf)) as config_file:
         config = yaml.safe_load(config_file)
+    with open(os.path.expanduser(config_genstat)) as config_file:
+        config.update(yaml.safe_load(config_file))
     if not config["statusdb"]:
         email_responsible(
             f"Statusdb credentials not found in {lims}\n ",
@@ -75,23 +78,21 @@ def write_note_to_couch(pid, timestamp, note, lims):
             trans_table = proj_coord_name.maketrans("áéíóú", "aeiou")
             proj_coord_name_trans = proj_coord_name.translate(trans_table)
             proj_coord = ".".join(proj_coord_name_trans.split()) + "@scilifelab.se"
-            text = (
-                "A note has been created from LIMS in the project {}, {}! The note is as follows\n\
+            text = "A note has been created from LIMS in the project {}, {}! The note is as follows\n\
             >{} - {}{}\
             >{}".format(
-                    pid,
-                    doc["project_name"],
-                    note["user"],
-                    time_in_format,
-                    note.get("category"),
-                    note,
-                )
+                pid,
+                doc["project_name"],
+                note["user"],
+                time_in_format,
+                note.get("category"),
+                note,
             )
 
             html = '<html>\
             <body>\
             <p> \
-            A note has been created from LIMS in the project {}, {}! The note is as follows</p>\
+            A note has been created from LIMS in the project <a href="{}/project/{}">{}, {}</a>! The note is as follows</p>\
             <blockquote>\
             <div class="panel panel-default" style="border: 1px solid #e4e0e0; border-radius: 4px;">\
             <div class="panel-heading" style="background-color: #f5f5f5; padding: 10px 15px;">\
@@ -100,6 +101,8 @@ def write_note_to_couch(pid, timestamp, note, lims):
             <div class="panel-body" style="padding: 15px;">\
                 <p>{}</p>\
             </div></div></blockquote></body></html>'.format(
+                config["genomics-status-url"],
+                pid,
                 pid,
                 doc["project_name"],
                 note["user"],

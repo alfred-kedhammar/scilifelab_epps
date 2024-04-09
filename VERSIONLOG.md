@@ -2,6 +2,10 @@
 
 ## 20240407.1
 
+Add Genstat URL in running notes
+
+## 20240407.1
+
 Add lane yield threshold for NovaSeqXPlus 25B FC
 
 ## 20240325.1
