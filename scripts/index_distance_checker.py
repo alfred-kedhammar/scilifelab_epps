@@ -445,10 +445,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--auto",
-        action='store_true',
-        help=(
-            "Used when the script is running automatically in LIMS."
-        ),
+        action="store_true",
+        help=("Used when the script is running automatically in LIMS."),
     )
     args = parser.parse_args()
 
