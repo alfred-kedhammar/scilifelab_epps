@@ -106,7 +106,7 @@ def verify_index_placement(lims, process, data):
     return message
 
 
-def main(lims, pid):
+def main(lims, pid, auto):
     process = Process(lims, id=pid)
     tech_username = process.technician.username
     data = get_index_layout(process)
@@ -115,7 +115,10 @@ def main(lims, pid):
     warning_end = "== End of Indexes Placement checker EPP warnings =="
 
     if message:
-        sys.stderr.write("; ".join(message))
+        if auto:
+            print("; ".join(message), file=sys.stderr)
+        else:
+            sys.stderr.write("; ".join(message))
         if not process.udf.get("Comments"):
             process.udf["Comments"] = (
                 warning_start
@@ -152,7 +155,8 @@ def main(lims, pid):
                     process.udf["Comments"] += f"\n@{tech_username}\n"
                     process.udf["Comments"] += warning_end
         process.put()
-        sys.exit(2)
+        if not auto:
+            sys.exit(2)
     else:
         print("No issue detected with indexes or placement", file=sys.stderr)
         # Clear previous warning messages if the error has been corrected
@@ -169,8 +173,13 @@ def main(lims, pid):
 if __name__ == "__main__":
     parser = ArgumentParser(description=DESC)
     parser.add_argument("--pid", help="Lims id for current Process")
+    parser.add_argument(
+        "--auto",
+        action="store_true",
+        help=("Used when the script is running automatically in LIMS."),
+    )
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
-    main(lims, args.pid)
+    main(lims, args.pid, args.auto)
