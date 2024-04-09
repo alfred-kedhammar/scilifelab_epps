@@ -354,7 +354,7 @@ def find_barcode(sample_idxs, sample, process):
                     find_barcode(sample_idxs, sample, art.parent_process)
 
 
-def main(lims, pid):
+def main(lims, pid, auto):
     process = Process(lims, id=pid)
     tech_username = process.technician.username
     data, message = prepare_index_table(process)
@@ -367,7 +367,10 @@ def main(lims, pid):
     warning_start = "**Warnings from Verify Indexes and Placement EPP: **\n"
     warning_end = "== End of Verify Indexes and Placement EPP warnings =="
     if message:
-        sys.stderr.write("; ".join(message))
+        if auto:
+            print("; ".join(message), file=sys.stderr)
+        else:
+            sys.stderr.write("; ".join(message))
         if process.type.name == "Library Pooling (Finished Libraries) 4.0":
             if not process.udf.get("Comments"):
                 process.udf["Comments"] = (
@@ -405,7 +408,8 @@ def main(lims, pid):
                         process.udf["Comments"] += f"\n@{tech_username}\n"
                         process.udf["Comments"] += warning_end
             process.put()
-        sys.exit(2)
+        if not auto:
+            sys.exit(2)
     else:
         print("No issue detected with indexes or placement", file=sys.stderr)
         message.append("No issue detected with indexes or placement")
@@ -439,8 +443,15 @@ if __name__ == "__main__":
             "File name for standard log file, " "for runtime information and problems."
         ),
     )
+    parser.add_argument(
+        "--auto",
+        action='store_true',
+        help=(
+            "Used when the script is running automatically in LIMS."
+        ),
+    )
     args = parser.parse_args()
 
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
-    main(lims, args.pid)
+    main(lims, args.pid, args.auto)

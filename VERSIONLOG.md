@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240409.1
+
+Fix issue that sys stderr blocks a step to be completed
+
 ## 20240407.1
 
 Add lane yield threshold for NovaSeqXPlus 25B FC
