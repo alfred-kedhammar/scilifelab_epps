@@ -85,6 +85,13 @@ def verify_index_placement(lims, process, data):
             if index_no and len(index_no) == 1:
                 index_nos.append(index_no[0])
         ## Only perform this check when the number of unique captured indexes matches with samples
+        full_plate_indexes = sorted(
+            [
+                "0" + str(col) + row if len(str(col)) == 1 else str(col) + row
+                for col in range(1, 13)
+                for row in ["A", "B", "C", "D", "E", "F", "G", "H"]
+            ]
+        )
         if index_nos and len(list(set(index_nos))) == len(
             container_info["index_layout"]
         ):
@@ -94,12 +101,12 @@ def verify_index_placement(lims, process, data):
                     % 96
                 )
                 index_no = index_no if index_no != 0 else 96
-                if index_no != full_plate_wells.index(well) + 1:
+                if index_no != full_plate_indexes.index(well) + 1:
                     message.append(
                         "WARNING! Plate {}: Index {} expected in {} but detected in {}!".format(
                             container_info["name"],
                             container_info["index_layout"][well],
-                            full_plate_wells[index_no - 1],
+                            full_plate_indexes[index_no - 1],
                             well,
                         )
                     )
