@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240411.1
+
+Fix bug with plate well index
+
 ## 20240409.1
 
 Fix issue that sys stderr blocks a step to be completed
