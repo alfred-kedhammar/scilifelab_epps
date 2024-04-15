@@ -194,6 +194,10 @@ def verify_orientation(data):
                 )
                 flag_idx_search = True
                 break
+            elif flag_first_sample != flag_last_sample:
+                message.append(f"Inconsistent Index pattern detected for pool {p}")
+                flag_idx_search = True
+                break
         if not flag_idx_search:
             message.append(
                 f"Unable to find matched index set to check orientation for pool {p}"
