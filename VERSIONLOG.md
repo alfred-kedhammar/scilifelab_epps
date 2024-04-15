@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240415.1
+
+Upgrade index checker for finlib to check index orientations
+
 ## 20240411.1
 
 Fix bug with plate well index
