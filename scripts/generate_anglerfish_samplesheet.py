@@ -40,6 +40,8 @@ def generate_anglerfish_samplesheet(process, args):
     df = get_ont_library_contents(
         ont_library=ont_library,
         ont_pooling_step_name=args.pooling_step,
+        print_dataframe=True,
+        list_contents=True,
     )
 
     # Get dict to map ONT barcode label to it's properties
