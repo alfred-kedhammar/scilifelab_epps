@@ -8,16 +8,13 @@ import sys
 from argparse import ArgumentParser
 from datetime import datetime as dt
 
-import pandas as pd
 from generate_minknow_samplesheet import get_ont_library_contents
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
-from data.ONT_barcodes import ONT_BARCODES
 
-from data.Chromium_10X_indexes import Chromium_10X_indexes as idxs_10x
-from epp_utils import udf_tools
-from epp_utils.formula import well_name2num_96plate as well2num
+from data.Chromium_10X_indexes import Chromium_10X_indexes
+from data.ONT_barcodes import ONT_BARCODES
 from scilifelab_epps.epp import upload_file
 
 DESC = """Script to generate Anglerfish samplesheet for ONT runs.
@@ -61,65 +58,15 @@ def generate_anglerfish_samplesheet(process, args):
     else:
         df["fastq_path"] = "./fastq_pass/*.fastq.gz"
 
-    ## TODO old
+    # Extract index sequence and adaptor type
+    df["index_seq"] = df["illumina_index"].apply(lambda x: extract_sequence(x))
+    df["adaptor_type"] = df["illumina_index"].apply(lambda x: get_adaptor_name(x))
 
-    measurements = []
-
-    # Differentiate file outputs from measurements outputs by name, i.e. "P12345_101" vs "Scilifelab SampleSheet"
-    sample_pattern = re.compile(r"P\d{5}_\d{3,4}")
-    for art in process.all_outputs():
-        if re.search(sample_pattern, art.name):
-            measurements.append(art)
-
-    ont_barcode_bools = [
-        udf_tools.fetch(art, "ONT Barcode Well", on_fail=None) is not None
-        for art in measurements
-    ]
-
-    if all(ont_barcode_bools):
-        ont_barcodes = True
-    elif not any(ont_barcode_bools):
-        ont_barcodes = False
-    else:
-        raise AssertionError(
-            "ONT barcodes must be present either for all samples or for none."
-        )
-
-    rows = []
-
-    # Iterate through the samples
-    for sample in measurements:
-        if ont_barcodes:
-            barcode_well = udf_tools.fetch(sample, "ONT Barcode Well")
-
-            if barcode_well not in well2num:
-                barcode_well = barcode_well[0] + ":" + barcode_well[1:]
-            barcode_int = well2num[barcode_well]
-
-            # Assuming the Anglerfish working dir is the ONT run dir
-            fastq_path = f"./fastq_pass/barcode{str(barcode_int).zfill(2)}/*.fastq.gz"
-
-        elif not ont_barcodes:
-            fastq_path = "./fastq_pass/*.fastq.gz"
-
-        index_seq_list, adaptors_name = get_index_info(sample)
-
-        # For multi-index samples, append multiple rows
-        for index_seq in index_seq_list:
-            row = {
-                "sample_name": sample.name,
-                "adaptors": adaptors_name,
-                "index": index_seq,
-                "fastq_path": fastq_path,
-            }
-
-            rows.append(row)
-
-    df = pd.DataFrame(rows)
-    df.sort_values(by="sample_name", inplace=True)
+    # Subset columns
+    df_anglerfish = df[["sample_name", "adaptor_type", "index_seq", "fastq_path"]]
 
     file_name = f"Anglerfish_samplesheet_{process.id}_{TIMESTAMP}.csv"
-    df.to_csv(
+    df_anglerfish.to_csv(
         file_name,
         header=False,
         index=False,
@@ -128,65 +75,44 @@ def generate_anglerfish_samplesheet(process, args):
     return file_name
 
 
-def get_index_info(sample):
-    """
-    Input: LIMS API measurement object
-
-    Output: tuple(
-        List of indexes (either i7 or i7-i5),
-        The name of the adaptors as defined in Anglerfish config
-        )
-    """
-
-    index_seq = None
-
-    assert (
-        len(sample.reagent_labels) == 1
-    ), f"Multiple reagent labels found for sample {sample.name}"
-
-    label = sample.reagent_labels[0]
+def extract_sequence(reagent_label: str) -> str | None:
+    """Extract sequence from string."""
 
     index_pattern = re.compile("[ACTG]{4,}-?[ACTG]{4,}")
-
-    ### Get the index sequence ####
-
-    # 1) Look for idx sequence contained directly in .reagent_labels attribute
-    index_search = re.search(index_pattern, label)
+    index_search = re.search(index_pattern, reagent_label)
 
     if index_search:
-        index_seq = index_search.group()
+        return index_search.group()
+    else:
+        return None
+
+
+def get_adaptor_name(reagent_label: str) -> str | None:
+    """Derive adaptor name from reagent label."""
+
+    seq = extract_sequence(reagent_label)
+
+    if seq:
+        if "-" in seq:
+            return "truseq_dual"
+        else:
+            return "truseq"
+
+    elif reagent_label in Chromium_10X_indexes.keys():
+        matching_10x_indices = Chromium_10X_indexes[reagent_label]
+
+        if len(matching_10x_indices) == 2:
+            # Return i7-i5
+            return "-".join(matching_10x_indices)
+
+        elif len(matching_10x_indices) == 4:
+            # Return list of combination i7 indices
+            return matching_10x_indices
 
     else:
-        # 2) Look for idx among 10X idxs
-        if label in idxs_10x:
-            idx_10x_list = idxs_10x[label]
-
-            if len(idx_10x_list) == 2:
-                # Return i7-i5
-                index_seq = "-".join(idx_10x_list)
-            elif len(idx_10x_list) == 4:
-                # Return list of combination i7 idxs
-                index_seq = idx_10x_list
-            else:
-                raise AssertionError("Unrecognized format of 10X index.")
-
-    ### Get the name of the adaptors ###
-
-    # For now, only support truseq and truseq_dual adaptors TODO
-    if "-" in index_seq:
-        adaptors_name = "truseq_dual"
-    else:
-        adaptors_name = "truseq"
-
-    # Return
-
-    if index_seq:
-        if not isinstance(index_seq, list):
-            index_seq = [index_seq]
-        return index_seq, adaptors_name
-
-    else:
-        assert index_search, f"No index information found for sample {sample.name}"
+        raise AssertionError(
+            f"Could not determine adaptor of reagent label {reagent_label}"
+        )
 
 
 def main():
