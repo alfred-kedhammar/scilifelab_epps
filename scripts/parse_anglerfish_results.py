@@ -11,8 +11,6 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 
-from epp_utils import formula
-from epp_utils.udf_tools import fetch, put
 from scilifelab_epps.epp import upload_file
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
@@ -100,22 +98,6 @@ def parse_data(df_raw: pd.DataFrame):
     )
 
     return df
-
-
-def ont_barcode_well2name(barcode_well: str) -> str:
-    # Add colon if not present
-    if ":" not in barcode_well:
-        barcode_well = f"{barcode_well[0]}:{barcode_well[1:]}"
-
-    # Get the number corresponding to the well (column-wise)
-    barcode_num_str = str(formula.well_name2num_96plate[barcode_well])
-
-    # Pad barcode number with leading zero if necessary
-    if len(barcode_num_str) < 2:
-        barcode_num_str = f"0{barcode_num_str}"
-    barcode_name = f"barcode{barcode_num_str}"
-
-    return barcode_name
 
 
 def fill_udfs(process: Process, df: pd.DataFrame):
