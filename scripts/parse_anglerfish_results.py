@@ -23,12 +23,20 @@ def find_run(process: Process) -> str:
     assert len(process.all_inputs()) == 1, "Expected exactly one input artifact"
 
     run_name = process.all_inputs()[0].udf["ONT run name"]
+
+    # Slap the ONT run name and GenStat link onto the LIMS step for good measure
+    process.udf["ONT run name"] = os.path.basename(run_name)
+    process.udf["GenStat link"] = (
+        f"https://genomics-status.scilifelab.se/flowcells_ont/{run_name}"
+    )
+    process.put()
+
     run_query = f"/srv/ngi-nas-ns/minion_data/qc/{run_name}"
     logging.info(f"Looking for path {run_query}")
 
     run_glob = glob.glob(run_query)
-    assert len(run_glob) != 0, "Path doesn't exist"
-    assert len(run_glob) == 1, "Multiple paths found"
+    assert len(run_glob) != 0, f"Path {run_query} doesn't exist"
+    assert len(run_glob) == 1, f"Multiple paths found for query {run_query}"
 
     run_path = run_glob[0]
     logging.info(f"Using run path {run_path}")
@@ -157,14 +165,6 @@ def fill_udfs(process: Process, df: pd.DataFrame):
 
 def parse_anglerfish_results(process, lims):
     run_path = find_run(process)
-
-    # Slap the ONT run name and GenStat link onto the LIMS step for good measure
-    run_name = os.path.basename(run_path)
-    process.udf["ONT run name"] = os.path.basename(run_name)
-    process.udf["GenStat link"] = (
-        f"https://genomics-status.scilifelab.se/flowcells_ont/{run_name}"
-    )
-    process.put()
 
     latest_anglerfish_run_path = find_latest_anglerfish_run(run_path)
 
