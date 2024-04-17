@@ -157,6 +157,11 @@ def fill_udfs(process: Process, df: pd.DataFrame):
 
 def parse_anglerfish_results(process, lims):
     run_path = find_run(process)
+
+    # Slap the ONT run name onto the LIMS step for good measure
+    process.udf["ONT run name"] = os.path.basename(run_path)
+    process.put()
+
     latest_anglerfish_run_path = find_latest_anglerfish_run(run_path)
 
     upload_anglerfish_text_results(lims, process, latest_anglerfish_run_path)
