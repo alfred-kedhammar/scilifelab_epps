@@ -158,8 +158,12 @@ def fill_udfs(process: Process, df: pd.DataFrame):
 def parse_anglerfish_results(process, lims):
     run_path = find_run(process)
 
-    # Slap the ONT run name onto the LIMS step for good measure
-    process.udf["ONT run name"] = os.path.basename(run_path)
+    # Slap the ONT run name and GenStat link onto the LIMS step for good measure
+    run_name = os.path.basename(run_path)
+    process.udf["ONT run name"] = os.path.basename(run_name)
+    process.udf["GenStat link"] = (
+        f"https://genomics-status.scilifelab.se/flowcells_ont/{run_name}"
+    )
     process.put()
 
     latest_anglerfish_run_path = find_latest_anglerfish_run(run_path)
