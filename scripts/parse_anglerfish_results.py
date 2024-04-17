@@ -104,6 +104,10 @@ def parse_data(df_raw: pd.DataFrame):
         else None,
         axis=1,
     )
+    # Get barcode number from ID
+    df["ont_barcode_id"] = df["ont_barcode"].apply(
+        lambda x: int(str(x)[-2:]) if pd.notna(x) else None
+    )
 
     return df
 
@@ -124,9 +128,6 @@ def fill_udfs(process: Process, df: pd.DataFrame):
     ), "Number of samples demultiplexed in LIMS does not correspond to \
     number of sample rows in Anglerfish results."
 
-    # Get barcode number from ID
-    df["ont_barcode_id"] = df["ont_barcode"].apply(lambda x: int(x[-2:]))
-
     # Relate UDF names to dataframe column names
     udf2col = {
         "# Reads": "num_reads",
@@ -144,8 +145,9 @@ def fill_udfs(process: Process, df: pd.DataFrame):
         # Assign UDFs
         for udf, col in udf2col.items():
             try:
-                value = float(sample_row[col].values[0])
-                measurement.udf[udf] = value
+                if pd.notna(sample_row[col].values[0]):
+                    value = float(sample_row[col].values[0])
+                    measurement.udf[udf] = value
             except:
                 errors = True
                 logging.error(
