@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240417.1
+
+Update lane yield thresholds for NovaSeqXPlus 1.5B and 25B FC
+
 ## 20240415.1
 
 Upgrade index checker for finlib to check index orientations
