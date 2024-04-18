@@ -121,7 +121,7 @@ def get_ont_library_contents(
                 for ont_sample, ont_barcode in zip(
                     ont_pooling_input.samples, ont_pooling_input.reagent_labels
                 ):
-                    pool_contents_msg += f"\n\t - '{ont_pooling_input.name}: ONT sample with barcode '{ont_barcode}'"
+                    pool_contents_msg += f"\n\t - '{ont_pooling_input.name}': ONT sample with barcode '{ont_barcode}'"
                     rows.append(
                         {
                             "sample_name": ont_sample.name,
