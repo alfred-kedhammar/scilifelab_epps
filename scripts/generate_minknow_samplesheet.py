@@ -342,7 +342,7 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
                 assert ont_barcodes, f"ONT expansion kit is assigned, but no ONT barcodes were found within library {ont_library.name}"
 
                 # Append rows for each barcode
-                alias_column_name = "illumina_pool_name" if qc else "ont_pool_name"
+                alias_column_name = "illumina_pool_name" if qc else "sample_name"
                 barcode_rows_data = (
                     library_df[[alias_column_name, "ont_barcode"]]
                     .drop_duplicates()
