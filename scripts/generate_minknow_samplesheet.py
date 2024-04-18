@@ -289,6 +289,8 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
             library_df = get_ont_library_contents(
                 ont_library=ont_library,
                 ont_pooling_step_name=args.pooling_step,
+                list_contents=True,
+                print_dataframe=True,
             )
             qc = True if "illumina_index" in library_df.columns else False
             logging.info(f"'{ont_library.name}' parsed as {'QC' if qc else 'user'} run")
