@@ -510,12 +510,12 @@ def traceback_to_step(
         # Loop until return, or as long as there is a parent process
         while current_art.parent_process:
             current_pp = current_art.parent_process
-            logging.debug(f"Backtracking to parent process '{current_pp.type.name}'")
+            logging.info(f"Backtracking to parent process '{current_pp.type.name}'")
 
             input_arts = get_matching_inputs(current_pp, current_art)
 
             if step_name_contains in current_pp.type.name:
-                logging.debug(
+                logging.info(
                     f"Found matching step '{current_pp.type.name}'. Returning."
                 )
                 return (current_pp, input_arts, current_art)

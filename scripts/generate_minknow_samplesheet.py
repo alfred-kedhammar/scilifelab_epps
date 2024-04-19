@@ -5,7 +5,7 @@ import os
 import re
 import shutil
 import sys
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser
 from datetime import datetime as dt
 
 import pandas as pd
