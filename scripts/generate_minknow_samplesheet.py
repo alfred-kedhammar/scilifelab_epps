@@ -458,7 +458,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        file_name = generate_MinKNOW_samplesheet(process=process, args=args)
+        file_name = generate_MinKNOW_samplesheet(process=process)
         logging.info("Uploading samplesheet to LIMS...")
         upload_file(
             file_name,
