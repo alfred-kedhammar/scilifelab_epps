@@ -506,35 +506,31 @@ def traceback_to_step(
         f"Backtracking artifact '{current_art.name}' to '{step_name_contains}'-step, from step '{current_art.parent_process.type.name}'"
     )
 
-    try:
-        # Loop until return, or as long as there is a parent process
-        while current_art.parent_process:
-            current_pp = current_art.parent_process
-            logging.info(f"Backtracking to parent process '{current_pp.type.name}'")
+    # Loop until return, or as long as there is a parent process
+    while current_art.parent_process is not None:
+        current_pp = current_art.parent_process
+        logging.info(f"Backtracking to parent process '{current_pp.type.name}'")
 
-            input_arts = get_matching_inputs(current_pp, current_art)
+        input_arts = get_matching_inputs(current_pp, current_art)
 
-            if step_name_contains in current_pp.type.name:
-                logging.info(
-                    f"Found matching step '{current_pp.type.name}'. Returning."
-                )
-                return (current_pp, input_arts, current_art)
-            elif len(input_arts) > 1:
-                msg = f"Output artifact {current_art.name} in step {current_pp} has multiple inputs. Can't traceback further."
-                logging.info(msg)
-                if allow_multiple_inputs:
-                    return None
-                else:
-                    raise AssertionError(msg)
+        if step_name_contains in current_pp.type.name:
+            logging.info(f"Found matching step '{current_pp.type.name}'. Returning.")
+            return (current_pp, input_arts, current_art)
+        elif len(input_arts) > 1:
+            msg = f"Output artifact {current_art.name} in step {current_pp} has multiple inputs. Can't traceback further."
+            logging.info(msg)
+            if allow_multiple_inputs:
+                return None
             else:
-                # Continue backtracking
-                current_art = input_arts[0]
+                raise AssertionError(msg)
+        else:
+            # Continue backtracking
+            current_art = input_arts[0]
 
-    except AttributeError:
-        logging.info(
-            f"Traceback reached the beginning of the process tree ('{current_pp.type.name}')"
-        )
-        return None
+    logging.info(
+        f"Traceback reached the beginning of the process tree ('{current_pp.type.name}')"
+    )
+    return None
 
 
 def upload_file(
