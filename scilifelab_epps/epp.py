@@ -488,7 +488,7 @@ def get_matching_inputs(
 
 
 def traceback_to_step(
-    art: Artifact, step_name: str, allow_multiple_inputs: bool = False
+    art: Artifact, step_name_contains: str, allow_multiple_inputs: bool = False
 ) -> tuple[Process, list[Artifact], Artifact] | None:
     """For an artifact try to backtrack it to a target step.
 
@@ -501,10 +501,9 @@ def traceback_to_step(
 
     """
 
-    # Set argument as current pool
     current_art = art
     logging.info(
-        f"Backtracking to target step '{step_name}' from artifact '{current_art.name}' originating in step '{current_art.parent_process.type.name}'"
+        f"Backtracking artifact '{current_art.name}' to '{step_name_contains}'-step, from step '{current_art.parent_process.type.name}'"
     )
 
     try:
@@ -515,8 +514,10 @@ def traceback_to_step(
 
             input_arts = get_matching_inputs(current_pp, current_art)
 
-            if step_name in current_pp.type.name:
-                logging.debug("Found matching step. Returning.")
+            if step_name_contains in current_pp.type.name:
+                logging.debug(
+                    f"Found matching step '{current_pp.type.name}'. Returning."
+                )
                 return (current_pp, input_arts, current_art)
             elif len(input_arts) > 1:
                 msg = f"Output artifact {current_art.name} in step {current_pp} has multiple inputs. Can't traceback further."
