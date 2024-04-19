@@ -132,7 +132,6 @@ def write_to_doc(
 
     library_df = get_ont_library_contents(
         ont_library=art,
-        ont_pooling_step_name=args.pooling_step,
         list_contents=True,
         print_dataframe=True,
     )
@@ -248,12 +247,6 @@ def main():
         required=True,
         type=str,
         help="Which samplesheet file slot to use",
-    )
-    parser.add_argument(
-        "--pooling_step",
-        required=True,
-        type=str,
-        help="Name of pooling step to traceback to",
     )
     args: Namespace = parser.parse_args()
 

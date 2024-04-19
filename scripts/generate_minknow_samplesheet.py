@@ -27,7 +27,6 @@ SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 def get_ont_library_contents(
     ont_library: Artifact,
-    ont_pooling_step_name: str,
     list_contents: bool = False,
     print_dataframe: bool = False,
 ) -> pd.DataFrame:
@@ -48,7 +47,7 @@ def get_ont_library_contents(
     logging.info(
         f"Compiling sample-level information for library '{ont_library.name}'..."
     )
-    pool_contents_msg = f"ONT sequencing library '{ont_library.name}' consists of:"
+    library_contents_msg = f"ONT sequencing library '{ont_library.name}' consists of:"
 
     # Instantiate list to collect dataframe rows
     rows = []
@@ -61,7 +60,7 @@ def get_ont_library_contents(
 
     # See if library can be backtracked to an ONT pooling step
     ont_pooling_traceback = traceback_to_step(
-        ont_library, ont_pooling_step_name, allow_multiple_inputs=True
+        ont_library, "Pooling", allow_multiple_inputs=True
     )
     if ont_pooling_traceback is not None:
         # Remaining possibilities:
@@ -72,7 +71,7 @@ def get_ont_library_contents(
             ont_pooling_traceback
         )
 
-        pool_contents_msg += f"\n - '{ont_pooling_output.name}': ONT-barcoded pool"
+        library_contents_msg += f"\n - '{ont_pooling_output.name}': ONT-barcoded pool"
 
         # Iterate across ONT pooling inputs
         for ont_pooling_input in ont_pooling_inputs:
@@ -89,12 +88,12 @@ def get_ont_library_contents(
                     udf_ont_barcode_well.upper().replace(":", "")
                 ]
 
-                pool_contents_msg += f"\n\t - '{ont_pooling_input.name}': Illumina indexed pool with ONT-barcode '{ont_barcode}'"
+                library_contents_msg += f"\n\t - '{ont_pooling_input.name}': Illumina indexed pool with ONT-barcode '{ont_barcode}'"
 
                 for sample, illumina_index in zip(
                     ont_pooling_input.samples, ont_pooling_input.reagent_labels
                 ):
-                    pool_contents_msg += f"\n\t\t - '{sample.name}': Illumina sample with index '{illumina_index}'."
+                    library_contents_msg += f"\n\t\t - '{sample.name}': Illumina sample with index '{illumina_index}'."
                     rows.append(
                         {
                             "sample_name": sample.name,
@@ -121,7 +120,7 @@ def get_ont_library_contents(
                 for ont_sample, ont_barcode in zip(
                     ont_pooling_input.samples, ont_pooling_input.reagent_labels
                 ):
-                    pool_contents_msg += f"\n\t - '{ont_pooling_input.name}': ONT sample with barcode '{ont_barcode}'"
+                    library_contents_msg += f"\n\t - '{ont_pooling_input.name}': ONT sample with barcode '{ont_barcode}'"
                     rows.append(
                         {
                             "sample_name": ont_sample.name,
@@ -150,7 +149,7 @@ def get_ont_library_contents(
             for sample, illumina_index in zip(
                 ont_library.samples, ont_library.reagent_labels
             ):
-                pool_contents_msg += f"\n - '{sample.name}': Illumina sample with index '{illumina_index}'."
+                library_contents_msg += f"\n - '{sample.name}': Illumina sample with index '{illumina_index}'."
                 rows.append(
                     {
                         "sample_name": sample.name,
@@ -168,7 +167,7 @@ def get_ont_library_contents(
             # (4) No labels
             sample = ont_library.samples[0]
 
-            pool_contents_msg += f"\n - {sample.name}: Non-labeled sample"
+            library_contents_msg += f"\n - {sample.name}: Non-labeled sample"
             rows.append(
                 {
                     "sample_name": sample.name,
@@ -179,7 +178,7 @@ def get_ont_library_contents(
             )
 
     if list_contents:
-        logging.info(pool_contents_msg)
+        logging.info(library_contents_msg)
 
     df = pd.DataFrame(rows)
     table_str = tabulate(df, headers=df.columns)
@@ -288,7 +287,6 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
             # i.e. if the ONT pooling inputs consist of Illumina pools
             library_df = get_ont_library_contents(
                 ont_library=ont_library,
-                ont_pooling_step_name=args.pooling_step,
                 list_contents=True,
                 print_dataframe=True,
             )
@@ -424,12 +422,6 @@ def main():
         required=True,
         type=str,
         help="Samplesheet file slot",
-    )
-    parser.add_argument(
-        "--pooling_step",
-        required=True,
-        type=str,
-        help="Name of ONT pooling step",
     )
     args = parser.parse_args()
 

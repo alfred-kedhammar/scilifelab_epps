@@ -39,7 +39,6 @@ def generate_anglerfish_samplesheet(process, args):
 
     df = get_ont_library_contents(
         ont_library=ont_library,
-        ont_pooling_step_name=args.pooling_step,
         print_dataframe=True,
         list_contents=True,
     )
@@ -137,12 +136,6 @@ def main():
         required=True,
         type=str,
         help="Which file slot to use for the samplesheet.",
-    )
-    parser.add_argument(
-        "--pooling_step",
-        required=True,
-        type=str,
-        help="Name of ONT pooling step",
     )
     args = parser.parse_args()
 
