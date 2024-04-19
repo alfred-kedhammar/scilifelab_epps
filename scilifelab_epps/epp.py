@@ -539,7 +539,7 @@ def upload_file(
     file_slot: str,
     process: Process,
     lims: Lims,
-    remove=True,
+    remove=False,
 ):
     for out in process.all_outputs():
         if out.name == file_slot:
