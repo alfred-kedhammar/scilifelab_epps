@@ -535,7 +535,11 @@ def traceback_to_step(
 
 
 def upload_file(
-    file_path: str, file_slot: str, process: Process, lims: Lims, remove=False
+    file_path: str,
+    file_slot: str,
+    process: Process,
+    lims: Lims,
+    remove=True,
 ):
     for out in process.all_outputs():
         if out.name == file_slot:
