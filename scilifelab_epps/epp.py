@@ -531,6 +531,9 @@ def traceback_to_step(
                 current_art = input_arts[0]
 
     except AttributeError:
+        logging.info(
+            f"Traceback reached the beginning of the process tree ('{current_pp.type.name}')"
+        )
         return None
 
 
