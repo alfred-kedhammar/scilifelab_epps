@@ -97,13 +97,24 @@ def get_matching_db_rows(
     """Find the rows in the database view that match the given artifact."""
     matching_rows = []
 
+    qc = True if "QC" in process.type.name else False
+    logging.info(f"QC run: {qc}")
+
     # If run name is not supplied, try to find it in the database, assuming it follows the samplesheet naming convention
     if run_name is None:
         # Define query pattern
-        if art.udf["ONT flow cell position"] != "None":
-            pattern = rf"(QC_)?{process.id}/(QC_)?{sanitize_string(art.name)}/[^/]*_{art.udf['ONT flow cell position']}_{art.udf['ONT flow cell ID']}_[^/]*"
-        else:
-            pattern = rf"(QC_)?{process.id}/(QC_)?{sanitize_string(art.name)}/[^/]*_{art.udf['ONT flow cell ID']}_[^/]*"
+        experiment_name = process.id if not qc else f"QC_{process.id}"
+        sample_name = (
+            sanitize_string(art.name) if not qc else f"QC_{sanitize_string(art.name)}"
+        )
+        position = (
+            art.udf["ONT flow cell position"]
+            if art.udf["ONT flow cell position"] != "None"
+            else "MN19414"
+        )
+
+        pattern = rf"{experiment_name}/{sample_name}/[^/]*_{position}_{art.udf['ONT flow cell ID']}_[^/]*"
+
         logging.info(
             f"No run name supplied. Quering the database for run with path pattern '{pattern}'."
         )

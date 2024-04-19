@@ -36,8 +36,6 @@ def get_ont_library_contents(
     sample and index information and decide whether to demultiplex at the level of
     ONT barcodes, Illumina indices, both or neither.
 
-    The logic is a bit messy to accommodate both the QC and non-QC workflows.
-
     """
 
     ont_barcode_well2label: dict[str:str] = {
@@ -241,7 +239,7 @@ def write_minknow_csv(df: pd.DataFrame, file_path: str):
     df_csv.to_csv(file_path, index=False)
 
 
-def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
+def generate_MinKNOW_samplesheet(process: Process):
     """=== Sample sheet columns ===
 
     flow_cell_id                E.g. 'PAM96489'
@@ -265,6 +263,9 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
     - barcode
 
     """
+    qc = True if "QC" in process.type.name else False
+    logging.info(f"QC run: {qc}")
+
     errors = []
 
     valid_flowcell_type_strings = [
@@ -290,8 +291,6 @@ def generate_MinKNOW_samplesheet(process: Process, args: Namespace):
                 list_contents=True,
                 print_dataframe=True,
             )
-            qc = True if "illumina_index" in library_df.columns else False
-            logging.info(f"'{ont_library.name}' parsed as {'QC' if qc else 'user'} run")
             ont_barcodes = True if "ont_barcode" in library_df.columns else False
             logging.info(
                 f"'{ont_library.name}' parsed as containing {'' if ont_barcodes else 'no '}ONT barcodes"
