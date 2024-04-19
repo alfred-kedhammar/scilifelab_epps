@@ -219,7 +219,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        send_reloading_info_to_db(process, lims)
+        send_reloading_info_to_db(process)
     except Exception as e:
         # Post error to LIMS GUI
         logging.error(e)
