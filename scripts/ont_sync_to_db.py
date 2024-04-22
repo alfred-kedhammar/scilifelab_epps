@@ -155,6 +155,8 @@ def write_to_doc(
         "operator": process.technician.name,
         "load_fmol": art.udf["ONT flow cell loading amount (fmol)"],
         "load_vol": art.udf["Volume to take (uL)"],
+        "library_name": art.name,
+        "library_id": art.id,
         "sample_data": library_df.to_dict(orient="records"),
     }
 
