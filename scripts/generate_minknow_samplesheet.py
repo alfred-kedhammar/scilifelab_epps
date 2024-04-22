@@ -38,9 +38,9 @@ def get_ont_library_contents(
 
     """
 
-    ont_barcode_well2label: dict[str:str] = {
-        ont_barcode["well"]: ont_barcode["label"] for ont_barcode in ONT_BARCODES
-    }
+    ont_barcode_well2label = {}
+    for ont_barcode_dict in ONT_BARCODES:
+        ont_barcode_well2label[ont_barcode_dict["well"]] = ont_barcode_dict["label"]
 
     logging.info(
         f"Compiling sample-level information for library '{ont_library.name}'..."
@@ -82,9 +82,8 @@ def get_ont_library_contents(
                     ont_pooling_input, "ONT Barcode Well", on_fail=None
                 )
                 assert udf_ont_barcode_well, f"Pooling input '{ont_pooling_input.name}' consists of multiple samples, but has not been assigned an ONT barcode."
-                ont_barcode = ont_barcode_well2label[
-                    udf_ont_barcode_well.upper().replace(":", "")
-                ]
+                sanitized_well = udf_ont_barcode_well.upper().replace(":", "")
+                ont_barcode = ont_barcode_well2label[sanitized_well]
 
                 library_contents_msg += f"\n\t - '{ont_pooling_input.name}': Illumina indexed pool with ONT-barcode '{ont_barcode}'"
 
@@ -353,6 +352,9 @@ def generate_MinKNOW_samplesheet(process: Process):
                         ONT_BARCODE_LABEL_PATTERN,
                         barcode_row_data["ont_barcode"],
                     )
+                    assert (
+                        barcode_label_match
+                    ), f"Could not parse barcode '{barcode_row_data['ont_barcode']}'."
                     barcode_id = barcode_label_match.group(2)
                     row["barcode"] = f"barcode{barcode_id}"
 

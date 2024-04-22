@@ -88,7 +88,7 @@ def extract_sequence(reagent_label: str) -> str | None:
         return None
 
 
-def get_adaptor_name(reagent_label: str) -> str | None:
+def get_adaptor_name(reagent_label: str) -> str | list[str]:
     """Derive adaptor name from reagent label."""
 
     seq = extract_sequence(reagent_label)
@@ -109,6 +109,11 @@ def get_adaptor_name(reagent_label: str) -> str | None:
         elif len(matching_10x_indices) == 4:
             # Return list of combination i7 indices
             return matching_10x_indices
+
+        else:
+            raise AssertionError(
+                f"Could not determine adaptor of reagent label {reagent_label}"
+            )
 
     else:
         raise AssertionError(

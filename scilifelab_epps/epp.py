@@ -513,6 +513,7 @@ def traceback_to_step(
         logging.info(f"Backtracking to parent process '{current_pp.type.name}'")
 
         input_arts = get_matching_inputs(current_pp, current_art)
+        assert input_arts is not None, "No matching input artifacts found."
 
         match = re.match(step_name_pattern, current_pp.type.name)
 
