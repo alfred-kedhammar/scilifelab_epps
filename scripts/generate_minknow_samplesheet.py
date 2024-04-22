@@ -112,7 +112,7 @@ def get_ont_library_contents(
                 # (2) ONT-barcodes only
                 assert (
                     len(ont_pooling_input.reagent_labels) == 1
-                ), f"ONT-pooling input '{ont_pooling_input.name}' lacks any reagent labels."
+                ), f"ONT-pooling input '{ont_pooling_input.name}' lacks any reagent labels. Mixing barcoded and non-barcoded samples is not allowed."
 
                 # ONT barcode-level demultiplexing
                 for ont_sample, ont_barcode in zip(
