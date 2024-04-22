@@ -9,13 +9,13 @@ Copyright (C) 2013 Johannes Alneberg
 import csv
 import logging
 import os
+import re
 import sys
 from logging.handlers import RotatingFileHandler
 from shutil import copy
 from time import localtime, strftime
 
 import pkg_resources
-import re
 from genologics.config import MAIN_LOG
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
