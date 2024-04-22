@@ -58,7 +58,7 @@ def get_ont_library_contents(
 
     # See if library can be backtracked to an ONT pooling step
     ont_pooling_traceback = traceback_to_step(
-        ont_library, "Pooling", allow_multiple_inputs=True
+        ont_library, re.compile(r"ONT.*Pooling"), allow_multiple_inputs=True
     )
     if ont_pooling_traceback is not None:
         # Remaining possibilities:

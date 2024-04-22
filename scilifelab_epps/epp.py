@@ -15,6 +15,7 @@ from shutil import copy
 from time import localtime, strftime
 
 import pkg_resources
+import re
 from genologics.config import MAIN_LOG
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
@@ -488,9 +489,9 @@ def get_matching_inputs(
 
 
 def traceback_to_step(
-    art: Artifact, step_name_contains: str, allow_multiple_inputs: bool = False
+    art: Artifact, step_name_pattern: re.Pattern, allow_multiple_inputs: bool = False
 ) -> tuple[Process, list[Artifact], Artifact] | None:
-    """For an artifact try to backtrack it to a target step.
+    """For an artifact try to backtrack it to a target step based on a supplied pattern.
 
     Returns:
     - The target step
@@ -503,7 +504,7 @@ def traceback_to_step(
 
     current_art = art
     logging.info(
-        f"Attempting to backtrack artifact '{current_art.name}' to '{step_name_contains}'-step, from step '{current_art.parent_process.type.name}'"
+        f"Attempting to backtrack artifact '{current_art.name}' to step matching pattern {step_name_pattern}, from step '{current_art.parent_process.type.name}'"
     )
 
     # Loop until return, or as long as there is a parent process
@@ -513,7 +514,9 @@ def traceback_to_step(
 
         input_arts = get_matching_inputs(current_pp, current_art)
 
-        if step_name_contains in current_pp.type.name:
+        match = re.match(step_name_pattern, current_pp.type.name)
+
+        if match:
             logging.info(f"Found matching step '{current_pp.type.name}'. Returning.")
             return (current_pp, input_arts, current_art)
         elif len(input_arts) > 1:
