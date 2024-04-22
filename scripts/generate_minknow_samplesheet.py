@@ -363,7 +363,7 @@ def generate_MinKNOW_samplesheet(process: Process):
 
         except AssertionError as e:
             logging.error(str(e), exc_info=True)
-            logging.warning(f"Skipping {ont_library.name} due to error.")
+            logging.warning(f"Skipping '{ont_library.name}' due to error.")
             errors.append(ont_library.name)
             continue
 
