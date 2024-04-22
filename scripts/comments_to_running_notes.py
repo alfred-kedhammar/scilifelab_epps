@@ -38,6 +38,7 @@ def categorization(process_name):
         "Bioanalyzer QC (DNA) 4.0": "Workset",
         "Bioanalyzer QC (Library Validation) 4.0": "Workset",
         "Bioanalyzer QC (RNA) 4.0": "Workset",
+        "cDNA QC": "",
         "CA Purification": "Workset",
         "CaliperGX QC (DNA)": "",
         "CaliperGX QC (RNA)": "",

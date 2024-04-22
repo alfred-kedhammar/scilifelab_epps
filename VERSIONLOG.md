@@ -1,8 +1,68 @@
 # Scilifelab_epps Version Log
 
-## 20240422.1
+## 20240422.3
 
 Major ONT update and new module 'calc_from_args' for generalized calculations.
+
+## 20240422.2
+
+Update GHA script to check VERSIONLOG.md diff to compare the latest PR-commit to the latest upstream/master commit instead of the commit at the base of the PR-branch.
+
+## 20240422.1
+
+Fix bug that seq_platform cannot be fetched when sample ID is in a wrong format
+
+## 20240417.1
+
+Update lane yield thresholds for NovaSeqXPlus 1.5B and 25B FC
+
+## 20240415.1
+
+Upgrade index checker for finlib to check index orientations
+
+## 20240411.1
+
+Fix bug with plate well index
+
+## 20240409.1
+
+Fix issue that sys stderr blocks a step to be completed
+
+## 20240407.1
+
+Add Genstat URL in running notes
+
+## 20240407.1
+
+Add lane yield threshold for NovaSeqXPlus 25B FC
+
+## 20240325.1
+
+Upgrade index_placement_checker to check expected index position
+
+## 20240320.4
+
+Enable index_distance_checker to catch case that one sample with multiple indexes
+
+## 20240320.3
+
+Enable index_placement_checker to verify index set
+
+## 20240320.2
+
+Improve warning messages for index_distance_checker
+
+## 20240320.1
+
+Add cDNA QC in comments_to_running_notes
+
+## 20240319.1
+
+New EPP for checking index placement for inhouse workset
+
+## 20240318.1
+
+Add lane yield threshold for NovaSeqXPlus 1.5B FC
 
 ## 20240315.2
 
