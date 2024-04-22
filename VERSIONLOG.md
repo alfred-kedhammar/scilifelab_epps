@@ -1,5 +1,33 @@
 # Scilifelab_epps Version Log
 
+## 20240315.2
+
+ruff format linting
+
+## 20240315.1
+
+Handle special cases for Miseq samplesheet
+
+## 20240307.1
+
+Add PCR machine as UDF to "CytAssist Probe Release and Extension".
+
+## 20240305.1
+
+Add CytAssist electronic logbook.
+
+## 20240229.2
+
+Add PCR instrument logbook automation for Visium CytAssist protocol steps.
+
+## 20240229.1
+
+Add Biomek to "Selection, cDNA Synthesis and Library Construction" step.
+
+## 20240215.1
+
+Treat RAD-seq as regular pooling step, requested by Hamid.
+
 ## 20240208.1
 
 In Anglerfish parsing, only try to assign barcode-specific UDFs for barcoded samples.

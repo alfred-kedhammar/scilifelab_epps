@@ -110,11 +110,21 @@ lims_process_record = {
     "Capture And Wash (SS XT) 4.0": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]}
     },
+    "CytAssist Probe release and Extension": {
+        "lims_instrument": {"dest_file": "CytAssist", "details": ["Processname"]},
+        "udf_PCR Machine": {"dest_file": "PCR"},
+    },
+    "Decrosslinking and/or Destaining": {
+        "lims_instrument": {"dest_file": "PCR"},
+    },
     "Denature, Dilute and Load Sample (MiSeq) 4.0": {
         "udf_Instrument Used": {
             "dest_file": "MiSeq",
             "details": ["Flowcell ID", "RGT#s"],
         }
+    },
+    "Deparafinization, H&E, Tissue Imaging": {
+        "lims_instrument": {"dest_file": "PCR"},
     },
     "Diluting Samples": {
         "lims_instrument": {
@@ -152,6 +162,9 @@ lims_process_record = {
         "udf_Bravo": {"dest_file": "Bravo", "details": ["Processname"]},
     },
     "Enrich DNA fragments (TruSeq RNA) 4.0": {"lims_instrument": {"dest_file": "PCR"}},
+    "Fixation, H&E, Tissue Imaging": {
+        "lims_instrument": {"dest_file": "PCR"},
+    },
     "Fragment Analyzer QC (DNA) 4.0": {
         "lims_instrument": {
             "dest_file": "FragmentAnalyzer",
@@ -453,7 +466,10 @@ lims_process_record = {
         "udf_PCR Machine": {"dest_file": "PCR"},
     },
     "Selection, cDNA Synthesis and Library Construction": {
-        "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]}
+        "lims_instrument": {
+            "dest_file": ["Bravo", "Biomek"],
+            "details": ["Processname"],
+        }
     },
     "Setup Workset/Plate": {
         "lims_instrument": {
@@ -510,4 +526,5 @@ GDoc_logbook = {
     "Qubit": {"File": "1-sByQA6XVrbli0V24n4CxdxogLUlRlGvykkxOpBG-_U"},
     "Speedvac": {"File": "1Dk7qPJeNmzKtHWEdNkZ4yLB0FycjREqqIhNhInZ8G9g"},
     "Tecan": {"File": "1DUBEL8DBf0lnXJjIIjowQf2PrftMo9ECXpeNrDodM4s"},
+    "CytAssist": {"File": "1sV0qefMAixVlnxGzB2q-YfcSl8a5Y69mAl555KfhU7Q"},
 }

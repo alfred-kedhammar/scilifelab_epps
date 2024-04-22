@@ -431,7 +431,7 @@ def lims_for_miseq(process, run_dir):
     process.udf["Workflow"] = (
         runParameters["Workflow"]["Analysis"]
         if runParameters.get("Workflow")
-        else runParameters["ModuleName"]
+        else runParameters.get("ModuleName", "NA")
     )
     # Put in LIMS
     process.put()

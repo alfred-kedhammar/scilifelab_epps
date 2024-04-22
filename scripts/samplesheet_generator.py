@@ -264,9 +264,8 @@ def gen_NovaSeqXPlus_lane_data(pro):
     return (content, data)
 
 
-def gen_Miseq_header(pro):
+def gen_Miseq_header(pro, chem):
     project_name = pro.all_inputs()[0].samples[0].project.name
-    chem = "amplicon"
     header = "[Header]\nInvestigator Name,{inn}\nProject Name,{pn}\nExperiment Name,{en}\nDate,{dt}\nWorkflow,{wf}\nModule,{mod}\nAssay,{ass}\nDescription,{dsc}\nChemistry,{chem}\n".format(
         inn=pro.technician.name,
         pn=project_name,
@@ -308,7 +307,15 @@ def gen_Miseq_settings(pro):
     return settings
 
 
+def is_key_empty_in_all_dicts(key, list_of_dicts):
+    for dictionary in list_of_dicts:
+        if key not in dictionary or dictionary[key] != "":
+            return False
+    return True
+
+
 def gen_Miseq_data(pro):
+    chem = "amplicon"
     data = []
     header_ar = [
         "FCID",
@@ -323,6 +330,20 @@ def gen_Miseq_data(pro):
         "Recipe",
         "Operator",
         "Sample_Project",
+    ]
+    key_order = [
+        "fc",
+        "lane",
+        "sn",
+        "sn",
+        "ref",
+        "idx1",
+        "idx2",
+        "pj",
+        "ct",
+        "rc",
+        "op",
+        "pj",
     ]
     for out in pro.all_outputs():
         if out.type == "Analyte":
@@ -441,7 +462,10 @@ def gen_Miseq_data(pro):
                                 )
                                 data.append(sp_obj_sub)
                     # NoIndex cases
-                    elif idxs[0].replace(",", "").upper() == "NOINDEX":
+                    elif idxs[0].replace(",", "").upper() == "NOINDEX" or (
+                        idxs[0].replace(",", "").upper() == ""
+                        and idxs[1].replace(",", "").upper() == ""
+                    ):
                         sp_obj["idx1"] = ""
                         sp_obj["idx2"] = ""
                         data.append(sp_obj)
@@ -463,23 +487,22 @@ def gen_Miseq_data(pro):
                         else:
                             sp_obj["idx2"] = ""
                         data.append(sp_obj)
+
+    if is_key_empty_in_all_dicts("idx1", data):
+        header_ar.remove("index")
+        key_order.remove("idx1")
+        chem = "Default"
+    if is_key_empty_in_all_dicts("idx2", data):
+        header_ar.remove("index2")
+        key_order.remove("idx2")
+        chem = "Default"
+
     header = "{}\n".format(",".join(header_ar))
     str_data = ""
     for line in sorted(data, key=lambda x: x["lane"]):
-        l_data = [
-            line["fc"],
-            line["lane"],
-            line["sn"],
-            line["sn"],
-            line["ref"],
-            line["idx1"],
-            line["idx2"],
-            line["pj"],
-            line["ct"],
-            line["rc"],
-            line["op"],
-            line["pj"],
-        ]
+        l_data = []
+        for key in key_order:
+            l_data.append(line[key])
         str_data = str_data + ",".join(l_data) + "\n"
 
     content = f"{header}{str_data}"
@@ -488,7 +511,7 @@ def gen_Miseq_data(pro):
     content = df.to_csv(index=False)
     content = f"[Data]\n{content}\n"
 
-    return (content, data)
+    return (content, data, chem)
 
 
 def gen_Nextseq_lane_data(pro):
@@ -749,10 +772,10 @@ def main(lims, args):
                     log.append(str(e))
 
         elif process.type.name == "Denature, Dilute and Load Sample (MiSeq) 4.0":
-            header = gen_Miseq_header(process)
             reads = gen_Miseq_reads(process)
             settings = gen_Miseq_settings(process)
-            (content, obj) = gen_Miseq_data(process)
+            (content, obj, chem) = gen_Miseq_data(process)
+            header = gen_Miseq_header(process, chem)
             check_index_distance(obj, log)
             content = f"{header}{reads}{settings}{content}"
 
