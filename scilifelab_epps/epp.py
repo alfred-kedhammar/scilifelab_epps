@@ -504,7 +504,7 @@ def traceback_to_step(
 
     current_art = art
     logging.info(
-        f"Attempting to backtrack artifact '{current_art.name}' to step matching pattern {step_name_pattern}, from step '{current_art.parent_process.type.name}'"
+        f"Attempting to backtrack artifact '{current_art.name}' to step matching pattern {step_name_pattern.pattern}, from step '{current_art.parent_process.type.name}'"
     )
 
     # Loop until return, or as long as there is a parent process
