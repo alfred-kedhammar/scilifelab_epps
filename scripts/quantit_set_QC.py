@@ -146,7 +146,8 @@ def main(lims, pid, epp_logger):
         )
     else:
         QiT.abstract.append(
-            f"{QiT.no_failed} out of {len(process.result_files())} samples failed " "QC."
+            f"{QiT.no_failed} out of {len(process.result_files())} samples failed "
+            "QC."
         )
     if QiT.saturated:
         QiT.abstract.append(

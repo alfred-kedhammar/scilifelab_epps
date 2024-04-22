@@ -40,7 +40,8 @@ class Session:
 
     def log_before_change(self, project, sample):
         logging.info(
-            f"Copying from project with id: {project.id} to sample with " f" id: {sample.id}"
+            f"Copying from project with id: {project.id} to sample with "
+            f" id: {sample.id}"
         )
 
     def log_after_change(self, project, saved_sample_udf):
@@ -83,7 +84,8 @@ def check_udf_is_defined(projects, udf):
             filtered_projects.append(project)
         else:
             logging.warning(
-                f"Found project with id {project.id} with {udf} " "undefined/blank, exiting"
+                f"Found project with id {project.id} with {udf} "
+                "undefined/blank, exiting"
             )
             incorrect_projects.append(project)
     return filtered_projects, incorrect_projects
@@ -102,10 +104,8 @@ def filter_samples(artifacts, projects):
             return_samples.append(sample)
         else:
             logging.warning(
-                
-                    f"Filtered out sample {sample.name} belonging to project {sample.project.name} "
-                    "without udf defined"
-                
+                f"Filtered out sample {sample.name} belonging to project {sample.project.name} "
+                "without udf defined"
             )
     return return_samples
 

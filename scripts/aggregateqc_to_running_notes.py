@@ -241,7 +241,9 @@ def make_summary(lims, process, sample_table, library):
             comments,
         )
         noteobj[key]["note"] = note
-        noteobj[key]["user"] = f"{process.technician.first_name} {process.technician.last_name}"
+        noteobj[key]["user"] = (
+            f"{process.technician.first_name} {process.technician.last_name}"
+        )
         noteobj[key]["email"] = process.technician.email
         noteobj[key]["category"] = "Lab"
         summary.update({proj: noteobj})

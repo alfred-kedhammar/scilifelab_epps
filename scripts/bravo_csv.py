@@ -1072,7 +1072,9 @@ def calc_vol(art_tuple, logContext, checkTheLog):
 
         max_volume_warning = ""
         if final_volume > MAX_WARNING_VOLUME:
-            max_volume_warning = f"NOTE! Total dilution volume higher than {MAX_WARNING_VOLUME}!"
+            max_volume_warning = (
+                f"NOTE! Total dilution volume higher than {MAX_WARNING_VOLUME}!"
+            )
 
         try:
             if art_tuple[0]["uri"].parent_process.type.name == "Diluting Samples":

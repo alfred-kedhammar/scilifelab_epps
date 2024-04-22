@@ -76,10 +76,8 @@ def main(lims, args, epp_logger):
                 else:
                     incorrect_artifacts = incorrect_artifacts + 1
                     logging.warning(
-                        
-                            f"Found artifact for sample {artifact.samples[0].name} with {source_udf} "
-                            "undefined/blank, exiting"
-                        
+                        f"Found artifact for sample {artifact.samples[0].name} with {source_udf} "
+                        "undefined/blank, exiting"
                     )
 
     if incorrect_artifacts == 0:

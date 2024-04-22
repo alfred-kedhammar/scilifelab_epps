@@ -149,7 +149,8 @@ class RunQC:
             path_id = cont_name
         try:
             self.file_path = glob.glob(
-                f"/srv/ngi-nas-ns/{data_folder}/*{path_id}/Unaligned/" "Basecall_Stats_*/"
+                f"/srv/ngi-nas-ns/{data_folder}/*{path_id}/Unaligned/"
+                "Basecall_Stats_*/"
             )[0]
         except:
             sys.exit("Failed to get file path")
@@ -241,11 +242,15 @@ class RunQC:
             warn = "WARNING: "
             if self.high_index_yield:
                 self.high_index_yield = ", ".join(list(set(self.high_index_yield)))
-                warn = f"{warn} High yield of unexpected index on lane(s): {self.high_index_yield} ." ""
+                warn = (
+                    f"{warn} High yield of unexpected index on lane(s): {self.high_index_yield} ."
+                    ""
+                )
             if self.high_lane_yield:
                 self.high_lane_yield = ", ".join(list(set(self.high_lane_yield)))
                 warn = (
-                    f"{warn} High total yield of unexpected index on lane(s): " f"{self.high_lane_yield}."
+                    f"{warn} High total yield of unexpected index on lane(s): "
+                    f"{self.high_lane_yield}."
                 )
             warn = warn + "Please check the Metrics file!"
             self.abstract.insert(0, warn)
@@ -446,7 +451,8 @@ class LaneQC:
                 "Threshold for Undemultiplexed Index Yield"
             ]
             qc_logg = (
-                f"Index yield - un expected index: {self.thres_un_exp_ind}. Value set by user." ""
+                f"Index yield - un expected index: {self.thres_un_exp_ind}. Value set by user."
+                ""
             )
             print(qc_logg, file=self.qc_log_file)
         else:
