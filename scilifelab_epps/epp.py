@@ -520,9 +520,10 @@ def traceback_to_step(
             logging.info(f"Found matching step '{current_pp.type.name}'. Returning.")
             return (current_pp, input_arts, current_art)
         elif len(input_arts) > 1:
-            msg = f"Output artifact {current_art.name} in step {current_pp} has multiple inputs. Can't traceback further."
+            msg = f"Output artifact {current_art.name} in step '{current_pp.type.name}' has multiple inputs. Can't traceback further."
             logging.info(msg)
             if allow_multiple_inputs:
+                logging.info("Target step not found, returning None.")
                 return None
             else:
                 raise AssertionError(msg)
@@ -531,7 +532,7 @@ def traceback_to_step(
             current_art = input_arts[0]
 
     logging.info(
-        f"Traceback reached the beginning of the process tree ('{current_pp.type.name}')"
+        f"Traceback reached the beginning of the process tree ('{current_pp.type.name}'), returning None."
     )
     return None
 
