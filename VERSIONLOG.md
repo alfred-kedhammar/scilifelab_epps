@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240422.1
+
+Fix bug that seq_platform cannot be fetched when sample ID is in a wrong format
+
 ## 20240417.1
 
 Update lane yield thresholds for NovaSeqXPlus 1.5B and 25B FC

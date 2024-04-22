@@ -122,9 +122,13 @@ def verify_orientation(data):
     for p in sorted(pools):
         subset = [i for i in data if i["pool"] == p]
         subset = sorted(subset, key=lambda d: d["sn"])
-        project_id = subset[0]["sn"].split("_")[0]
-        project_info = Project(lims, id=project_id)
-        seq_platform = project_info.udf.get("Sequencing platform")
+        if NGISAMPLE_PAT.findall(subset[0].get("sn", "")):
+            project_id = subset[0]["sn"].split("_")[0]
+            project_info = Project(lims, id=project_id)
+            seq_platform = project_info.udf.get("Sequencing platform")
+        else:
+            # The error message is skipped here since the verify_samplename function will check the names of all samples
+            seq_platform = ""
         idx1_len = list(set([len(i["idx1"]) for i in subset if i["idx1"]]))
         idx2_len = list(set([len(i["idx2"]) for i in subset if i["idx2"]]))
         if len(idx1_len) == len(idx2_len) == 1 and idx1_len[0] == idx2_len[0] == 8:
