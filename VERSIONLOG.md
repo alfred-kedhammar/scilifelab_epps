@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240422.1
+
+Major ONT update and new module 'calc_from_args' for generalized calculations.
+
 ## 20240315.2
 
 ruff format linting
