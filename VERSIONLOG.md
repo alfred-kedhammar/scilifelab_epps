@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240423.1
+
+Update the multiplication factor for total Lysate
+
 ## 20240422.2
 
 Update GHA script to check VERSIONLOG.md diff to compare the latest PR-commit to the latest upstream/master commit instead of the commit at the base of the PR-branch.
