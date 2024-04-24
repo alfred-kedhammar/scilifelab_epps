@@ -55,6 +55,7 @@ def parse_udf_arg(arg_string: str) -> dict:
             arg_dict[key] = value
         elif key == "recursive":
             assert value in ["True", "False"]
+            # Eval is usually scary, but we are very strict about what value is here
             arg_dict[key] = eval(value)
         else:
             raise AssertionError(
