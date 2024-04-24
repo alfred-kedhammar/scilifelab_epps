@@ -491,7 +491,7 @@ def get_matching_inputs(
 def traceback_to_step(
     art: Artifact, step_name_pattern: re.Pattern, allow_multiple_inputs: bool = False
 ) -> tuple[Process, list[Artifact], Artifact] | None:
-    """For an artifact try to backtrack it to a target step based on a supplied pattern.
+    """Try to backtrack an artifact to a target step based on a supplied step name pattern.
 
     Returns:
     - The target step
@@ -499,6 +499,7 @@ def traceback_to_step(
     - It's matching output Artifact
 
     If a step is reached where the artifact has multiple linked inputs, linear traceback is not possible.
+    This will either return None or raise an error, depending on the value of allow_multiple_inputs.
 
     """
 
