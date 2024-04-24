@@ -501,6 +501,22 @@ def traceback_to_step(
     If a step is reached where the artifact has multiple linked inputs, linear traceback is not possible.
     This will either return None or raise an error, depending on the value of allow_multiple_inputs.
 
+    Example:
+
+        To backtrack an ONT sequencing library to the step in which it was pooled,
+        either "ONT Pooling" or "ONT QC Pooling".
+
+            traceback_to_step(
+                art=ont_library_artifact,
+                step_name_pattern=re.compile(r"ONT.*Pooling"),
+                allow_multiple_inputs=True,
+            )
+
+        - If the ONT sequencing library did not pass through a matching pooling step,
+            the function will return None.
+        - If we set allow_multiple_inputs=False and the library backtracks to a non-matching pooling step,
+            it will throw an error instead.
+
     """
 
     current_art = art
