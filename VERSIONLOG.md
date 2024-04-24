@@ -1,8 +1,12 @@
 # Scilifelab_epps Version Log
 
-## 20240422.3
+## 20240424.1
 
 Major ONT update and new module 'calc_from_args' for generalized calculations.
+
+## 20240423.1
+
+Update the multiplication factor for total Lysate
 
 ## 20240422.2
 
