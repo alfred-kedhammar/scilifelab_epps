@@ -11,7 +11,17 @@ from epp_utils import udf_tools
 def fetch_from_arg(
     art_tuple: tuple, arg_dict: dict, process: Process, on_fail=AssertionError
 ) -> Any:
-    """Branching decision-making function. Determine HOW to fetch UDFs given the argument dictionary."""
+    """Branching decision-making function. Determine HOW to fetch UDFs given the argument dictionary.
+
+    Expected format for UDF dictionary:
+
+        arg_dict: {
+            "udf": <field_name>,
+            "source": input | output | step,
+            "recursive": True | False,
+        }
+
+    """
 
     history: str | None = None
     source: Artifact | Process
