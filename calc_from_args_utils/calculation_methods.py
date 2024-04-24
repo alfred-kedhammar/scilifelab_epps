@@ -20,7 +20,17 @@ DESC = """This file contains the method functions for a UDF-agnostic script."""
 def volume_to_use(process: Process, args: Namespace):
     """Calculate how much volume to use based on a target amount.
 
-    Uses target amount, concentration, conc.units and size.
+    How fields are used:
+        To be used for calculations:
+            args.size_in       |
+            args.conc_in       |-> Sample properties
+            args.conc_units_in |
+            args.vol_in        |
+
+        To be calculated:
+            args.amt_out       --> Target amount to take
+            args.vol_out       --> Volume corresponding to target amount (or max available volume)
+
     """
     art_tuples = udf_tools.get_art_tuples(process)
 
@@ -118,7 +128,21 @@ def volume_to_use(process: Process, args: Namespace):
 
 
 def summarize_pooling(process: Process, args: Namespace):
-    """Summarize stats for a pool, based on the UDFs of it's constituent samples."""
+    """Summarize stats for a pool, based on the UDFs of it's constituent samples.
+
+    How fields are used:
+        To be used for calculations:
+            args.size_in        |
+            args.conc_in        |-> Properties of a pooled sample
+            args.conc_units_in  |
+            args.vol_in         |
+
+        To be calculated:
+            args.amt_out        |
+            args.vol_out        |-> Properties of a pool
+            args.size_out       |
+
+    """
 
     step_tuples = udf_tools.get_art_tuples(process)
 
@@ -252,7 +276,23 @@ def summarize_pooling(process: Process, args: Namespace):
 
 
 def equimolar_pooling(process: Process, args: Namespace):
-    """Perform equimolar pooling based on a target molar amount or volume."""
+    """Perform equimolar pooling based on a target molar amount or volume.
+
+    How fields are used:
+        To be used for calculations:
+            args.size_in        |
+            args.conc_in        |-> Properties of a pooled sample
+            args.conc_units_in  |
+            args.vol_in         |
+
+        To be calculated:
+            args.size_out       --> Average size of the pool
+
+        Either supplied as target or calculated:
+            args.amt_out        --> Total amount of the pool
+            args.vol_out        --> Total volume of the pool
+
+    """
 
     step_tuples = udf_tools.get_art_tuples(process)
 
@@ -448,7 +488,16 @@ def equimolar_pooling(process: Process, args: Namespace):
 def amount(process: Process, args: Namespace):
     """Calculate amount.
 
-    Uses volume, concentration, conc.units and size.
+    How fields are used:
+        To be used for calculations:
+            args.size_in        |
+            args.conc_in        |-> Properties of a sample
+            args.conc_units_in  |
+            args.vol_in         |
+
+        To be calculated:
+            args.amt_out        --> Total amount of the sample
+
     """
     art_tuples = udf_tools.get_art_tuples(process)
 
