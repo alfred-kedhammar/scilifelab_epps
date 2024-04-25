@@ -177,6 +177,11 @@ def calculate_volume_postgres(process):
                     f"ERROR: Amount for prep (ng) not defined for sample {output.name}."
                 )
 
+    # Close connections
+    if connection:
+        cursor.close()
+        connection.close()
+        
     return error_messages, log
 
 
