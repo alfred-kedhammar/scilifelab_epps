@@ -211,7 +211,7 @@ def verify_orientation(data):
     if connection:
         cursor.close()
         connection.close()
-        
+
     return message
 
 

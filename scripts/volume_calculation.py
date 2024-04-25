@@ -181,7 +181,7 @@ def calculate_volume_postgres(process):
     if connection:
         cursor.close()
         connection.close()
-        
+
     return error_messages, log
 
 
