@@ -40,7 +40,7 @@ def parse_udf_arg(arg_string: str) -> dict:
                 'recursive': False
             }
 
-    The keys "source" and "recursive" have default values.
+    The keys "source" and "recursive" have default values "output" and False respectively.
     """
     kv_pairs: list[str] = arg_string.split(",")
 
