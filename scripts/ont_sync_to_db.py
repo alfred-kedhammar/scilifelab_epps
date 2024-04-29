@@ -188,8 +188,8 @@ def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
     # Keep track of which artifacts were successfully updated
     arts_successful = []
 
-    db: Database = get_ONT_db()
-    view: ViewResults = db.view("info/all_stats")
+    nanopore_runs_db: Database = get_ONT_db()
+    view: ViewResults = nanopore_runs_db.view("info/all_stats")
 
     for art in arts:
         logging.info(f"Processing '{art.name}'...")
@@ -218,7 +218,7 @@ def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
 
         doc_run_name: str = matching_rows[0].key
         doc_id: str = matching_rows[0].id
-        doc: Document = db[doc_id]
+        doc: Document = nanopore_runs_db[doc_id]
 
         logging.info(f"Found matching run '{doc_run_name}' in the database.")
 
@@ -231,7 +231,7 @@ def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
         logging.info(f"Assigning UDF 'ONT run name': '{doc_run_name}'.")
         udf_tools.put(art, "ONT run name", doc_run_name)
 
-        write_to_doc(doc, db, process, art, args)
+        write_to_doc(doc, nanopore_runs_db, process, art, args)
         logging.info(f"'{doc_run_name}' was found and updated successfully.")
         arts_successful.append(art)
 
