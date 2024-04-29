@@ -11,6 +11,7 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 
+from epp_utils import udf_tools
 from scilifelab_epps.epp import upload_file
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
@@ -113,6 +114,11 @@ def parse_data(df_raw: pd.DataFrame):
 
 
 def fill_udfs(process: Process, df: pd.DataFrame):
+    """Try to assign UDFs to samples in LIMS.
+
+    Iterate across all samples and UDFs prior to raising errors.
+    """
+
     errors = False
 
     # Get Illumina samples
@@ -144,25 +150,17 @@ def fill_udfs(process: Process, df: pd.DataFrame):
 
         # Assign UDFs
         for udf, col in udf2col.items():
-            try:
-                if pd.notna(sample_row[col].values[0]):
-                    value = float(sample_row[col].values[0])
-                    measurement.udf[udf] = value
-            except:
-                errors = True
-                logging.error(
-                    f"Could not assign UDF '{udf}' value '{value}' for sample {sample_name}, skipping...",
-                    exc_info=True,
-                )
-                continue
-        try:
-            measurement.put()
-        except:
-            errors = True
-            logging.error(
-                f"Could not update sample {sample_name}, skipping...", exc_info=True
-            )
-            continue
+            if pd.notna(sample_row[col].values[0]):
+                value = float(sample_row[col].values[0])
+
+                try:
+                    udf_tools.put(measurement, udf, value)
+                except AssertionError:
+                    errors = True
+                    logging.error(
+                        f"Could not set UDF '{udf}' to '{value}' for sample '{sample_name}'"
+                    )
+                    continue
 
     if errors:
         raise AssertionError("Errors when populating sample UDFs.")
