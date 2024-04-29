@@ -70,8 +70,7 @@ def main(lims, args, epp_logger):
 
     if incorrect_udfs > 0:
         warn = (
-            "Failed to update %s udf(s) due to missing/wrong source udf info."
-            % incorrect_udfs
+            f"Failed to update {incorrect_udfs} udf(s) due to missing/wrong source udf info."
         )
     else:
         warn = ""
