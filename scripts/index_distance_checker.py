@@ -114,6 +114,8 @@ def verify_orientation(data):
         "SMARTerV2_",
         "SMARTer_RNA_UD_",
         "Swift_SNAP_",
+        "TAKARA_8nt_UDI_",
+        "TruSeqUDv2-UDI_",
         "v2_Illumina_TruSeq_8nt_UD_",
         "v2_NexteraXT_",
         "xGen_8nt_UDI_",
