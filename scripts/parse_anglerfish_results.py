@@ -152,13 +152,16 @@ def fill_udfs(process: Process, df: pd.DataFrame):
                 errors = True
                 logging.error(
                     f"Could not assign UDF '{udf}' value '{value}' for sample {sample_name}, skipping...",
+                    exc_info=True,
                 )
                 continue
         try:
             measurement.put()
         except:
             errors = True
-            logging.error(f"Could not update sample {sample_name}, skipping...")
+            logging.error(
+                f"Could not update sample {sample_name}, skipping...", exc_info=True
+            )
             continue
 
     if errors:
