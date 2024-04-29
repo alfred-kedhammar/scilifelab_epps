@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240429.1
+
+Add TAKARA_8nt_UDI and TruSeqUDv2-UDI for index checking
+
 ## 20240425.1
 
 Close psycopg2 connections when query is done
