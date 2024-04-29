@@ -206,6 +206,12 @@ def verify_orientation(data):
             message.append(
                 f"Unable to find matched index set to check orientation for pool {p}"
             )
+
+    # Close connections
+    if connection:
+        cursor.close()
+        connection.close()
+
     return message
 
 

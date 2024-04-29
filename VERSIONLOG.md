@@ -1,8 +1,13 @@
 # Scilifelab_epps Version Log
 
-## 20240424.1
+## 20240429.1
 
 Major ONT update and new module 'calc_from_args' for generalized calculations.
+
+## 20240425.1
+
+Close psycopg2 connections when query is done
+
 
 ## 20240423.1
 
