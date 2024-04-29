@@ -46,7 +46,7 @@ def apply_calculations(artifacts, udf1, op, udf2, unit_amount_map, process):
 
         # Special calculation formula for total lysate
         if process.udf.get("Total Lysate Calculation", ""):
-            udf2_value = 250
+            udf2_value = 234
         else:
             udf2_value = artifact.udf[udf2]
 
