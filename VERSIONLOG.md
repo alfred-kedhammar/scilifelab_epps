@@ -8,7 +8,6 @@ Major ONT update and new module 'calc_from_args' for generalized calculations.
 
 Close psycopg2 connections when query is done
 
-
 ## 20240423.1
 
 Update the multiplication factor for total Lysate
