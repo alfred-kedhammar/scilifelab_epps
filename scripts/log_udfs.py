@@ -14,8 +14,8 @@ from tabulate import tabulate
 
 from epp_utils import udf_tools
 
-DESC = """
-Script for the EPP "Log fields" and file slot "Field log".
+DESC = """Script for the EPP "Log fields" and file slot "Field log".
+
 Use this script to create / update an append-only log where the step UDF info is stored.
 Step-specific input assertions may be added where indicated.
 """
@@ -86,6 +86,17 @@ def main(lims, args):
 
 
 if __name__ == "__main__":
+    r"""Example script call:
+
+        python \
+        log_udfs.py \
+        --pid {processLuid} \
+        --udfs \
+        'ONT run ID' \
+        'ONT reload run time (hh:mm)'  \
+        'ONT reload amount (fmol)'  \
+        'ONT reload wash kit'
+    """
     parser = ArgumentParser(description=DESC)
     parser.add_argument("--pid", help="Lims id for current Process")
     parser.add_argument(

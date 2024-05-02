@@ -4,26 +4,28 @@ from typing import Union
 from genologics.entities import Artifact, Process
 from requests.exceptions import HTTPError
 
-DESC = """This is a submodule for defining reuasble functions to handle artifact
-UDFs in in the Genonolics Clarity LIMS API.
+DESC = """This is a submodule for defining reusable functions to handle artifact
+UDFs in in the Genologics Clarity LIMS API.
 """
 
 
-def put(art: Artifact, target_udf: str, val, on_fail=AssertionError()):
-    """Try to put UDF on artifact, optionally without causing fatal error.
-    Evaluates true on success and error (default) or on_fail param on failue.
+def put(target: Artifact | Process, target_udf: str, val, on_fail=AssertionError):
+    """Try to put UDF on artifact or process, optionally without causing fatal error.
+    Evaluates true on success and error (default) or on_fail param on failure.
     """
 
-    art.udf[target_udf] = val
+    target.udf[target_udf] = val
 
     try:
-        art.put()
+        target.put()
         return True
 
     except HTTPError:
-        del art.udf[target_udf]
-        if issubclass(type(on_fail), BaseException):
-            raise on_fail
+        del target.udf[target_udf]
+        if isinstance(on_fail, type) and issubclass(on_fail, Exception):
+            raise on_fail(
+                f"Can't put UDF '{target_udf}' on '{target.name if isinstance(target, Artifact) else target.type.name}'"
+            )
         else:
             return on_fail
 
@@ -78,11 +80,9 @@ def get_art_tuples(currentStep: Process) -> list:
     return art_tuples
 
 
-def fetch_from_tuple(
-    art_tuple: tuple, target_udfs: Union[str, list], on_fail=AssertionError()
-):
+def fetch_from_tuple(art_tuple: tuple, target_udfs: str | list, on_fail=AssertionError):
     """Try to fetch UDF based on input/output tuple of step that is missing either input or output artifacts,
-    optionally without causing fatar error.
+    optionally without causing fatal error.
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
@@ -99,14 +99,16 @@ def fetch_from_tuple(
             except:
                 continue
 
-    if issubclass(type(on_fail), BaseException):
-        raise on_fail
+    if isinstance(on_fail, type) and issubclass(on_fail, Exception):
+        raise on_fail(
+            f"Could not find matching UDF(s) [{', '.join(target_udfs)}] for artifact tuple {art_tuple}"
+        )
     else:
         return on_fail
 
 
-def fetch(art: Artifact, target_udfs: Union[str, list], on_fail=AssertionError()):
-    """Try to fetch UDF from artifact, optionally without causing fatar error.
+def fetch(art: Artifact, target_udfs: Union[str, list], on_fail=AssertionError):
+    """Try to fetch UDF from artifact, optionally without causing fatal error.
 
     Target UDF can be supplied as a string, or as a prioritized list of strings.
     """
@@ -120,8 +122,10 @@ def fetch(art: Artifact, target_udfs: Union[str, list], on_fail=AssertionError()
         except KeyError:
             continue
 
-    if issubclass(type(on_fail), BaseException):
-        raise on_fail
+    if isinstance(on_fail, type) and issubclass(on_fail, Exception):
+        raise on_fail(
+            f"Could not find matching UDF(s) [{', '.join(target_udfs)}] for artifact {art.name}"
+        )
     else:
         return on_fail
 
@@ -133,10 +137,10 @@ def list_udfs(art: Artifact) -> list:
 def fetch_last(
     currentStep: Process,
     art_tuple: tuple,
-    target_udfs: Union[str, list],
+    target_udfs: str | list,
     use_current=True,
     print_history=False,
-    on_fail=AssertionError(),
+    on_fail=AssertionError,
 ):
     """Recursively look for target UDF.
 
@@ -154,6 +158,7 @@ def fetch_last(
     while True:
         history.append({"Step name": currentStep.type.name, "Step ID": currentStep.id})
 
+        # Try to grab input and output articles, if possible
         try:
             input_art = art_tuple[0]["uri"]
         except:
@@ -238,10 +243,12 @@ def fetch_last(
             art_tuple = matching_tuples[0]
 
         except:
-            if issubclass(type(on_fail), BaseException):
+            if isinstance(on_fail, type) and issubclass(on_fail, Exception):
                 if print_history is True:
                     print(json.dumps(history, indent=2))
-                raise on_fail
+                raise on_fail(
+                    f"Could not find matching UDF(s) [{', '.join(target_udfs)}] for artifact tuple {art_tuple}"
+                )
             else:
                 if print_history is True:
                     print(json.dumps(history, indent=2))

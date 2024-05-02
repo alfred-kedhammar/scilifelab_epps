@@ -9,6 +9,7 @@ Copyright (C) 2013 Johannes Alneberg
 import csv
 import logging
 import os
+import re
 import sys
 from logging.handlers import RotatingFileHandler
 from shutil import copy
@@ -16,7 +17,8 @@ from time import localtime, strftime
 
 import pkg_resources
 from genologics.config import MAIN_LOG
-from genologics.entities import Artifact
+from genologics.entities import Artifact, Process
+from genologics.lims import Lims
 from pkg_resources import DistributionNotFound
 from requests import HTTPError
 
@@ -93,7 +95,7 @@ class EppLogger:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # If no exception has occured in block, turn off logging.
+        # If no exception has occurred in block, turn off logging.
         if not exc_type:
             logging.shutdown()
             sys.stderr = self.saved_stderr
@@ -467,3 +469,106 @@ def get_well_number(art: Artifact, count_per: str) -> int:
         raise AssertionError
 
     return well_num
+
+
+def get_matching_inputs(
+    process: Process, output_artifact: Artifact
+) -> list[Artifact] | None:
+    """Get the input artifacts coupled to an output artifact."""
+    input_arts = []
+    for io_tuple in process.input_output_maps:
+        input_art = io_tuple[0]["uri"]
+        output_art = io_tuple[1]["uri"]
+        if input_art.type == "Analyte" and output_art.id == output_artifact.id:
+            input_arts.append(io_tuple[0]["uri"])
+
+    if input_arts:
+        return input_arts
+    else:
+        return None
+
+
+def traceback_to_step(
+    art: Artifact, step_name_pattern: re.Pattern, allow_multiple_inputs: bool = False
+) -> tuple[Process, list[Artifact], Artifact] | None:
+    """Try to backtrack an artifact to a target step based on a supplied step name pattern.
+
+    Returns:
+    - The target step
+    - A list of it's matching input Artifacts
+    - It's matching output Artifact
+
+    If a step is reached where the artifact has multiple linked inputs, linear traceback is not possible.
+    This will either return None or raise an error, depending on the value of allow_multiple_inputs.
+
+    Example:
+
+        To backtrack an ONT sequencing library to the step in which it was pooled,
+        either "ONT Pooling" or "ONT QC Pooling".
+
+            traceback_to_step(
+                art=ont_library_artifact,
+                step_name_pattern=re.compile(r"ONT.*Pooling"),
+                allow_multiple_inputs=True,
+            )
+
+        - If the ONT sequencing library did not pass through a matching pooling step,
+            the function will return None.
+        - If we set allow_multiple_inputs=False and the library backtracks to a non-matching pooling step,
+            it will throw an error instead.
+
+    """
+
+    current_art = art
+    logging.info(
+        f"Attempting to backtrack artifact '{current_art.name}' to step matching pattern {step_name_pattern.pattern}, from step '{current_art.parent_process.type.name}'"
+    )
+
+    # Loop until return, or as long as there is a parent process
+    while current_art.parent_process is not None:
+        current_pp = current_art.parent_process
+        logging.info(f"Backtracking to parent process '{current_pp.type.name}'")
+
+        input_arts = get_matching_inputs(current_pp, current_art)
+        assert input_arts is not None, "No matching input artifacts found."
+
+        match = re.match(step_name_pattern, current_pp.type.name)
+
+        if match:
+            logging.info(f"Found matching step '{current_pp.type.name}'. Returning.")
+            return (current_pp, input_arts, current_art)
+        elif len(input_arts) > 1:
+            msg = f"Output artifact {current_art.name} in step '{current_pp.type.name}' has multiple inputs. Can't traceback further."
+            logging.info(msg)
+            if allow_multiple_inputs:
+                logging.info("Target step not found, returning None.")
+                return None
+            else:
+                raise AssertionError(msg)
+        else:
+            # Continue backtracking
+            current_art = input_arts[0]
+
+    logging.info(
+        f"Traceback reached the beginning of the process tree ('{current_pp.type.name}'), returning None."
+    )
+    return None
+
+
+def upload_file(
+    file_path: str,
+    file_slot: str,
+    process: Process,
+    lims: Lims,
+    remove=False,
+):
+    for out in process.all_outputs():
+        if out.name == file_slot:
+            for f in out.files:
+                lims.request_session.delete(f.uri)
+            lims.upload_new_file(out, file_path)
+
+    logging.info(f"'{file_path}' uploaded to LIMS file slot '{file_slot}'.")
+    if remove:
+        os.remove(file_path)
+        logging.info(f"'{file_path}' removed from local filesystem.")

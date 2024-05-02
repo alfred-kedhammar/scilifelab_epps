@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 import os
 import re
 import sys
@@ -8,44 +9,43 @@ from datetime import datetime as dt
 
 import couchdb
 import yaml
+from couchdb.client import Database, Document, Row, ViewResults
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import Process
+from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 
-DESC = """ Script for EPP "Send ONT flowcell info to StatusDB".
-Used to record the washing and reloading of ONT flow cells.
+from scilifelab_epps.epp import upload_file
+
+DESC = """Used to record the washing and reloading of ONT flow cells.
+
 Information is parsed from LIMS and uploaded to the CouchDB database nanopore_runs.
 """
 
+TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
+SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
-def main(lims, args):
+
+def send_reloading_info_to_db(process: Process):
     """For all samples/flowcells, use the run name to find the correct database entry.
 
     Then update the document "lims" json object nest with the reloading information.
-
-    TODO Get parent process ID on a sample-by-sample basis, rather than once for the entire step.
-         Current approach may cause issues if samples originate from different steps.
     """
 
-    currentStep = Process(lims, id=args.pid)
-    timestamp = dt.now().strftime("%y%m%d_%H%M%S")
-
     # Parse inputs and their UDFs
-    arts = currentStep.all_inputs()
+    arts: list[Artifact] = process.all_inputs()
 
     runs = []
     for art_tuple in arts:
-        run = parse_run(art_tuple)
+        run: dict | None = parse_run(art_tuple)
         if run:
             runs.append(run)
 
-    db = get_ONT_db()
-    view = db.view("info/all_stats")
+    db: Database = get_ONT_db()
+    view: ViewResults = db.view("info/all_stats")
 
-    runtime_log = []
     errors = False
     for run in runs:
-        rows_matching_run = [
+        rows_matching_run: list[Row] = [
             row
             for row in view.rows
             if f'{run["run_name"]}' in row.value["TACA_run_path"]
@@ -54,18 +54,19 @@ def main(lims, args):
         try:
             assert (
                 len(rows_matching_run) > 0
-            ), f"The database contains no document with run name {run['run_name']}. If the run was recently started, wait until it appears in GenStat."
+            ), f"The database contains no document with run name '{run['run_name']}'. If the run was recently started, wait until it appears in GenStat."
             assert (
                 len(rows_matching_run) == 1
-            ), f"The database contains multiple documents with run name {run['run_name']}. Contact a database administrator."
+            ), f"The database contains multiple documents with run name '{run['run_name']}'. Contact a database administrator."
 
-            doc_id = rows_matching_run[0].id
-            doc = db[doc_id]
+            doc_id: str = rows_matching_run[0].id
+            doc: Document = db[doc_id]
 
             dict_to_add = {
-                "step_name": currentStep.type.name,
-                "pid": currentStep.id,
-                "timestamp": timestamp,
+                "step_name": process.type.name,
+                "step_id": process.id,
+                "timestamp": TIMESTAMP,
+                "operator": process.technician.name,
                 "reload_times": run["reload_times"],
                 "reload_fmols": run["reload_fmols"],
                 "reload_lots": run["reload_lots"],
@@ -79,18 +80,18 @@ def main(lims, args):
 
             db[doc.id] = doc
 
-            runtime_log.append(f"Flowcell {run['run_name']} was updated successfully.")
+            logging.info(f"Run '{run['run_name']}' was updated successfully.")
 
         except AssertionError as e:
             errors = True
-            runtime_log.append(str(e))
+            logging.info(str(e))
             continue
 
     if errors:
-        raise AssertionError("\n".join(runtime_log))
+        raise AssertionError()
 
 
-def parse_run(art):
+def parse_run(art: Artifact) -> dict | None:
     """For each art, assert UDFs and return parsed dictionary"""
 
     fc = {}
@@ -128,10 +129,10 @@ def parse_run(art):
         ), "Reload run times must be formatted as comma-separated h:mm"
         check_times_list(fc["reload_times"])
         assert check_csv_udf_list(
-            "^[0-9.]+$", fc["reload_fmols"]
+            r"^[0-9.]+$", fc["reload_fmols"]
         ), "Invalid flow cell reload amount(s)"
         assert check_csv_udf_list(
-            "^[0-9a-zA-Z.-_]+$", fc["reload_lots"]
+            r"^[0-9a-zA-Z.-_]+$", fc["reload_lots"]
         ), "Invalid Reload wash kit"
 
         return fc
@@ -140,11 +141,12 @@ def parse_run(art):
         return None
 
 
-def check_times_list(times_list):
+def check_times_list(times_list: list[str]):
+    """Check that a list of comma-separated times is sequential and valid."""
     prev_hours, prev_minutes = 0, 0
     for time in times_list:
-        hours, minutes = time.split(":")
-        hours, minutes = int(hours), int(minutes)
+        _hours, _minutes = time.split(":")
+        hours, minutes = int(_hours), int(_minutes)
         assert hours > prev_hours or (
             hours == prev_hours and minutes > prev_minutes
         ), f"Times in field {times_list} are non-sequential."
@@ -155,7 +157,7 @@ def check_times_list(times_list):
         prev_hours, prev_minutes = hours, minutes
 
 
-def get_ONT_db():
+def get_ONT_db() -> Database:
     """Mostly copied from write_notes_to_couchdb.py"""
     configf = "~/.statusdb_cred.yaml"
 
@@ -168,23 +170,79 @@ def get_ONT_db():
     return couch["nanopore_runs"]
 
 
-def check_csv_udf_list(pattern, csv_udf_list):
+def check_csv_udf_list(pattern: str, csv_udf_list: list[str]) -> bool:
+    """For a UDF expected as a comma-separated list, assert format of all elements of the list."""
     if csv_udf_list:
         return all([re.match(pattern, element) for element in csv_udf_list])
     else:
         return True
 
 
-if __name__ == "__main__":
+def main():
+    # Parse args
     parser = ArgumentParser(description=DESC)
     parser.add_argument("--pid", help="Lims id for current Process")
+    parser.add_argument("--log", type=str, help="Which log file slot to use")
     args = parser.parse_args()
 
+    # Set up LIMS
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     lims.check_version()
+    process = Process(lims, id=args.pid)
+
+    # Set up logging
+    log_filename: str = (
+        "_".join(
+            [
+                SCRIPT_NAME,
+                process.id,
+                TIMESTAMP,
+                process.technician.name.replace(" ", ""),
+            ]
+        )
+        + ".log"
+    )
+
+    logging.basicConfig(
+        filename=log_filename,
+        filemode="w",
+        format="%(levelname)s: %(message)s",
+        level=logging.INFO,
+    )
+
+    # Start logging
+    logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
+    logging.info(
+        f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
+    )
+    args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
+    logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        main(lims, args)
-    except AssertionError as e:
+        send_reloading_info_to_db(process)
+    except Exception as e:
+        # Post error to LIMS GUI
+        logging.error(e)
+        logging.shutdown()
+        upload_file(
+            file_path=log_filename,
+            file_slot=args.log,
+            process=process,
+            lims=lims,
+        )
         sys.stderr.write(str(e))
         sys.exit(2)
+    else:
+        logging.info("Script completed successfully.")
+        logging.shutdown()
+        upload_file(
+            file_path=log_filename,
+            file_slot=args.log,
+            process=process,
+            lims=lims,
+        )
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
