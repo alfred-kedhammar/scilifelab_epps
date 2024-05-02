@@ -1,8 +1,12 @@
 # Scilifelab_epps Version Log
 
-## 20240429.1
+## 20240502.1
 
 Major ONT update and new module 'calc_from_args' for generalized calculations.
+
+## 20240429.1
+
+Add TAKARA_8nt_UDI and TruSeqUDv2-UDI for index checking
 
 ## 20240425.1
 
