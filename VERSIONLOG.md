@@ -2,6 +2,10 @@
 
 ## 20240502.1
 
+Fix running notes configuration for last PR.
+
+## 20240502.1
+
 Major ONT update and new module 'calc_from_args' for generalized calculations.
 
 ## 20240429.1
