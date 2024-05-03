@@ -583,7 +583,7 @@ def main(lims, pid, auto):
         ):
             attach_file(os.path.join(os.getcwd(), "index_checker.log"), out)
     # Throw red warning message when it is not automatically run
-    if not auto:
+    if not auto and not message:
         sys.exit(2)
 
 
