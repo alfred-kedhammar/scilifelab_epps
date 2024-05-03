@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240503.1
+
+Fix bug that Check Index Distance Log is not correctly attached
+
 ## 20240502.1
 
 Fix running notes configuration for last PR.

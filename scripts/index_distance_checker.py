@@ -561,8 +561,6 @@ def main(lims, pid, auto):
                         process.udf["Comments"] += f"\n@{tech_username}\n"
                         process.udf["Comments"] += warning_end
             process.put()
-        if not auto:
-            sys.exit(2)
     else:
         print("No issue detected with indexes or placement", file=sys.stderr)
         message.append("No issue detected with indexes or placement")
@@ -584,6 +582,9 @@ def main(lims, pid, auto):
             or out.name == "Verify Index and Placement Log"
         ):
             attach_file(os.path.join(os.getcwd(), "index_checker.log"), out)
+    # Throw red warning message when it is not automatically run
+    if not auto:
+        sys.exit(2)
 
 
 if __name__ == "__main__":
