@@ -340,8 +340,8 @@ lims_process_record = {
     },
     "ONT Pooling v2.0": {
         "lims_instrument": {
-            "dest_file": "Qubit",
-            "details": ["Assay", "Lot no: Qubit kit"],
+            "dest_file": ["Bravo", "Mosquito"],
+            "details": ["Processname"],
         },
     },
     "ONT QC Adapter Ligation v1.2": {
