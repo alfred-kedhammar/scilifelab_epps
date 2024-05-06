@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240506.2
+
+Use different functions for moving MinKNOW samplesheet to ngi-nas-ns.
+
 ## 20240506.1
 
 Update instrument logbook and running notes config to new ONT QC workflow.

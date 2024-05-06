@@ -471,10 +471,11 @@ def main():
 
         logging.info("Moving samplesheet to ngi-nas-ns...")
         try:
-            shutil.move(
+            shutil.copyfile(
                 file_name,
                 f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
             )
+            os.remove(file_name)
         except:
             logging.error("Failed to move samplesheet to ngi-nas-ns.", exc_info=True)
         else:
