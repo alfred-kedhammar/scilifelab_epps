@@ -342,7 +342,25 @@ lims_process_record = {
         "lims_instrument": {
             "dest_file": ["Bravo", "Mosquito"],
             "details": ["Processname"],
-        }
+        },
+    },
+    "ONT QC Adapter Ligation v1.2": {
+        "lims_instrument": {
+            "dest_file": "Qubit",
+            "details": ["Assay", "Lot no: Qubit kit"],
+        },
+    },
+    "ONT QC Barcoding v1.2": {
+        "lims_instrument": {
+            "dest_file": "Qubit",
+            "details": ["Assay", "Lot no: Qubit kit"],
+        },
+    },
+    "ONT QC End-prep v1.2": {
+        "lims_instrument": {
+            "dest_file": "Qubit",
+            "details": ["Assay", "Lot no: Qubit kit"],
+        },
     },
     "PCR1 (Amplicon)": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},

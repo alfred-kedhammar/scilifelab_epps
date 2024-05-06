@@ -106,7 +106,7 @@ def categorization(process_name):
         "ONT QC End-prep v1.2": "",
         "ONT QC Pooling v1.2": "",
         "ONT QC Setup Workset/Plate": "",
-        "ONT QC Start Sequencing v1.2": "Flowcell",
+        "ONT QC Start Sequencing": "Flowcell",
         "Pre-Pooling": "",
         "Pre-Pooling (Illumina SBS) 4.0": "",
         "Pre-Pooling (MiSeq) 4.0": "",

@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240506.1
+
+Update instrument logbook and running notes config to new ONT QC workflow.
+
 ## 20240503.1
 
 Fix bug that Check Index Distance Log is not correctly attached
