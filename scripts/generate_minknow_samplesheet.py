@@ -329,13 +329,12 @@ def generate_MinKNOW_samplesheet(process: Process):
                     row["position_id"] == "None"
                 ), "Positions must be unassigned for non-PromethION flow cells."
 
-            # If there are ONT barcodes, append rows for each barcode
-            if process.udf.get("ONT expansion kit") == "None":
-                assert not ont_barcodes, f"ONT expansion kit is set to 'None', but library '{ont_library.name}' appears to contain ONT barcodes."
-                rows.append(row)
-
-            else:
-                assert ont_barcodes, f"ONT expansion kit is assigned, but no ONT barcodes were found within library {ont_library.name}"
+            # 1) Barcodes implied from kit selection
+            if process.udf.get("ONT expansion kit") != "None" or process.udf.get(
+                "ONT prep kit"
+            ) in ["SQK-PCB114-24"]:
+                # Assert barcodes are found within library
+                assert ont_barcodes, f"ONT barcodes are implied from kit selection, but no ONT barcodes were found within library {ont_library.name}"
 
                 # Append rows for each barcode
                 alias_column_name = "illumina_pool_name" if qc else "sample_name"
@@ -362,6 +361,14 @@ def generate_MinKNOW_samplesheet(process: Process):
                     assert "" not in row.values(), "All fields must be populated."
 
                     rows.append(row.copy())
+
+            # 2) No barcodes implied from kit selection
+            else:
+                # Assert barcodes are not found within library
+                assert not ont_barcodes, f"Library '{ont_library.name}' appears to contain ONT barcodes, but no ONT barcodes are implied from the kit selection."
+
+                # Append single row
+                rows.append(row)
 
         except AssertionError as e:
             logging.error(str(e), exc_info=True)

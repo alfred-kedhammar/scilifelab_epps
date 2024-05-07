@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240507.1
+
+For ONT samplesheet generation, accommodate kits with included barcodes.
+
 ## 20240506.2
 
 Use different functions for moving MinKNOW samplesheet to ngi-nas-ns.
