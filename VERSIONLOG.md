@@ -1,8 +1,12 @@
 # Scilifelab_epps Version Log
 
-## 20240507.1
+## 20240508.2
 
 For ONT samplesheet generation, accommodate kits with included barcodes.
+
+## 20240508.1
+
+Refactor step and UDF instrument for Amplification and Purification
 
 ## 20240506.2
 

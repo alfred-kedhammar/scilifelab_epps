@@ -22,8 +22,8 @@ lims_process_record = {
         "default": {"dest_file": "Speedvac"},
     },
     "Amplification and Purification": {
-        "lims_instrument": {"dest_file": "PCR"},
-        "udf_Bravo": {"dest_file": "Bravo", "details": ["Processname"]},
+        "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},
+        "udf_PCR Machine": {"dest_file": "PCR"},
     },
     "Amplify Adapter-Ligated Library (SS XT) 4.0": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},
