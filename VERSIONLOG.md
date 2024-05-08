@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240508.1
+
+Refactor step and UDF instrument for Amplification and Purification
+
 ## 20240506.2
 
 Use different functions for moving MinKNOW samplesheet to ngi-nas-ns.
