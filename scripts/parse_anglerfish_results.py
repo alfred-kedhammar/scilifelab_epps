@@ -129,10 +129,10 @@ def fill_udfs(process: Process, df: pd.DataFrame):
             measurements.append(op)
     measurements.sort(key=lambda x: x.name)
 
-    assert len(measurements) == len(
-        df["sample_name"].isin([m.name for m in measurements])
-    ), "Number of samples demultiplexed in LIMS does not correspond to \
-    number of sample rows in Anglerfish results."
+    assert (
+        len(measurements)
+        == len(df[df["sample_name"].isin([m.name for m in measurements])])
+    ), "Number of samples demultiplexed in LIMS does not correspond to number of sample rows in Anglerfish results."
 
     # Relate UDF names to dataframe column names
     udf2col = {
