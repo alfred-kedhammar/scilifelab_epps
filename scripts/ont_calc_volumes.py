@@ -73,6 +73,7 @@ def main(lims, args):
                     vol,
                 )
             elif conc_units == "ng/ul":
+                assert size_bp is not None, "Missing size."
                 vol_to_take = min(
                     formula.fmol_to_ng(
                         udf_tools.fetch(art_out, "ONT flow cell loading amount (fmol)"),
@@ -88,6 +89,7 @@ def main(lims, args):
             if conc_units == "nM":
                 vol_to_take = min(udf_tools.fetch(art_out, "Amount (fmol)") / conc, vol)
             elif conc_units == "ng/ul":
+                assert size_bp is not None, "Missing size."
                 vol_to_take = min(
                     formula.fmol_to_ng(
                         udf_tools.fetch(art_out, "Amount (fmol)"), size_bp
@@ -102,6 +104,7 @@ def main(lims, args):
             if conc_units == "ng/ul":
                 vol_to_take = min(udf_tools.fetch(art_out, "Amount (ng)") / conc, vol)
             elif conc_units == "nM":
+                assert size_bp is not None, "Missing size."
                 vol_to_take = min(
                     formula.ng_to_fmol(udf_tools.fetch(art_out, "Amount (ng)"), size_bp)
                     / conc,
@@ -118,14 +121,22 @@ def main(lims, args):
         # Based on volume to take, calculate corresponding amounts
         if conc_units == "nM":
             amt_taken_fmol = conc * vol_to_take
-            amt_taken_ng = formula.fmol_to_ng(amt_taken_fmol, size_bp)
+            if size_bp is not None:
+                amt_taken_ng = formula.fmol_to_ng(amt_taken_fmol, size_bp)
+            else:
+                amt_taken_ng = None
         elif conc_units == "ng/ul":
             amt_taken_ng = conc * vol_to_take
-            amt_taken_fmol = formula.ng_to_fmol(amt_taken_ng, size_bp)
+            if size_bp is not None:
+                amt_taken_fmol = formula.ng_to_fmol(amt_taken_ng, size_bp)
+            else:
+                amt_taken_fmol = None
 
-        log.append(f"--> 'Volume to take (uL)': {round(vol_to_take, 2)}")
-        log.append(f"--> 'Amount (ng)': {round(amt_taken_ng, 2)}")
-        log.append(f"--> 'Amount (fmol)': {round(amt_taken_fmol, 2)}")
+        log.append(f"--> 'Volume to take (uL)': {vol_to_take:.2f}")
+        if amt_taken_ng:
+            log.append(f"--> 'Amount (ng)': {amt_taken_ng:.2f}")
+        if amt_taken_fmol:
+            log.append(f"--> 'Amount (fmol)': {amt_taken_fmol:.2f}")
 
         # Populate fields
         if "ONT Start Sequencing" in currentStep.type.name:
@@ -136,9 +147,13 @@ def main(lims, args):
             )
             udf_tools.put(art_out, "Volume to take (uL)", round(vol_to_take, 2))
         else:
-            udf_tools.put(art_out, "Amount (fmol)", round(amt_taken_fmol, 2))
-            udf_tools.put(art_out, "Amount (ng)", round(amt_taken_ng, 2))
-            udf_tools.put(art_out, "Volume to take (uL)", round(vol_to_take, 2))
+            for udf_val, udf_name in {
+                amt_taken_fmol: "Amount (fmol)",
+                amt_taken_ng: "Amount (ng)",
+                vol_to_take: "Volume to take (uL)",
+            }.items():
+                if udf_val is not None:
+                    udf_tools.put(art_out, udf_name, round(udf_val, 2))
 
         log.append("\n")
 
