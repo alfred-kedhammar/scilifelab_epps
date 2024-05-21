@@ -122,7 +122,11 @@ def verify_orientation(data):
     ]
     pools = {x["pool"] for x in data}
     for p in sorted(pools):
-        subset = [i for i in data if i["pool"] == p]
+        subset = [
+            i for i in data if i["pool"] == p and not is_special_idx(i["idx_name"])
+        ]
+        if not subset:
+            continue
         subset = sorted(subset, key=lambda d: d["sn"])
         if NGISAMPLE_PAT.findall(subset[0].get("sn", "")):
             project_id = subset[0]["sn"].split("_")[0]
@@ -215,6 +219,18 @@ def verify_orientation(data):
         connection.close()
 
     return message
+
+
+def is_special_idx(idx_name):
+    if (
+        TENX_DUAL_PAT.findall(idx_name)
+        or TENX_SINGLE_PAT.findall(idx_name)
+        or SMARTSEQ_PAT.findall(idx_name)
+        or idx_name == "NoIndex"
+    ):
+        return True
+    else:
+        return False
 
 
 def rc(sequence):
@@ -391,6 +407,7 @@ def prepare_index_table(process):
                             sp_obj["pool"] = pool_name
                             sp_obj["proj_id"] = proj_id
                             sp_obj["sn"] = sample.name.replace(",", "")
+                            sp_obj["idx_name"] = "NoIndex"
                             sp_obj["idx1"] = ""
                             sp_obj["idx2"] = ""
                             data.append(sp_obj)
@@ -398,6 +415,7 @@ def prepare_index_table(process):
                             sp_obj["pool"] = pool_name
                             sp_obj["proj_id"] = proj_id
                             sp_obj["sn"] = sample.name.replace(",", "")
+                            sp_obj["idx_name"] = TENX_DUAL_PAT.findall(idxs[0])[0]
                             sp_obj["idx1"] = Chromium_10X_indexes[
                                 TENX_DUAL_PAT.findall(idxs[0])[0]
                             ][0].replace(",", "")
@@ -413,6 +431,9 @@ def prepare_index_table(process):
                                 sp_obj_sub["pool"] = pool_name
                                 sp_obj_sub["proj_id"] = proj_id
                                 sp_obj_sub["sn"] = sample.name.replace(",", "")
+                                sp_obj_sub["idx_name"] = TENX_SINGLE_PAT.findall(
+                                    idxs[0]
+                                )[0]
                                 sp_obj_sub["idx1"] = tenXidx.replace(",", "")
                                 sp_obj_sub["idx2"] = ""
                                 data.append(sp_obj_sub)
@@ -423,6 +444,9 @@ def prepare_index_table(process):
                                     sp_obj_sub["pool"] = pool_name
                                     sp_obj_sub["proj_id"] = proj_id
                                     sp_obj_sub["sn"] = sample.name.replace(",", "")
+                                    sp_obj_sub["idx_name"] = SMARTSEQ_PAT.findall(
+                                        idxs[0]
+                                    )[0]
                                     sp_obj_sub["idx1"] = i7_idx
                                     sp_obj_sub["idx2"] = i5_idx
                                     data.append(sp_obj_sub)
@@ -430,6 +454,7 @@ def prepare_index_table(process):
                             sp_obj["pool"] = pool_name
                             sp_obj["proj_id"] = proj_id
                             sp_obj["sn"] = sample.name.replace(",", "")
+                            sp_obj["idx_name"] = "NA"
                             sp_obj["idx1"] = idxs[0].replace(",", "") if idxs[0] else ""
                             sp_obj["idx2"] = idxs[1].replace(",", "") if idxs[1] else ""
                             data.append(sp_obj)
@@ -442,6 +467,7 @@ def prepare_index_table(process):
                     sp_obj["pool"] = pool_name
                     sp_obj["proj_id"] = proj_id
                     sp_obj["sn"] = sample.name.replace(",", "")
+                    sp_obj["idx_name"] = "NoIndex"
                     sp_obj["idx1"] = ""
                     sp_obj["idx2"] = ""
                     data.append(sp_obj)

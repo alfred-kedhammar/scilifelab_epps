@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240521.1
+
+Skip special indexes for index orientation checker
+
 ## 20240508.2
 
 For ONT samplesheet generation, accommodate kits with included barcodes.
