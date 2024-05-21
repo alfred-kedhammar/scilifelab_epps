@@ -94,17 +94,31 @@ def get_anglerfish_dataframe(latest_anglerfish_run_path: str) -> pd.DataFrame:
 def parse_data(df_raw: pd.DataFrame):
     df = df_raw.copy()
 
-    # Add additional metrics
-    df["repr_total_pc"] = df["num_reads"] / df["num_reads"].sum() * 100
-    df["repr_within_barcode_pc"] = df.apply(
+    # Subset df to pre-defined samples
+    df_samples = df[df["sample_name"].notna()].copy()
+
+    # Calculate representation metrics across pre-defined samples
+    df_samples["repr_total_pc"] = (
+        df_samples["num_reads"] / df_samples["num_reads"].sum() * 100
+    )
+    df_samples["repr_within_barcode_pc"] = df_samples.apply(
         # Sample reads divided by sum of all sample reads w. the same barcode
         lambda row: row["num_reads"]
-        / df[df["ont_barcode"] == row["ont_barcode"]]["num_reads"].sum()
+        / df_samples[df_samples["ont_barcode"] == row["ont_barcode"]]["num_reads"].sum()
         * 100
         if not pd.isna(row["ont_barcode"])
         else None,
         axis=1,
     )
+
+    # Merge new columns back into working df
+    df = df.merge(
+        df_samples[["repr_total_pc", "repr_within_barcode_pc"]],
+        left_index=True,
+        right_index=True,
+        how="left",
+    )
+
     # Get barcode number from ID
     df["ont_barcode_id"] = df["ont_barcode"].apply(
         lambda x: int(str(x)[-2:]) if pd.notna(x) else None
