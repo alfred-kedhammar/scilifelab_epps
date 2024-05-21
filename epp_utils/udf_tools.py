@@ -217,6 +217,8 @@ def fetch_last(
         # Cycle to previous step, if possible
         try:
             pp = input_art.parent_process
+            assert pp is not None
+
             pp_tuples = get_art_tuples(pp)
             matching_tuples = []
             for pp_tuple in pp_tuples:
@@ -242,7 +244,7 @@ def fetch_last(
             currentStep = pp
             art_tuple = matching_tuples[0]
 
-        except:
+        except AssertionError:
             if isinstance(on_fail, type) and issubclass(on_fail, Exception):
                 if print_history is True:
                     print(json.dumps(history, indent=2))
@@ -252,4 +254,6 @@ def fetch_last(
             else:
                 if print_history is True:
                     print(json.dumps(history, indent=2))
-                return on_fail
+                    return on_fail, json.dumps(history, indent=2)
+                else:
+                    return on_fail
