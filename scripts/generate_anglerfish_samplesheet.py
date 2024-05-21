@@ -192,7 +192,7 @@ def main():
         try:
             shutil.copyfile(
                 file_name,
-                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
+                f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/{file_name}",
             )
             os.remove(file_name)
         except:
