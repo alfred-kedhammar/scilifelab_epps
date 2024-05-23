@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240523.1
+
+Upgrade index orientation checker to handle swapped indexes
+
 ## 20240521.2
 
 Bugfix comparative assertion in Anglerfish parsing.
