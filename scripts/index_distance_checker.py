@@ -171,6 +171,18 @@ def verify_orientation(data):
                     index2
                 ):
                     flag_first_sample = "Index1_and_Index2_RC"
+                elif subset[0]["idx1"] == index2 and subset[0]["idx2"] == index1:
+                    flag_first_sample = "Index1_and_Index2_Swapped"
+                elif subset[0]["idx1"] == rc(index2) and subset[0]["idx2"] == index1:
+                    flag_first_sample = "Index1_and_Index2_Swapped_plus_Index1_RC"
+                elif subset[0]["idx1"] == index2 and subset[0]["idx2"] == rc(index1):
+                    flag_first_sample = "Index1_and_Index2_Swapped_plus_Index2_RC"
+                elif subset[0]["idx1"] == rc(index2) and subset[0]["idx2"] == rc(
+                    index1
+                ):
+                    flag_first_sample = (
+                        "Index1_and_Index2_Swapped_plus_Index1_and_Index2_RC"
+                    )
                 # Check the last sample
                 if subset[-1]["idx1"] == index1 and subset[-1]["idx2"] == index2:
                     flag_last_sample = "CORRECT"
@@ -182,6 +194,18 @@ def verify_orientation(data):
                     index2
                 ):
                     flag_last_sample = "Index1_and_Index2_RC"
+                elif subset[0]["idx1"] == index2 and subset[0]["idx2"] == index1:
+                    flag_last_sample = "Index1_and_Index2_Swapped"
+                elif subset[0]["idx1"] == rc(index2) and subset[0]["idx2"] == index1:
+                    flag_last_sample = "Index1_and_Index2_Swapped_plus_Index1_RC"
+                elif subset[0]["idx1"] == index2 and subset[0]["idx2"] == rc(index1):
+                    flag_last_sample = "Index1_and_Index2_Swapped_plus_Index2_RC"
+                elif subset[0]["idx1"] == rc(index2) and subset[0]["idx2"] == rc(
+                    index1
+                ):
+                    flag_last_sample = (
+                        "Index1_and_Index2_Swapped_plus_Index1_and_Index2_RC"
+                    )
             # Make a conclusion
             if flag_first_sample == flag_last_sample == "CORRECT":
                 flag_idx_search = True
@@ -201,6 +225,42 @@ def verify_orientation(data):
             elif flag_first_sample == flag_last_sample == "Index1_and_Index2_RC":
                 message.append(
                     f"Seems that both Index 1 and Index 2 need to be converted to RC for pool {p}"
+                )
+                flag_idx_search = True
+                break
+            elif flag_first_sample == flag_last_sample == "Index1_and_Index2_Swapped":
+                message.append(
+                    f"Seems that Index 1 and Index 2 are swapped for pool {p}"
+                )
+                flag_idx_search = True
+                break
+            elif (
+                flag_first_sample
+                == flag_last_sample
+                == "Index1_and_Index2_Swapped_plus_Index1_RC"
+            ):
+                message.append(
+                    f"Seems that Index 1 and Index 2 are swapped, and Index 1 needs to be converted to RC for pool {p}"
+                )
+                flag_idx_search = True
+                break
+            elif (
+                flag_first_sample
+                == flag_last_sample
+                == "Index1_and_Index2_Swapped_plus_Index2_RC"
+            ):
+                message.append(
+                    f"Seems that Index 1 and Index 2 are swapped, and Index 2 needs to be converted to RC for pool {p}"
+                )
+                flag_idx_search = True
+                break
+            elif (
+                flag_first_sample
+                == flag_last_sample
+                == "Index1_and_Index2_Swapped_plus_Index1_and_Index2_RC"
+            ):
+                message.append(
+                    f"Seems that Index 1 and Index 2 are swapped, and both Index 1 and Index 2 need to be converted to RC for pool {p}"
                 )
                 flag_idx_search = True
                 break
