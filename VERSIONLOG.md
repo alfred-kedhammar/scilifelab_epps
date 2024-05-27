@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240527.1
+
+Generate Anglerfish samplesheet post database sync and name after run.
+
 ## 20240523.1
 
 Upgrade index orientation checker to handle swapped indexes
