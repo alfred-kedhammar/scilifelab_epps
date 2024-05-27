@@ -24,7 +24,7 @@ TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
-def generate_anglerfish_samplesheet(process, args):
+def generate_anglerfish_samplesheet(process):
     """Generate an Anglerfish samplesheet.
 
     The samplesheet is a headerless .csv-file in which the columns correspond to:
@@ -66,7 +66,10 @@ def generate_anglerfish_samplesheet(process, args):
     # Subset columns
     df_anglerfish = df[["sample_name", "adaptor_type", "index_seq", "fastq_path"]]
 
-    file_name = f"Anglerfish_samplesheet_{process.id}_{TIMESTAMP}.csv"
+    # Get run name from LIMS field
+    run_name = process.udf.get("ONT run name")
+
+    file_name = f"anglerfish_samplesheet_{run_name}_{TIMESTAMP}.csv"
     df_anglerfish.to_csv(
         file_name,
         header=False,
