@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240530.1
+
+Support VC100 in logbook
+
 ## 20240527.1
 
 Generate Anglerfish samplesheet post database sync and name after run.
