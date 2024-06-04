@@ -525,6 +525,9 @@ lims_process_record = {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},
         "udf_PCR Machine": {"dest_file": "PCR"},
     },
+    "Volume Measurement QC": {
+        "lims_instrument": {"dest_file": "VC100"},
+    },
 }
 
 # A full list of GDoc electronic logooks of instruments
@@ -536,6 +539,7 @@ GDoc_logbook = {
     "CFX": {"File": "19LKni8LO-Dzkvs7gkVHLEcTqzqX2zOerT3SOF9GPHNQ"},
     "Chromium": {"File": "1PDegRtvYhUVPJPt5ROS4Ar661QSMhRWWTA8Zo3JponU"},
     "Covaris": {"File": "1wpSzEdiZcRWk1YFo59Pzt4y-AVSb0Fi9AOg2VFrQOVE"},
+    "CytAssist": {"File": "1sV0qefMAixVlnxGzB2q-YfcSl8a5Y69mAl555KfhU7Q"},
     "FragmentAnalyzer": {"File": "1T4Cy3ywZvl0-kQR-QbtXzu_sErPaYymXeGMf81fqK8k"},
     "MiSeq": {"File": "1ThnEbahwm3InlF_tUJ0riyT3RImVKQINfMD4rB6VThU"},
     "Mosquito": {"File": "1ssFoSdcWV-CRK5TR--hObNkM42zJ8X3ED5q_YmU-m_o"},
@@ -544,5 +548,5 @@ GDoc_logbook = {
     "Qubit": {"File": "1-sByQA6XVrbli0V24n4CxdxogLUlRlGvykkxOpBG-_U"},
     "Speedvac": {"File": "1Dk7qPJeNmzKtHWEdNkZ4yLB0FycjREqqIhNhInZ8G9g"},
     "Tecan": {"File": "1DUBEL8DBf0lnXJjIIjowQf2PrftMo9ECXpeNrDodM4s"},
-    "CytAssist": {"File": "1sV0qefMAixVlnxGzB2q-YfcSl8a5Y69mAl555KfhU7Q"},
+    "VC100": {"File": "1FEH2Ilyaz2FThJZ_jjlDna7s4aTuRgfxvLFpYgOPHBw"},
 }
