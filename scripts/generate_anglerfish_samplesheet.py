@@ -67,7 +67,7 @@ def generate_anglerfish_samplesheet(process):
     df_anglerfish = df[["sample_name", "adaptor_type", "index_seq", "fastq_path"]]
 
     # Get run name from LIMS field
-    run_name = process.udf.get("ONT run name")
+    run_name = ont_library.udf.get("ONT run name")
 
     file_name = f"anglerfish_samplesheet_{run_name}_{TIMESTAMP}.csv"
     df_anglerfish.to_csv(
