@@ -181,7 +181,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        file_name = generate_anglerfish_samplesheet(process, args)
+        file_name = generate_anglerfish_samplesheet(process)
 
         logging.info("Uploading samplesheet to LIMS...")
         upload_file(
