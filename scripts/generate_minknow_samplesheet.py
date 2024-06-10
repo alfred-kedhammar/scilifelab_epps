@@ -37,7 +37,7 @@ def get_ont_library_contents(
 ) -> pd.DataFrame:
     """For an ONT sequencing library, compile a dataframe with sample-level information.
 
-    Will backtrack the library to previous pooling step (if any) to elucidate
+    Will backtrack the library to previous ONT pooling step (if any) to elucidate
     sample and index information and decide whether to demultiplex at the level of
     ONT barcodes, Illumina indices, both or neither.
 
@@ -48,7 +48,7 @@ def get_ont_library_contents(
     for ont_barcode_dict in ONT_BARCODES:
         ont_barcode_well2label[ont_barcode_dict["well"]] = ont_barcode_dict["label"]
 
-    # Link samples to reagent_labels, if applicable
+    # Link samples to reagent_labels via database queries, if applicable
     if len(ont_library.reagent_labels) > 1:
         sample2label = get_pool_sample_label_mapping(ont_library)
 
