@@ -48,9 +48,10 @@ def check_index_distance(data, log):
             for b2 in indexes[start:]:
                 d = my_distance(b, b2)
                 if d < 2 and not is_special_idx(b) and not is_special_idx(b2):
-                        log.append(
-                            f"Found indexes {b} and {b2} in lane {l}, indexes are too close"
-                        )
+                    log.append(
+                        f"Found indexes {b} and {b2} in lane {l}, indexes are too close"
+                    )
+
 
 def is_special_idx(idx_name):
     if (
@@ -62,6 +63,7 @@ def is_special_idx(idx_name):
         return True
     else:
         return False
+
 
 def my_distance(idx1, idx2):
     short = min((idx1, idx2), key=len)
