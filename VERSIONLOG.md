@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240612.1
+
+Skip warning message for distance of special indexes
+
 ## 20240530.1
 
 Support VC100 in logbook
