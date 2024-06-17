@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240617.1
+
+Change pattern to run mypy for entire dir regardless of file depth.
+
 ## 20240612.1
 
 Skip warning message for distance of special indexes
