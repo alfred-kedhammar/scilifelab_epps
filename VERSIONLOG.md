@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240612.1
+
+Skip warning message for distance of special indexes
+
 ## 20240610.1
 
 When parsing ONT sequencing libraries, use database queries to link pool samples to their respective labels.
