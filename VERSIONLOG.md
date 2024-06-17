@@ -4,6 +4,10 @@
 
 Skip warning message for distance of special indexes
 
+## 20240610.1
+
+When parsing ONT sequencing libraries, use database queries to link pool samples to their respective labels.
+
 ## 20240530.1
 
 Support VC100 in logbook

@@ -67,7 +67,7 @@ def generate_anglerfish_samplesheet(process):
     df_anglerfish = df[["sample_name", "adaptor_type", "index_seq", "fastq_path"]]
 
     # Get run name from LIMS field
-    run_name = process.udf.get("ONT run name")
+    run_name = ont_library.udf.get("ONT run name")
 
     file_name = f"anglerfish_samplesheet_{run_name}_{TIMESTAMP}.csv"
     df_anglerfish.to_csv(
@@ -181,7 +181,7 @@ def main():
     logging.info(f"Script called with arguments: \n\t{args_str}")
 
     try:
-        file_name = generate_anglerfish_samplesheet(process, args)
+        file_name = generate_anglerfish_samplesheet(process)
 
         logging.info("Uploading samplesheet to LIMS...")
         upload_file(

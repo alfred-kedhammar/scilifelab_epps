@@ -9,6 +9,8 @@ from argparse import ArgumentParser
 from datetime import datetime as dt
 
 import pandas as pd
+import psycopg2
+import yaml
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
@@ -24,6 +26,9 @@ DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
+with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml") as f:
+    config = yaml.safe_load(f)
+
 
 def get_ont_library_contents(
     ont_library: Artifact,
@@ -32,15 +37,20 @@ def get_ont_library_contents(
 ) -> pd.DataFrame:
     """For an ONT sequencing library, compile a dataframe with sample-level information.
 
-    Will backtrack the library to previous pooling step (if any) to elucidate
+    Will backtrack the library to previous ONT pooling step (if any) to elucidate
     sample and index information and decide whether to demultiplex at the level of
     ONT barcodes, Illumina indices, both or neither.
 
     """
 
+    # Link ONT barcode well to ONT barcode
     ont_barcode_well2label = {}
     for ont_barcode_dict in ONT_BARCODES:
         ont_barcode_well2label[ont_barcode_dict["well"]] = ont_barcode_dict["label"]
+
+    # Link samples to reagent_labels via database queries, if applicable
+    if len(ont_library.reagent_labels) > 1:
+        sample2label = get_pool_sample_label_mapping(ont_library)
 
     logging.info(
         f"Compiling sample-level information for library '{ont_library.name}'..."
@@ -87,17 +97,15 @@ def get_ont_library_contents(
 
                 library_contents_msg += f"\n\t - '{ont_pooling_input.name}': Illumina indexed pool with ONT-barcode '{ont_barcode}'"
 
-                for sample, illumina_index in zip(
-                    ont_pooling_input.samples, ont_pooling_input.reagent_labels
-                ):
-                    library_contents_msg += f"\n\t\t - '{sample.name}': Illumina sample with index '{illumina_index}'."
+                for sample in ont_pooling_input.samples:
+                    library_contents_msg += f"\n\t\t - '{sample.name}': Illumina sample with index '{sample2label[sample.name]}'."
                     rows.append(
                         {
                             "sample_name": sample.name,
                             "sample_id": sample.id,
                             "project_name": sample.project.name,
                             "project_id": sample.project.id,
-                            "illumina_index": illumina_index,
+                            "illumina_index": sample2label[sample.name],
                             "illumina_pool_name": ont_pooling_input.name,
                             "illumina_pool_id": ont_pooling_input.id,
                             "ont_barcode": ont_barcode,
@@ -114,17 +122,15 @@ def get_ont_library_contents(
                 ), f"ONT-pooling input '{ont_pooling_input.name}' lacks any reagent labels. Mixing barcoded and non-barcoded samples is not allowed."
 
                 # ONT barcode-level demultiplexing
-                for ont_sample, ont_barcode in zip(
-                    ont_pooling_input.samples, ont_pooling_input.reagent_labels
-                ):
-                    library_contents_msg += f"\n\t - '{ont_pooling_input.name}': ONT sample with barcode '{ont_barcode}'"
+                for ont_sample in ont_pooling_input.samples:
+                    library_contents_msg += f"\n\t - '{ont_pooling_input.name}': ONT sample with barcode '{sample2label[sample.name]}'"
                     rows.append(
                         {
                             "sample_name": ont_sample.name,
                             "sample_id": ont_sample.id,
                             "project_name": ont_sample.project.name,
                             "project_id": ont_sample.project.id,
-                            "ont_barcode": ont_barcode,
+                            "ont_barcode": sample2label[sample.name],
                             "ont_pool_name": ont_pooling_output.name,
                             "ont_pool_id": ont_pooling_output.id,
                         }
@@ -143,17 +149,16 @@ def get_ont_library_contents(
         if len(ont_library.reagent_labels) > 0:
             # Remaining possibilities:
             # (3) Illumina-indexes only
-            for sample, illumina_index in zip(
-                ont_library.samples, ont_library.reagent_labels
-            ):
-                library_contents_msg += f"\n - '{sample.name}': Illumina sample with index '{illumina_index}'."
+
+            for sample in ont_library.samples:
+                library_contents_msg += f"\n - '{sample.name}': Illumina sample with index '{sample2label[sample.name]}'."
                 rows.append(
                     {
                         "sample_name": sample.name,
                         "sample_id": sample.id,
                         "project_name": sample.project.name,
                         "project_id": sample.project.id,
-                        "illumina_index": illumina_index,
+                        "illumina_index": sample2label[sample.name],
                         "illumina_pool_name": ont_library.name,
                         "illumina_pool_id": ont_library.id,
                     }
@@ -186,6 +191,61 @@ def get_ont_library_contents(
         )
 
     return df
+
+
+def get_pool_sample_label_mapping(pool: Artifact) -> dict[str, str]:
+    # Setup DB connection
+    connection = psycopg2.connect(
+        user=config["username"],
+        host=config["url"],
+        database=config["db"],
+        password=config["password"],
+    )
+    cursor = connection.cursor()
+
+    # Find all reagent labels linked to 'analyte' type artifacts matching the given name
+    query = """
+        select
+            distinct( rl.name )
+        from
+            reagentlabel            rl,
+            artifact                art,
+            artifact_label_map      alm
+        where
+            rl.labelid              = alm.labelid
+            and art.artifactid      = alm.artifactid
+            and art.artifacttypeid  = 2
+            and art.name            = '{}';
+    """
+
+    errors = False
+    sample2label = {}
+    for sample in pool.samples:
+        try:
+            cursor.execute(query.format(sample.name))
+            query_results = cursor.fetchall()
+
+            assert (
+                len(query_results) != 0
+            ), f"No reagent labels found for sample '{sample.name}'."
+            assert (
+                len(query_results) == 1
+            ), f"Multiple reagent labels found for sample '{sample.name}'."
+
+            label = query_results[0][0]
+            sample2label[sample.name] = label
+        except AssertionError as e:
+            logging.error(str(e), exc_info=True)
+            logging.warning(f"Skipping sample '{sample.name}' due to error.")
+            errors = True
+            continue
+
+    if errors:
+        raise AssertionError(
+            "Errors occurred when linking samples and indices. Please report this error."
+        )
+    else:
+        return sample2label
 
 
 def get_kit_string(process: Process) -> str:
