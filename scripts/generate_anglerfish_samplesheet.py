@@ -82,7 +82,7 @@ def generate_anglerfish_samplesheet(process):
 def extract_sequence(reagent_label: str) -> str | None:
     """Extract sequence from string."""
 
-    index_pattern = re.compile("[ACTG]{4,}-?[ACTG]{4,}")
+    index_pattern = re.compile("([ACTG]{4,})-?([ACTG]{4,})?")
     index_search = re.search(index_pattern, reagent_label)
 
     if index_search:

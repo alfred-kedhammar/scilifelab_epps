@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240624.1
+
+Fix bug to accommodate truseq single idx when writing Anglerfish samplesheet
+
 ## 20240617.1
 
 Change pattern to run mypy for entire dir regardless of file depth.
