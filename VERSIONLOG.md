@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240701.1
+
+Improve pipreqs comparison script in CI
+
 ## 20240624.1
 
 Fix bug to accommodate truseq single idx when writing Anglerfish samplesheet

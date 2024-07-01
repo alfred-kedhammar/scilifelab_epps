@@ -121,9 +121,9 @@ def main(lims, args):
             xml_query, return_type = udf_to_xml[udf_name]
 
             result = xml_results.find(f".//{xml_query}").text.strip()
-            if return_type == int:
+            if isinstance(return_type, int):
                 result = int(round(float(result), 0))
-            elif return_type == float:
+            elif isinstance(return_type, float):
                 result = float(result)
 
             try:
