@@ -222,6 +222,13 @@ lims_process_record = {
     "Illumina DNA PCR-free Library Construction": {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]}
     },
+    "Illumina DNA No-QC Library Construction": {
+        "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]},
+        "udf_PCR Machine": {"dest_file": "PCR"},
+    },
+    "Illumina DNA No-QC Library Pooling": {
+        "lims_instrument": {"dest_file": "Mosquito", "details": ["Processname"]}
+    },
     "Intermediate QC": {
         "lims_instrument": {
             "dest_file": "Qubit",
