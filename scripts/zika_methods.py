@@ -44,7 +44,7 @@ def pool_fixed_vol(
     pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
     pools.sort(key=lambda pool: pool.name)
 
-    # Supplement df with additional info
+    # Get sample dataframe
     to_fetch = {
         # Input sample
         "sample_name": "art_tuple[0]['uri'].name",
@@ -57,7 +57,6 @@ def pool_fixed_vol(
         "dst_id": "art_tuple[1]['uri'].location[0].id",
         "dst_well": "art_tuple[1]['uri'].location[1]",
     }
-
     df_all = zika_utils.fetch_sample_data(currentStep, to_fetch)
 
     # Define deck, a dictionary mapping plate names to deck positions
@@ -70,12 +69,14 @@ def pool_fixed_vol(
     for plate, pos in zip(df_all.src_name.unique(), available):
         deck[plate] = pos
 
+    # Populate worklist
     df_wl = pd.DataFrame()
     for pool in pools:
         df_pool = df_all[df_all.target_name == pool.name].copy()
         df_pool["transfer_vol"] = fixed_vol
         df_wl = pd.concat([df_wl, df_pool], axis=0)
 
+    # Format worklist
     df_formatted = zika_utils.format_worklist(df_wl.copy(), deck)
     wl_filename, log_filename = zika_utils.get_filenames(
         method_name="pool", pid=currentStep.id
