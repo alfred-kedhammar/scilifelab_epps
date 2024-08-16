@@ -15,6 +15,93 @@ import zika_utils
 from epp_utils.udf_tools import is_filled
 
 
+def pool_fixed_vol(
+    currentStep=None,
+    lims=None,
+    # Volume constraints
+    zika_min_vol=0.5,  # 0.5 lowest validated, 0.1 lowest possible
+    well_max_vol=180,  # TwinTec96
+):
+    # Write log header
+    log = []
+    for e in [
+        f"LIMS process {currentStep.id}\n" "\n=== Volume constraints ===",
+        f"Minimum pipetting volume: {zika_min_vol} ul",
+        f"Maximum allowed dst well volume: {well_max_vol} ul",
+    ]:
+        log.append(e)
+
+    # Get transfer vol
+    fixed_vol_step_udf = "Transfer Volume for Pooling (uL)"
+    fixed_vol = currentStep.udf[fixed_vol_step_udf]
+    assert type(fixed_vol) in [int, float], f"'{fixed_vol_step_udf}' must be a number."
+    assert (
+        zika_min_vol <= fixed_vol <= well_max_vol
+    ), f"'{fixed_vol_step_udf}' must be between {zika_min_vol} and {well_max_vol} ul."
+    log.append(f"Fixed transfer volume: {fixed_vol} ul")
+
+    # Get pools
+    pools = [art for art in currentStep.all_outputs() if art.type == "Analyte"]
+    pools.sort(key=lambda pool: pool.name)
+
+    # Get sample dataframe
+    to_fetch = {
+        # Input sample
+        "sample_name": "art_tuple[0]['uri'].name",
+        "src_name": "art_tuple[0]['uri'].location[0].name",
+        "src_id": "art_tuple[0]['uri'].location[0].id",
+        "src_well": "art_tuple[0]['uri'].location[1]",
+        # Output pool
+        "target_name": "art_tuple[1]['uri'].name",
+        "dst_name": "art_tuple[1]['uri'].location[0].name",
+        "dst_id": "art_tuple[1]['uri'].location[0].id",
+        "dst_well": "art_tuple[1]['uri'].location[1]",
+    }
+    df_all = zika_utils.fetch_sample_data(currentStep, to_fetch)
+
+    # Define deck, a dictionary mapping plate names to deck positions
+    assert len(df_all.src_id.unique()) <= 4, "Only one to four input plates allowed"
+    assert len(df_all.dst_id.unique()) == 1, "Only one output plate allowed"
+    deck = {}
+    deck[df_all.dst_name.unique()[0]] = 3
+    available = [2, 4, 1, 5][0 : len(df_all.src_name.unique())]
+    # TODO assign deck positions to minimize travel distance
+    for plate, pos in zip(df_all.src_name.unique(), available):
+        deck[plate] = pos
+
+    # Populate worklist
+    df_wl = pd.DataFrame()
+    for pool in pools:
+        df_pool = df_all[df_all.target_name == pool.name].copy()
+        df_pool["transfer_vol"] = fixed_vol
+        df_wl = pd.concat([df_wl, df_pool], axis=0)
+
+    # Format worklist
+    df_formatted = zika_utils.format_worklist(df_wl.copy(), deck)
+    wl_filename, log_filename = zika_utils.get_filenames(
+        method_name="pool", pid=currentStep.id
+    )
+
+    # Write the output files
+    zika_utils.write_worklist(
+        df=df_formatted.copy(),
+        deck=deck,
+        wl_filename=wl_filename,
+    )
+    zika_utils.write_log(log, log_filename)
+
+    # Upload files
+    zika_utils.upload_csv(currentStep, lims, wl_filename)
+    zika_utils.upload_log(currentStep, lims, log_filename)
+
+    # Issue warnings, if any
+    if any("WARNING" in entry for entry in log):
+        sys.stderr.write(
+            "CSV-file generated with warnings, please check the Log file\n"
+        )
+        sys.exit(2)
+
+
 def pool(
     currentStep=None,
     lims=None,
