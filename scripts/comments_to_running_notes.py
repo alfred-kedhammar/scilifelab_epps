@@ -68,6 +68,8 @@ def categorization(process_name):
         "HiC Intermediate QC": "",
         "Hybridize Library  (SS XT) 4.0": "",
         "Illumina DNA PCR-free Library Construction": "Workset",
+        "Illumina DNA No-QC Library Construction": "Workset",
+        "Illumina DNA No-QC Library Pooling": "Workset",
         "Illumina Sequencing (HiSeq X) 1.0": "Flowcell",
         "Illumina Sequencing (Illumina SBS) 4.0": "Flowcell",
         "Illumina Sequencing (NextSeq) v1.0": "Flowcell",

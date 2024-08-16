@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240815.1
+
+Support Illumina DNA No-QC protocol
+
 ## 20240701.1
 
 Improve pipreqs comparison script in CI
