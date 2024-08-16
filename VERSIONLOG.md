@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240816.1
+
+Set up fixed-volume pooling by Zika for no-QC libraries.
+
 ## 20240815.1
 
 Support Illumina DNA No-QC protocol
