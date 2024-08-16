@@ -262,18 +262,24 @@ def prepooling(currentStep, lims):
     log = []
 
     if currentStep.instrument.name == "Zika":
-        zika_methods.pool(
-            currentStep=currentStep,
-            lims=lims,
-            udfs={
-                "target_amt": None,
-                "target_vol": "Final Volume (uL)",
-                "target_conc": "Pool Conc. (nM)",
-                "final_amt": None,
-                "final_vol": "Final Volume (uL)",
-                "final_conc": "Pool Conc. (nM)",
-            },
-        )
+        if currentStep.type.name == "Illumina DNA No-QC Library Pooling":
+            zika_methods.pool_fixed_vol(
+                currentStep=currentStep,
+                lims=lims,
+            )
+        else:
+            zika_methods.pool(
+                currentStep=currentStep,
+                lims=lims,
+                udfs={
+                    "target_amt": None,
+                    "target_vol": "Final Volume (uL)",
+                    "target_conc": "Pool Conc. (nM)",
+                    "final_amt": None,
+                    "final_vol": "Final Volume (uL)",
+                    "final_conc": "Pool Conc. (nM)",
+                },
+            )
 
     else:
         # First thing to do is to grab the volumes of the input artifacts. The method is ... rather unique.
