@@ -1018,6 +1018,7 @@ def main(lims, args):
         "Pre-Pooling (NextSeq) v1.0",
         "Pre-Pooling",
         "Pre-Pooling (NovaSeqXPlus) v1.0",
+        "Illumina DNA No-QC Library Pooling",
     ]:
         prepooling(currentStep, lims)
     elif currentStep.type.name in [
