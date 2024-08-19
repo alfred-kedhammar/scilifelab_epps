@@ -10,9 +10,9 @@ import sys
 
 import numpy as np
 import pandas as pd
-import zika_utils
 
 from epp_utils.udf_tools import is_filled
+from scripts import zika_utils
 
 
 def pool_fixed_vol(
