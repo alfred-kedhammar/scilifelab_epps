@@ -17,7 +17,7 @@ from genologics.lims import Lims
 from tabulate import tabulate
 
 from data.ONT_barcodes import ONT_BARCODE_LABEL_PATTERN, ONT_BARCODES
-from epp_utils.udf_tools import fetch
+from scilifelab_epps.epp_utils.udf_tools import fetch
 from scilifelab_epps.epp import traceback_to_step, upload_file
 
 DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.

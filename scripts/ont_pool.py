@@ -11,7 +11,7 @@ from numpy import minimum
 from tabulate import tabulate
 from zika_utils import fetch_sample_data
 
-from epp_utils import formula
+from scilifelab_epps.epp_utils import formula
 
 DESC = """
 EPP "ONT pooling", file slot "ONT pooling log".

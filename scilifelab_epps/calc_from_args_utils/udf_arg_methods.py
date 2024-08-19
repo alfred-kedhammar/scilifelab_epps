@@ -5,7 +5,7 @@ from typing import Any
 import yaml
 from genologics.entities import Artifact, Process
 
-from epp_utils import udf_tools
+from scilifelab_epps.epp_utils import udf_tools
 
 
 def fetch_from_arg(

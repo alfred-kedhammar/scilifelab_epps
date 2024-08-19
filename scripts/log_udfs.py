@@ -12,7 +12,7 @@ from genologics.lims import Lims
 from ont_send_reloading_info_to_db import parse_run
 from tabulate import tabulate
 
-from epp_utils import udf_tools
+from scilifelab_epps.epp_utils import udf_tools
 
 DESC = """Script for the EPP "Log fields" and file slot "Field log".
 
