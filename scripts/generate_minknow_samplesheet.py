@@ -23,12 +23,6 @@ from scilifelab_epps.wrapper import epp_decorator
 DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
 """
 
-TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
-SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
-
-with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml") as f:
-    config = yaml.safe_load(f)
-
 
 def get_ont_library_contents(
     ont_library: Artifact,
@@ -194,6 +188,9 @@ def get_ont_library_contents(
 
 
 def get_pool_sample_label_mapping(pool: Artifact) -> dict[str, str]:
+    with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml") as f:
+        config = yaml.safe_load(f)
+
     # Setup DB connection
     connection = psycopg2.connect(
         user=config["username"],
@@ -524,5 +521,9 @@ if __name__ == "__main__":
         help="Samplesheet file slot",
     )
     args = parser.parse_args()
+
+    import ipdb
+
+    ipdb.set_trace()
 
     main(args)

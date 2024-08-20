@@ -11,16 +11,13 @@ from scilifelab_epps.epp import upload_file
 
 
 def epp_decorator(file: str):
-    """Decorator for passing file info."""
-    SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
+    script_name: str = os.path.basename(file).split(".")[0]
 
     def _epp_decorator(script_main):
-        """Decorator for wrapping EPP scripts."""
-
-        def epp_wrapper(*args, **kwargs):
+        def epp_wrapper(args):
             """General wrapper for EPP scripts."""
 
-            TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
+            timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
             # Set up LIMS
             lims = Lims(BASEURI, USERNAME, PASSWORD)
@@ -31,9 +28,9 @@ def epp_decorator(file: str):
             log_filename: str = (
                 "_".join(
                     [
-                        SCRIPT_NAME,
+                        script_name,
                         process.id,
-                        TIMESTAMP,
+                        timestamp,
                         process.technician.name.replace(" ", ""),
                     ]
                 )
@@ -49,7 +46,7 @@ def epp_decorator(file: str):
             )
 
             # Start logging
-            logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
+            logging.info(f"Script '{script_name}' started at {timestamp}.")
             logging.info(
                 f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
             )
@@ -60,7 +57,7 @@ def epp_decorator(file: str):
 
             # Run
             try:
-                script_main(process, lims, *args, **kwargs)
+                script_main(args)
 
             except Exception as e:
                 # Post error to LIMS GUI
