@@ -59,6 +59,7 @@ def epp_decorator(file: str):
             try:
                 script_main(args)
 
+            # On script error
             except Exception as e:
                 # Post error to LIMS GUI
                 logging.error(str(e), exc_info=True)
@@ -72,8 +73,9 @@ def epp_decorator(file: str):
                 os.remove(log_filename)
                 sys.stderr.write(str(e))
                 sys.exit(2)
+
+            # On script success
             else:
-                logging.info("")
                 logging.info("Script completed successfully.")
                 logging.shutdown()
                 upload_file(
