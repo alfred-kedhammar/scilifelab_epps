@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-import logging
-import os
-import sys
 from argparse import ArgumentParser
 from datetime import datetime as dt
 
@@ -10,7 +7,7 @@ from genologics.entities import Process
 from genologics.lims import Lims
 
 from scilifelab_epps.calc_from_args import calculation_methods
-from scilifelab_epps.epp import upload_file
+from scilifelab_epps.wrapper import epp_decorator
 
 DESC = """UDF-agnostic script to perform calculations across all artifacts of a step.
 
@@ -20,7 +17,6 @@ from where their values should be fetched.
 """
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
-SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
 def parse_udf_arg(arg_string: str) -> dict:
@@ -71,7 +67,8 @@ def parse_udf_arg(arg_string: str) -> dict:
     return arg_dict
 
 
-def main():
+@epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
+def main(args):
     f"""Set up log, LIMS instance and parse args.
 
     Example 1:
@@ -124,6 +121,15 @@ def main():
 
     """
 
+    # Set up LIMS
+    lims = Lims(BASEURI, USERNAME, PASSWORD)
+    process = Process(lims, id=args.pid)
+
+    function_to_use = getattr(calculation_methods, args.calc)
+    function_to_use(process, args)
+
+
+if __name__ == "__main__":
     # Parse args
     parser = ArgumentParser(description=DESC)
     parser.add_argument("--pid", type=str, help="Lims ID for current Process")
@@ -134,6 +140,7 @@ def main():
         help="Which function to use for calculations",
     )
     parser.add_argument("--log", type=str, help="Which log file slot to use")
+
     # UDFs to use for calculations
     udf_args = [
         "vol_in",
@@ -146,79 +153,7 @@ def main():
     ]
     for udf_arg in udf_args:
         parser.add_argument(f"--{udf_arg}", type=parse_udf_arg)
+
     args = parser.parse_args()
 
-    # Set up LIMS
-    lims = Lims(BASEURI, USERNAME, PASSWORD)
-    lims.check_version()
-    process = Process(lims, id=args.pid)
-
-    # Set up logging
-    log_filename: str = (
-        "_".join(
-            [
-                SCRIPT_NAME,
-                args.calc,
-                process.id,
-                TIMESTAMP,
-                process.technician.name.replace(" ", ""),
-            ]
-        )
-        + ".log"
-    )
-
-    logging.basicConfig(
-        filename=log_filename,
-        filemode="w",
-        format="%(levelname)s: %(message)s",
-        level=logging.INFO,
-    )
-
-    # Start logging
-    logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
-    logging.info(
-        f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
-    )
-    args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
-    logging.info(f"Script called with arguments: \n\t{args_str}")
-
-    try:
-        function_to_use = getattr(calculation_methods, args.calc)
-        function_to_use(process, args)
-    except Exception as e:
-        # Post error to LIMS GUI
-        logging.error(str(e), exc_info=True)
-        logging.shutdown()
-        upload_file(
-            file_path=log_filename,
-            file_slot=args.log,
-            process=process,
-            lims=lims,
-            remove=True,
-        )
-        sys.stderr.write(str(e))
-        sys.exit(2)
-    else:
-        logging.info("")
-        logging.info("Script completed successfully.")
-        logging.shutdown()
-        log_content = open(log_filename).read()
-        upload_file(
-            file_path=log_filename,
-            file_slot=args.log,
-            process=process,
-            lims=lims,
-            remove=True,
-        )
-        # Check log for errors and warnings
-        if "ERROR:" in log_content or "WARNING:" in log_content:
-            sys.stderr.write(
-                "Script finished successfully, but log contains errors or warnings, please have a look."
-            )
-            sys.exit(2)
-        else:
-            sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()
+    main(args)
