@@ -3,7 +3,6 @@
 import logging
 import os
 import re
-import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
@@ -19,7 +18,7 @@ from genologics.lims import Lims
 from ont_send_reloading_info_to_db import get_ONT_db
 
 from scilifelab_epps.utils import udf_tools
-from scilifelab_epps.epp import upload_file
+from scilifelab_epps.wrapper import epp_decorator
 
 DESC = """Script for finishing the step to start ONT sequencing in LIMS.
 
@@ -28,7 +27,6 @@ appends LIMS-specific information to the ONT run in StatusDB.
 """
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
-SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
 def assert_samplesheet(process: Process, args: Namespace, lims: Lims):
@@ -241,7 +239,17 @@ def sync_runs_to_db(process: Process, args: Namespace, lims: Lims):
         )
 
 
-def main():
+@epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
+def main(args):
+    # Set up LIMS
+    lims = Lims(BASEURI, USERNAME, PASSWORD)
+    lims.check_version()
+    process = Process(lims, id=args.pid)
+
+    sync_runs_to_db(process=process, lims=lims, args=args)
+
+
+if __name__ == "__main__":
     # Parse args
     parser = ArgumentParser(description=DESC)
     parser.add_argument(
@@ -263,64 +271,4 @@ def main():
     )
     args: Namespace = parser.parse_args()
 
-    # Set up LIMS
-    lims = Lims(BASEURI, USERNAME, PASSWORD)
-    lims.check_version()
-    process = Process(lims, id=args.pid)
-
-    # Set up logging
-    log_filename: str = (
-        "_".join(
-            [
-                SCRIPT_NAME,
-                process.id,
-                TIMESTAMP,
-                process.technician.name.replace(" ", ""),
-            ]
-        )
-        + ".log"
-    )
-
-    logging.basicConfig(
-        filename=log_filename,
-        filemode="w",
-        format="%(filename)s - %(funcName)s - %(levelname)s - %(message)s",
-        level=logging.INFO,
-    )
-
-    # Start logging
-    logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
-    logging.info(
-        f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
-    )
-    args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
-    logging.info(f"Script called with arguments: \n\t{args_str}")
-
-    try:
-        sync_runs_to_db(process=process, lims=lims, args=args)
-    except Exception as e:
-        # Post error to LIMS GUI
-        logging.error(e, exc_info=True)
-        logging.shutdown()
-        upload_file(
-            file_path=log_filename,
-            file_slot=args.log,
-            process=process,
-            lims=lims,
-        )
-        sys.stderr.write(str(e))
-        sys.exit(2)
-    else:
-        logging.info("Script completed successfully.")
-        logging.shutdown()
-        upload_file(
-            file_path=log_filename,
-            file_slot=args.log,
-            process=process,
-            lims=lims,
-        )
-        sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()
+    main(args)
