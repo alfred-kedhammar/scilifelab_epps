@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from genologics.entities import Process
 
-from scilifelab_epps.epp_utils.udf_tools import fetch_last
+from scilifelab_epps.utils.udf_tools import fetch_last
 
 
 def verify_step(currentStep, targets=None):

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 import logging
 import os
 import re
@@ -8,12 +7,11 @@ import sys
 from argparse import ArgumentParser
 
 import pandas as pd
-import zika_methods
-import zika_utils
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
+from scilifelab_epps import zika
 from scilifelab_epps.epp import attach_file
 
 DESC = """EPP used to create csv files for the bravo robot"""
@@ -263,12 +261,12 @@ def prepooling(currentStep, lims):
 
     if currentStep.instrument.name == "Zika":
         if currentStep.type.name == "Illumina DNA No-QC Library Pooling":
-            zika_methods.pool_fixed_vol(
+            zika.methods.pool_fixed_vol(
                 currentStep=currentStep,
                 lims=lims,
             )
         else:
-            zika_methods.pool(
+            zika.methods.pool(
                 currentStep=currentStep,
                 lims=lims,
                 udfs={
@@ -369,14 +367,14 @@ def setup_qpcr(currentStep, lims):
 
 def default_bravo(lims, currentStep, with_total_vol=True):
     # Re-route to Zika
-    if zika_utils.verify_step(
+    if zika.utils.verify_step(
         currentStep,
         targets=[
             ("SMARTer Pico RNA", "Setup Workset/Plate"),
             ("QIAseq miRNA", "Setup Workset/Plate"),
         ],
     ):
-        zika_methods.norm(
+        zika.methods.norm(
             currentStep=currentStep,
             lims=lims,
             udfs={
@@ -388,10 +386,10 @@ def default_bravo(lims, currentStep, with_total_vol=True):
                 "final_conc": None,
             },
         )
-    elif zika_utils.verify_step(
+    elif zika.utils.verify_step(
         currentStep, targets=[("Amplicon", "Setup Workset/Plate")]
     ):
-        zika_methods.norm(
+        zika.methods.norm(
             currentStep=currentStep,
             lims=lims,
             # Use lower minimum pipetting volume and customer metrics

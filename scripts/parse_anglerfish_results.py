@@ -11,7 +11,7 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 
-from scilifelab_epps.epp_utils import udf_tools
+from scilifelab_epps.utils import udf_tools
 from scilifelab_epps.epp import upload_file
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")

@@ -9,7 +9,7 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
-from scilifelab_epps.calc_from_args_utils import calculation_methods
+from scilifelab_epps.calc_from_args import calculation_methods
 from scilifelab_epps.epp import upload_file
 
 DESC = """UDF-agnostic script to perform calculations across all artifacts of a step.
