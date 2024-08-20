@@ -16,8 +16,8 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
-from scilifelab_epps.utils import formula, udf_tools
 from scilifelab_epps.epp import EppLogger
+from scilifelab_epps.utils import formula, udf_tools
 
 
 def apply_calculations(artifacts, udf1, op, udf2, unit_amount_map, process):
