@@ -17,6 +17,7 @@ DESC = """Script to generate Anglerfish samplesheet for ONT runs.
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 
 
+@dataclass
 class Row:
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -31,9 +32,9 @@ class Row:
         f.write("\n")
 
 
+@dataclass
 class Section:
-    def __init__(self) -> None:
-        self.rows: list[Row] = []
+    rows: list[Row] = field(default_factory=list)
 
     def add(self, row: Row):
         self.rows.append(row)
@@ -45,25 +46,23 @@ class Section:
         f.write("\n")
 
 
+@dataclass
 class RunValues(Section):
-    def __init__(self) -> None:
-        super().__init__()
-        self.mark_start: str = "[Run Values]"
-        self.cols: list[str] = ["KeyName", "Value"]
+    mark_start: str = "[Run Values]"
+    cols: list[str] = field(default_factory=lambda: ["KeyName", "Value"])
 
 
+@dataclass
 class Settings(Section):
-    def __init__(self) -> None:
-        super().__init__()
-        self.mark_start: str = "[Settings]"
-        self.cols: list[str] = ["SettingName", "Value"]
+    mark_start: str = "[Settings]"
+    cols: list[str] = field(default_factory=lambda: ["SettingName", "Value"])
 
 
+@dataclass
 class Samples(Section):
-    def __init__(self) -> None:
-        super().__init__()
-        self.mark_start: str = "[Samples]"
-        self.cols: list[str] = [
+    mark_start: str = "[Samples]"
+    cols: list[str] = field(
+        default_factory=lambda: [
             "SampleName",
             "Index1",
             "Index2",
@@ -71,15 +70,18 @@ class Samples(Section):
             "Project",
             "ExternalID",
         ]
+    )
 
 
+@dataclass
 class Manifest:
-    def __init__(self) -> None:
-        self.sections: list[Section] = [RunValues(), Settings(), Samples()]
+    runvalues: RunValues = RunValues()
+    settings: Settings = Settings()
+    samples: Samples = Samples()
 
     def write(self, file_path: str):
         with open(file_path, "w") as f:
-            for section in self.sections:
+            for section in [self.runvalues, self.settings, self.samples]:
                 section.write(f)
 
 
