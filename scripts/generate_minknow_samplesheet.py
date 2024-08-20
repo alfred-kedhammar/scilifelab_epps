@@ -23,6 +23,8 @@ from scilifelab_epps.wrapper import epp_decorator
 DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
 """
 
+TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
+
 
 def get_ont_library_contents(
     ont_library: Artifact,
@@ -471,7 +473,7 @@ def generate_MinKNOW_samplesheet(args):
     return file_name
 
 
-@epp_decorator(__file__)
+@epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
 def main(args):
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     process = Process(lims, id=args.pid)

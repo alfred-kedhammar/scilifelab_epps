@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-from datetime import datetime as dt
 
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
@@ -10,14 +9,17 @@ from genologics.lims import Lims
 from scilifelab_epps.epp import upload_file
 
 
-def epp_decorator(file: str):
-    script_name: str = os.path.basename(file).split(".")[0]
+def epp_decorator(script_path: str, timestamp: str):
+    """This top-level decorator is meant to be used on EPP scripts' main functions.
+
+    It receives the script path (__file__) and timestamp (yymmdd_hhmmss) as arguments to
+    pass on to it's children which wrap the main function to handle logging and graceful failure.
+    """
+    script_name: str = os.path.basename(script_path).split(".")[0]
 
     def _epp_decorator(script_main):
         def epp_wrapper(args):
             """General wrapper for EPP scripts."""
-
-            timestamp = dt.now().strftime("%y%m%d_%H%M%S")
 
             # Set up LIMS
             lims = Lims(BASEURI, USERNAME, PASSWORD)
