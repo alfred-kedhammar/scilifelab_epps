@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240820.1
+
+Re-organize repo to follow best-practice modularization and implement EPP wrapper.
+
 ## 20240816.1
 
 Set up fixed-volume pooling by Zika for no-QC libraries.
