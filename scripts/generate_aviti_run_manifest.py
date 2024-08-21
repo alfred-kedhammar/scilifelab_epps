@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import logging
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass, field
 from datetime import datetime as dt
 
@@ -85,19 +85,21 @@ class Manifest:
                 section.write(f)
 
 
-@epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
-def main(args):
-    lims = Lims(BASEURI, USERNAME, PASSWORD)
-    process = Process(lims, id=args.pid)
-
-    logging.info("Starting to build run manifest.")
+def get_samples_section(process: Process) -> str:
+    """Generate the [Samples] section of the AVITI run manifest and return it as a string."""
 
     # Get the analytes placed into the flowcell
     arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
 
+    # Assert that both flowcell lanes are filled
+    assert set([art_out.location[1].split(":")[1] for art_out in arts_out]) == set(
+        ["1", "2"]
+    ), "Expected two populated lanes."
+
     # Iterate over pools
-    rows = []
+    all_rows = []
     for art_out in arts_out:
+        lane_rows = []
         assert (
             art_out.container.type.name == "AVITI Flow Cell"
         ), "Unsupported container type."
@@ -107,18 +109,14 @@ def main(args):
         assert len(art_out.samples) == len(
             art_out.reagent_labels
         ), "Unequal number of samples and reagent labels."
-
         lane: str = art_out.location[1].split(":")[1]
         sample2label: dict[str, str] = get_pool_sample_label_mapping(art_out)
         samples = art_out.samples
         labels = art_out.reagent_labels
 
-        assert len(labels.unique()) == len(
-            labels
-        ), "Detected non-unique reagent labels."
+        assert len(set(labels)) == len(labels), "Detected non-unique reagent labels."
 
         # Iterate over samples
-
         for sample in samples:
             lims_label = sample2label[sample.name]
 
@@ -134,10 +132,76 @@ def main(args):
             row["Index2"] = index2
             row["Lane"] = lane
 
-            rows.append(row)
+            lane_rows.append(row)
 
-    df = pd.DataFrame(rows)
-    samples = f"[Samples]\n{df.to_csv(index=None, header=True)}"
+        # Add PhiX controls
+        for phix_idx_pair in [
+            ("ACGTGTAGC", "GCTAGTGCA"),
+            ("CACATGCTG", "AGACACTGT"),
+            ("GTACACGAT", "CTCGTACAG"),
+            ("TGTGCATCA", "TAGTCGATC"),
+        ]:
+            row = {}
+            row["SampleName"] = "PhiX"
+            row["Index1"] = phix_idx_pair[0]
+            row["Index2"] = phix_idx_pair[1]
+            row["Lane"] = lane
+            lane_rows.append(row)
+
+        # Check for index collision within lane, across samples and PhiX
+        check_index_collision(lane_rows)
+        all_rows.extend(lane_rows)
+
+    df = pd.DataFrame(all_rows)
+
+    samples_section = f"[Samples]\n{df.to_csv(index=None, header=True)}"
+
+    return samples_section
+
+
+def revcomp(seq: str) -> str:
+    """Reverse-complement a DNA string."""
+    return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
+
+
+def check_index_collision(rows: list[dict]) -> None:
+    """Directionality-agnostic index collision checker."""
+
+    def idx_combinations(idx1: str, idx2: str | None) -> list[str]:
+        """Given one or two indices, return all possible reverse-complement combinations."""
+        if idx2 is None:
+            return [idx1, revcomp(idx1)]
+        else:
+            return [
+                idx1 + idx2,
+                idx1 + revcomp(idx2),
+                revcomp(idx1) + idx2,
+                revcomp(idx1) + revcomp(idx2),
+            ]
+
+    for i in range(len(rows)):
+        row = rows[i]
+        idxs = idx_combinations(row["Index1"], row["Index2"])
+
+        for row_comp in rows[i + 1 :]:
+            idxs_comp = idx_combinations(row_comp["Index1"], row_comp["Index2"])
+
+            if any(idx in idxs_comp for idx in idxs):
+                raise ValueError(
+                    "Index collision detected between"
+                    + f" {row['SampleName']} ({row['Index1']}-{row['Index2']}) and"
+                    + f" {row_comp['SampleName']} ({row_comp['Index1']}-{row_comp['Index2']})."
+                )
+
+
+@epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
+def main(args: Namespace):
+    lims = Lims(BASEURI, USERNAME, PASSWORD)
+    process = Process(lims, id=args.pid)
+
+    logging.info("Starting to build run manifest.")
+
+    samples_section = get_samples_section(process)
 
 
 if __name__ == "__main__":
