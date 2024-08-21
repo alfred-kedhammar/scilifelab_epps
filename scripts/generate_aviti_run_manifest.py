@@ -9,7 +9,7 @@ import pandas as pd
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
-from Levenshtein import distance
+from Levenshtein import hamming as distance
 
 from scilifelab_epps.wrapper import epp_decorator
 from scripts.generate_minknow_samplesheet import get_pool_sample_label_mapping
@@ -127,7 +127,7 @@ def get_samples_section(process: Process) -> str:
                 index1, index2 = lims_label.split("-")
             else:
                 index1 = lims_label
-                index2 = None
+                index2 = ""
 
             row = {}
             row["SampleName"] = sample.name
@@ -152,7 +152,7 @@ def get_samples_section(process: Process) -> str:
             lane_rows.append(row)
 
         # Check for index collision within lane, across samples and PhiX
-        check_index_collision(lane_rows)
+        check_distances(lane_rows)
         all_rows.extend(lane_rows)
 
     df = pd.DataFrame(all_rows)
@@ -167,54 +167,100 @@ def revcomp(seq: str) -> str:
     return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
 
 
-def check_index_collision(rows: list[dict], warning_dist: int = 3) -> None:
-    """Directionality-agnostic index collision checker."""
+def check_pair_distance(row, row_comp, dist_warning_threshold: int = 2):
+    """Directionality-agnostic distance check between two index pairs."""
 
-    def idx_combinations(idx1: str, idx2: str | None) -> list[str]:
-        """Given one or two indices, return all possible reverse-complement combinations."""
-        if idx2 is None:
-            return [idx1, revcomp(idx1)]
-        else:
-            return [
-                idx1 + idx2,
-                idx1 + revcomp(idx2),
-                revcomp(idx1) + idx2,
-                revcomp(idx1) + revcomp(idx2),
+    def get_index_combos(row):
+        return set(
+            [
+                row["Index1"] + row["Index2"],
+                row["Index1"] + revcomp(row["Index2"]),
+                revcomp(row["Index1"]) + row["Index2"],
+                revcomp(row["Index1"]) + revcomp(row["Index2"]),
             ]
+        )
 
+    row_combos = get_index_combos(row)
+    row_comp_combos = get_index_combos(row_comp)
+
+    for row_combo in row_combos:
+        for row_comp_combo in row_comp_combos:
+            dist = distance(row_combo, row_comp_combo)
+
+            if dist <= dist_warning_threshold:
+                warning = "\n".join(
+                    [
+                        f"Edit distance between {row['SampleName']} and {row_comp['SampleName']} indices is {dist}.",
+                        f" The warning threshold is {dist_warning_threshold}.",
+                        "Supplied indexes:",
+                        f" {row['SampleName']}: {row['Index1']}-{row['Index2']}",
+                        f" {row_comp['SampleName']}: {row_comp['Index1']}-{row_comp['Index2']}",
+                        "Comparison:",
+                        f" {row['SampleName']}: {row_combo}",
+                        f" {row_comp['SampleName']}: {row_comp_combo}",
+                    ]
+                )
+                logging.warning(warning)
+                if dist == 0:
+                    raise AssertionError("Index collision detected.")
+
+
+def check_pair_distance_new(row, row_comp, dist_warning_threshold: int = 2):
+    """Directionality-agnostic distance check between two index pairs."""
+    dists = []
+    for a1, _a1 in zip(
+        [row["Index1"], revcomp(row["Index1"])], ["Index1", "Index1_rc"]
+    ):
+        for a2, _a2 in zip(
+            [row["Index2"], revcomp(row["Index2"])], ["Index2", "Index2_rc"]
+        ):
+            for b1, _b1 in zip(
+                [row_comp["Index1"], revcomp(row_comp["Index1"])],
+                ["Index1", "Index1_rc"],
+            ):
+                for b2, _b2 in zip(
+                    [row_comp["Index2"], revcomp(row_comp["Index2"])],
+                    ["Index2", "Index2_rc"],
+                ):
+                    dists.append(
+                        (
+                            distance(a1, b1) + distance(a2, b2),
+                            f"{a1}-{a2} {b1}-{b2}",
+                            f"{_a1}-{_a2} {_b1}-{_b2}",
+                        )
+                    )
+    min_dist = min(dists, key=lambda x: x[0])
+
+    if min_dist[0] <= dist_warning_threshold:
+        print(f"{row['SampleName']} <--> {row_comp['SampleName']}")
+        print(
+            f"Given: {row['Index1']}-{row['Index2']} <--> {row_comp['Index1']}-{row_comp['Index2']}"
+        )
+        print(f"Distance: {min_dist[0]} when flipped to {min_dist[2]}")
+        print_match(*min_dist[1].split())
+        print()
+
+
+def print_match(seq1, seq2):
+    assert len(seq1) == len(seq2)
+
+    m = ""
+    for seq1_base, seq2_base in zip(seq1, seq2):
+        if seq1_base == seq2_base:
+            m += "|"
+        else:
+            m += "X"
+
+    lines = "\n".join([seq1, m, seq2])
+    print(lines)
+
+
+def check_distances(rows: list[dict]) -> None:
     for i in range(len(rows)):
         row = rows[i]
-        idxs = idx_combinations(row["Index1"], row["Index2"])
 
         for row_comp in rows[i + 1 :]:
-            idxs_comp = idx_combinations(row_comp["Index1"], row_comp["Index2"])
-
-            for idx in idxs:
-                for idx_comp in idxs_comp:
-                    dist = distance(idx, idx_comp)
-                    if dist <= warning_dist:
-                        warning = "\n".join(
-                            [
-                                f"Edit distance between {row['SampleName']} and {row_comp['SampleName']} indices is {dist}.",
-                                f" The warning threshold is {warning_dist}.",
-                                "Supplied indexes:",
-                                f" {row['SampleName']}: {row['Index1']}-{row['Index2']}",
-                                f" {row_comp['SampleName']}: {row_comp['Index1']}-{row_comp['Index2']}",
-                                "Comparison:",
-                                f" {row['SampleName']}: {idx}",
-                                f" {row_comp['SampleName']}: {idx_comp}",
-                            ]
-                        )
-                        logging.warning(warning)
-                        # TODO
-                        print(warning)
-
-            if any(idx in idxs_comp for idx in idxs):
-                raise ValueError(
-                    "Index collision detected between"
-                    + f" {row['SampleName']} ({row['Index1']}-{row['Index2']}) and"
-                    + f" {row_comp['SampleName']} ({row_comp['Index1']}-{row_comp['Index2']})."
-                )
+            check_pair_distance_new(row, row_comp)
 
 
 @epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
