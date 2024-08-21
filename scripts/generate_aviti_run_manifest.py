@@ -120,6 +120,8 @@ def get_samples_section(process: Process) -> str:
         for sample in samples:
             lims_label = sample2label[sample.name]
 
+            # TODO add code here to parse reagent labels that do not only consist of sequences and dashes
+
             if "-" in lims_label:
                 index1, index2 = lims_label.split("-")
             else:
