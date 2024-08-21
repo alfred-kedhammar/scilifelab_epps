@@ -5,14 +5,13 @@ from argparse import ArgumentParser
 from dataclasses import dataclass, field
 from datetime import datetime as dt
 
+import pandas as pd
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
 from scilifelab_epps.wrapper import epp_decorator
-
-DESC = """Script to generate Anglerfish samplesheet for ONT runs.
-"""
+from scripts.generate_minknow_samplesheet import get_pool_sample_label_mapping
 
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 
@@ -40,7 +39,8 @@ class Section:
         self.rows.append(row)
 
     def write(self, f):
-        f.write(f"{self.mark_start}\n")
+        f.write(self.mark_start + "\n")
+        f.write(", ".join(self.cols) + "\n")
         for row in self.rows:
             row.write(f)
         f.write("\n")
@@ -92,12 +92,57 @@ def main(args):
 
     logging.info("Starting to build run manifest.")
 
-    pass
+    # Get the analytes placed into the flowcell
+    arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
+
+    # Iterate over pools
+    rows = []
+    for art_out in arts_out:
+        assert (
+            art_out.container.type.name == "AVITI Flow Cell"
+        ), "Unsupported container type."
+        assert (
+            len(art_out.samples) > 1 and len(art_out.reagent_labels) > 1
+        ), "Not a pool."
+        assert len(art_out.samples) == len(
+            art_out.reagent_labels
+        ), "Unequal number of samples and reagent labels."
+
+        lane: str = art_out.location[1].split(":")[1]
+        sample2label: dict[str, str] = get_pool_sample_label_mapping(art_out)
+        samples = art_out.samples
+        labels = art_out.reagent_labels
+
+        assert len(labels.unique()) == len(
+            labels
+        ), "Detected non-unique reagent labels."
+
+        # Iterate over samples
+
+        for sample in samples:
+            lims_label = sample2label[sample.name]
+
+            if "-" in lims_label:
+                index1, index2 = lims_label.split("-")
+            else:
+                index1 = lims_label
+                index2 = None
+
+            row = {}
+            row["SampleName"] = sample.name
+            row["Index1"] = index1
+            row["Index2"] = index2
+            row["Lane"] = lane
+
+            rows.append(row)
+
+    df = pd.DataFrame(rows)
+    samples = f"[Samples]\n{df.to_csv(index=None, header=True)}"
 
 
 if __name__ == "__main__":
     # Parse args
-    parser = ArgumentParser(description=DESC)
+    parser = ArgumentParser()
     parser.add_argument(
         "--pid",
         required=True,
