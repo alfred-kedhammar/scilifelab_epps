@@ -9,6 +9,7 @@ import pandas as pd
 from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
+from Levenshtein import distance
 
 from scilifelab_epps.wrapper import epp_decorator
 from scripts.generate_minknow_samplesheet import get_pool_sample_label_mapping
@@ -166,7 +167,7 @@ def revcomp(seq: str) -> str:
     return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
 
 
-def check_index_collision(rows: list[dict]) -> None:
+def check_index_collision(rows: list[dict], warning_dist: int = 3) -> None:
     """Directionality-agnostic index collision checker."""
 
     def idx_combinations(idx1: str, idx2: str | None) -> list[str]:
@@ -187,6 +188,26 @@ def check_index_collision(rows: list[dict]) -> None:
 
         for row_comp in rows[i + 1 :]:
             idxs_comp = idx_combinations(row_comp["Index1"], row_comp["Index2"])
+
+            for idx in idxs:
+                for idx_comp in idxs_comp:
+                    dist = distance(idx, idx_comp)
+                    if dist <= warning_dist:
+                        warning = "\n".join(
+                            [
+                                f"Edit distance between {row['SampleName']} and {row_comp['SampleName']} indices is {dist}.",
+                                f" The warning threshold is {warning_dist}.",
+                                "Supplied indexes:",
+                                f" {row['SampleName']}: {row['Index1']}-{row['Index2']}",
+                                f" {row_comp['SampleName']}: {row_comp['Index1']}-{row_comp['Index2']}",
+                                "Comparison:",
+                                f" {row['SampleName']}: {idx}",
+                                f" {row_comp['SampleName']}: {idx_comp}",
+                            ]
+                        )
+                        logging.warning(warning)
+                        # TODO
+                        print(warning)
 
             if any(idx in idxs_comp for idx in idxs):
                 raise ValueError(
