@@ -17,7 +17,7 @@ TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 
 
 def get_samples_section(process: Process) -> str:
-    """Generate the [Samples] section of the AVITI run manifest and return it as a string."""
+    """Generate the [SAMPLES] section of the AVITI run manifest and return it as a string."""
 
     # Get the analytes placed into the flowcell
     arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
@@ -87,7 +87,7 @@ def get_samples_section(process: Process) -> str:
 
     df = pd.DataFrame(all_rows)
 
-    samples_section = f"[Samples]\n{df.to_csv(index=None, header=True)}"
+    samples_section = f"[SAMPLES]\n{df.to_csv(index=None, header=True)}"
 
     return samples_section
 
@@ -153,11 +153,11 @@ def check_pair_distance(
                 f"Given: {row['Index1']}-{row['Index2']} <-> {row_comp['Index1']}-{row_comp['Index2']}"
             )
             warning_lines.append(f"Distance: {dist} when flipped to {flip_conf}")
-        # If the index lengths are equal, add a simple small visual representation
+        # If the index lengths are equal, add a simple visual representation
         if len(row["Index1"]) + len(row["Index2"]) == len(row_comp["Index1"]) + len(
             row_comp["Index2"]
         ):
-            warning_lines.append(visualize_hamming(*compared_seqs.split()))
+            warning_lines.append(show_match(*compared_seqs.split()))
 
         warning = "\n".join(warning_lines)
         logging.warning(warning)
@@ -167,8 +167,8 @@ def check_pair_distance(
             raise AssertionError("Identical indices detected.")
 
 
-def visualize_hamming(seq1: str, seq2: str) -> str:
-    """Visualize Hamming alignment"""
+def show_match(seq1: str, seq2: str) -> str:
+    """Visualize base-by-base match between sequences of equal length."""
 
     assert len(seq1) == len(seq2)
 
@@ -183,12 +183,43 @@ def visualize_hamming(seq1: str, seq2: str) -> str:
     return lines
 
 
-def check_distances(rows: list[dict]) -> None:
+def check_distances(rows: list[dict], dist_warning_threshold=3) -> None:
     for i in range(len(rows)):
         row = rows[i]
 
         for row_comp in rows[i + 1 :]:
-            check_pair_distance(row, row_comp, dist_warning_threshold=4)
+            check_pair_distance(
+                row, row_comp, dist_warning_threshold=dist_warning_threshold
+            )
+
+
+def get_runValues_section(process: Process) -> str:
+    """Generate the [RUNVALUES] section of the AVITI run manifest and return it as a string."""
+
+    runValues_section = "\n".join(
+        [
+            "[RUNVALUES]",
+            "KeyName, Value",
+            f"lims_step_name, {process.type.name}",
+            f"lims_step_id, {process.id}",
+            f"lims_step_operator, {process.technician.name}",
+            f"file_timestamp, {TIMESTAMP}",
+        ]
+    )
+
+    return runValues_section
+
+
+def get_settings_section(process) -> str:
+    """Generate the [SETTINGS] section of the AVITI run manifest and return it as a string."""
+    settings_section = "\n".join(
+        [
+            "[SETTINGS]",
+            "SettingName, Value",
+        ]
+    )
+
+    return settings_section
 
 
 @epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
@@ -198,7 +229,14 @@ def main(args: Namespace):
 
     logging.info("Starting to build run manifest.")
 
+    runValues_section = get_runValues_section(process)
+    settings_section = get_settings_section(process)
     samples_section = get_samples_section(process)
+
+    # TODO string sanitation
+    manifest = "\n\n".join([runValues_section, settings_section, samples_section])
+
+    # TODO upload manifest to file slot
 
 
 if __name__ == "__main__":
