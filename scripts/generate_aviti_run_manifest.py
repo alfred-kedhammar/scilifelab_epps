@@ -143,17 +143,26 @@ def check_pair_distance(
         )
 
     if dist <= dist_warning_threshold:
+        # Build a warning message for the pair
         warning_lines = [
             f"Hamming distance {dist} between {row['SampleName']} and {row_comp['SampleName']}"
         ]
+        # If the distance is derived from a flip, show the original and the flipped conformation
         if check_flips:
             warning_lines.append(
                 f"Given: {row['Index1']}-{row['Index2']} <-> {row_comp['Index1']}-{row_comp['Index2']}"
             )
             warning_lines.append(f"Distance: {dist} when flipped to {flip_conf}")
-        warning_lines.append(visualize_hamming(*compared_seqs.split()))
+        # If the index lengths are equal, add a simple small visual representation
+        if len(row["Index1"]) + len(row["Index2"]) == len(row_comp["Index1"]) + len(
+            row_comp["Index2"]
+        ):
+            warning_lines.append(visualize_hamming(*compared_seqs.split()))
+
         warning = "\n".join(warning_lines)
         logging.warning(warning)
+
+        # For identical collisions, kill the process
         if dist == 0:
             raise AssertionError("Identical indices detected.")
 
