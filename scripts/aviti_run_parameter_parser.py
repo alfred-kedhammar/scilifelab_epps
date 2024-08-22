@@ -98,21 +98,21 @@ def set_step_udfs(process, run_dir):
     process.udf["Library Type"] = run_parameters.get('LibraryType')
 
     if run_parameters.get('Consumables'):
-        run_parameters['Consumables'].get('Flowcell'):
+        if run_parameters['Consumables'].get('Flowcell'):
             process.udf["Flowcell Serial Number"] = run_parameters['Consumables']['Flowcell'].get('SerialNumber')
             process.udf["Flowcell Part Number"] = run_parameters['Consumables']['Flowcell'].get('PartNumber')
             process.udf["Flowcell Lot Number"] = run_parameters['Consumables']['Flowcell'].get('LotNumber')
             process.udf["Flowcell Expiration Date"] = datetime.strptime(
                 run_parameters['Consumables']['Flowcell'].get('Expiration')[0:10], "%Y-%m-%d"
             ).date()
-        run_parameters['Consumables'].get('SequencingCartridge'):
+        if run_parameters['Consumables'].get('SequencingCartridge'):
             process.udf["Sequencing Cartridge Serial Number"] = run_parameters['Consumables']['SequencingCartridge'].get('SerialNumber')
             process.udf["Sequencing Cartridge Part Number"] = run_parameters['Consumables']['SequencingCartridge'].get('PartNumber')
             process.udf["Sequencing Cartridge Lot Number"] = run_parameters['Consumables']['SequencingCartridge'].get('LotNumber')
             process.udf["Sequencing Cartridge Expiration Date"] = datetime.strptime(
                 run_parameters['Consumables']['SequencingCartridge'].get('Expiration')[0:10], "%Y-%m-%d"
             ).date()
-        run_parameters['Consumables'].get('Buffer'):
+        if run_parameters['Consumables'].get('Buffer'):
             process.udf["Buffer Serial Number"] = run_parameters['Consumables']['Buffer'].get('SerialNumber')
             process.udf["Buffer Part Number"] = run_parameters['Consumables']['Buffer'].get('PartNumber')
             process.udf["Buffer Lot Number"] = run_parameters['Consumables']['Buffer'].get('LotNumber')
