@@ -154,6 +154,8 @@ def check_pair_distance(
         warning_lines.append(visualize_hamming(*compared_seqs.split()))
         warning = "\n".join(warning_lines)
         logging.warning(warning)
+        if dist == 0:
+            raise AssertionError("Identical indices detected.")
 
 
 def visualize_hamming(seq1: str, seq2: str) -> str:
