@@ -2,7 +2,6 @@
 
 import logging
 from argparse import ArgumentParser, Namespace
-from dataclasses import dataclass, field
 from datetime import datetime as dt
 
 import pandas as pd
@@ -15,75 +14,6 @@ from scilifelab_epps.wrapper import epp_decorator
 from scripts.generate_minknow_samplesheet import get_pool_sample_label_mapping
 
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
-
-
-@dataclass
-class Row:
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-    def write(self, f):
-        for attr in self.__dict__.values():
-            if isinstance(attr, str) and "," in attr:
-                f.write(f'"{attr}", ')
-            else:
-                f.write(f"{attr}, ")
-        f.write("\n")
-
-
-@dataclass
-class Section:
-    rows: list[Row] = field(default_factory=list)
-
-    def add(self, row: Row):
-        self.rows.append(row)
-
-    def write(self, f):
-        f.write(self.mark_start + "\n")
-        f.write(", ".join(self.cols) + "\n")
-        for row in self.rows:
-            row.write(f)
-        f.write("\n")
-
-
-@dataclass
-class RunValues(Section):
-    mark_start: str = "[Run Values]"
-    cols: list[str] = field(default_factory=lambda: ["KeyName", "Value"])
-
-
-@dataclass
-class Settings(Section):
-    mark_start: str = "[Settings]"
-    cols: list[str] = field(default_factory=lambda: ["SettingName", "Value"])
-
-
-@dataclass
-class Samples(Section):
-    mark_start: str = "[Samples]"
-    cols: list[str] = field(
-        default_factory=lambda: [
-            "SampleName",
-            "Index1",
-            "Index2",
-            "Lane",
-            "Project",
-            "ExternalID",
-        ]
-    )
-
-
-@dataclass
-class Manifest:
-    runvalues: RunValues = RunValues()
-    settings: Settings = Settings()
-    samples: Samples = Samples()
-
-    def write(self, file_path: str):
-        with open(file_path, "w") as f:
-            for section in [self.runvalues, self.settings, self.samples]:
-                section.write(f)
 
 
 def get_samples_section(process: Process) -> str:
