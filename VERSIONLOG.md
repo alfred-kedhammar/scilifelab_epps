@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240822.1
+
+New EPP scripts for parsing AVITI run parameters and stats
+
 ## 20240816.1
 
 Set up fixed-volume pooling by Zika for no-QC libraries.
