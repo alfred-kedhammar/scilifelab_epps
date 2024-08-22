@@ -48,20 +48,14 @@ def attach_json_files(process, run_dir):
             try:
                 lims.upload_new_file(outart, f"{run_dir}/RunParameters.json")
             except OSError:
-                try:
-                    lims.upload_new_file(outart, f"{run_dir}/RunParameters.json")
-                except OSError:
-                    sys.stderr.write("No RunParameters.json found")
-                    sys.exit(2)
+                sys.stderr.write("No RunParameters.json found")
+                sys.exit(2)
         elif outart.type == "ResultFile" and outart.name == "Run Stats":
             try:
                 lims.upload_new_file(outart, f"{run_dir}/AvitiRunStats.json")
             except OSError:
-                try:
-                    lims.upload_new_file(outart, f"{run_dir}/AvitiRunStats.json")
-                except OSError:
-                    sys.stderr.write("No AvitiRunStats.json found")
-                    sys.exit(2)
+                sys.stderr.write("No AvitiRunStats.json found")
+                sys.exit(2)
 
 
 def parse_run_parameters(run_dir):
