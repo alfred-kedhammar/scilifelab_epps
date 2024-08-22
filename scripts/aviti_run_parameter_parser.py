@@ -15,6 +15,7 @@ DESC = """EPP for parsing run paramters for AVITI runs
 Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 """
 
+
 def fetch_fc(process):
     fc_id = ""
     if "Load to Flowcell (AVITI)" in process.parent_processes()[0].type.name:
@@ -76,48 +77,71 @@ def parse_run_parameters(run_dir):
 def set_step_udfs(process, run_dir):
     run_parameters = parse_run_parameters(run_dir)
 
-    process.udf["Run ID"] = run_parameters.get('RunFolderName')
-    process.udf["Flow Cell ID"] = run_parameters.get('FlowcellID')
-    process.udf["Side"] = run_parameters.get('Side')
-    process.udf["Run Series"] = run_parameters.get('RunID')
+    process.udf["Run ID"] = run_parameters.get("RunFolderName")
+    process.udf["Flow Cell ID"] = run_parameters.get("FlowcellID")
+    process.udf["Side"] = run_parameters.get("Side")
+    process.udf["Run Series"] = run_parameters.get("RunID")
 
-    if run_parameters.get('Cycles'):
-        process.udf["Read 1 Cycles"] = run_parameters['Cycles'].get('R1', 0)
-        process.udf["Read 2 Cycles"] = run_parameters['Cycles'].get('R2', 0)
-        process.udf["Index Read 1"] = run_parameters['Cycles'].get('I1', 0)
-        process.udf["Index Read 2"] = run_parameters['Cycles'].get('I2', 0)
+    if run_parameters.get("Cycles"):
+        process.udf["Read 1 Cycles"] = run_parameters["Cycles"].get("R1", 0)
+        process.udf["Read 2 Cycles"] = run_parameters["Cycles"].get("R2", 0)
+        process.udf["Index Read 1"] = run_parameters["Cycles"].get("I1", 0)
+        process.udf["Index Read 2"] = run_parameters["Cycles"].get("I2", 0)
 
-    process.udf["Read Order"] = run_parameters.get('ReadOrder')
-    process.udf["Throughut Selection"] = run_parameters.get('ThroughputSelection')
-    process.udf["Kit Configuration"] = run_parameters.get('KitConfiguration')
-    process.udf["Preparation Workflow"] = run_parameters.get('PreparationWorkflow')
-    process.udf["Chemistry Version"] = run_parameters.get('ChemistryVersion')
-    process.udf["Low Diversity"] = str(run_parameters.get('LowDiversity'))
-    process.udf["Platform Version"] = run_parameters.get('PlatformVersion')
-    process.udf["Analysis Lanes"] = run_parameters.get('AnalysisLanes')
-    process.udf["Library Type"] = run_parameters.get('LibraryType')
+    process.udf["Read Order"] = run_parameters.get("ReadOrder")
+    process.udf["Throughut Selection"] = run_parameters.get("ThroughputSelection")
+    process.udf["Kit Configuration"] = run_parameters.get("KitConfiguration")
+    process.udf["Preparation Workflow"] = run_parameters.get("PreparationWorkflow")
+    process.udf["Chemistry Version"] = run_parameters.get("ChemistryVersion")
+    process.udf["Low Diversity"] = str(run_parameters.get("LowDiversity"))
+    process.udf["Platform Version"] = run_parameters.get("PlatformVersion")
+    process.udf["Analysis Lanes"] = run_parameters.get("AnalysisLanes")
+    process.udf["Library Type"] = run_parameters.get("LibraryType")
 
-    if run_parameters.get('Consumables'):
-        if run_parameters['Consumables'].get('Flowcell'):
-            process.udf["Flowcell Serial Number"] = run_parameters['Consumables']['Flowcell'].get('SerialNumber')
-            process.udf["Flowcell Part Number"] = run_parameters['Consumables']['Flowcell'].get('PartNumber')
-            process.udf["Flowcell Lot Number"] = run_parameters['Consumables']['Flowcell'].get('LotNumber')
+    if run_parameters.get("Consumables"):
+        if run_parameters["Consumables"].get("Flowcell"):
+            process.udf["Flowcell Serial Number"] = run_parameters["Consumables"][
+                "Flowcell"
+            ].get("SerialNumber")
+            process.udf["Flowcell Part Number"] = run_parameters["Consumables"][
+                "Flowcell"
+            ].get("PartNumber")
+            process.udf["Flowcell Lot Number"] = run_parameters["Consumables"][
+                "Flowcell"
+            ].get("LotNumber")
             process.udf["Flowcell Expiration Date"] = datetime.strptime(
-                run_parameters['Consumables']['Flowcell'].get('Expiration')[0:10], "%Y-%m-%d"
+                run_parameters["Consumables"]["Flowcell"].get("Expiration")[0:10],
+                "%Y-%m-%d",
             ).date()
-        if run_parameters['Consumables'].get('SequencingCartridge'):
-            process.udf["Sequencing Cartridge Serial Number"] = run_parameters['Consumables']['SequencingCartridge'].get('SerialNumber')
-            process.udf["Sequencing Cartridge Part Number"] = run_parameters['Consumables']['SequencingCartridge'].get('PartNumber')
-            process.udf["Sequencing Cartridge Lot Number"] = run_parameters['Consumables']['SequencingCartridge'].get('LotNumber')
+        if run_parameters["Consumables"].get("SequencingCartridge"):
+            process.udf["Sequencing Cartridge Serial Number"] = run_parameters[
+                "Consumables"
+            ]["SequencingCartridge"].get("SerialNumber")
+            process.udf["Sequencing Cartridge Part Number"] = run_parameters[
+                "Consumables"
+            ]["SequencingCartridge"].get("PartNumber")
+            process.udf["Sequencing Cartridge Lot Number"] = run_parameters[
+                "Consumables"
+            ]["SequencingCartridge"].get("LotNumber")
             process.udf["Sequencing Cartridge Expiration Date"] = datetime.strptime(
-                run_parameters['Consumables']['SequencingCartridge'].get('Expiration')[0:10], "%Y-%m-%d"
+                run_parameters["Consumables"]["SequencingCartridge"].get("Expiration")[
+                    0:10
+                ],
+                "%Y-%m-%d",
             ).date()
-        if run_parameters['Consumables'].get('Buffer'):
-            process.udf["Buffer Serial Number"] = run_parameters['Consumables']['Buffer'].get('SerialNumber')
-            process.udf["Buffer Part Number"] = run_parameters['Consumables']['Buffer'].get('PartNumber')
-            process.udf["Buffer Lot Number"] = run_parameters['Consumables']['Buffer'].get('LotNumber')
+        if run_parameters["Consumables"].get("Buffer"):
+            process.udf["Buffer Serial Number"] = run_parameters["Consumables"][
+                "Buffer"
+            ].get("SerialNumber")
+            process.udf["Buffer Part Number"] = run_parameters["Consumables"][
+                "Buffer"
+            ].get("PartNumber")
+            process.udf["Buffer Lot Number"] = run_parameters["Consumables"][
+                "Buffer"
+            ].get("LotNumber")
             process.udf["Buffer Expiration Date"] = datetime.strptime(
-                run_parameters['Consumables']['Buffer'].get('Expiration')[0:10], "%Y-%m-%d"
+                run_parameters["Consumables"]["Buffer"].get("Expiration")[0:10],
+                "%Y-%m-%d",
             ).date()
 
     process.put()
@@ -143,16 +167,20 @@ def set_run_stats(process, run_dir):
     run_stats = parse_run_stats(run_dir)
     art = process.input_output_maps[0][0]["uri"]
 
-    for read in run_stats['RunStats']['Reads']:
-        read_key = read['Read']
-        art[f"Reads PF (M) {read_key}"] = run_stats['RunStats']['PFCount']/1000000
-        art[f"%PF {read_key}"] = run_stats['RunStats']['PercentPF']
-        art[f"Yield PF (Gb) {read_key}"] = run_stats['RunStats']['TotalYield']/1000000000
-        art[f"% Aligned {read_key}"] = read['PhiXAlignmentRate']
-        art[f"% Bases >=Q30 {read_key}"] = calculate_mean(read['Cycles'], 'PercentQ30')
-        art[f"% Bases >=Q40 {read_key}"] = calculate_mean(read['Cycles'], 'PercentQ40')
-        art[f"Avg Q Score {read_key}"] = calculate_mean(read['Cycles'], 'AverageQScore')
-        art[f"% Error Rate {read_key}"] = calculate_mean(read['Cycles'], 'PercentPhixErrorRate')
+    for read in run_stats["RunStats"]["Reads"]:
+        read_key = read["Read"]
+        art[f"Reads PF (M) {read_key}"] = run_stats["RunStats"]["PFCount"] / 1000000
+        art[f"%PF {read_key}"] = run_stats["RunStats"]["PercentPF"]
+        art[f"Yield PF (Gb) {read_key}"] = (
+            run_stats["RunStats"]["TotalYield"] / 1000000000
+        )
+        art[f"% Aligned {read_key}"] = read["PhiXAlignmentRate"]
+        art[f"% Bases >=Q30 {read_key}"] = calculate_mean(read["Cycles"], "PercentQ30")
+        art[f"% Bases >=Q40 {read_key}"] = calculate_mean(read["Cycles"], "PercentQ40")
+        art[f"Avg Q Score {read_key}"] = calculate_mean(read["Cycles"], "AverageQScore")
+        art[f"% Error Rate {read_key}"] = calculate_mean(
+            read["Cycles"], "PercentPhixErrorRate"
+        )
 
     art.put()
     process.put()
