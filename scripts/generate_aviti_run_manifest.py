@@ -290,7 +290,7 @@ def main(args: Namespace):
     try:
         shutil.copyfile(
             file_name,
-            f"/srv/ngi-nas-ns/samplesheets/AVITI/{dt.now().year}/{file_name}",
+            f"/srv/ngi-nas-ns/samplesheets/Aviti/{dt.now().year}/{file_name}",
         )
         os.remove(file_name)
     except:
