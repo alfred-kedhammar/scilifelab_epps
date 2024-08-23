@@ -67,8 +67,6 @@ def get_samples_section(process: Process) -> str:
     # Iterate over pools
     all_rows = []
     for art_out in arts_out:
-        logging.info(f"Iterating over pool '{art_out.id}'...")
-
         lane_rows = []
         assert (
             art_out.container.type.name == "AVITI Flow Cell"
