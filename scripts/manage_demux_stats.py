@@ -821,7 +821,7 @@ def write_demuxfile_aviti(process_stats, demux_id):
     try:
         laneBC = {}
         laneBC["sample_data"] = []
-        with open(lanebc_path, "r") as lanebc_file:
+        with open(lanebc_path) as lanebc_file:
             reader = csv.DictReader(lanebc_file)
             for row in reader:
                 if "+" not in row["Lane"]:
