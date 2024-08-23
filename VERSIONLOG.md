@@ -1,8 +1,12 @@
 # Scilifelab_epps Version Log
 
-## 20240820.1
+## 20240823.1
 
-Re-organize repo to follow best-practice modularization and implement EPP wrapper.
+Add script for AVITI run manifest generation, re-organize repo to follow best-practice modularization and implement EPP wrapper.
+
+## 20240822.1
+
+New EPP scripts for parsing AVITI run parameters and stats
 
 ## 20240816.1
 
