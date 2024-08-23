@@ -884,6 +884,18 @@ def write_demuxfile_aviti(process_stats, demux_id):
                             percent_q30 = project_sample_stats[row["SampleName"]][
                                 "percent_q30"
                             ]
+                        if project_sample_stats[row["SampleName"]].get(
+                            "quality_score_mean"
+                        ):
+                            quality_score_mean = project_sample_stats[
+                                row["SampleName"]
+                            ]["quality_score_mean"]
+                        if project_sample_stats[row["SampleName"]].get(
+                            "percent_mismatch"
+                        ):
+                            percent_mismatch = project_sample_stats[row["SampleName"]][
+                                "percent_mismatch"
+                            ]
                     laneBC["sample_data"].append(
                         {
                             "Lane": row.get("Lane", ""),
@@ -891,8 +903,11 @@ def write_demuxfile_aviti(process_stats, demux_id):
                             "Project": row.get("Project", ""),
                             "Barcode sequence": index,
                             "PF Clusters": row.get("NumPoloniesAssigned", "0"),
-                            "% >= Q30bases": percent_q30,
                             "% of thelane": row.get("PercentPoloniesAssigned", "0"),
+                            "% >= Q30bases": percent_q30,
+                            "Mean QualityScore": quality_score_mean,
+                            "% Perfectbarcode": 100 - percent_mismatch,
+                            "% One mismatchbarcode": percent_mismatch,
                             "Yield (Mbases)": str(
                                 float(row.get("Yield(Gb)", "0")) * 1000
                             ),
@@ -917,6 +932,10 @@ def write_demuxfile_aviti(process_stats, demux_id):
                 "# Reads",
                 "Index",
                 "% of >= Q30 Bases (PF)",
+                "Mean QualityScore",
+                "% Perfectbarcode",
+                "% One mismatchbarcode",
+                "Yield (Mbases)",
             ]
         )
         for entry in laneBC["sample_data"]:
@@ -936,6 +955,10 @@ def write_demuxfile_aviti(process_stats, demux_id):
                         reads,
                         entry["Barcode sequence"],
                         entry["% >= Q30bases"],
+                        entry["Mean QualityScore"],
+                        entry["% Perfectbarcode"],
+                        entry["% One mismatchbarcode"],
+                        entry["Yield (Mbases)"],
                     ]
                 )
             except Exception as e:
