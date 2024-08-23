@@ -69,8 +69,8 @@ def get_samples_section(process: Process) -> str:
     for art_out in arts_out:
         lane_rows = []
         assert (
-            art_out.container.type.name == "AVITI Flow Cell"
-        ), "Unsupported container type."
+            "AVITI Flow Cell" in art_out.container.type.name
+        ), f"Unsupported container type {art_out.container.type.name}."
         assert (
             len(art_out.samples) > 1 and len(art_out.reagent_labels) > 1
         ), "Not a pool."
