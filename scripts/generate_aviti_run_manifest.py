@@ -277,7 +277,7 @@ def main(args: Namespace):
         lims,
     )
 
-    logging.info("Moving samplesheet to ngi-nas-ns...")
+    logging.info("Moving run manifest to ngi-nas-ns...")
     try:
         shutil.copyfile(
             file_name,
@@ -285,9 +285,9 @@ def main(args: Namespace):
         )
         os.remove(file_name)
     except:
-        logging.error("Failed to move samplesheet to ngi-nas-ns.", exc_info=True)
+        logging.error("Failed to move run manifest to ngi-nas-ns.", exc_info=True)
     else:
-        logging.info("Samplesheet moved to ngi-nas-ns.")
+        logging.info("Run manifest moved to ngi-nas-ns.")
 
 
 if __name__ == "__main__":
