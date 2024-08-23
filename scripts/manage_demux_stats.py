@@ -53,7 +53,7 @@ def get_process_stats(demux_process):
         "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
         "Illumina Sequencing (NextSeq) v1.0",
         "NovaSeqXPlus Run v1.0",
-        "AVITI Run v1.0"
+        "AVITI Run v1.0",
     }
     try:
         # Query LIMS for all steps containing the first input artifact of this step and match to the set of sequencing steps
@@ -264,7 +264,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
             "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
             "Illumina Sequencing (NextSeq) v1.0",
             "NovaSeqXPlus Run v1.0",
-            "AVITI Run v1.0"
+            "AVITI Run v1.0",
         }
         seq_process = lims.get_processes(
             inputartifactlimsid=demux_process.all_inputs()[0].id, type=seq_processes
@@ -460,7 +460,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                 "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
                                 "Illumina Sequencing (NextSeq) v1.0",
                                 "NovaSeqXPlus Run v1.0",
-                                "AVITI Run v1.0"
+                                "AVITI Run v1.0",
                             ]:
                                 try:
                                     for inp in seq_process.all_outputs():
@@ -820,24 +820,26 @@ def write_demuxfile_aviti(process_stats, demux_id):
 
     try:
         laneBC = {}
-        laneBC['sample_data'] = []
-        with open(lanebc_path, 'r') as lanebc_file:
+        laneBC["sample_data"] = []
+        with open(lanebc_path, "r") as lanebc_file:
             reader = csv.DictReader(lanebc_file)
             for row in reader:
-                if '+' not in row['Lane']:
-                    index = row.get('I1', '')
-                    if row.get('I2'):
-                        index += '-'
-                        index += row['I2']
-                    laneBC['sample_data'].append(
+                if "+" not in row["Lane"]:
+                    index = row.get("I1", "")
+                    if row.get("I2"):
+                        index += "-"
+                        index += row["I2"]
+                    laneBC["sample_data"].append(
                         {
-                            'Lane'             : row.get('Lane', ''),
-                            'Sample'           : row.get('SampleName', ''),
-                            'Project'           : row.get('Project', ''),
-                            'Barcode sequence' : index,
-                            'PF Clusters'      : row.get('NumPoloniesAssigned', '0'),
-                            '% of thelane'     : row.get('PercentPoloniesAssigned', '0'),
-                            'Yield (Mbases)'   : str(float(row.get('Yield(Gb)', '0'))*1000)
+                            "Lane": row.get("Lane", ""),
+                            "Sample": row.get("SampleName", ""),
+                            "Project": row.get("Project", ""),
+                            "Barcode sequence": index,
+                            "PF Clusters": row.get("NumPoloniesAssigned", "0"),
+                            "% of thelane": row.get("PercentPoloniesAssigned", "0"),
+                            "Yield (Mbases)": str(
+                                float(row.get("Yield(Gb)", "0")) * 1000
+                            ),
                         }
                     )
     except Exception as e:
@@ -851,17 +853,8 @@ def write_demuxfile_aviti(process_stats, demux_id):
     # Writes less undetermined info than undemultiplex_index.py. May cause problems downstreams
     with open(fname, "w") as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(
-            [
-                "Project",
-                "Sample ID",
-                "Lane",
-                "# Reads",
-                "Index"
-            ]
-        )
-        for entry in laneBC['sample_data']:
-
+        writer.writerow(["Project", "Sample ID", "Lane", "# Reads", "Index"])
+        for entry in laneBC["sample_data"]:
             reads = entry["PF Clusters"]
 
             if process_stats["Paired"]:
@@ -876,7 +869,7 @@ def write_demuxfile_aviti(process_stats, demux_id):
                         entry["Sample"],
                         entry["Lane"],
                         reads,
-                        entry["Barcode sequence"]
+                        entry["Barcode sequence"],
                     ]
                 )
             except Exception as e:
@@ -884,7 +877,7 @@ def write_demuxfile_aviti(process_stats, demux_id):
                     "exit",
                     f"Flowcell parser is unable to fetch all necessary fields for demux file: {str(e)}",
                 )
-    return laneBC['sample_data']
+    return laneBC["sample_data"]
 
 
 def main(process_lims_id, demux_id, log_id):
