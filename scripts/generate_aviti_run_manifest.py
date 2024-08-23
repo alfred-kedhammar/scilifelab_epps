@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 import logging
+import os
+import re
+import shutil
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
@@ -10,10 +13,12 @@ from genologics.entities import Process
 from genologics.lims import Lims
 from Levenshtein import hamming as distance
 
+from scilifelab_epps.epp import upload_file
 from scilifelab_epps.wrapper import epp_decorator
 from scripts.generate_minknow_samplesheet import get_pool_sample_label_mapping
 
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
+LABEL_SEQ_SUBSTRING = re.compile(r"[ACGT]{4,}(-[ACGT]{4,})?")
 
 
 def get_samples_section(process: Process) -> str:
@@ -22,14 +27,16 @@ def get_samples_section(process: Process) -> str:
     # Get the analytes placed into the flowcell
     arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
 
-    # Assert that both flowcell lanes are filled
-    assert set([art_out.location[1].split(":")[1] for art_out in arts_out]) == set(
-        ["1", "2"]
-    ), "Expected two populated lanes."
+    # Check whether lanes are individually addressable
+    lanes_used = set([art_out.location[1].split(":")[1] for art_out in arts_out])
+    ungrouped_lanes = True if len(lanes_used) == 2 else False
+    logging.info(f"Individually addressable lanes: {ungrouped_lanes}")
 
     # Iterate over pools
     all_rows = []
     for art_out in arts_out:
+        logging.info(f"Iterating over pool '{art_out.id}'...")
+
         lane_rows = []
         assert (
             art_out.container.type.name == "AVITI Flow Cell"
@@ -40,6 +47,7 @@ def get_samples_section(process: Process) -> str:
         assert len(art_out.samples) == len(
             art_out.reagent_labels
         ), "Unequal number of samples and reagent labels."
+
         lane: str = art_out.location[1].split(":")[1]
         sample2label: dict[str, str] = get_pool_sample_label_mapping(art_out)
         samples = art_out.samples
@@ -51,19 +59,25 @@ def get_samples_section(process: Process) -> str:
         for sample in samples:
             lims_label = sample2label[sample.name]
 
-            # TODO add code here to parse reagent labels that do not only consist of sequences and dashes
+            # Parse sample index
+            label_seq_match = re.search(LABEL_SEQ_SUBSTRING, lims_label)
+            assert (
+                label_seq_match is not None
+            ), f"Could not parse label sequence from {lims_label}"
+            label_seq = label_seq_match.group(0)
 
-            if "-" in lims_label:
-                index1, index2 = lims_label.split("-")
+            if "-" in label_seq:
+                index1, index2 = label_seq.split("-")
             else:
-                index1 = lims_label
+                index1 = label_seq
                 index2 = ""
 
             row = {}
             row["SampleName"] = sample.name
             row["Index1"] = index1
             row["Index2"] = index2
-            row["Lane"] = lane
+            if ungrouped_lanes:
+                row["Lane"] = lane
 
             lane_rows.append(row)
 
@@ -78,7 +92,8 @@ def get_samples_section(process: Process) -> str:
             row["SampleName"] = "PhiX"
             row["Index1"] = phix_idx_pair[0]
             row["Index2"] = phix_idx_pair[1]
-            row["Lane"] = lane
+            if ungrouped_lanes:
+                row["Lane"] = lane
             lane_rows.append(row)
 
         # Check for index collision within lane, across samples and PhiX
@@ -193,16 +208,25 @@ def check_distances(rows: list[dict], dist_warning_threshold=3) -> None:
             )
 
 
-def get_runValues_section(process: Process) -> str:
+def safe_string(s: str) -> str:
+    """Wrap a string in quotes if it contains commas."""
+    if "," in s:
+        return f'"{s}"'
+    else:
+        return s
+
+
+def get_runValues_section(process: Process, file_name: str) -> str:
     """Generate the [RUNVALUES] section of the AVITI run manifest and return it as a string."""
 
     runValues_section = "\n".join(
         [
             "[RUNVALUES]",
             "KeyName, Value",
-            f"lims_step_name, {process.type.name}",
+            f"lims_step_name, {safe_string(process.type.name)}",
             f"lims_step_id, {process.id}",
             f"lims_step_operator, {process.technician.name}",
+            f"file_name, {safe_string(file_name)}",
             f"file_timestamp, {TIMESTAMP}",
         ]
     )
@@ -210,7 +234,7 @@ def get_runValues_section(process: Process) -> str:
     return runValues_section
 
 
-def get_settings_section(process) -> str:
+def get_settings_section() -> str:
     """Generate the [SETTINGS] section of the AVITI run manifest and return it as a string."""
     settings_section = "\n".join(
         [
@@ -227,16 +251,43 @@ def main(args: Namespace):
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     process = Process(lims, id=args.pid)
 
+    file_name = (
+        f"AVITI_run_manifest_{process.id}_{TIMESTAMP}_{process.technician.name}.csv"
+    )
+
+    # Build manifest
     logging.info("Starting to build run manifest.")
 
-    runValues_section = get_runValues_section(process)
-    settings_section = get_settings_section(process)
+    runValues_section = get_runValues_section(process, file_name)
+    settings_section = get_settings_section()
     samples_section = get_samples_section(process)
 
-    # TODO string sanitation
     manifest = "\n\n".join([runValues_section, settings_section, samples_section])
 
-    # TODO upload manifest to file slot
+    # Write manifest
+    with open(file_name, "w") as f:
+        f.write(manifest, encoding="utf-8")
+
+    # Upload manifest
+    logging.info("Uploading run manifest to LIMS...")
+    upload_file(
+        file_name,
+        args.file,
+        process,
+        lims,
+    )
+
+    logging.info("Moving samplesheet to ngi-nas-ns...")
+    try:
+        shutil.copyfile(
+            file_name,
+            f"/srv/ngi-nas-ns/samplesheets/AVITI/{dt.now().year}/{file_name}",
+        )
+        os.remove(file_name)
+    except:
+        logging.error("Failed to move samplesheet to ngi-nas-ns.", exc_info=True)
+    else:
+        logging.info("Samplesheet moved to ngi-nas-ns.")
 
 
 if __name__ == "__main__":
