@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240823.1
+
+Support AVITI in the BCL conversion step
+
 ## 20240822.1
 
 New EPP scripts for parsing AVITI run parameters and stats

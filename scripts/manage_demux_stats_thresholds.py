@@ -18,6 +18,7 @@ class Thresholds:
             "NovaSeq",
             "NextSeq",
             "NovaSeqXPlus",
+            "AVITI",
         ]
         self.valid_chemistry = [
             "MiSeq",
@@ -36,6 +37,7 @@ class Thresholds:
             "10B",
             "1.5B",
             "25B",
+            "AVITI High",
         ]
 
         if (
@@ -105,6 +107,15 @@ class Thresholds:
             elif self.read_length < 100:
                 self.Q30 = 85
 
+        # Preliminary values for AVITI
+        elif self.instrument == "AVITI":
+            if self.read_length >= 150:
+                self.Q30 = 85
+            elif self.read_length >= 100:
+                self.Q30 = 90
+            elif self.read_length < 100:
+                self.Q30 = 95
+
         if not self.Q30:
             self.problem_handler(
                 "exit",
@@ -152,6 +163,10 @@ class Thresholds:
                 self.exp_lane_clust = 400e6
             elif self.chemistry == "NextSeq 2000 P3":
                 self.exp_lane_clust = 550e6
+        # Preliminary values for AVITI
+        elif self.instrument == "AVITI":
+            if self.chemistry == "AVITI High":
+                self.exp_lane_clust = 100e6
         else:
             self.problem_handler("exit", "Unknown run type!")
         if not self.exp_lane_clust:
