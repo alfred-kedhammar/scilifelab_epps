@@ -836,7 +836,7 @@ def fetch_project_sample_stats(projects_path):
     else:
         problem_handler(
             "exit",
-            "The Samples folder is missing for fetching Q30 values",
+            "The Samples folder is missing for fetching stats",
         )
 
 
