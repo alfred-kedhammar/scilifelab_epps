@@ -24,7 +24,14 @@ LABEL_SEQ_SUBSTRING = re.compile(r"[ACGT]{4,}(-[ACGT]{4,})?")
 def get_runValues_section(process: Process, file_name: str) -> str:
     """Generate the [RUNVALUES] section of the AVITI run manifest and return it as a string."""
 
-    # TODO master step fields for read recipe?
+    read_recipe = "-".join(
+        [
+            str(process.udf.get("Read 1 Cycles", 0)),
+            str(process.udf.get("Index Read 1", 0)),
+            str(process.udf.get("Index Read 2", 0)),
+            str(process.udf.get("Read 2 Cycles", 0)),
+        ]
+    )
 
     runValues_section = "\n".join(
         [
@@ -35,6 +42,7 @@ def get_runValues_section(process: Process, file_name: str) -> str:
             f"lims_step_operator, {process.technician.name}",
             f"file_name, {safe_string(file_name)}",
             f"file_timestamp, {TIMESTAMP}",
+            f"read_recipe, {read_recipe}",
         ]
     )
 
@@ -55,6 +63,8 @@ def get_settings_section() -> str:
 
 def get_samples_section(process: Process) -> str:
     """Generate the [SAMPLES] section of the AVITI run manifest and return it as a string."""
+
+    phix_loaded: bool = process.udf["PhiX Loaded"]
 
     # Get the analytes placed into the flowcell
     arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
@@ -112,20 +122,20 @@ def get_samples_section(process: Process) -> str:
             lane_rows.append(row)
 
         # Add PhiX controls
-        # TODO read from master step field
-        for phix_idx_pair in [
-            ("ACGTGTAGC", "GCTAGTGCA"),
-            ("CACATGCTG", "AGACACTGT"),
-            ("GTACACGAT", "CTCGTACAG"),
-            ("TGTGCATCA", "TAGTCGATC"),
-        ]:
-            row = {}
-            row["SampleName"] = "PhiX"
-            row["Index1"] = phix_idx_pair[0]
-            row["Index2"] = phix_idx_pair[1]
-            if ungrouped_lanes:
-                row["Lane"] = lane
-            lane_rows.append(row)
+        if phix_loaded:
+            for phix_idx_pair in [
+                ("ACGTGTAGC", "GCTAGTGCA"),
+                ("CACATGCTG", "AGACACTGT"),
+                ("GTACACGAT", "CTCGTACAG"),
+                ("TGTGCATCA", "TAGTCGATC"),
+            ]:
+                row = {}
+                row["SampleName"] = "PhiX"
+                row["Index1"] = phix_idx_pair[0]
+                row["Index2"] = phix_idx_pair[1]
+                if ungrouped_lanes:
+                    row["Lane"] = lane
+                lane_rows.append(row)
 
         # Check for index collision within lane, across samples and PhiX
         check_distances(lane_rows)
