@@ -108,7 +108,7 @@ class Thresholds:
                 self.Q30 = 85
 
         # Preliminary values for AVITI
-    elif self.instrument == "AVITI":
+        elif self.instrument == "AVITI":
             if self.read_length >= 150:
                 self.Q30 = 85
             elif self.read_length >= 100:
