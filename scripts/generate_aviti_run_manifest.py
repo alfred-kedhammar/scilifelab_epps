@@ -254,9 +254,7 @@ def main(args: Namespace):
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     process = Process(lims, id=args.pid)
 
-    file_name = (
-        f"AVITI_run_manifest_{process.id}_{TIMESTAMP}_{process.technician.name}.csv"
-    )
+    file_name = f"AVITI_run_manifest_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv"
 
     # Build manifest
     logging.info("Starting to build run manifest.")
