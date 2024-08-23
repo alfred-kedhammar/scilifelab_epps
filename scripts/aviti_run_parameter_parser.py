@@ -83,7 +83,7 @@ def set_step_udfs(process, run_dir):
         process.udf["Index Read 2"] = run_parameters["Cycles"].get("I2", 0)
 
     process.udf["Read Order"] = run_parameters.get("ReadOrder")
-    process.udf["Throughut Selection"] = run_parameters.get("ThroughputSelection")
+    process.udf["Throughput Selection"] = run_parameters.get("ThroughputSelection")
     process.udf["Kit Configuration"] = run_parameters.get("KitConfiguration")
     process.udf["Preparation Workflow"] = run_parameters.get("PreparationWorkflow")
     process.udf["Chemistry Version"] = run_parameters.get("ChemistryVersion")
