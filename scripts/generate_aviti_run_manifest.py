@@ -21,6 +21,38 @@ TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 LABEL_SEQ_SUBSTRING = re.compile(r"[ACGT]{4,}(-[ACGT]{4,})?")
 
 
+def get_runValues_section(process: Process, file_name: str) -> str:
+    """Generate the [RUNVALUES] section of the AVITI run manifest and return it as a string."""
+
+    # TODO master step fields for read recipe?
+
+    runValues_section = "\n".join(
+        [
+            "[RUNVALUES]",
+            "KeyName, Value",
+            f"lims_step_name, {safe_string(process.type.name)}",
+            f"lims_step_id, {process.id}",
+            f"lims_step_operator, {process.technician.name}",
+            f"file_name, {safe_string(file_name)}",
+            f"file_timestamp, {TIMESTAMP}",
+        ]
+    )
+
+    return runValues_section
+
+
+def get_settings_section() -> str:
+    """Generate the [SETTINGS] section of the AVITI run manifest and return it as a string."""
+    settings_section = "\n".join(
+        [
+            "[SETTINGS]",
+            "SettingName, Value",
+        ]
+    )
+
+    return settings_section
+
+
 def get_samples_section(process: Process) -> str:
     """Generate the [SAMPLES] section of the AVITI run manifest and return it as a string."""
 
@@ -82,6 +114,7 @@ def get_samples_section(process: Process) -> str:
             lane_rows.append(row)
 
         # Add PhiX controls
+        # TODO read from master step field
         for phix_idx_pair in [
             ("ACGTGTAGC", "GCTAGTGCA"),
             ("CACATGCTG", "AGACACTGT"),
@@ -107,9 +140,14 @@ def get_samples_section(process: Process) -> str:
     return samples_section
 
 
-def revcomp(seq: str) -> str:
-    """Reverse-complement a DNA string."""
-    return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
+def check_distances(rows: list[dict], dist_warning_threshold=3) -> None:
+    for i in range(len(rows)):
+        row = rows[i]
+
+        for row_comp in rows[i + 1 :]:
+            check_pair_distance(
+                row, row_comp, dist_warning_threshold=dist_warning_threshold
+            )
 
 
 def check_pair_distance(
@@ -182,6 +220,11 @@ def check_pair_distance(
             raise AssertionError("Identical indices detected.")
 
 
+def revcomp(seq: str) -> str:
+    """Reverse-complement a DNA string."""
+    return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
+
+
 def show_match(seq1: str, seq2: str) -> str:
     """Visualize base-by-base match between sequences of equal length."""
 
@@ -198,52 +241,12 @@ def show_match(seq1: str, seq2: str) -> str:
     return lines
 
 
-def check_distances(rows: list[dict], dist_warning_threshold=3) -> None:
-    for i in range(len(rows)):
-        row = rows[i]
-
-        for row_comp in rows[i + 1 :]:
-            check_pair_distance(
-                row, row_comp, dist_warning_threshold=dist_warning_threshold
-            )
-
-
 def safe_string(s: str) -> str:
     """Wrap a string in quotes if it contains commas."""
     if "," in s:
         return f'"{s}"'
     else:
         return s
-
-
-def get_runValues_section(process: Process, file_name: str) -> str:
-    """Generate the [RUNVALUES] section of the AVITI run manifest and return it as a string."""
-
-    runValues_section = "\n".join(
-        [
-            "[RUNVALUES]",
-            "KeyName, Value",
-            f"lims_step_name, {safe_string(process.type.name)}",
-            f"lims_step_id, {process.id}",
-            f"lims_step_operator, {process.technician.name}",
-            f"file_name, {safe_string(file_name)}",
-            f"file_timestamp, {TIMESTAMP}",
-        ]
-    )
-
-    return runValues_section
-
-
-def get_settings_section() -> str:
-    """Generate the [SETTINGS] section of the AVITI run manifest and return it as a string."""
-    settings_section = "\n".join(
-        [
-            "[SETTINGS]",
-            "SettingName, Value",
-        ]
-    )
-
-    return settings_section
 
 
 @epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
