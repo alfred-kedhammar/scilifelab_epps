@@ -269,7 +269,7 @@ def main(args: Namespace):
 
     # Write manifest
     with open(file_name, "w") as f:
-        f.write(manifest, encoding="utf-8")
+        f.write(manifest)
 
     # Upload manifest
     logging.info("Uploading run manifest to LIMS...")
