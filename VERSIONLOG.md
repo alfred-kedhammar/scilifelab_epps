@@ -1,8 +1,12 @@
 # Scilifelab_epps Version Log
 
-## 20240823.1
+## 20240826.1
 
 Add script for AVITI run manifest generation, re-organize repo to follow best-practice modularization and implement EPP wrapper.
+
+## 20240823.1
+
+Support AVITI in the BCL conversion step
 
 ## 20240822.1
 

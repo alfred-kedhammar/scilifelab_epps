@@ -53,6 +53,7 @@ def get_process_stats(demux_process):
         "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
         "Illumina Sequencing (NextSeq) v1.0",
         "NovaSeqXPlus Run v1.0",
+        "AVITI Run v1.0",
     }
     try:
         # Query LIMS for all steps containing the first input artifact of this step and match to the set of sequencing steps
@@ -114,6 +115,21 @@ def get_process_stats(demux_process):
         except Exception as e:
             problem_handler("exit", f"No run type set in sequencing step: {str(e)}")
         proc_stats["Instrument"] = "NextSeq"
+        proc_stats["Read Length"] = (
+            max(seq_process.udf["Read 1 Cycles"], seq_process.udf["Read 2 Cycles"])
+            if seq_process.udf.get("Read 2 Cycles")
+            else seq_process.udf["Read 1 Cycles"]
+        )
+        proc_stats["Paired"] = True if seq_process.udf.get("Read 2 Cycles") else False
+
+    elif "AVITI Run" in seq_process.type.name:
+        try:
+            proc_stats["Chemistry"] = "AVITI" + seq_process.udf["Throughput Selection"]
+        except Exception as e:
+            problem_handler(
+                "exit", f"No flowcell version set in sequencing step: {str(e)}"
+            )
+        proc_stats["Instrument"] = "AVITI"
         proc_stats["Read Length"] = (
             max(seq_process.udf["Read 1 Cycles"], seq_process.udf["Read 2 Cycles"])
             if seq_process.udf.get("Read 2 Cycles")
@@ -248,6 +264,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
             "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
             "Illumina Sequencing (NextSeq) v1.0",
             "NovaSeqXPlus Run v1.0",
+            "AVITI Run v1.0",
         }
         seq_process = lims.get_processes(
             inputartifactlimsid=demux_process.all_inputs()[0].id, type=seq_processes
@@ -443,6 +460,7 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                 "AUTOMATED - NovaSeq Run (NovaSeq 6000 v2.0)",
                                 "Illumina Sequencing (NextSeq) v1.0",
                                 "NovaSeqXPlus Run v1.0",
+                                "AVITI Run v1.0",
                             ]:
                                 try:
                                     for inp in seq_process.all_outputs():
@@ -784,6 +802,84 @@ def write_demuxfile(process_stats, demux_id):
     return laneBC.sample_data
 
 
+def write_demuxfile_aviti(process_stats, demux_id):
+    """Creates demux_{FCID}.csv and attaches it to process"""
+    # Includes windows drive letter support
+
+    metadata_dir_name = "ngi-nas-ns"
+    instrument_dir_name = "{}_data".format(process_stats["Instrument"])
+
+    lanebc_path = os.path.join(
+        os.sep,
+        "srv",
+        metadata_dir_name,
+        instrument_dir_name,
+        process_stats["Run ID"],
+        "IndexAssignment.csv",
+    )
+
+    try:
+        laneBC = {}
+        laneBC["sample_data"] = []
+        with open(lanebc_path) as lanebc_file:
+            reader = csv.DictReader(lanebc_file)
+            for row in reader:
+                if "+" not in row["Lane"]:
+                    index = row.get("I1", "")
+                    if row.get("I2"):
+                        index += "-"
+                        index += row["I2"]
+                    laneBC["sample_data"].append(
+                        {
+                            "Lane": row.get("Lane", ""),
+                            "Sample": row.get("SampleName", ""),
+                            "Project": row.get("Project", ""),
+                            "Barcode sequence": index,
+                            "PF Clusters": row.get("NumPoloniesAssigned", "0"),
+                            "% of thelane": row.get("PercentPoloniesAssigned", "0"),
+                            "Yield (Mbases)": str(
+                                float(row.get("Yield(Gb)", "0")) * 1000
+                            ),
+                        }
+                    )
+    except Exception as e:
+        problem_handler(
+            "exit",
+            f"Unable to fetch IndexAssignment.csv from {lanebc_path}: {str(e)}",
+        )
+
+    fname = "{}_demuxstats_{}.csv".format(demux_id, process_stats["Flow Cell ID"])
+
+    # Writes less undetermined info than undemultiplex_index.py. May cause problems downstreams
+    with open(fname, "w") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["Project", "Sample ID", "Lane", "# Reads", "Index"])
+        for entry in laneBC["sample_data"]:
+            reads = entry["PF Clusters"]
+
+            if process_stats["Paired"]:
+                reads = int(reads.replace(",", "")) * 2
+            else:
+                reads = int(reads.replace(",", ""))
+
+            try:
+                writer.writerow(
+                    [
+                        entry["Project"],
+                        entry["Sample"],
+                        entry["Lane"],
+                        reads,
+                        entry["Barcode sequence"],
+                    ]
+                )
+            except Exception as e:
+                problem_handler(
+                    "exit",
+                    f"Flowcell parser is unable to fetch all necessary fields for demux file: {str(e)}",
+                )
+    return laneBC["sample_data"]
+
+
 def main(process_lims_id, demux_id, log_id):
     # Sets up logger
     basic_name = f"{log_id}_logfile.txt"
@@ -813,7 +909,10 @@ def main(process_lims_id, demux_id, log_id):
     fill_process_fields(demux_process, process_stats)
 
     # Create the demux output file
-    parser_struct = write_demuxfile(process_stats, demux_id)
+    if "AVITI" in demux_process.process.type.name:
+        parser_struct = write_demuxfile_aviti(process_stats, demux_id)
+    else:
+        parser_struct = write_demuxfile(process_stats, demux_id)
 
     # Alters artifacts
     set_sample_values(demux_process, parser_struct, process_stats)
