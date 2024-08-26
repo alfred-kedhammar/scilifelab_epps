@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240823.2
+
+Add function to fetch sample-level Q30 for AVITI
+
 ## 20240823.1
 
 Support AVITI in the BCL conversion step
