@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240827.1
+
+When parsing Anglerfish results, upload the Anglerfish .csv dataframe to the LIMS step.
+
 ## 20240826.1
 
 Add script for AVITI run manifest generation, re-organize repo to follow best-practice modularization and implement EPP wrapper.
