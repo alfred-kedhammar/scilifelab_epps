@@ -140,7 +140,6 @@ def get_samples_section(process: Process) -> str:
         all_rows.extend(lane_rows)
 
     df = pd.DataFrame(all_rows)
-    df.sort_values(by=["SampleName", "Lane"], inplace=True)
 
     samples_section = f"[SAMPLES]\n{df.to_csv(index=None, header=True)}"
 
