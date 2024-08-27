@@ -68,15 +68,16 @@ def get_samples_section(process: Process) -> str:
 
     # Get the analytes placed into the flowcell
     arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
+    lanes = [art_out.location[1].split(":")[1] for art_out in arts_out]
 
-    # Check whether lanes are individually addressable
-    lanes_used = set([art_out.location[1].split(":")[1] for art_out in arts_out])
-    ungrouped_lanes = True if len(lanes_used) == 2 else False
-    logging.info(f"Individually addressable lanes: {ungrouped_lanes}")
+    # If only a single pool is added to the LIMS container, treat it as though it was loaded into both lanes
+    if len(lanes) == 1:
+        lanes.append("2" if lanes[0] == "1" else "1")
+        arts_out.append(arts_out[0])
 
     # Iterate over pools
     all_rows = []
-    for art_out in arts_out:
+    for art_out, lane in zip(arts_out, lanes):
         lane_rows = []
         assert (
             "AVITI Flow Cell" in art_out.container.type.name
@@ -88,7 +89,6 @@ def get_samples_section(process: Process) -> str:
             art_out.reagent_labels
         ), "Unequal number of samples and reagent labels."
 
-        lane: str = art_out.location[1].split(":")[1]
         sample2label: dict[str, str] = get_pool_sample_label_mapping(art_out)
         samples = art_out.samples
         labels = art_out.reagent_labels
@@ -116,8 +116,7 @@ def get_samples_section(process: Process) -> str:
             row["SampleName"] = sample.name
             row["Index1"] = index1
             row["Index2"] = index2
-            if ungrouped_lanes:
-                row["Lane"] = lane
+            row["Lane"] = lane
 
             lane_rows.append(row)
 
@@ -133,8 +132,7 @@ def get_samples_section(process: Process) -> str:
                 row["SampleName"] = "PhiX"
                 row["Index1"] = phix_idx_pair[0]
                 row["Index2"] = phix_idx_pair[1]
-                if ungrouped_lanes:
-                    row["Lane"] = lane
+                row["Lane"] = lane
                 lane_rows.append(row)
 
         # Check for index collision within lane, across samples and PhiX
