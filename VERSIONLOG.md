@@ -4,6 +4,10 @@
 
 Add script for AVITI run manifest generation, re-organize repo to follow best-practice modularization and implement EPP wrapper.
 
+## 20240823.2
+
+Add function to fetch sample-level Q30 for AVITI
+
 ## 20240823.1
 
 Support AVITI in the BCL conversion step
