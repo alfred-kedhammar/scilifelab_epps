@@ -27,8 +27,14 @@ def get_flowcell_id(process: Process) -> str:
     ]
 
     assert len(set(flowcell_ids)) == 1, "Expected one flowcell ID."
+    flowcell_id = flowcell_ids[0]
 
-    return flowcell_ids[0]
+    if "-" in flowcell_id:
+        logging.warning(
+            f"Container name {flowcell_id} contains a dash, did you forget to set the name of the LIMS container to the flowcell ID?"
+        )
+
+    return flowcell_id
 
 
 def get_runValues_section(process: Process, file_name: str) -> str:
