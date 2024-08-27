@@ -21,6 +21,22 @@ TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 LABEL_SEQ_SUBSTRING = re.compile(r"[ACGT]{4,}(-[ACGT]{4,})?")
 
 
+def get_flowcell_id(process: Process) -> str:
+    flowcell_ids = [
+        op.container.name for op in process.all_outputs() if op.type == "Analyte"
+    ]
+
+    assert len(set(flowcell_ids)) == 1, "Expected one flowcell ID."
+    flowcell_id = flowcell_ids[0]
+
+    if "-" in flowcell_id:
+        logging.warning(
+            f"Container name {flowcell_id} contains a dash, did you forget to set the name of the LIMS container to the flowcell ID?"
+        )
+
+    return flowcell_id
+
+
 def get_runValues_section(process: Process, file_name: str) -> str:
     """Generate the [RUNVALUES] section of the AVITI run manifest and return it as a string."""
 
@@ -37,11 +53,8 @@ def get_runValues_section(process: Process, file_name: str) -> str:
         [
             "[RUNVALUES]",
             "KeyName, Value",
-            f"lims_step_name, {safe_string(process.type.name)}",
-            f"lims_step_id, {process.id}",
-            f"lims_step_operator, {process.technician.name}",
-            f"file_name, {safe_string(file_name)}",
-            f"file_timestamp, {TIMESTAMP}",
+            f"lims_step_name, {sanitize(process.type.name)}",
+            f"file_name, {sanitize(file_name)}",
             f"read_recipe, {read_recipe}",
         ]
     )
@@ -66,17 +79,15 @@ def get_samples_section(process: Process) -> str:
 
     phix_loaded: bool = process.udf["PhiX Loaded"]
 
-    # Get the analytes placed into the flowcell
+    # Assert two output analytes placed in either flowcell lane
     arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
-
-    # Check whether lanes are individually addressable
-    lanes_used = set([art_out.location[1].split(":")[1] for art_out in arts_out])
-    ungrouped_lanes = True if len(lanes_used) == 2 else False
-    logging.info(f"Individually addressable lanes: {ungrouped_lanes}")
+    assert len(arts_out) == 2, "Expected two output analytes."
+    lanes = [art_out.location[1].split(":")[1] for art_out in arts_out]
+    assert set(lanes) == {"1", "2"}, "Expected lanes 1 and 2."
 
     # Iterate over pools
     all_rows = []
-    for art_out in arts_out:
+    for art_out, lane in zip(arts_out, lanes):
         lane_rows = []
         assert (
             "AVITI Flow Cell" in art_out.container.type.name
@@ -88,7 +99,6 @@ def get_samples_section(process: Process) -> str:
             art_out.reagent_labels
         ), "Unequal number of samples and reagent labels."
 
-        lane: str = art_out.location[1].split(":")[1]
         sample2label: dict[str, str] = get_pool_sample_label_mapping(art_out)
         samples = art_out.samples
         labels = art_out.reagent_labels
@@ -116,8 +126,7 @@ def get_samples_section(process: Process) -> str:
             row["SampleName"] = sample.name
             row["Index1"] = index1
             row["Index2"] = index2
-            if ungrouped_lanes:
-                row["Lane"] = lane
+            row["Lane"] = lane
 
             lane_rows.append(row)
 
@@ -133,8 +142,7 @@ def get_samples_section(process: Process) -> str:
                 row["SampleName"] = "PhiX"
                 row["Index1"] = phix_idx_pair[0]
                 row["Index2"] = phix_idx_pair[1]
-                if ungrouped_lanes:
-                    row["Lane"] = lane
+                row["Lane"] = lane
                 lane_rows.append(row)
 
         # Check for index collision within lane, across samples and PhiX
@@ -249,7 +257,7 @@ def show_match(seq1: str, seq2: str) -> str:
     return lines
 
 
-def safe_string(s: str) -> str:
+def sanitize(s: str) -> str:
     """Wrap a string in quotes if it contains commas."""
     if "," in s:
         return f'"{s}"'
@@ -262,7 +270,9 @@ def main(args: Namespace):
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     process = Process(lims, id=args.pid)
 
-    file_name = f"AVITI_run_manifest_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv"
+    # Name manifest file
+    flowcell_id = get_flowcell_id(process)
+    file_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv"
 
     # Build manifest
     logging.info("Starting to build run manifest.")
