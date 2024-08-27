@@ -10,9 +10,9 @@ import sys
 
 import numpy as np
 import pandas as pd
-import zika_utils
 
-from epp_utils.udf_tools import is_filled
+from scilifelab_epps import zika
+from scilifelab_epps.utils.udf_tools import is_filled
 
 
 def pool_fixed_vol(
@@ -57,7 +57,7 @@ def pool_fixed_vol(
         "dst_id": "art_tuple[1]['uri'].location[0].id",
         "dst_well": "art_tuple[1]['uri'].location[1]",
     }
-    df_all = zika_utils.fetch_sample_data(currentStep, to_fetch)
+    df_all = zika.utils.fetch_sample_data(currentStep, to_fetch)
 
     # Define deck, a dictionary mapping plate names to deck positions
     assert len(df_all.src_id.unique()) <= 4, "Only one to four input plates allowed"
@@ -77,22 +77,22 @@ def pool_fixed_vol(
         df_wl = pd.concat([df_wl, df_pool], axis=0)
 
     # Format worklist
-    df_formatted = zika_utils.format_worklist(df_wl.copy(), deck)
-    wl_filename, log_filename = zika_utils.get_filenames(
+    df_formatted = zika.utils.format_worklist(df_wl.copy(), deck)
+    wl_filename, log_filename = zika.utils.get_filenames(
         method_name="pool", pid=currentStep.id
     )
 
     # Write the output files
-    zika_utils.write_worklist(
+    zika.utils.write_worklist(
         df=df_formatted.copy(),
         deck=deck,
         wl_filename=wl_filename,
     )
-    zika_utils.write_log(log, log_filename)
+    zika.utils.write_log(log, log_filename)
 
     # Upload files
-    zika_utils.upload_csv(currentStep, lims, wl_filename)
-    zika_utils.upload_log(currentStep, lims, log_filename)
+    zika.utils.upload_csv(currentStep, lims, wl_filename)
+    zika.utils.upload_log(currentStep, lims, log_filename)
 
     # Issue warnings, if any
     if any("WARNING" in entry for entry in log):
@@ -187,7 +187,7 @@ def pool(
             if v:
                 to_fetch[k] = f"art_tuple[1]['uri'].udf['{v}']"
 
-        df_all = zika_utils.fetch_sample_data(currentStep, to_fetch)
+        df_all = zika.utils.fetch_sample_data(currentStep, to_fetch)
 
         # All samples should have accessible volume
         assert all(
@@ -321,7 +321,7 @@ def pool(
                         )
 
                         errors = True
-                        raise zika_utils.VolumeOverflow
+                        raise zika.utils.VolumeOverflow
 
                     log.append(
                         "\nAn even pool can be created within the following parameter ranges:"
@@ -409,7 +409,7 @@ def pool(
                         )
 
                         errors = True
-                        raise zika_utils.VolumeOverflow
+                        raise zika.utils.VolumeOverflow
 
                     log.append(
                         "\nWill try to create a pool that is as even as possible. Accounting for sample depletion, a pool can be created with the following parameter ranges: "
@@ -436,7 +436,7 @@ def pool(
                     # No volume expansion is allowed, so pool volume is set to the minimum, given the conc
                     pool_vol = pool_real_min_sample_vol
 
-            except zika_utils.VolumeOverflow:
+            except zika.utils.VolumeOverflow:
                 continue
 
             # === STORE FINAL CALCULATION RESULTS ===
@@ -518,14 +518,14 @@ def pool(
             pool.put()
 
         # Get filenames and upload log if errors
-        wl_filename, log_filename = zika_utils.get_filenames(
+        wl_filename, log_filename = zika.utils.get_filenames(
             method_name="pool", pid=currentStep.id
         )
         if errors:
-            raise zika_utils.CheckLog(log, log_filename, lims, currentStep)
+            raise zika.utils.CheckLog(log, log_filename, lims, currentStep)
 
         # Format worklist
-        df_formatted = zika_utils.format_worklist(df_wl.copy(), deck)
+        df_formatted = zika.utils.format_worklist(df_wl.copy(), deck)
 
         # Comments to attach to the worklist header
         comments = [
@@ -539,17 +539,17 @@ def pool(
                 )
 
         # Write the output files
-        zika_utils.write_worklist(
+        zika.utils.write_worklist(
             df=df_formatted.copy(),
             deck=deck,
             wl_filename=wl_filename,
             comments=comments,
         )
-        zika_utils.write_log(log, log_filename)
+        zika.utils.write_log(log, log_filename)
 
         # Upload files
-        zika_utils.upload_csv(currentStep, lims, wl_filename)
-        zika_utils.upload_log(currentStep, lims, log_filename)
+        zika.utils.upload_csv(currentStep, lims, wl_filename)
+        zika.utils.upload_log(currentStep, lims, log_filename)
 
         # Issue warnings, if any
         if any("WARNING" in entry for entry in log):
@@ -656,7 +656,7 @@ def norm(
             if v:
                 to_fetch[k] = f"art_tuple[1]['uri'].udf['{v}']"
 
-        df = zika_utils.fetch_sample_data(currentStep, to_fetch)
+        df = zika.utils.fetch_sample_data(currentStep, to_fetch)
 
         conc_unit = "ng/ul" if use_customer_metrics else df.conc_units[0]
         amt_unit = "ng" if conc_unit == "ng/ul" else "fmol"
@@ -789,34 +789,34 @@ def norm(
         wl_comments = []
 
         # Resolve buffer transfers
-        df_buffer, wl_comments = zika_utils.resolve_buffer_transfers(
+        df_buffer, wl_comments = zika.utils.resolve_buffer_transfers(
             df=df.copy(), wl_comments=wl_comments
         )
 
         # Format worklist
-        df_formatted = zika_utils.format_worklist(df_buffer.copy(), deck=deck)
+        df_formatted = zika.utils.format_worklist(df_buffer.copy(), deck=deck)
         wl_comments.append(
             f"This worklist will enact normalization of {len(df)} samples. For detailed parameters see the worklist log"
         )
 
         # Write files
 
-        wl_filename, log_filename = zika_utils.get_filenames(
+        wl_filename, log_filename = zika.utils.get_filenames(
             method_name="norm", pid=currentStep.id
         )
 
-        zika_utils.write_worklist(
+        zika.utils.write_worklist(
             df=df_formatted.copy(),
             deck=deck,
             wl_filename=wl_filename,
             comments=wl_comments,
         )
 
-        zika_utils.write_log(log, log_filename)
+        zika.utils.write_log(log, log_filename)
 
         # Upload files
-        zika_utils.upload_csv(currentStep, lims, wl_filename)
-        zika_utils.upload_log(currentStep, lims, log_filename)
+        zika.utils.upload_csv(currentStep, lims, wl_filename)
+        zika.utils.upload_log(currentStep, lims, log_filename)
 
         # Issue warnings, if any
         if any("WARNING" in entry for entry in log):

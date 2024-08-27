@@ -16,8 +16,8 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
-from epp_utils.formula import ng_ul_to_nM
 from scilifelab_epps.epp import EppLogger
+from scilifelab_epps.utils.formula import ng_ul_to_nM
 
 
 def apply_calculations(lims, artifacts, conc_udf, size_udf, unit_udf, epp_logger):

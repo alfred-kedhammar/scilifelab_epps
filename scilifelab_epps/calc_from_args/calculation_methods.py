@@ -7,12 +7,12 @@ import pandas as pd
 import tabulate
 from genologics.entities import Process
 
-from calc_from_args_utils.udf_arg_methods import (
+from scilifelab_epps.calc_from_args.udf_arg_methods import (
     fetch_from_arg,
     get_UDF_source,
     get_UDF_source_name,
 )
-from epp_utils import formula, udf_tools
+from scilifelab_epps.utils import formula, udf_tools
 
 DESC = """This file contains the method functions for a UDF-agnostic script."""
 

@@ -4,6 +4,10 @@
 
 Make ONT volume calculations script case-agnostic for concentration units.
 
+## 20240826.1
+
+Add script for AVITI run manifest generation, re-organize repo to follow best-practice modularization and implement EPP wrapper.
+
 ## 20240823.2
 
 Add function to fetch sample-level Q30 for AVITI

@@ -8,7 +8,7 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
-from epp_utils import formula, udf_tools
+from scilifelab_epps.utils import formula, udf_tools
 
 DESC = """ EPP "ONT Update Amounts".
 

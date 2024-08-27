@@ -4,7 +4,6 @@ import logging
 import os
 import re
 import shutil
-import sys
 from argparse import ArgumentParser
 from datetime import datetime as dt
 
@@ -17,17 +16,14 @@ from genologics.lims import Lims
 from tabulate import tabulate
 
 from data.ONT_barcodes import ONT_BARCODE_LABEL_PATTERN, ONT_BARCODES
-from epp_utils.udf_tools import fetch
 from scilifelab_epps.epp import traceback_to_step, upload_file
+from scilifelab_epps.utils.udf_tools import fetch
+from scilifelab_epps.wrapper import epp_decorator
 
 DESC = """ Script to generate MinKNOW samplesheet for starting ONT runs.
 """
 
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
-SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
-
-with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml") as f:
-    config = yaml.safe_load(f)
 
 
 def get_ont_library_contents(
@@ -194,6 +190,9 @@ def get_ont_library_contents(
 
 
 def get_pool_sample_label_mapping(pool: Artifact) -> dict[str, str]:
+    with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml") as f:
+        config = yaml.safe_load(f)
+
     # Setup DB connection
     connection = psycopg2.connect(
         user=config["username"],
@@ -298,7 +297,7 @@ def write_minknow_csv(df: pd.DataFrame, file_path: str):
     df_csv.to_csv(file_path, index=False)
 
 
-def generate_MinKNOW_samplesheet(process: Process):
+def generate_MinKNOW_samplesheet(args):
     """=== Sample sheet columns ===
 
     flow_cell_id                E.g. 'PAM96489'
@@ -322,6 +321,10 @@ def generate_MinKNOW_samplesheet(process: Process):
     - barcode
 
     """
+
+    lims = Lims(BASEURI, USERNAME, PASSWORD)
+    process = Process(lims, id=args.pid)
+
     qc = True if "QC" in process.type.name else False
     logging.info(f"QC run: {qc}")
 
@@ -470,7 +473,35 @@ def generate_MinKNOW_samplesheet(process: Process):
     return file_name
 
 
-def main():
+@epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
+def main(args):
+    lims = Lims(BASEURI, USERNAME, PASSWORD)
+    process = Process(lims, id=args.pid)
+
+    file_name = generate_MinKNOW_samplesheet(args)
+
+    logging.info("Uploading samplesheet to LIMS...")
+    upload_file(
+        file_name,
+        args.file,
+        process,
+        lims,
+    )
+
+    logging.info("Moving samplesheet to ngi-nas-ns...")
+    try:
+        shutil.copyfile(
+            file_name,
+            f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
+        )
+        os.remove(file_name)
+    except:
+        logging.error("Failed to move samplesheet to ngi-nas-ns.", exc_info=True)
+    else:
+        logging.info("Samplesheet moved to ngi-nas-ns.")
+
+
+if __name__ == "__main__":
     # Parse args
     parser = ArgumentParser(description=DESC)
     parser.add_argument(
@@ -493,95 +524,4 @@ def main():
     )
     args = parser.parse_args()
 
-    # Set up LIMS
-    lims = Lims(BASEURI, USERNAME, PASSWORD)
-    lims.check_version()
-    process = Process(lims, id=args.pid)
-
-    # Set up logging
-    log_filename: str = (
-        "_".join(
-            [
-                SCRIPT_NAME,
-                process.id,
-                TIMESTAMP,
-                process.technician.name.replace(" ", ""),
-            ]
-        )
-        + ".log"
-    )
-
-    logging.basicConfig(
-        filename=log_filename,
-        filemode="w",
-        format="%(levelname)s: %(message)s",
-        level=logging.INFO,
-    )
-
-    # Start logging
-    logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
-    logging.info(
-        f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
-    )
-    args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
-    logging.info(f"Script called with arguments: \n\t{args_str}")
-
-    try:
-        file_name = generate_MinKNOW_samplesheet(process=process)
-        logging.info("Uploading samplesheet to LIMS...")
-        upload_file(
-            file_name,
-            args.file,
-            process,
-            lims,
-        )
-
-        logging.info("Moving samplesheet to ngi-nas-ns...")
-        try:
-            shutil.copyfile(
-                file_name,
-                f"/srv/ngi-nas-ns/samplesheets/nanopore/{dt.now().year}/{file_name}",
-            )
-            os.remove(file_name)
-        except:
-            logging.error("Failed to move samplesheet to ngi-nas-ns.", exc_info=True)
-        else:
-            logging.info("Samplesheet moved to ngi-nas-ns.")
-
-    except Exception as e:
-        # Post error to LIMS GUI
-        logging.error(str(e), exc_info=True)
-        logging.shutdown()
-        upload_file(
-            file_path=log_filename,
-            file_slot=args.log,
-            process=process,
-            lims=lims,
-        )
-        os.remove(log_filename)
-        sys.stderr.write(str(e))
-        sys.exit(2)
-    else:
-        logging.info("")
-        logging.info("Script completed successfully.")
-        logging.shutdown()
-        upload_file(
-            file_path=log_filename,
-            file_slot=args.log,
-            process=process,
-            lims=lims,
-        )
-        # Check log for errors and warnings
-        log_content = open(log_filename).read()
-        os.remove(log_filename)
-        if "ERROR:" in log_content or "WARNING:" in log_content:
-            sys.stderr.write(
-                "Script finished successfully, but log contains errors or warnings, please have a look."
-            )
-            sys.exit(2)
-        else:
-            sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()
+    main(args)

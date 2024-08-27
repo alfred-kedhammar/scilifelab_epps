@@ -3,7 +3,6 @@
 import logging
 import os
 import re
-import sys
 from argparse import ArgumentParser
 from datetime import datetime as dt
 
@@ -14,7 +13,7 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Artifact, Process
 from genologics.lims import Lims
 
-from scilifelab_epps.epp import upload_file
+from scilifelab_epps.wrapper import epp_decorator
 
 DESC = """Used to record the washing and reloading of ONT flow cells.
 
@@ -22,7 +21,6 @@ Information is parsed from LIMS and uploaded to the CouchDB database nanopore_ru
 """
 
 TIMESTAMP: str = dt.now().strftime("%y%m%d_%H%M%S")
-SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
 def send_reloading_info_to_db(process: Process):
@@ -178,71 +176,19 @@ def check_csv_udf_list(pattern: str, csv_udf_list: list[str]) -> bool:
         return True
 
 
-def main():
+@epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
+def main(args):
+    lims = Lims(BASEURI, USERNAME, PASSWORD)
+    process = Process(lims, id=args.pid)
+
+    send_reloading_info_to_db(process)
+
+
+if __name__ == "__main__":
     # Parse args
     parser = ArgumentParser(description=DESC)
     parser.add_argument("--pid", help="Lims id for current Process")
     parser.add_argument("--log", type=str, help="Which log file slot to use")
     args = parser.parse_args()
 
-    # Set up LIMS
-    lims = Lims(BASEURI, USERNAME, PASSWORD)
-    lims.check_version()
-    process = Process(lims, id=args.pid)
-
-    # Set up logging
-    log_filename: str = (
-        "_".join(
-            [
-                SCRIPT_NAME,
-                process.id,
-                TIMESTAMP,
-                process.technician.name.replace(" ", ""),
-            ]
-        )
-        + ".log"
-    )
-
-    logging.basicConfig(
-        filename=log_filename,
-        filemode="w",
-        format="%(levelname)s: %(message)s",
-        level=logging.INFO,
-    )
-
-    # Start logging
-    logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
-    logging.info(
-        f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
-    )
-    args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
-    logging.info(f"Script called with arguments: \n\t{args_str}")
-
-    try:
-        send_reloading_info_to_db(process)
-    except Exception as e:
-        # Post error to LIMS GUI
-        logging.error(e)
-        logging.shutdown()
-        upload_file(
-            file_path=log_filename,
-            file_slot=args.log,
-            process=process,
-            lims=lims,
-        )
-        sys.stderr.write(str(e))
-        sys.exit(2)
-    else:
-        logging.info("Script completed successfully.")
-        logging.shutdown()
-        upload_file(
-            file_path=log_filename,
-            file_slot=args.log,
-            process=process,
-            lims=lims,
-        )
-        sys.exit(0)
-
-
-if __name__ == "__main__":
-    main()
+    main(args)
