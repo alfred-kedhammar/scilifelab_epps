@@ -21,6 +21,16 @@ TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 LABEL_SEQ_SUBSTRING = re.compile(r"[ACGT]{4,}(-[ACGT]{4,})?")
 
 
+def get_flowcell_id(process: Process) -> str:
+    flowcell_ids = [
+        op.container.name for op in process.all_outputs() if op.type == "Analyte"
+    ]
+
+    assert len(set(flowcell_ids)) == 1, "Expected one flowcell ID."
+
+    return flowcell_ids[0]
+
+
 def get_runValues_section(process: Process, file_name: str) -> str:
     """Generate the [RUNVALUES] section of the AVITI run manifest and return it as a string."""
 
@@ -37,11 +47,8 @@ def get_runValues_section(process: Process, file_name: str) -> str:
         [
             "[RUNVALUES]",
             "KeyName, Value",
-            f"lims_step_name, {safe_string(process.type.name)}",
-            f"lims_step_id, {process.id}",
-            f"lims_step_operator, {process.technician.name}",
-            f"file_name, {safe_string(file_name)}",
-            f"file_timestamp, {TIMESTAMP}",
+            f"lims_step_name, {sanitize(process.type.name)}",
+            f"file_name, {sanitize(file_name)}",
             f"read_recipe, {read_recipe}",
         ]
     )
@@ -244,7 +251,7 @@ def show_match(seq1: str, seq2: str) -> str:
     return lines
 
 
-def safe_string(s: str) -> str:
+def sanitize(s: str) -> str:
     """Wrap a string in quotes if it contains commas."""
     if "," in s:
         return f'"{s}"'
@@ -257,7 +264,9 @@ def main(args: Namespace):
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     process = Process(lims, id=args.pid)
 
-    file_name = f"AVITI_run_manifest_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv"
+    # Name manifest file
+    flowcell_id = get_flowcell_id(process)
+    file_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv"
 
     # Build manifest
     logging.info("Starting to build run manifest.")
