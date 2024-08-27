@@ -10,6 +10,7 @@ oauth2client
 pandas
 protobuf
 psycopg2
+python_levenshtein
 PyYAML
 Requests
 scilifelab_parsers @ git+https://github.com/SciLifeLab/scilifelab_parsers

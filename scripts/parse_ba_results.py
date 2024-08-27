@@ -11,8 +11,8 @@ from genologics.config import BASEURI, PASSWORD, USERNAME
 from genologics.entities import Process
 from genologics.lims import Lims
 
-from epp_utils import udf_tools
 from scilifelab_epps.epp import get_well_number
+from scilifelab_epps.utils import udf_tools
 
 DESC = """This script parses the Agilent BioAnalyzer XML report.
 

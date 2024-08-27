@@ -4,7 +4,6 @@ import logging
 import os
 import re
 import shutil
-import sys
 from argparse import ArgumentParser
 from datetime import datetime as dt
 
@@ -16,12 +15,12 @@ from genologics.lims import Lims
 from data.Chromium_10X_indexes import Chromium_10X_indexes
 from data.ONT_barcodes import ONT_BARCODES
 from scilifelab_epps.epp import upload_file
+from scilifelab_epps.wrapper import epp_decorator
 
 DESC = """Script to generate Anglerfish samplesheet for ONT runs.
 """
 
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
-SCRIPT_NAME: str = os.path.basename(__file__).split(".")[0]
 
 
 def generate_anglerfish_samplesheet(process):
@@ -124,7 +123,35 @@ def get_adaptor_name(reagent_label: str) -> str | list[str]:
         )
 
 
-def main():
+@epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
+def main(args):
+    lims = Lims(BASEURI, USERNAME, PASSWORD)
+    process = Process(lims, id=args.pid)
+
+    file_name = generate_anglerfish_samplesheet(process)
+
+    logging.info("Uploading samplesheet to LIMS...")
+    upload_file(
+        file_name,
+        args.file,
+        process,
+        lims,
+    )
+
+    logging.info("Moving samplesheet to ngi-nas-ns...")
+    try:
+        shutil.copyfile(
+            file_name,
+            f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/{file_name}",
+        )
+        os.remove(file_name)
+    except:
+        logging.error("Failed to move samplesheet to ngi-nas-ns.")
+    else:
+        logging.info("Samplesheet moved to ngi-nas-ns.")
+
+
+if __name__ == "__main__":
     # Parse args
     parser = ArgumentParser(description=DESC)
     parser.add_argument(
@@ -147,96 +174,4 @@ def main():
     )
     args = parser.parse_args()
 
-    # Set up LIMS
-    lims = Lims(BASEURI, USERNAME, PASSWORD)
-    lims.check_version()
-    process = Process(lims, id=args.pid)
-
-    # Set up logging
-    log_filename: str = (
-        "_".join(
-            [
-                SCRIPT_NAME,
-                process.id,
-                TIMESTAMP,
-                process.technician.name.replace(" ", ""),
-            ]
-        )
-        + ".log"
-    )
-
-    logging.basicConfig(
-        filename=log_filename,
-        filemode="w",
-        format="%(levelname)s: %(message)s",
-        level=logging.INFO,
-    )
-
-    # Start logging
-    logging.info(f"Script '{SCRIPT_NAME}' started at {TIMESTAMP}.")
-    logging.info(
-        f"Launched in step '{process.type.name}' ({process.id}) by {process.technician.name}."
-    )
-    args_str = "\n\t".join([f"'{arg}': {getattr(args, arg)}" for arg in vars(args)])
-    logging.info(f"Script called with arguments: \n\t{args_str}")
-
-    try:
-        file_name = generate_anglerfish_samplesheet(process)
-
-        logging.info("Uploading samplesheet to LIMS...")
-        upload_file(
-            file_name,
-            args.file,
-            process,
-            lims,
-        )
-
-        logging.info("Moving samplesheet to ngi-nas-ns...")
-        try:
-            shutil.copyfile(
-                file_name,
-                f"/srv/ngi-nas-ns/samplesheets/anglerfish/{dt.now().year}/{file_name}",
-            )
-            os.remove(file_name)
-        except:
-            logging.error("Failed to move samplesheet to ngi-nas-ns.")
-        else:
-            logging.info("Samplesheet moved to ngi-nas-ns.")
-
-    except Exception as e:
-        # Post error to LIMS GUI
-        logging.error(str(e), exc_info=True)
-        logging.shutdown()
-        upload_file(
-            file_path=log_filename,
-            file_slot=args.log,
-            process=process,
-            lims=lims,
-        )
-        os.remove(log_filename)
-        sys.stderr.write(str(e))
-        sys.exit(2)
-    else:
-        logging.info("")
-        logging.info("Script completed successfully.")
-        logging.shutdown()
-        upload_file(
-            file_path=log_filename,
-            file_slot=args.log,
-            process=process,
-            lims=lims,
-        )
-        # Check log for errors and warnings
-        log_content = open(log_filename).read()
-        os.remove(log_filename)
-        if "ERROR:" in log_content or "WARNING:" in log_content:
-            sys.stderr.write(
-                "Script finished successfully, but log contains errors or warnings, please have a look."
-            )
-            sys.exit(2)
-        else:
-            sys.exit(0)
-
-
-if __name__ == "__main__":
     main()

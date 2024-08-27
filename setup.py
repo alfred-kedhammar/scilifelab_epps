@@ -30,7 +30,9 @@ setup(
     url="https://github.com/scilifelab/scilifelab_epps",
     license="GPLv3",
     packages=find_packages(exclude=["ez_setup", "examples", "tests"]),
-    scripts=glob.glob("scripts/*.py"),
+    scripts=[
+        file for file in glob.glob("scripts/*.py") if file != "scripts/__init__.py"
+    ],
     include_package_data=True,
     zip_safe=False,
 )
