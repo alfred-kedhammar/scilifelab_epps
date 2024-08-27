@@ -66,14 +66,11 @@ def get_samples_section(process: Process) -> str:
 
     phix_loaded: bool = process.udf["PhiX Loaded"]
 
-    # Get the analytes placed into the flowcell
+    # Assert two output analytes placed in either flowcell lane
     arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
+    assert len(arts_out) == 2, "Expected two output analytes."
     lanes = [art_out.location[1].split(":")[1] for art_out in arts_out]
-
-    # If only a single pool is added to the LIMS container, treat it as though it was loaded into both lanes
-    if len(lanes) == 1:
-        lanes.append("2" if lanes[0] == "1" else "1")
-        arts_out.append(arts_out[0])
+    assert set(lanes) == {"1", "2"}, "Expected lanes 1 and 2."
 
     # Iterate over pools
     all_rows = []
