@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240827.1
+
+Make ONT volume calculations script case-agnostic for concentration units.
+
 ## 20240823.2
 
 Add function to fetch sample-level Q30 for AVITI

@@ -56,9 +56,9 @@ def main(lims, args):
         log.append(f"'Concentration': {round(conc,2)}")
         conc_units = udf_tools.fetch(art_in, "Conc. Units")
         log.append(f"'Conc. Units': {conc_units}")
-        assert conc_units in [
+        assert conc_units.lower() in [
             "ng/ul",
-            "nM",
+            "nm",
         ], f'Unsupported conc. units "{conc_units}" for art {art_in.name}'
 
         # Calculate volume to take, based on supplied info
@@ -66,13 +66,13 @@ def main(lims, args):
             log.append(
                 f"Basing calculations on 'ONT flow cell loading amount (fmol)': {round(udf_tools.fetch(art_out, 'ONT flow cell loading amount (fmol)'),2)}"
             )
-            if conc_units == "nM":
+            if conc_units.lower() == "nm":
                 vol_to_take = min(
                     udf_tools.fetch(art_out, "ONT flow cell loading amount (fmol)")
                     / conc,
                     vol,
                 )
-            elif conc_units == "ng/ul":
+            elif conc_units.lower() == "ng/ul":
                 assert size_bp is not None, "Missing size."
                 vol_to_take = min(
                     formula.fmol_to_ng(
@@ -86,9 +86,9 @@ def main(lims, args):
             log.append(
                 f"Basing calculations on 'Amount (fmol): {round(udf_tools.fetch(art_out, 'Amount (fmol)'),2)}'"
             )
-            if conc_units == "nM":
+            if conc_units.lower() == "nm":
                 vol_to_take = min(udf_tools.fetch(art_out, "Amount (fmol)") / conc, vol)
-            elif conc_units == "ng/ul":
+            elif conc_units.lower() == "ng/ul":
                 assert size_bp is not None, "Missing size."
                 vol_to_take = min(
                     formula.fmol_to_ng(
@@ -101,9 +101,9 @@ def main(lims, args):
             log.append(
                 f"Basing calculations on 'Amount (ng)': {round(udf_tools.fetch(art_out, 'Amount (ng)'),2)}"
             )
-            if conc_units == "ng/ul":
+            if conc_units.lower() == "ng/ul":
                 vol_to_take = min(udf_tools.fetch(art_out, "Amount (ng)") / conc, vol)
-            elif conc_units == "nM":
+            elif conc_units.lower() == "nm":
                 assert size_bp is not None, "Missing size."
                 vol_to_take = min(
                     formula.ng_to_fmol(udf_tools.fetch(art_out, "Amount (ng)"), size_bp)
@@ -119,13 +119,13 @@ def main(lims, args):
             raise AssertionError(f"No target metrics specified for {art_out.name}")
 
         # Based on volume to take, calculate corresponding amounts
-        if conc_units == "nM":
+        if conc_units.lower() == "nm":
             amt_taken_fmol = conc * vol_to_take
             if size_bp is not None:
                 amt_taken_ng = formula.fmol_to_ng(amt_taken_fmol, size_bp)
             else:
                 amt_taken_ng = None
-        elif conc_units == "ng/ul":
+        elif conc_units.lower() == "ng/ul":
             amt_taken_ng = conc * vol_to_take
             if size_bp is not None:
                 amt_taken_fmol = formula.ng_to_fmol(amt_taken_ng, size_bp)
