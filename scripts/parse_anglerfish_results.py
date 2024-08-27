@@ -2,7 +2,7 @@
 import glob
 import logging
 import os
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
 
 import pandas as pd
@@ -61,28 +61,44 @@ def find_latest_anglerfish_run(run_path: str) -> str:
     return latest_anglerfish_run_path
 
 
-def upload_anglerfish_text_results(
-    lims: Lims, process: Process, latest_anglerfish_run_path: str
+def get_anglerfish_text_results(
+    lims: Lims,
+    process: Process,
+    args: Namespace,
+    latest_anglerfish_run_path: str,
 ):
-    logging.info("Uploading Anglerfish results .txt-file to LIMS")
+    logging.info("Fetching Anglerfish results .txt-file...")
 
-    anglerfish_file_slot: Artifact = [
-        outart
-        for outart in process.all_outputs()
-        if outart.name == "Anglerfish Result File"
+    txt_file_slot: Artifact = [
+        outart for outart in process.all_outputs() if outart.name == args.txt_file
     ][0]
 
-    file_name = os.path.join(latest_anglerfish_run_path, "anglerfish_stats.txt")
-    assert os.path.exists(file_name), f"File {file_name} does not exist"
+    file_name = "anglerfish_stats.txt"
+    file_path = os.path.join(latest_anglerfish_run_path, file_name)
+    assert os.path.exists(file_path), f"File {file_path} does not exist"
 
     # Upload results to LIMS
-    lims.upload_new_file(anglerfish_file_slot, file_name)
+    lims.upload_new_file(txt_file_slot, file_path)
 
 
-def get_anglerfish_dataframe(latest_anglerfish_run_path: str) -> pd.DataFrame:
+def get_anglerfish_dataframe(
+    lims: Lims,
+    process: Process,
+    args: Namespace,
+    latest_anglerfish_run_path: str,
+) -> pd.DataFrame:
+    logging.info("Fetching Anglerfish results .csv-file...")
+
+    csv_file_slot: Artifact = [
+        outart for outart in process.all_outputs() if outart.name == args.txt_file
+    ][0]
+
     file_name = "anglerfish_dataframe.csv"
     file_path = os.path.join(latest_anglerfish_run_path, file_name)
     assert os.path.exists(file_path), f"File {file_path} does not exist"
+
+    # Upload results to LIMS
+    lims.upload_new_file(csv_file_slot, file_path)
 
     df_raw = pd.read_csv(file_path)
 
@@ -183,10 +199,20 @@ def parse_anglerfish_results(process, lims):
 
     latest_anglerfish_run_path = find_latest_anglerfish_run(run_path)
 
-    upload_anglerfish_text_results(lims, process, latest_anglerfish_run_path)
+    # Upload Anglerfish files and load dataframe
+    get_anglerfish_text_results(
+        lims,
+        process,
+        args,
+        latest_anglerfish_run_path,
+    )
 
-    # Get file contents
-    df_raw: pd.DataFrame = get_anglerfish_dataframe(latest_anglerfish_run_path)
+    df_raw: pd.DataFrame = get_anglerfish_dataframe(
+        lims,
+        process,
+        args,
+        latest_anglerfish_run_path,
+    )
 
     # Parse the Anglerfish output
     df_parsed: pd.DataFrame = parse_data(df_raw)
@@ -217,10 +243,16 @@ if __name__ == "__main__":
         help="Which log file slot to use",
     )
     parser.add_argument(
-        "--file",
+        "--txt_file",
         required=True,
         type=str,
         help="Which file slot to use for the Anglerfish results",
+    )
+    parser.add_argument(
+        "--csv_file",
+        required=True,
+        type=str,
+        help="Which file slot to use for the Anglerfish dataframe",
     )
     args = parser.parse_args()
 
