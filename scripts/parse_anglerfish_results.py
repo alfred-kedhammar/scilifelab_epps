@@ -90,7 +90,7 @@ def get_anglerfish_dataframe(
     logging.info("Fetching Anglerfish results .csv-file...")
 
     csv_file_slot: Artifact = [
-        outart for outart in process.all_outputs() if outart.name == args.txt_file
+        outart for outart in process.all_outputs() if outart.name == args.csv_file
     ][0]
 
     file_name = "anglerfish_dataframe.csv"
