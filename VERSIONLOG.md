@@ -1,8 +1,12 @@
 # Scilifelab_epps Version Log
 
-## 20240827.1
+## 20240830.2
 
 Make ONT volume calculations script case-agnostic for concentration units.
+
+## 20240830.1
+
+When parsing Anglerfish results, upload the Anglerfish .csv dataframe to the LIMS step.
 
 ## 20240826.1
 
