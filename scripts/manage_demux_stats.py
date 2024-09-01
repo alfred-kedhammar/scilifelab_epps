@@ -998,7 +998,7 @@ def main(process_lims_id, demux_id, log_id):
     fill_process_fields(demux_process, process_stats)
 
     # Create the demux output file
-    if "AVITI" in demux_process.process.type.name:
+    if "AVITI" in demux_process.type.name:
         parser_struct = write_demuxfile_aviti(process_stats, demux_id)
     else:
         parser_struct = write_demuxfile(process_stats, demux_id)
