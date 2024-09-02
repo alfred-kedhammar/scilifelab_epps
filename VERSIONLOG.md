@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240902.4
+
+Also include Project name and sequencing setup in AVITI run manifest for PhiX
+
 ## 20240902.3
 
 Include Project name and sequencing setup in AVITI run manifest

@@ -153,6 +153,8 @@ def get_samples_section(process: Process) -> str:
                 row["Index1"] = phix_idx_pair[0]
                 row["Index2"] = phix_idx_pair[1]
                 row["Lane"] = lane
+                row["Project"] = "PhiX"
+                row["Recipe"] = "0-0"
                 lane_rows.append(row)
 
         # Check for index collision within lane, across samples and PhiX
