@@ -122,11 +122,21 @@ def get_samples_section(process: Process) -> str:
                 index1 = label_seq
                 index2 = ""
 
+            # Project name and sequencing setup
+            if sample.project:
+                project = sample.project.name
+                seq_setup = sample.project.udf.get("Sequencing setup", "0-0")
+            else:
+                project = ""
+                seq_setup = "0-0"
+
             row = {}
             row["SampleName"] = sample.name
             row["Index1"] = index1
             row["Index2"] = index2
             row["Lane"] = lane
+            row["Project"] = project
+            row["Recipe"] = seq_setup
 
             lane_rows.append(row)
 
