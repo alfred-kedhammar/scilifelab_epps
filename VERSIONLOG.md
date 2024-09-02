@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240902.3
+
+Include Project name and sequencing setup in AVITI run manifest
+
 ## 20240902.2
 
 Ruff format
