@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240902.1
+
+Fix bug with zika module import
+
 ## 20240901.1
 
 Fix bug with AVITI process
