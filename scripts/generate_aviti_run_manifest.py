@@ -124,10 +124,12 @@ def get_samples_section(process: Process) -> str:
 
             # Project name and sequencing setup
             if sample.project:
-                project = sample.project.name
+                project = sample.project.name.replace(".", "__").replace(
+                    ",", ""
+                )
                 seq_setup = sample.project.udf.get("Sequencing setup", "0-0")
             else:
-                project = ""
+                project = "Control"
                 seq_setup = "0-0"
 
             row = {}
