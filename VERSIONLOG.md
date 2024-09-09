@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240909.1
+
+Fix bug with zika module import cont; Change project format for AVITI run manifest
+
 ## 20240902.4
 
 Also include Project name and sequencing setup in AVITI run manifest for PhiX
