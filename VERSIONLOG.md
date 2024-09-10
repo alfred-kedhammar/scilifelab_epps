@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240910.1
+
+Downprioritize column 3 of PromethION (used by CG), when running script to suggest ports.
+
 ## 20240909.1
 
 Fix bug with zika module import cont; Change project format for AVITI run manifest
