@@ -3,6 +3,7 @@
 ## 20240910.2
 
 Support both single lane and dual lane of AVITI flowcell
+Decide whether to include PhiX based on lane level UDF
 
 ## 20240910.1
 
