@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240910.5
+
+Fix simple naming bug.
+
 ## 20240910.4
 
 Fix bug causing MinKNOW ss generation to fail for single samples w. label.
