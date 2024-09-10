@@ -4,6 +4,34 @@
 
 Add logbook for PromethION and MinION.
 
+## 20240910.1
+
+Downprioritize column 3 of PromethION (used by CG), when running script to suggest ports.
+
+## 20240909.1
+
+Fix bug with zika module import cont; Change project format for AVITI run manifest
+
+## 20240902.4
+
+Also include Project name and sequencing setup in AVITI run manifest for PhiX
+
+## 20240902.3
+
+Include Project name and sequencing setup in AVITI run manifest
+
+## 20240902.2
+
+Ruff format
+
+## 20240902.1
+
+Fix bug with zika module import
+
+## 20240901.1
+
+Fix bug with AVITI process
+
 ## 20240830.2
 
 Make ONT volume calculations script case-agnostic for concentration units.
