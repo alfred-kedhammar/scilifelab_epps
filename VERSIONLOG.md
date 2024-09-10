@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240910.2
+
+Support both single lane and dual lane of AVITI flowcell
+
 ## 20240910.1
 
 Downprioritize column 3 of PromethION (used by CG), when running script to suggest ports.
