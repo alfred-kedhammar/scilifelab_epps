@@ -77,13 +77,16 @@ def get_settings_section() -> str:
 def get_samples_section(process: Process) -> str:
     """Generate the [SAMPLES] section of the AVITI run manifest and return it as a string."""
 
-    phix_loaded: bool = process.udf["PhiX Loaded"]
-
-    # Assert two output analytes placed in either flowcell lane
+    # Assert output analytes loaded on flowcell
     arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
-    assert len(arts_out) == 2, "Expected two output analytes."
-    lanes = [art_out.location[1].split(":")[1] for art_out in arts_out]
-    assert set(lanes) == {"1", "2"}, "Expected lanes 1 and 2."
+    assert (
+        len(arts_out) == 1 or len(arts_out) == 2
+    ), "Expected one or two output analytes."
+    lanes = [art_out.location[1].split(":")[0] for art_out in arts_out]
+    assert set(lanes) == {"1"} or set(lanes) == {
+        "1",
+        "2",
+    }, "Expected a single-lane or dual-lane flowcell."
 
     # Iterate over pools
     all_rows = []
@@ -140,7 +143,9 @@ def get_samples_section(process: Process) -> str:
 
             lane_rows.append(row)
 
-        # Add PhiX controls
+        # Add PhiX controls if added:
+        phix_loaded: bool = art_out.udf["% phiX"] != 0
+
         if phix_loaded:
             for phix_idx_pair in [
                 ("ACGTGTAGC", "GCTAGTGCA"),
