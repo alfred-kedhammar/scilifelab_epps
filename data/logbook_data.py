@@ -351,6 +351,15 @@ lims_process_record = {
             "details": ["Processname"],
         },
     },
+    "ONT Start Sequencing v3.0": {
+        "lims_instrument": {
+            "dest_file": "MinION-PromethION",
+            "details": [
+                "Processname",
+                "LIMS ID (Process)",
+            ],
+        },
+    },
     "ONT QC Adapter Ligation v1.2": {
         "lims_instrument": {
             "dest_file": "Qubit",
@@ -367,6 +376,15 @@ lims_process_record = {
         "lims_instrument": {
             "dest_file": "Qubit",
             "details": ["Assay", "Lot no: Qubit kit"],
+        },
+    },
+    "ONT QC Start Sequencing": {
+        "lims_instrument": {
+            "dest_file": "MinION-PromethION",
+            "details": [
+                "Processname",
+                "LIMS ID (Process)",
+            ],
         },
     },
     "PCR1 (Amplicon)": {
@@ -556,4 +574,5 @@ GDoc_logbook = {
     "Speedvac": {"File": "1Dk7qPJeNmzKtHWEdNkZ4yLB0FycjREqqIhNhInZ8G9g"},
     "Tecan": {"File": "1DUBEL8DBf0lnXJjIIjowQf2PrftMo9ECXpeNrDodM4s"},
     "VC100": {"File": "1FEH2Ilyaz2FThJZ_jjlDna7s4aTuRgfxvLFpYgOPHBw"},
+    "MinION-PromethION": {"File": "1OazL3MNZImTJBHK-QVy-jbxL9nN1uCoOmOMSiXclRac"},
 }

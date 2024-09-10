@@ -24,7 +24,7 @@ from scilifelab_epps.epp import EppLogger
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 SERVICE_ACCOUNT_FILE = "/opt/gls/clarity/users/glsai/.credentials/ngi-lims-epp-001.json"
 
-# In coordinates, the values correspond to LineID of the header, columns for date, operator, instrument name and details. The sheet name shoud be "Logbook"
+# In coordinates, the values correspond to LineID of the header, columns for date, operator, instrument name and details. The sheet name should be "Logbook"
 LOGBOOK_COORDINATES = [22, "B", "C", "D", "E"]
 
 

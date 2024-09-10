@@ -1,5 +1,10 @@
 # Scilifelab_epps Version Log
 
+
+## 20240910.3
+
+Add logbook for PromethION and MinION.
+
 ## 20240910.2
 
 Support both single lane and dual lane of AVITI flowcell
