@@ -568,9 +568,5 @@ GDoc_logbook = {
     "Speedvac": {"File": "1Dk7qPJeNmzKtHWEdNkZ4yLB0FycjREqqIhNhInZ8G9g"},
     "Tecan": {"File": "1DUBEL8DBf0lnXJjIIjowQf2PrftMo9ECXpeNrDodM4s"},
     "VC100": {"File": "1FEH2Ilyaz2FThJZ_jjlDna7s4aTuRgfxvLFpYgOPHBw"},
-    # TODO merge logbooks
-    "PromethION": {
-        "File": "1-sDggtU4RTAZuVOJ_N4Onv5loByamipSzPk9tpIAMYk"
-    },  # TODO Fahris file 1OazL3MNZImTJBHK-QVy-jbxL9nN1uCoOmOMSiXclRac
-    "MinION": {"File": "1bfX3wlCkqphUyJZzHNcbTSUDx-z6uD85pho3u7a0mYw"},
+    "MinION-PromethION": {"File": "1OazL3MNZImTJBHK-QVy-jbxL9nN1uCoOmOMSiXclRac"},
 }
