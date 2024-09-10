@@ -45,7 +45,7 @@ def get_ont_library_contents(
         ont_barcode_well2label[ont_barcode_dict["well"]] = ont_barcode_dict["label"]
 
     # Link samples to reagent_labels via database queries, if applicable
-    if len(ont_library.reagent_labels) > 1:
+    if len(ont_library.reagent_labels) > 0:
         sample2label = get_pool_sample_label_mapping(ont_library)
 
     logging.info(
@@ -119,14 +119,14 @@ def get_ont_library_contents(
 
                 # ONT barcode-level demultiplexing
                 for ont_sample in ont_pooling_input.samples:
-                    library_contents_msg += f"\n\t - '{ont_pooling_input.name}': ONT sample with barcode '{sample2label[sample.name]}'"
+                    library_contents_msg += f"\n\t - '{ont_pooling_input.name}': ONT sample with barcode '{sample2label[ont_sample.name]}'"
                     rows.append(
                         {
                             "sample_name": ont_sample.name,
                             "sample_id": ont_sample.id,
                             "project_name": ont_sample.project.name,
                             "project_id": ont_sample.project.id,
-                            "ont_barcode": sample2label[sample.name],
+                            "ont_barcode": sample2label[ont_sample.name],
                             "ont_pool_name": ont_pooling_output.name,
                             "ont_pool_id": ont_pooling_output.id,
                         }

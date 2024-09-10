@@ -1,5 +1,8 @@
 # Scilifelab_epps Version Log
 
+## 20240910.4
+
+Fix bug causing MinKNOW ss generation to fail for single samples w. label.
 
 ## 20240910.3
 
