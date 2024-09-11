@@ -248,7 +248,7 @@ def get_samples_section(process: Process) -> str:
                 row["Index1"] = phix_idx_pair[0]
                 row["Index2"] = phix_idx_pair[1]
                 row["Lane"] = lane
-                row["Project"] = phix_set["nickname"]
+                row["Project"] = "Control"
                 row["Recipe"] = "0-0"
                 lane_rows.append(row)
         else:
@@ -379,7 +379,6 @@ def main(args: Namespace):
     file_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv"
 
     # Build manifest
-    logging.info("Starting to build run manifest.")
 
     runValues_section = get_runValues_section(process, file_name)
     settings_section = get_settings_section()
