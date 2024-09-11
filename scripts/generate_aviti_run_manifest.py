@@ -63,7 +63,56 @@ SMARTSEQ3_indexes_json = (
     "/opt/gls/clarity/users/glsai/repos/scilifelab_epps/data/SMARTSEQ3_indexes.json"
 )
 with open(SMARTSEQ3_indexes_json) as file:
-    SMARTSEQ3_indexes = json.loads(file.read())
+    SMARTSEQ3_INDEXES = json.loads(file.read())
+
+
+def revcomp(seq: str) -> str:
+    """Reverse-complement a DNA string."""
+    return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
+
+
+def idxs_from_label(label: str) -> list[str | tuple[str, str]]:
+    """From a LIMS reagent label, return list whose elements are
+    single indices or tuples of dual index pairs.
+    """
+
+    # Initialize result
+    idxs = []
+
+    # Expand 10X single indexes
+    if TENX_SINGLE_PAT.findall(label):
+        match = TENX_SINGLE_PAT.findall(label)[0]
+        for tenXidx in Chromium_10X_indexes[match]:
+            idxs.append(tenXidx)
+    # Case of 10X dual indexes
+    elif TENX_DUAL_PAT.findall(label):
+        match = TENX_DUAL_PAT.findall(label)[0]
+        i7_idx = Chromium_10X_indexes[match][0]
+        i5_idx = Chromium_10X_indexes[match][1]
+        idxs.append((i7_idx, revcomp(i5_idx)))
+    # Case of SS3 indexes
+    elif SMARTSEQ_PAT.findall(label):
+        match = SMARTSEQ_PAT.findall(label)[0]
+        for i7_idx in SMARTSEQ3_INDEXES[match][0]:
+            for i5_idx in SMARTSEQ3_INDEXES[match][1]:
+                idxs.append((i7_idx, revcomp(i5_idx)))
+    # NoIndex cases
+    elif label.replace(",", "").upper() == "NOINDEX" or (
+        label.replace(",", "").upper() == ""
+    ):
+        raise AssertionError("NoIndex cases not allowed.")
+    # Ordinary indexes
+    elif IDX_PAT.findall(label):
+        match = IDX_PAT.findall(label)[0]
+        if "-" in match:
+            idx1, idx2 = match.split("-")
+            idxs.append((idx1, revcomp(idx2)))
+        else:
+            idx1 = match
+            idxs.append(idx1)
+    else:
+        raise AssertionError(f"Could not parse index from '{label}'.")
+    return idxs
 
 
 def get_flowcell_id(process: Process) -> str:
@@ -117,50 +166,6 @@ def get_settings_section() -> str:
     )
 
     return settings_section
-
-
-def idxs_from_label(label: str) -> list[str | tuple[str, str]]:
-    """From a LIMS reagent label, return list whose elements are
-    single indices or tuples of dual index pairs.
-    """
-
-    # Initialize result
-    idxs = []
-
-    # Expand 10X single indexes
-    if TENX_SINGLE_PAT.findall(label):
-        match = TENX_SINGLE_PAT.findall(label)[0]
-        for tenXidx in Chromium_10X_indexes[match]:
-            idxs.append(tenXidx)
-    # Case of 10X dual indexes
-    elif TENX_DUAL_PAT.findall(label):
-        match = TENX_DUAL_PAT.findall(label)[0]
-        i7_idx = Chromium_10X_indexes[match][0]
-        i5_idx = Chromium_10X_indexes[match][1]
-        idxs.append((i7_idx, revcomp(i5_idx)))
-    # Case of SS3 indexes
-    elif SMARTSEQ_PAT.findall(label):
-        match = SMARTSEQ_PAT.findall(label)[0]
-        for i7_idx in match[0]:
-            for i5_idx in match[1]:
-                idxs.append((i7_idx, revcomp(i5_idx)))
-    # NoIndex cases
-    elif label.replace(",", "").upper() == "NOINDEX" or (
-        label.replace(",", "").upper() == ""
-    ):
-        raise AssertionError("NoIndex cases not allowed.")
-    # Ordinary indexes
-    elif IDX_PAT.findall(label):
-        match = IDX_PAT.findall(label)[0]
-        if "-" in match:
-            idx1, idx2 = match.split("-")
-            idxs.append((idx1, revcomp(idx2)))
-        else:
-            idx1 = match
-            idxs.append(idx1)
-    else:
-        raise AssertionError(f"Could not parse index from '{label}'.")
-    return idxs
 
 
 def get_samples_section(process: Process) -> str:
@@ -335,11 +340,6 @@ def check_pair_distance(
         # For identical collisions, kill the process
         if dist == 0:
             raise AssertionError("Identical indices detected.")
-
-
-def revcomp(seq: str) -> str:
-    """Reverse-complement a DNA string."""
-    return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
 
 
 def show_match(seq1: str, seq2: str) -> str:
