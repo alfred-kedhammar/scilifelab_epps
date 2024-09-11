@@ -154,9 +154,10 @@ def idxs_from_label(label: str) -> list[str | tuple[str, str]]:
         match = IDX_PAT.findall(label)[0]
         if "-" in match:
             idx1, idx2 = match.split("-")
-            idxs.append((idx1, idx2))
+            idxs.append((idx1, revcomp(idx2)))
         else:
-            idxs.append(match)
+            idx1 = match
+            idxs.append(idx1)
     else:
         raise AssertionError(f"Could not parse index from '{label}'.")
     return idxs
