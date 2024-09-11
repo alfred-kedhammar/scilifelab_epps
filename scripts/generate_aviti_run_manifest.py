@@ -229,7 +229,7 @@ def get_samples_section(process: Process) -> str:
                 phix_set_name is not None
             ), "PhiX controls loaded but no kit specified."
 
-            phix_set = PHIX_SETS(phix_set_name)
+            phix_set = PHIX_SETS[phix_set_name]
 
             for phix_idx_pair in phix_set["indices"]:
                 row = {}
