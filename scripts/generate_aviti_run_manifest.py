@@ -133,13 +133,13 @@ def idxs_from_label(label: str) -> list[str | tuple[str, str]]:
             idxs.append(tenXidx)
     # Case of 10X dual indexes
     elif TENX_DUAL_PAT.findall(label):
-        i7_idx = Chromium_10X_indexes[TENX_DUAL_PAT.findall(label)[0][0]]
-        i5_idx = Chromium_10X_indexes[TENX_DUAL_PAT.findall(label)[0][1]]
+        i7_idx = Chromium_10X_indexes[TENX_DUAL_PAT.findall(label)[0]][0]
+        i5_idx = Chromium_10X_indexes[TENX_DUAL_PAT.findall(label)[0]][1]
         idxs.append((i7_idx, revcomp(i5_idx)))
     # Case of SS3 indexes
     elif SMARTSEQ_PAT.findall(label):
-        for i7_idx in SMARTSEQ3_indexes[label][0]:
-            for i5_idx in SMARTSEQ3_indexes[label][1]:
+        for i7_idx in SMARTSEQ_PAT.findall(label)[0][0]:
+            for i5_idx in SMARTSEQ_PAT.findall(label)[0][1]:
                 idxs.append((i7_idx, revcomp(i5_idx)))
     # NoIndex cases
     elif label.replace(",", "").upper() == "NOINDEX" or (
