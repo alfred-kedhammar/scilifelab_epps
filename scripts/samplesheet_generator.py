@@ -731,33 +731,6 @@ def main(lims, args):
                 except Exception as e:
                     log.append(str(e))
 
-        elif process.type.name in [
-            "MinION QC",
-            "Load Sample and Sequencing (MinION) 1.0",
-        ]:
-            content = gen_MinION_QC_data(process)
-            run_type = "QC" if process.type.name == "MinION QC" else "DELIVERY"
-            fc_name = (
-                run_type
-                + "_"
-                + process.udf["Nanopore Kit"]
-                + "_"
-                + process.udf["Flowcell ID"].upper()
-                + "_"
-                + "Samplesheet"
-                + "_"
-                + process.id
-            )
-            if os.path.exists(f"/srv/ngi-nas-ns/samplesheets/nanopore/{thisyear}"):
-                try:
-                    with open(
-                        f"/srv/ngi-nas-ns/samplesheets/nanopore/{thisyear}/{fc_name}.csv",
-                        "w",
-                    ) as sf:
-                        sf.write(content)
-                except Exception as e:
-                    log.append(str(e))
-
         if not args.test:
             for out in process.all_outputs():
                 if out.name == "Scilifelab SampleSheet":
