@@ -129,17 +129,20 @@ def idxs_from_label(label: str) -> list[str | tuple[str, str]]:
 
     # Expand 10X single indexes
     if TENX_SINGLE_PAT.findall(label):
-        for tenXidx in Chromium_10X_indexes[TENX_SINGLE_PAT.findall(label)[0]]:
+        match = TENX_SINGLE_PAT.findall(label)[0]
+        for tenXidx in Chromium_10X_indexes[match]:
             idxs.append(tenXidx)
     # Case of 10X dual indexes
     elif TENX_DUAL_PAT.findall(label):
-        i7_idx = Chromium_10X_indexes[TENX_DUAL_PAT.findall(label)[0]][0]
-        i5_idx = Chromium_10X_indexes[TENX_DUAL_PAT.findall(label)[0]][1]
+        match = TENX_DUAL_PAT.findall(label)[0]
+        i7_idx = Chromium_10X_indexes[match][0]
+        i5_idx = Chromium_10X_indexes[match][1]
         idxs.append((i7_idx, revcomp(i5_idx)))
     # Case of SS3 indexes
     elif SMARTSEQ_PAT.findall(label):
-        for i7_idx in SMARTSEQ_PAT.findall(label)[0][0]:
-            for i5_idx in SMARTSEQ_PAT.findall(label)[0][1]:
+        match = SMARTSEQ_PAT.findall(label)[0]
+        for i7_idx in match[0]:
+            for i5_idx in match[1]:
                 idxs.append((i7_idx, revcomp(i5_idx)))
     # NoIndex cases
     elif label.replace(",", "").upper() == "NOINDEX" or (
@@ -148,15 +151,14 @@ def idxs_from_label(label: str) -> list[str | tuple[str, str]]:
         raise AssertionError("NoIndex cases not allowed.")
     # Ordinary indexes
     elif IDX_PAT.findall(label):
-        idx_match = IDX_PAT.findall(label)[0]
-        if "-" in idx_match:
-            idx1, idx2 = idx_match.split("-")
+        match = IDX_PAT.findall(label)[0]
+        if "-" in match:
+            idx1, idx2 = match.split("-")
             idxs.append((idx1, idx2))
         else:
-            idxs.append(idx_match)
+            idxs.append(match)
     else:
         raise AssertionError(f"Could not parse index from '{label}'.")
-
     return idxs
 
 
