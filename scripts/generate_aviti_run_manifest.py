@@ -20,6 +20,37 @@ from scripts.generate_minknow_samplesheet import get_pool_sample_label_mapping
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
 LABEL_SEQ_SUBSTRING = re.compile(r"[ACGT]{4,}(-[ACGT]{4,})?")
 
+# Set up Element PhiX control sets, keys are options in LIMS dropdown UDF
+PHIX_SETS = {
+    "PhiX Control Library, Adept": {
+        "nickname": "PhiX_Adept",
+        "indices": [
+            ("ATGTCGCTAG", "CTAGCTCGTA"),
+            ("CACAGATCGT", "ACGAGAGTCT"),
+            ("GCACATAGTC", "GACTACTAGC"),
+            ("TGTGTCGACA", "TGTCTGACAG"),
+        ],
+    },
+    "Cloudbreak PhiX Control Library, Elevate": {
+        "nickname": "PhiX_Elevate",
+        "indices": [
+            ("ACGTGTAGC", "GCTAGTGCA"),
+            ("CACATGCTG", "AGACACTGT"),
+            ("GTACACGAT", "CTCGTACAG"),
+            ("TGTGCATCA", "TAGTCGATC"),
+        ],
+    },
+    "Cloudbreak Freestyle PhiX Control, Third Party": {
+        "nickname": "PhiX_Third",
+        "indices": [
+            ("ATGTCGCTAG", "CTAGCTCGTA"),
+            ("CACAGATCGT", "ACGAGAGTCT"),
+            ("GCACATAGTC", "GACTACTAGC"),
+            ("TGTGTCGACA", "TGTCTGACAG"),
+        ],
+    },
+}
+
 
 def get_flowcell_id(process: Process) -> str:
     flowcell_ids = [
@@ -145,22 +176,26 @@ def get_samples_section(process: Process) -> str:
 
         # Add PhiX controls if added:
         phix_loaded: bool = art_out.udf["% phiX"] != 0
+        phix_set_name = art_out.udf.get("Element PhiX Set", None)
 
         if phix_loaded:
-            for phix_idx_pair in [
-                ("ACGTGTAGC", "GCTAGTGCA"),
-                ("CACATGCTG", "AGACACTGT"),
-                ("GTACACGAT", "CTCGTACAG"),
-                ("TGTGCATCA", "TAGTCGATC"),
-            ]:
+            assert (
+                phix_set_name is not None
+            ), "PhiX controls loaded but no kit specified."
+
+            phix_set = PHIX_SETS(phix_set_name)
+
+            for phix_idx_pair in phix_set["indices"]:
                 row = {}
-                row["SampleName"] = "PhiX"
+                row["SampleName"] = phix_set["nickname"]
                 row["Index1"] = phix_idx_pair[0]
                 row["Index2"] = phix_idx_pair[1]
                 row["Lane"] = lane
-                row["Project"] = "PhiX"
+                row["Project"] = phix_set["nickname"]
                 row["Recipe"] = "0-0"
                 lane_rows.append(row)
+        else:
+            assert phix_set is None, "PhiX controls specified but not loaded."
 
         # Check for index collision within lane, across samples and PhiX
         check_distances(lane_rows)
