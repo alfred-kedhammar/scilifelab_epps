@@ -1,8 +1,12 @@
 # Scilifelab_epps Version Log
 
-## 20240912.1
+## 20240912.2
 
 Generate composite run manifests for AVITI based on index lengths.
+
+## 20240912.1
+
+Update AVITI run stats parser to handle multiple lanes
 
 ## 20240910.5
 
