@@ -81,7 +81,7 @@ def idxs_from_label(label: str) -> list[str | tuple[str, str]]:
     """
 
     # Initialize result
-    idxs = []
+    idxs: list[str | tuple[str, str]] = []
 
     # Expand 10X single indexes
     if TENX_SINGLE_PAT.findall(label):
@@ -282,21 +282,21 @@ def make_manifests(process: Process, manifest_root_name: str) -> list[tuple[str,
     return manifests
 
 
-def fit_seq(seq: str, length: int, extend: str = None) -> str:
+def fit_seq(seq: str, length: int, seq_extension: str | None = None) -> str:
     """Fit a sequence to a given length by extending or truncating."""
     if len(seq) == length:
         return seq
     elif len(seq) > length:
         return seq[:length]
     else:
-        if extend is None:
+        if seq_extension is None:
             raise AssertionError("Can't extend sequence without extension string.")
         else:
-            if length - len(seq) > len(extend):
+            if length - len(seq) > len(seq_extension):
                 raise AssertionError(
                     "Extension string too short to fit sequence to desired length."
                 )
-            return seq + extend[: length - len(seq)]
+            return seq + seq_extension[: length - len(seq)]
 
 
 def check_distances(rows: list[dict], dist_warning_threshold=3) -> None:
