@@ -400,7 +400,7 @@ def main(args: Namespace):
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     process = Process(lims, id=args.pid)
 
-    # Crate manifest root name
+    # Create manifest root name
     flowcell_id = get_flowcell_id(process)
     manifest_root_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
 
