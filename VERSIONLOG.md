@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240912.2
+
+Support AVITI protocols for lobgook and comments_to_RN
+
 ## 20240912.1
 
 Update AVITI run stats parser to handle multiple lanes
