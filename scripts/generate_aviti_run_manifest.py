@@ -254,7 +254,7 @@ def make_manifests(process: Process, manifest_root_name: str) -> list[tuple[str,
                 f'lims_step_name, "{process.type.name}"',
                 f'lims_step_id, "{process.id}"',
                 f'manifest_file, "{manifest_file}"',
-                f"manifest_group, {n+1}/{len(df_samples_and_controls.groupby(['len_idx1', 'len_idx2']))}",
+                f"manifest_group, {n+1}/{len(df_samples_and_controls.groupby(['len_idx1', 'len_idx2', 'Lane']))}",
                 f"grouped_by, len_idx1:{len_idx1} len_idx2:{len_idx2} lane:{lane}",
             ]
         )
