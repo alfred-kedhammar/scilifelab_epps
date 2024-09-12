@@ -55,7 +55,6 @@ def attach_json_files(process, run_dir):
                 lims.upload_new_file(outart, f"{run_dir}/AvitiRunStats.json")
             except OSError:
                 sys.stderr.write("No AvitiRunStats.json found")
-                sys.exit(2)
 
 
 def parse_run_parameters(run_dir):
@@ -158,25 +157,33 @@ def calculate_mean(input_list, key):
 
 
 def set_run_stats(process, run_dir):
+    global lane_stats
     run_stats = parse_run_stats(run_dir)
-    art = process.input_output_maps[0][0]["uri"]
-
-    for read in run_stats["RunStats"]["Reads"]:
-        read_key = read["Read"]
-        art[f"Reads PF (M) {read_key}"] = run_stats["RunStats"]["PFCount"] / 1000000
-        art[f"%PF {read_key}"] = run_stats["RunStats"]["PercentPF"]
-        art[f"Yield PF (Gb) {read_key}"] = (
-            run_stats["RunStats"]["TotalYield"] / 1000000000
-        )
-        art[f"% Aligned {read_key}"] = read["PhiXAlignmentRate"]
-        art[f"% Bases >=Q30 {read_key}"] = calculate_mean(read["Cycles"], "PercentQ30")
-        art[f"% Bases >=Q40 {read_key}"] = calculate_mean(read["Cycles"], "PercentQ40")
-        art[f"Avg Q Score {read_key}"] = calculate_mean(read["Cycles"], "AverageQScore")
-        art[f"% Error Rate {read_key}"] = calculate_mean(
-            read["Cycles"], "PercentPhixErrorRate"
-        )
-
-    art.put()
+    for art in process.all_outputs():
+        if "Lane" in art.name:
+            lane_nbr = int(art.name.split(" ")[1])
+            lane_stats = next(
+                d for d in run_stats["LaneStats"] if d["Lane"] == lane_nbr
+            )
+        for read in lane_stats["Reads"]:
+            read_key = read["Read"]
+            art.udf[f"Reads PF (M) {read_key}"] = lane_stats["PFCount"] / 1000000
+            art.udf[f"%PF {read_key}"] = lane_stats["PercentPF"]
+            art.udf[f"Yield PF (Gb) {read_key}"] = lane_stats["TotalYield"] / 1000000000
+            art.udf[f"% Aligned {read_key}"] = read["PhiXAlignmentRate"]
+            art.udf[f"% Bases >=Q30 {read_key}"] = calculate_mean(
+                read["Cycles"], "PercentQ30"
+            )
+            art.udf[f"% Bases >=Q40 {read_key}"] = calculate_mean(
+                read["Cycles"], "PercentQ40"
+            )
+            art.udf[f"Avg Q Score {read_key}"] = calculate_mean(
+                read["Cycles"], "AverageQScore"
+            )
+            art.udf[f"% Error Rate {read_key}"] = calculate_mean(
+                read["Cycles"], "PercentPhixErrorRate"
+            )
+        art.put()
     process.put()
 
 
