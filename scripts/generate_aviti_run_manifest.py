@@ -207,7 +207,9 @@ def make_manifests(process: Process, manifest_root_name: str) -> list[tuple[str,
 
     # Group into composite dataframes and add PhiX controls w. correct length
     dfs_samples_and_controls = []
-    for (len_idx1, len_idx2), group in df_samples.groupby(["len_idx1", "len_idx2"]):
+    for (len_idx1, len_idx2, lane), group in df_samples.groupby(
+        ["len_idx1", "len_idx2", "Lane"]
+    ):
         if group["phix_loaded"].any():
             phix_set_name = group["phix_set_name"].iloc[0]
             phix_set = PHIX_SETS[phix_set_name]
@@ -237,11 +239,11 @@ def make_manifests(process: Process, manifest_root_name: str) -> list[tuple[str,
         rows_to_check = group.to_dict(orient="records")
         check_distances(rows_to_check)
 
-    # Group by index lengths again and make manifests
+    # Group and make manifests
     manifests = []
     n = 0
-    for (len_idx1, len_idx2), group in df_samples_and_controls.groupby(
-        ["len_idx1", "len_idx2"]
+    for (len_idx1, len_idx2, lane), group in df_samples_and_controls.groupby(
+        ["len_idx1", "len_idx2", "Lane"]
     ):
         manifest_file = f"{manifest_root_name}_{n}.csv"
 
@@ -250,9 +252,10 @@ def make_manifests(process: Process, manifest_root_name: str) -> list[tuple[str,
                 "[RUNVALUES]",
                 "KeyName, Value",
                 f'lims_step_name, "{process.type.name}"',
+                f'lims_step_id, "{process.id}"',
                 f'manifest_file, "{manifest_file}"',
                 f"manifest_group, {n+1}/{len(df_samples_and_controls.groupby(['len_idx1', 'len_idx2']))}",
-                f"grouped_by_index_lengths, {len_idx1}-{len_idx2}",
+                f"grouped_by, len_idx1:{len_idx1} len_idx2:{len_idx2} lane:{lane}",
             ]
         )
 
