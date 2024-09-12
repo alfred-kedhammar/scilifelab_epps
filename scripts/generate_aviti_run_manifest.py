@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 
-# TODO divide into smaller manifests as needed
-# TODO enforce index duplicity and length, modify PhiX as needed
-
 import json
 import logging
 import os
