@@ -125,7 +125,9 @@ def get_process_stats(demux_process):
 
     elif "AVITI Run" in seq_process.type.name:
         try:
-            proc_stats["Chemistry"] = "AVITI" + " " + seq_process.udf["Throughput Selection"]
+            proc_stats["Chemistry"] = (
+                "AVITI" + " " + seq_process.udf["Throughput Selection"]
+            )
         except Exception as e:
             problem_handler(
                 "exit", f"No flowcell version set in sequencing step: {str(e)}"
@@ -419,7 +421,10 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                             for old_attr, attr in def_atr.items():
                                 # Sets default value for unwritten fields
                                 if old_attr in entry.keys():
-                                    if entry[old_attr] == "" or entry[old_attr] == "NaN":
+                                    if (
+                                        entry[old_attr] == ""
+                                        or entry[old_attr] == "NaN"
+                                    ):
                                         if old_attr == "% of Raw Clusters Per Lane":
                                             default_value = 100.0
                                         else:
@@ -438,11 +443,15 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                                         # Yields needs division by 1K, is also non-percentage
                                         if old_attr == "Yield (Mbases)":
                                             samplesum[sample][attr] = (
-                                                my_float(entry[old_attr].replace(",", ""))
+                                                my_float(
+                                                    entry[old_attr].replace(",", "")
+                                                )
                                                 / 1000
                                                 if attr not in samplesum[sample]
                                                 else samplesum[sample][attr]
-                                                + my_float(entry[old_attr].replace(",", ""))
+                                                + my_float(
+                                                    entry[old_attr].replace(",", "")
+                                                )
                                                 / 1000
                                             )
                                         else:
