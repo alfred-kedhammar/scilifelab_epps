@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240912.3
+
+Fix bugs with EPP in the BCL conversion step
+
 ## 20240912.2
 
 Support AVITI protocols for lobgook and comments_to_RN
