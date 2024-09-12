@@ -241,6 +241,12 @@ lims_process_record = {
             "details": ["Processname"],
         }
     },
+    "Library Normalization (AVITI) v1.0": {
+        "lims_instrument": {
+            "dest_file": ["Bravo", "Mosquito"],
+            "details": ["Processname"],
+        }
+    },
     "Library Normalization (HiSeq X) 1.0": {
         "lims_instrument": {
             "dest_file": ["Bravo", "Mosquito"],
@@ -399,6 +405,12 @@ lims_process_record = {
         "lims_instrument": {"dest_file": "Bravo", "details": ["Processname"]}
     },
     "Pre-Pooling": {
+        "lims_instrument": {
+            "dest_file": ["Bravo", "Mosquito"],
+            "details": ["Processname"],
+        }
+    },
+    "Pre-Pooling (AVITI) v1.0": {
         "lims_instrument": {
             "dest_file": ["Bravo", "Mosquito"],
             "details": ["Processname"],
