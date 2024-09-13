@@ -166,7 +166,7 @@ class Thresholds:
         # Preliminary values for AVITI
         elif self.instrument == "AVITI":
             if self.chemistry == "AVITI High":
-                self.exp_lane_clust = 100e6
+                self.exp_lane_clust = 300e6
         else:
             self.problem_handler("exit", "Unknown run type!")
         if not self.exp_lane_clust:

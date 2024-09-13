@@ -125,7 +125,9 @@ def get_process_stats(demux_process):
 
     elif "AVITI Run" in seq_process.type.name:
         try:
-            proc_stats["Chemistry"] = "AVITI" + seq_process.udf["Throughput Selection"]
+            proc_stats["Chemistry"] = (
+                "AVITI" + " " + seq_process.udf["Throughput Selection"]
+            )
         except Exception as e:
             problem_handler(
                 "exit", f"No flowcell version set in sequencing step: {str(e)}"
@@ -339,7 +341,11 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                     sample = entry["Sample"]
                     # Finds name subset "P Anything Underscore Digits"
                     if sample != "Undetermined":
-                        sample = proj_pattern.search(sample).group(0)
+                        try:
+                            sample = proj_pattern.search(sample).group(0)
+                        # PhiX cases for AVITI
+                        except AttributeError:
+                            pass
 
                     if (
                         entry["Barcode sequence"] == "unknown"
@@ -414,39 +420,47 @@ def set_sample_values(demux_process, parser_struct, process_stats):
                             }
                             for old_attr, attr in def_atr.items():
                                 # Sets default value for unwritten fields
-                                if entry[old_attr] == "" or entry[old_attr] == "NaN":
-                                    if old_attr == "% of Raw Clusters Per Lane":
-                                        default_value = 100.0
-                                    else:
-                                        default_value = 0.0
+                                if old_attr in entry.keys():
+                                    if (
+                                        entry[old_attr] == ""
+                                        or entry[old_attr] == "NaN"
+                                    ):
+                                        if old_attr == "% of Raw Clusters Per Lane":
+                                            default_value = 100.0
+                                        else:
+                                            default_value = 0.0
 
-                                    samplesum[sample][attr] = (
-                                        default_value
-                                        if attr not in samplesum[sample]
-                                        else samplesum[sample][attr] + default_value
-                                    )
-                                    logger.info(
-                                        f"{attr} field not found. Setting default value: {default_value}"
-                                    )
+                                        samplesum[sample][attr] = (
+                                            default_value
+                                            if attr not in samplesum[sample]
+                                            else samplesum[sample][attr] + default_value
+                                        )
+                                        logger.info(
+                                            f"{attr} field not found. Setting default value: {default_value}"
+                                        )
 
-                                else:
-                                    # Yields needs division by 1K, is also non-percentage
-                                    if old_attr == "Yield (Mbases)":
-                                        samplesum[sample][attr] = (
-                                            my_float(entry[old_attr].replace(",", ""))
-                                            / 1000
-                                            if attr not in samplesum[sample]
-                                            else samplesum[sample][attr]
-                                            + my_float(entry[old_attr].replace(",", ""))
-                                            / 1000
-                                        )
                                     else:
-                                        samplesum[sample][attr] = (
-                                            my_float(entry[old_attr])
-                                            if attr not in samplesum[sample]
-                                            else samplesum[sample][attr]
-                                            + my_float(entry[old_attr])
-                                        )
+                                        # Yields needs division by 1K, is also non-percentage
+                                        if old_attr == "Yield (Mbases)":
+                                            samplesum[sample][attr] = (
+                                                my_float(
+                                                    entry[old_attr].replace(",", "")
+                                                )
+                                                / 1000
+                                                if attr not in samplesum[sample]
+                                                else samplesum[sample][attr]
+                                                + my_float(
+                                                    entry[old_attr].replace(",", "")
+                                                )
+                                                / 1000
+                                            )
+                                        else:
+                                            samplesum[sample][attr] = (
+                                                my_float(entry[old_attr])
+                                                if attr not in samplesum[sample]
+                                                else samplesum[sample][attr]
+                                                + my_float(entry[old_attr])
+                                            )
 
                         except Exception as e:
                             problem_handler(
