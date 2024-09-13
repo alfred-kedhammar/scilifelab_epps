@@ -230,17 +230,13 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
         rows_to_check = group.to_dict(orient="records")
         check_distances(rows_to_check)
 
-    manifest_untrimmed = make_manifests_by_type(
-        df_samples_and_controls, process, manifest_root_name, "trimmed"
-    )[0]
-    manifest_trimmed = make_manifests_by_type(
-        df_samples_and_controls, process, manifest_root_name, "untrimmed"
-    )[0]
-    manifest_partitions = make_manifests_by_type(
-        df_samples_and_controls, process, manifest_root_name, "partitioned"
-    )
+    manifests = []
+    for manifest_type in ["untrimmed", "trimmed", "partitioned"]:
+        manifests += make_manifests_by_type(
+            df_samples_and_controls, process, manifest_root_name, manifest_type
+        )
 
-    return manifest_untrimmed, manifest_trimmed, manifest_partitions
+    return manifests
 
 
 def make_manifests_by_type(
@@ -497,19 +493,15 @@ def main(args: Namespace):
     manifest_root_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
 
     # Create manifest(s)
-    manifest_untrimmed, manifest_trimmed, manifest_partitions = get_manifests(
-        process, manifest_root_name
-    )
-
-    files_and_contents = [manifest_untrimmed, manifest_trimmed] + manifest_partitions
+    manifests = get_manifests(process, manifest_root_name)
 
     # Write manifest(s)
-    for file, content in files_and_contents:
+    for file, content in manifests:
         open(file, "w").write(content)
 
     # Zip manifest(s)
     zip_file = f"{manifest_root_name}.zip"
-    files = [file for file, _ in files_and_contents]
+    files = [file for file, _ in manifests]
     with ZipFile(zip_file, "w") as zipf:
         for file in files:
             zipf.write(file)
