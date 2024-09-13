@@ -133,7 +133,7 @@ def get_flowcell_id(process: Process) -> str:
     return flowcell_id
 
 
-def make_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, str]]:
+def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, str]]:
     """Generate multiple manifests, grouping samples by index multiplicity and length,
     adding PhiX controls of appropriate lengths as needed.
     """
@@ -201,15 +201,9 @@ def make_manifests(process: Process, manifest_root_name: str) -> list[tuple[str,
     # Compile sample dataframe
     df_samples = pd.DataFrame(sample_rows)
 
-    # Calculate index lengths for grouping
-    df_samples["len_idx1"] = df_samples["Index1"].apply(len)
-    df_samples["len_idx2"] = df_samples["Index2"].apply(len)
-
-    # Group into composite dataframes and add PhiX controls w. correct length
-    dfs_samples_and_controls = []
-    for (len_idx1, len_idx2, lane), group in df_samples.groupby(
-        ["len_idx1", "len_idx2", "Lane"]
-    ):
+    # Add PhiX controls
+    df_samples_and_controls = df_samples.copy()
+    for lane, group in df_samples.groupby(["Lane"]):
         if group["phix_loaded"].any():
             phix_set_name = group["phix_set_name"].iloc[0]
             phix_set = PHIX_SETS[phix_set_name]
@@ -218,34 +212,56 @@ def make_manifests(process: Process, manifest_root_name: str) -> list[tuple[str,
             for phix_idx_pair in phix_set["indices"]:
                 row = {}
                 row["SampleName"] = phix_set["nickname"]
-                row["Index1"] = fit_seq(phix_idx_pair[0], len_idx1)
-                row["Index2"] = fit_seq(phix_idx_pair[1], len_idx2)
+                row["Index1"] = phix_idx_pair[0]
+                row["Index2"] = phix_idx_pair[1]
                 row["Lane"] = group["Lane"].iloc[0]
                 row["Project"] = "Control"
                 row["Recipe"] = "0-0"
-                row["len_idx1"] = len_idx1
-                row["len_idx2"] = len_idx2
 
-                group = pd.concat([group, pd.DataFrame([row])], ignore_index=True)
+                df_samples_and_controls = pd.concat(
+                    [df_samples_and_controls, pd.DataFrame([row])], ignore_index=True
+                )
 
-        # Collect composite dataframes
-        dfs_samples_and_controls.append(group)
-
-    # Concatenate composite dataframes
-    df_samples_and_controls = pd.concat(dfs_samples_and_controls, ignore_index=True)
+    df_samples_and_controls.sort_values(by=["Lane", "SampleName"], inplace=True)
+    df_samples_and_controls.reset_index(drop=True, inplace=True)
 
     # Check for index collision per lane, across samples and PhiX
     for lane, group in df_samples_and_controls.groupby("Lane"):
         rows_to_check = group.to_dict(orient="records")
         check_distances(rows_to_check)
 
-    # Group and make manifests
+    manifest_untrimmed = make_manifests_by_type(
+        df_samples_and_controls, process, manifest_root_name, "trimmed"
+    )[0]
+    manifest_trimmed = make_manifests_by_type(
+        df_samples_and_controls, process, manifest_root_name, "untrimmed"
+    )[0]
+    manifest_partitions = make_manifests_by_type(
+        df_samples_and_controls, process, manifest_root_name, "partitioned"
+    )
+
+    return manifest_untrimmed, manifest_trimmed, manifest_partitions
+
+
+def make_manifests_by_type(
+    df_samples_and_controls: pd.DataFrame,
+    process: Process,
+    manifest_root_name: str,
+    manifest_type: str,
+) -> list[tuple[str, str]]:
+    df = df_samples_and_controls.copy()
+
+    # Settings section is the same across all manifest types
+    settings_section = "\n".join(
+        [
+            "[SETTINGS]",
+            "SettingName, Value",
+        ]
+    )
+
     manifests = []
-    n = 0
-    for (len_idx1, len_idx2, lane), group in df_samples_and_controls.groupby(
-        ["len_idx1", "len_idx2", "Lane"]
-    ):
-        manifest_file = f"{manifest_root_name}_{n}.csv"
+    if manifest_type == "untrimmed":
+        file_name = f"{manifest_root_name}_untrimmed.csv"
 
         runValues_section = "\n".join(
             [
@@ -253,29 +269,109 @@ def make_manifests(process: Process, manifest_root_name: str) -> list[tuple[str,
                 "KeyName, Value",
                 f'lims_step_name, "{process.type.name}"',
                 f'lims_step_id, "{process.id}"',
-                f'manifest_file, "{manifest_file}"',
-                f"manifest_group, {n+1}/{len(df_samples_and_controls.groupby(['len_idx1', 'len_idx2', 'Lane']))}",
-                f"grouped_by, len_idx1:{len_idx1} len_idx2:{len_idx2} lane:{lane}",
-            ]
-        )
-
-        settings_section = "\n".join(
-            [
-                "[SETTINGS]",
-                "SettingName, Value",
+                f'manifest_file, "{file_name}"',
             ]
         )
 
         samples_section = (
-            f"[SAMPLES]\n{group.iloc[:, 0:6].to_csv(index=None, header=True)}"
+            f"[SAMPLES]\n{df.iloc[:, 0:6].to_csv(index=None, header=True)}"
         )
 
         manifest_contents = "\n\n".join(
             [runValues_section, settings_section, samples_section]
         )
 
-        manifests.append((manifest_file, manifest_contents))
-        n += 1
+        manifests.append((file_name, manifest_contents))
+
+    elif manifest_type == "trimmed":
+        file_name = f"{manifest_root_name}_trimmed.csv"
+
+        runValues_section = "\n".join(
+            [
+                "[RUNVALUES]",
+                "KeyName, Value",
+                f'lims_step_name, "{process.type.name}"',
+                f'lims_step_id, "{process.id}"',
+                f'manifest_file, "{file_name}"',
+            ]
+        )
+
+        # Trim down
+        min_idx1_len = df["Index1"].apply(len).min()
+        min_idx2_len = df["Index2"].apply(len).min()
+        df["Index1"] = df["Index1"].apply(lambda x: x[:min_idx1_len])
+        df["Index2"] = df["Index2"].apply(lambda x: x[:min_idx2_len])
+
+        samples_section = (
+            f"[SAMPLES]\n{df.iloc[:, 0:6].to_csv(index=None, header=True)}"
+        )
+
+        manifest_contents = "\n\n".join(
+            [runValues_section, settings_section, samples_section]
+        )
+        manifests.append((file_name, manifest_contents))
+
+    elif manifest_type == "partitioned":
+        # Drop PhiX controls, to be re-added by length
+        df = df[df["Project"] != "Control"]
+
+        # Get idx lengths for calculations
+        df.loc[:, "len_idx1"] = df["Index1"].apply(len)
+        df.loc[:, "len_idx2"] = df["Index2"].apply(len)
+
+        # Break down by index lengths and lane, creating composite manifests
+        n = 0
+        for (len_idx1, len_idx2, lane), group in df.groupby(
+            ["len_idx1", "len_idx2", "Lane"]
+        ):
+            file_name = f"{manifest_root_name}_{n}.csv"
+            runValues_section = "\n".join(
+                [
+                    "[RUNVALUES]",
+                    "KeyName, Value",
+                    f'lims_step_name, "{process.type.name}"',
+                    f'lims_step_id, "{process.id}"',
+                    f'manifest_file, "{file_name}"',
+                    f"manifest_group, {n+1}/{len(df.groupby(['len_idx1', 'len_idx2', 'Lane']))}",
+                    f"grouped_by, len_idx1:{len_idx1} len_idx2:{len_idx2} lane:{lane}",
+                ]
+            )
+
+            # Add PhiX stratified by index length
+            if group["phix_loaded"].any():
+                phix_set_name = group["phix_set_name"].iloc[0]
+                phix_set = PHIX_SETS[phix_set_name]
+
+                # Add row for each PhiX index pair
+                for phix_idx_pair in phix_set["indices"]:
+                    row = {}
+                    row["SampleName"] = phix_set["nickname"]
+                    row["Index1"] = fit_seq(phix_idx_pair[0], len_idx1)
+                    row["Index2"] = fit_seq(phix_idx_pair[1], len_idx2)
+                    row["Lane"] = group["Lane"].iloc[0]
+                    row["Project"] = "Control"
+                    row["Recipe"] = "0-0"
+                    row["len_idx1"] = len_idx1
+                    row["len_idx2"] = len_idx2
+
+                    group = pd.concat(
+                        [group, pd.DataFrame([row])],
+                        ignore_index=True,
+                    )
+
+            samples_section = (
+                f"[SAMPLES]\n{group.iloc[:, 0:6].to_csv(index=None, header=True)}"
+            )
+
+            manifest_contents = "\n\n".join(
+                [runValues_section, settings_section, samples_section]
+            )
+
+            manifests.append((file_name, manifest_contents))
+            n += 1
+
+    else:
+        raise AssertionError("Invalid manifest type.")
 
     manifests.sort(key=lambda x: x[0])
 
@@ -299,25 +395,21 @@ def fit_seq(seq: str, length: int, seq_extension: str | None = None) -> str:
             return seq + seq_extension[: length - len(seq)]
 
 
-def check_distances(rows: list[dict], dist_warning_threshold=3) -> None:
+def check_distances(rows: list[dict], threshold=3) -> None:
     for i in range(len(rows)):
         row = rows[i]
 
         for row_comp in rows[i + 1 :]:
-            check_pair_distance(
-                row, row_comp, dist_warning_threshold=dist_warning_threshold
-            )
+            check_pair_distance(row, row_comp, threshold=threshold)
 
 
-def check_pair_distance(
-    row, row_comp, check_flips: bool = False, dist_warning_threshold: int = 3
-):
+def check_pair_distance(row, row_comp, check_flips: bool = False, threshold: int = 3):
     """Distance check between two index pairs.
 
     row                     dict   manifest row of sample A
     row_comp                dict   manifest row of sample B
     check_flips             bool   check all reverse-complement combinations
-    dist_warning_threshold  int    trigger warning for distances at or below this value
+    threshold               int    trigger warning for distances at or below this value
 
     """
 
@@ -354,7 +446,7 @@ def check_pair_distance(
             f"{row['Index1']}-{row['Index2']} {row_comp['Index1']}-{row_comp['Index2']}"
         )
 
-    if dist <= dist_warning_threshold:
+    if dist <= threshold:
         # Build a warning message for the pair
         warning_lines = [
             f"Hamming distance {dist} between {row['SampleName']} and {row_comp['SampleName']}"
@@ -405,9 +497,11 @@ def main(args: Namespace):
     manifest_root_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
 
     # Create manifest(s)
-    files_and_contents: list[tuple[str, str]] = make_manifests(
+    manifest_untrimmed, manifest_trimmed, manifest_partitions = get_manifests(
         process, manifest_root_name
     )
+
+    files_and_contents = [manifest_untrimmed, manifest_trimmed] + manifest_partitions
 
     # Write manifest(s)
     for file, content in files_and_contents:
