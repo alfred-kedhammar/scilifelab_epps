@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
+import json
 import logging
 import os
 import re
 import shutil
 from argparse import ArgumentParser, Namespace
 from datetime import datetime as dt
+from zipfile import ZipFile
 
 import pandas as pd
 from genologics.config import BASEURI, PASSWORD, USERNAME
@@ -13,15 +15,109 @@ from genologics.entities import Process
 from genologics.lims import Lims
 from Levenshtein import hamming as distance
 
+from data.Chromium_10X_indexes import Chromium_10X_indexes
 from scilifelab_epps.epp import upload_file
 from scilifelab_epps.wrapper import epp_decorator
 from scripts.generate_minknow_samplesheet import get_pool_sample_label_mapping
 
 TIMESTAMP = dt.now().strftime("%y%m%d_%H%M%S")
-LABEL_SEQ_SUBSTRING = re.compile(r"[ACGT]{4,}(-[ACGT]{4,})?")
+
+# Pre-compile regexes in global scope:
+IDX_PAT = re.compile("([ATCG]{4,}N*)-?([ATCG]*)")
+TENX_SINGLE_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
+TENX_DUAL_PAT = re.compile("SI-(?:TT|NT|NN|TN|TS)-[A-H][1-9][0-2]?")
+SMARTSEQ_PAT = re.compile("SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]")
+
+# Set up Element PhiX control sets, keys are options in LIMS dropdown UDF
+PHIX_SETS = {
+    "PhiX Control Library, Adept": {
+        "nickname": "PhiX_Adept",
+        "indices": [
+            ("ATGTCGCTAG", "CTAGCTCGTA"),
+            ("CACAGATCGT", "ACGAGAGTCT"),
+            ("GCACATAGTC", "GACTACTAGC"),
+            ("TGTGTCGACA", "TGTCTGACAG"),
+        ],
+    },
+    "Cloudbreak PhiX Control Library, Elevate": {
+        "nickname": "PhiX_Elevate",
+        "indices": [
+            ("ACGTGTAGC", "GCTAGTGCA"),
+            ("CACATGCTG", "AGACACTGT"),
+            ("GTACACGAT", "CTCGTACAG"),
+            ("TGTGCATCA", "TAGTCGATC"),
+        ],
+    },
+    "Cloudbreak Freestyle PhiX Control, Third Party": {
+        "nickname": "PhiX_Third",
+        "indices": [
+            ("ATGTCGCTAG", "CTAGCTCGTA"),
+            ("CACAGATCGT", "ACGAGAGTCT"),
+            ("GCACATAGTC", "GACTACTAGC"),
+            ("TGTGTCGACA", "TGTCTGACAG"),
+        ],
+    },
+}
+
+# Load SS3 indexes
+SMARTSEQ3_indexes_json = (
+    "/opt/gls/clarity/users/glsai/repos/scilifelab_epps/data/SMARTSEQ3_indexes.json"
+)
+with open(SMARTSEQ3_indexes_json) as file:
+    SMARTSEQ3_INDEXES = json.loads(file.read())
+
+
+def revcomp(seq: str) -> str:
+    """Reverse-complement a DNA string."""
+    return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
+
+
+def idxs_from_label(label: str) -> list[str | tuple[str, str]]:
+    """From a LIMS reagent label, return list whose elements are
+    single indices or tuples of dual index pairs.
+    """
+
+    # Initialize result
+    idxs: list[str | tuple[str, str]] = []
+
+    # Expand 10X single indexes
+    if TENX_SINGLE_PAT.findall(label):
+        match = TENX_SINGLE_PAT.findall(label)[0]
+        for tenXidx in Chromium_10X_indexes[match]:
+            idxs.append(tenXidx)
+    # Case of 10X dual indexes
+    elif TENX_DUAL_PAT.findall(label):
+        match = TENX_DUAL_PAT.findall(label)[0]
+        i7_idx = Chromium_10X_indexes[match][0]
+        i5_idx = Chromium_10X_indexes[match][1]
+        idxs.append((i7_idx, revcomp(i5_idx)))
+    # Case of SS3 indexes
+    elif SMARTSEQ_PAT.findall(label):
+        match = SMARTSEQ_PAT.findall(label)[0]
+        for i7_idx in SMARTSEQ3_INDEXES[match][0]:
+            for i5_idx in SMARTSEQ3_INDEXES[match][1]:
+                idxs.append((i7_idx, revcomp(i5_idx)))
+    # NoIndex cases
+    elif label.replace(",", "").upper() == "NOINDEX" or (
+        label.replace(",", "").upper() == ""
+    ):
+        raise AssertionError("NoIndex cases not allowed.")
+    # Ordinary indexes
+    elif IDX_PAT.findall(label):
+        match = IDX_PAT.findall(label)[0]
+        if "-" in match:
+            idx1, idx2 = match.split("-")
+            idxs.append((idx1, revcomp(idx2)))
+        else:
+            idx1 = match
+            idxs.append(idx1)
+    else:
+        raise AssertionError(f"Could not parse index from '{label}'.")
+    return idxs
 
 
 def get_flowcell_id(process: Process) -> str:
+    """Get the Element flowcell ID from the process."""
     flowcell_ids = [
         op.container.name for op in process.all_outputs() if op.type == "Analyte"
     ]
@@ -37,95 +133,46 @@ def get_flowcell_id(process: Process) -> str:
     return flowcell_id
 
 
-def get_runValues_section(process: Process, file_name: str) -> str:
-    """Generate the [RUNVALUES] section of the AVITI run manifest and return it as a string."""
-
-    read_recipe = "-".join(
-        [
-            str(process.udf.get("Read 1 Cycles", 0)),
-            str(process.udf.get("Index Read 1", 0)),
-            str(process.udf.get("Index Read 2", 0)),
-            str(process.udf.get("Read 2 Cycles", 0)),
-        ]
-    )
-
-    runValues_section = "\n".join(
-        [
-            "[RUNVALUES]",
-            "KeyName, Value",
-            f"lims_step_name, {sanitize(process.type.name)}",
-            f"file_name, {sanitize(file_name)}",
-            f"read_recipe, {read_recipe}",
-        ]
-    )
-
-    return runValues_section
-
-
-def get_settings_section() -> str:
-    """Generate the [SETTINGS] section of the AVITI run manifest and return it as a string."""
-    settings_section = "\n".join(
-        [
-            "[SETTINGS]",
-            "SettingName, Value",
-        ]
-    )
-
-    return settings_section
-
-
-def get_samples_section(process: Process) -> str:
-    """Generate the [SAMPLES] section of the AVITI run manifest and return it as a string."""
+def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, str]]:
+    """Generate multiple manifests, grouping samples by index multiplicity and length,
+    adding PhiX controls of appropriate lengths as needed.
+    """
 
     # Assert output analytes loaded on flowcell
     arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
     assert (
         len(arts_out) == 1 or len(arts_out) == 2
     ), "Expected one or two output analytes."
+
+    # Assert lanes
     lanes = [art_out.location[1].split(":")[0] for art_out in arts_out]
     assert set(lanes) == {"1"} or set(lanes) == {
         "1",
         "2",
     }, "Expected a single-lane or dual-lane flowcell."
 
-    # Iterate over pools
-    all_rows = []
-    for art_out, lane in zip(arts_out, lanes):
-        lane_rows = []
-        assert (
-            "AVITI Flow Cell" in art_out.container.type.name
-        ), f"Unsupported container type {art_out.container.type.name}."
-        assert (
-            len(art_out.samples) > 1 and len(art_out.reagent_labels) > 1
-        ), "Not a pool."
-        assert len(art_out.samples) == len(
-            art_out.reagent_labels
-        ), "Unequal number of samples and reagent labels."
+    # Iterate over pool / lane
+    sample_rows = []
+    for pool, lane in zip(arts_out, lanes):
+        # Get sample-label linkage via database
+        sample2label: dict[str, str] = get_pool_sample_label_mapping(pool)
+        assert len(set(pool.reagent_labels)) == len(
+            pool.reagent_labels
+        ), "Detected non-unique reagent labels."
 
-        sample2label: dict[str, str] = get_pool_sample_label_mapping(art_out)
-        samples = art_out.samples
-        labels = art_out.reagent_labels
-
-        assert len(set(labels)) == len(labels), "Detected non-unique reagent labels."
-
-        # Iterate over samples
-        for sample in samples:
-            lims_label = sample2label[sample.name]
-
-            # Parse sample index
-            label_seq_match = re.search(LABEL_SEQ_SUBSTRING, lims_label)
+        # Record PhiX UDFs for each output artifact
+        phix_loaded: bool = pool.udf["% phiX"] != 0
+        phix_set_name = pool.udf.get("Element PhiX Set", None)
+        if phix_loaded:
             assert (
-                label_seq_match is not None
-            ), f"Could not parse label sequence from {lims_label}"
-            label_seq = label_seq_match.group(0)
+                phix_set_name is not None
+            ), "PhiX controls loaded but no kit specified."
+        else:
+            assert phix_set_name is None, "PhiX controls specified but not loaded."
 
-            if "-" in label_seq:
-                index1, index2 = label_seq.split("-")
-            else:
-                index1 = label_seq
-                index2 = ""
-
-            # Project name and sequencing setup
+        # Collect rows for each sample
+        for sample in pool.samples:
+            # Include project name and sequencing setup
             if sample.project:
                 project = sample.project.name.replace(".", "__").replace(",", "")
                 seq_setup = sample.project.udf.get("Sequencing setup", "0-0")
@@ -133,65 +180,232 @@ def get_samples_section(process: Process) -> str:
                 project = "Control"
                 seq_setup = "0-0"
 
-            row = {}
-            row["SampleName"] = sample.name
-            row["Index1"] = index1
-            row["Index2"] = index2
-            row["Lane"] = lane
-            row["Project"] = project
-            row["Recipe"] = seq_setup
-
-            lane_rows.append(row)
-
-        # Add PhiX controls if added:
-        phix_loaded: bool = art_out.udf["% phiX"] != 0
-
-        if phix_loaded:
-            for phix_idx_pair in [
-                ("ACGTGTAGC", "GCTAGTGCA"),
-                ("CACATGCTG", "AGACACTGT"),
-                ("GTACACGAT", "CTCGTACAG"),
-                ("TGTGCATCA", "TAGTCGATC"),
-            ]:
+            # Add row(s), depending on index type
+            lims_label = sample2label[sample.name]
+            for idx in idxs_from_label(lims_label):
                 row = {}
-                row["SampleName"] = "PhiX"
+                row["SampleName"] = sample.name
+                if isinstance(idx, tuple):
+                    row["Index1"], row["Index2"] = idx
+                else:
+                    row["Index1"] = idx
+                    row["Index2"] = ""
+                row["Lane"] = lane
+                row["Project"] = project
+                row["Recipe"] = seq_setup
+                row["phix_loaded"] = phix_loaded
+                row["phix_set_name"] = phix_set_name
+
+                sample_rows.append(row)
+
+    # Compile sample dataframe
+    df_samples = pd.DataFrame(sample_rows)
+
+    # Add PhiX controls
+    df_samples_and_controls = df_samples.copy()
+    for lane, group in df_samples.groupby(["Lane"]):
+        if group["phix_loaded"].any():
+            phix_set_name = group["phix_set_name"].iloc[0]
+            phix_set = PHIX_SETS[phix_set_name]
+
+            # Add row for each PhiX index pair
+            for phix_idx_pair in phix_set["indices"]:
+                row = {}
+                row["SampleName"] = phix_set["nickname"]
                 row["Index1"] = phix_idx_pair[0]
                 row["Index2"] = phix_idx_pair[1]
-                row["Lane"] = lane
-                row["Project"] = "PhiX"
+                row["Lane"] = group["Lane"].iloc[0]
+                row["Project"] = "Control"
                 row["Recipe"] = "0-0"
-                lane_rows.append(row)
 
-        # Check for index collision within lane, across samples and PhiX
-        check_distances(lane_rows)
-        all_rows.extend(lane_rows)
+                df_samples_and_controls = pd.concat(
+                    [df_samples_and_controls, pd.DataFrame([row])], ignore_index=True
+                )
 
-    df = pd.DataFrame(all_rows)
+    df_samples_and_controls.sort_values(by=["Lane", "SampleName"], inplace=True)
+    df_samples_and_controls.reset_index(drop=True, inplace=True)
 
-    samples_section = f"[SAMPLES]\n{df.to_csv(index=None, header=True)}"
+    # Check for index collision per lane, across samples and PhiX
+    for lane, group in df_samples_and_controls.groupby("Lane"):
+        rows_to_check = group.to_dict(orient="records")
+        check_distances(rows_to_check)
 
-    return samples_section
+    manifests = []
+    for manifest_type in ["untrimmed", "trimmed", "partitioned"]:
+        manifests += make_manifests_by_type(
+            df_samples_and_controls, process, manifest_root_name, manifest_type
+        )
+
+    return manifests
 
 
-def check_distances(rows: list[dict], dist_warning_threshold=3) -> None:
+def make_manifests_by_type(
+    df_samples_and_controls: pd.DataFrame,
+    process: Process,
+    manifest_root_name: str,
+    manifest_type: str,
+) -> list[tuple[str, str]]:
+    df = df_samples_and_controls.copy()
+
+    # Settings section is the same across all manifest types
+    settings_section = "\n".join(
+        [
+            "[SETTINGS]",
+            "SettingName, Value",
+        ]
+    )
+
+    manifests = []
+    if manifest_type == "untrimmed":
+        file_name = f"{manifest_root_name}_untrimmed.csv"
+
+        runValues_section = "\n".join(
+            [
+                "[RUNVALUES]",
+                "KeyName, Value",
+                f'lims_step_name, "{process.type.name}"',
+                f'lims_step_id, "{process.id}"',
+                f'manifest_file, "{file_name}"',
+            ]
+        )
+
+        samples_section = (
+            f"[SAMPLES]\n{df.iloc[:, 0:6].to_csv(index=None, header=True)}"
+        )
+
+        manifest_contents = "\n\n".join(
+            [runValues_section, settings_section, samples_section]
+        )
+
+        manifests.append((file_name, manifest_contents))
+
+    elif manifest_type == "trimmed":
+        file_name = f"{manifest_root_name}_trimmed.csv"
+
+        runValues_section = "\n".join(
+            [
+                "[RUNVALUES]",
+                "KeyName, Value",
+                f'lims_step_name, "{process.type.name}"',
+                f'lims_step_id, "{process.id}"',
+                f'manifest_file, "{file_name}"',
+            ]
+        )
+
+        # Trim down
+        min_idx1_len = df["Index1"].apply(len).min()
+        min_idx2_len = df["Index2"].apply(len).min()
+        df["Index1"] = df["Index1"].apply(lambda x: x[:min_idx1_len])
+        df["Index2"] = df["Index2"].apply(lambda x: x[:min_idx2_len])
+
+        samples_section = (
+            f"[SAMPLES]\n{df.iloc[:, 0:6].to_csv(index=None, header=True)}"
+        )
+
+        manifest_contents = "\n\n".join(
+            [runValues_section, settings_section, samples_section]
+        )
+        manifests.append((file_name, manifest_contents))
+
+    elif manifest_type == "partitioned":
+        # Drop PhiX controls, to be re-added by length
+        df = df[df["Project"] != "Control"]
+
+        # Get idx lengths for calculations
+        df.loc[:, "len_idx1"] = df["Index1"].apply(len)
+        df.loc[:, "len_idx2"] = df["Index2"].apply(len)
+
+        # Break down by index lengths and lane, creating composite manifests
+        n = 0
+        for (len_idx1, len_idx2, lane), group in df.groupby(
+            ["len_idx1", "len_idx2", "Lane"]
+        ):
+            file_name = f"{manifest_root_name}_{n}.csv"
+            runValues_section = "\n".join(
+                [
+                    "[RUNVALUES]",
+                    "KeyName, Value",
+                    f'lims_step_name, "{process.type.name}"',
+                    f'lims_step_id, "{process.id}"',
+                    f'manifest_file, "{file_name}"',
+                    f"manifest_group, {n+1}/{len(df.groupby(['len_idx1', 'len_idx2', 'Lane']))}",
+                    f"grouped_by, len_idx1:{len_idx1} len_idx2:{len_idx2} lane:{lane}",
+                ]
+            )
+
+            # Add PhiX stratified by index length
+            if group["phix_loaded"].any():
+                phix_set_name = group["phix_set_name"].iloc[0]
+                phix_set = PHIX_SETS[phix_set_name]
+
+                # Add row for each PhiX index pair
+                for phix_idx_pair in phix_set["indices"]:
+                    row = {}
+                    row["SampleName"] = phix_set["nickname"]
+                    row["Index1"] = fit_seq(phix_idx_pair[0], len_idx1)
+                    row["Index2"] = fit_seq(phix_idx_pair[1], len_idx2)
+                    row["Lane"] = group["Lane"].iloc[0]
+                    row["Project"] = "Control"
+                    row["Recipe"] = "0-0"
+                    row["len_idx1"] = len_idx1
+                    row["len_idx2"] = len_idx2
+
+                    group = pd.concat(
+                        [group, pd.DataFrame([row])],
+                        ignore_index=True,
+                    )
+
+            samples_section = (
+                f"[SAMPLES]\n{group.iloc[:, 0:6].to_csv(index=None, header=True)}"
+            )
+
+            manifest_contents = "\n\n".join(
+                [runValues_section, settings_section, samples_section]
+            )
+
+            manifests.append((file_name, manifest_contents))
+            n += 1
+
+    else:
+        raise AssertionError("Invalid manifest type.")
+
+    manifests.sort(key=lambda x: x[0])
+
+    return manifests
+
+
+def fit_seq(seq: str, length: int, seq_extension: str | None = None) -> str:
+    """Fit a sequence to a given length by extending or truncating."""
+    if len(seq) == length:
+        return seq
+    elif len(seq) > length:
+        return seq[:length]
+    else:
+        if seq_extension is None:
+            raise AssertionError("Can't extend sequence without extension string.")
+        else:
+            if length - len(seq) > len(seq_extension):
+                raise AssertionError(
+                    "Extension string too short to fit sequence to desired length."
+                )
+            return seq + seq_extension[: length - len(seq)]
+
+
+def check_distances(rows: list[dict], threshold=3) -> None:
     for i in range(len(rows)):
         row = rows[i]
 
         for row_comp in rows[i + 1 :]:
-            check_pair_distance(
-                row, row_comp, dist_warning_threshold=dist_warning_threshold
-            )
+            check_pair_distance(row, row_comp, threshold=threshold)
 
 
-def check_pair_distance(
-    row, row_comp, check_flips: bool = False, dist_warning_threshold: int = 3
-):
+def check_pair_distance(row, row_comp, check_flips: bool = False, threshold: int = 3):
     """Distance check between two index pairs.
 
     row                     dict   manifest row of sample A
     row_comp                dict   manifest row of sample B
     check_flips             bool   check all reverse-complement combinations
-    dist_warning_threshold  int    trigger warning for distances at or below this value
+    threshold               int    trigger warning for distances at or below this value
 
     """
 
@@ -228,7 +442,7 @@ def check_pair_distance(
             f"{row['Index1']}-{row['Index2']} {row_comp['Index1']}-{row_comp['Index2']}"
         )
 
-    if dist <= dist_warning_threshold:
+    if dist <= threshold:
         # Build a warning message for the pair
         warning_lines = [
             f"Hamming distance {dist} between {row['SampleName']} and {row_comp['SampleName']}"
@@ -253,11 +467,6 @@ def check_pair_distance(
             raise AssertionError("Identical indices detected.")
 
 
-def revcomp(seq: str) -> str:
-    """Reverse-complement a DNA string."""
-    return seq.translate(str.maketrans("ACGT", "TGCA"))[::-1]
-
-
 def show_match(seq1: str, seq2: str) -> str:
     """Visualize base-by-base match between sequences of equal length."""
 
@@ -274,52 +483,47 @@ def show_match(seq1: str, seq2: str) -> str:
     return lines
 
 
-def sanitize(s: str) -> str:
-    """Wrap a string in quotes if it contains commas."""
-    if "," in s:
-        return f'"{s}"'
-    else:
-        return s
-
-
 @epp_decorator(script_path=__file__, timestamp=TIMESTAMP)
 def main(args: Namespace):
     lims = Lims(BASEURI, USERNAME, PASSWORD)
     process = Process(lims, id=args.pid)
 
-    # Name manifest file
+    # Create manifest root name
     flowcell_id = get_flowcell_id(process)
-    file_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}.csv"
+    manifest_root_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
 
-    # Build manifest
-    logging.info("Starting to build run manifest.")
+    # Create manifest(s)
+    manifests = get_manifests(process, manifest_root_name)
 
-    runValues_section = get_runValues_section(process, file_name)
-    settings_section = get_settings_section()
-    samples_section = get_samples_section(process)
+    # Write manifest(s)
+    for file, content in manifests:
+        open(file, "w").write(content)
 
-    manifest = "\n\n".join([runValues_section, settings_section, samples_section])
+    # Zip manifest(s)
+    zip_file = f"{manifest_root_name}.zip"
+    files = [file for file, _ in manifests]
+    with ZipFile(zip_file, "w") as zipf:
+        for file in files:
+            zipf.write(file)
+            os.remove(file)
 
-    # Write manifest
-    with open(file_name, "w") as f:
-        f.write(manifest)
-
-    # Upload manifest
+    # Upload manifest(s)
     logging.info("Uploading run manifest to LIMS...")
     upload_file(
-        file_name,
+        zip_file,
         args.file,
         process,
         lims,
     )
 
+    # Move manifest(s)
     logging.info("Moving run manifest to ngi-nas-ns...")
     try:
         shutil.copyfile(
-            file_name,
-            f"/srv/ngi-nas-ns/samplesheets/Aviti/{dt.now().year}/{file_name}",
+            zip_file,
+            f"/srv/ngi-nas-ns/samplesheets/Aviti/{dt.now().year}/{zip_file}",
         )
-        os.remove(file_name)
+        os.remove(zip_file)
     except:
         logging.error("Failed to move run manifest to ngi-nas-ns.", exc_info=True)
     else:

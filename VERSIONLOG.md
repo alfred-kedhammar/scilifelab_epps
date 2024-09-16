@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240913.1
+
+Generate composite run manifests for AVITI based on index lengths.
+
 ## 20240912.3
 
 Fix bugs with EPP in the BCL conversion step

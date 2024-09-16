@@ -621,84 +621,6 @@ def gen_Nextseq_lane_data(pro):
     return (content, data)
 
 
-def gen_MinION_QC_data(pro):
-    keep_idx_flag = True if pro.type.name == "MinION QC" else False
-    data = []
-    for out in pro.all_outputs():
-        if NGISAMPLE_PAT.findall(out.name):
-            nanopore_barcode_seq = (
-                out.udf["Nanopore Barcode"].split("_")[1]
-                if out.udf["Nanopore Barcode"] != "None"
-                else ""
-            )
-            sample_name = out.name
-            idxs = out.reagent_labels[0]
-
-            sp_obj = {}
-            sp_obj["sn"] = sample_name
-            sp_obj["npbs"] = nanopore_barcode_seq
-
-            # Case of 10X indexes
-            if TENX_SINGLE_PAT.findall(idxs):
-                for tenXidx in Chromium_10X_indexes[TENX_SINGLE_PAT.findall(idxs)[0]]:
-                    tenXidx_no = (
-                        Chromium_10X_indexes[TENX_SINGLE_PAT.findall(idxs)[0]].index(
-                            tenXidx
-                        )
-                        + 1
-                    )
-                    sp_obj_sub = {}
-                    sp_obj_sub["sn"] = sp_obj["sn"] + "_" + str(tenXidx_no)
-                    sp_obj_sub["npbs"] = sp_obj["npbs"]
-                    sp_obj_sub["idxt"] = "truseq"
-                    sp_obj_sub["idx"] = tenXidx.replace(",", "")
-                    data.append(sp_obj_sub)
-            # Case of 10X dual indexes
-            elif TENX_DUAL_PAT.findall(idxs):
-                sp_obj["idxt"] = "truseq_dual"
-                sp_obj["idx"] = (
-                    Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs)[0]][0]
-                    + "-"
-                    + Chromium_10X_indexes[TENX_DUAL_PAT.findall(idxs)[0]][1]
-                )
-                data.append(sp_obj)
-            # Case of NoIndex
-            elif idxs == "NoIndex" or idxs == "" or not idxs:
-                sp_obj["idxt"] = "truseq"
-                sp_obj["idx"] = ""
-                data.append(sp_obj)
-            # Case of index sequences between brackets
-            elif re.findall(r"\((.*?)\)", idxs):
-                idxs = re.findall(r"\((.*?)\)", idxs)[0]
-                if "-" not in idxs:
-                    sp_obj["idxt"] = "truseq"
-                    sp_obj["idx"] = idxs
-                    data.append(sp_obj)
-                else:
-                    sp_obj["idxt"] = "truseq_dual"
-                    sp_obj["idx"] = idxs
-                    data.append(sp_obj)
-            # Case of single index
-            elif "-" not in idxs:
-                sp_obj["idxt"] = "truseq"
-                sp_obj["idx"] = idxs
-                data.append(sp_obj)
-            # Case of dual index
-            else:
-                sp_obj["idxt"] = "truseq_dual"
-                sp_obj["idx"] = idxs
-                data.append(sp_obj)
-    str_data = ""
-    for line in sorted(data, key=lambda x: x["sn"]):
-        if keep_idx_flag:
-            l_data = [line["sn"], line["npbs"], line["idxt"], line["idx"]]
-        else:
-            l_data = [line["sn"], line["npbs"], "", ""]
-        str_data = str_data + ",".join(l_data) + "\n"
-
-    return str_data
-
-
 def find_barcode(sample_idxs, sample, process):
     # print "trying to find {} barcode in {}".format(sample.name, process.name)
     for art in process.all_inputs():
@@ -803,33 +725,6 @@ def main(lims, args):
                 try:
                     with open(
                         f"/srv/ngi-nas-ns/samplesheets/nextseq/{thisyear}/{nextseq_fc}.csv",
-                        "w",
-                    ) as sf:
-                        sf.write(content)
-                except Exception as e:
-                    log.append(str(e))
-
-        elif process.type.name in [
-            "MinION QC",
-            "Load Sample and Sequencing (MinION) 1.0",
-        ]:
-            content = gen_MinION_QC_data(process)
-            run_type = "QC" if process.type.name == "MinION QC" else "DELIVERY"
-            fc_name = (
-                run_type
-                + "_"
-                + process.udf["Nanopore Kit"]
-                + "_"
-                + process.udf["Flowcell ID"].upper()
-                + "_"
-                + "Samplesheet"
-                + "_"
-                + process.id
-            )
-            if os.path.exists(f"/srv/ngi-nas-ns/samplesheets/nanopore/{thisyear}"):
-                try:
-                    with open(
-                        f"/srv/ngi-nas-ns/samplesheets/nanopore/{thisyear}/{fc_name}.csv",
                         "w",
                     ) as sf:
                         sf.write(content)
