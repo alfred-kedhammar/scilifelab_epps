@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240920.1
+
+New EPP for parsing VC100 CSV file
+
 ## 20240913.1
 
 Generate composite run manifests for AVITI based on index lengths.
