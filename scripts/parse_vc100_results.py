@@ -59,20 +59,21 @@ def get_data(content, log):
 def parse_vc100_results(process):
     # strings returned to the EPP user
     log = []
-    # Get file contents by parsing lims artifacts
+    # get file contents by parsing lims artifacts
     content = get_vc100_file(process, log)
     # parse the file and get the interesting data out
     data = get_data(content, log)
-
+    used_wells = []
     # Fill in LIMS field Volume (ul)
     for target_file in process.result_files():
         well = target_file.samples[0].artifact.location[1]
+        used_wells.append(well)
         if well in data:
+            # Set to 0 for negative values
             if float(data[well]) > 0:
                 target_file.udf["Volume (ul)"] = float(data[well])
             else:
                 target_file.udf["Volume (ul)"] = 0
-            del data[well]
         else:
             log.append(f"Cannot find volume for well {well} in the VC100 CSV file.")
         target_file.put()
@@ -81,13 +82,15 @@ def parse_vc100_results(process):
     # Give warning messages if a well supposed to be empty give volume
     wells_with_warning = []
     for k, v in data.items():
-        if float(v) > VOL_WARNING_THRESHOLD:
+        if float(v) > VOL_WARNING_THRESHOLD and k not in used_wells:
             wells_with_warning.append(k)
     log.append(
-        f"The following wells are supposed to be empty but give a volumen higher than {VOL_WARNING_THRESHOLD}: {','.join(wells_with_warning)}"
+        f"The following wells are supposed to be empty but give a volume higher than {VOL_WARNING_THRESHOLD}: {','.join(wells_with_warning)}"
     )
 
-    print("".join(log), file=sys.stderr)
+    # Throw warnings and errors
+    if log:
+        sys.stderr.write("; ".join(log))
 
 
 def main(lims, pid, epp_logger):
