@@ -33,10 +33,10 @@ def get_vc100_file(process, log):
             except:
                 log.append("Cannot parse VC100 output file")
             break
-    return output
+    return output, log
 
 
-def get_data(content, log):
+def get_data(content):
     data = dict()
     headers = dict()
     dialect = csv.Sniffer().sniff(content)
@@ -60,9 +60,9 @@ def parse_vc100_results(process):
     # strings returned to the EPP user
     log = []
     # get file contents by parsing lims artifacts
-    content = get_vc100_file(process, log)
+    (content, log) = get_vc100_file(process, log)
     # parse the file and get the interesting data out
-    data = get_data(content, log)
+    data = get_data(content)
     used_wells = []
     # Fill in LIMS field Volume (ul)
     for target_file in process.result_files():
