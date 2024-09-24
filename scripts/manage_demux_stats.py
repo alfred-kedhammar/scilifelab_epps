@@ -851,11 +851,18 @@ def write_demuxfile_aviti(process_stats, demux_id):
                             "Project": row.get("Project", ""),
                             "Barcode sequence": index,
                             "PF Clusters": int(row.get("NumPoloniesAssigned", "0")),
-                            "% of thelane": float(row.get("PercentPoloniesAssigned", "0")),
+                            "% of thelane": float(
+                                row.get("PercentPoloniesAssigned", "0")
+                            ),
                             "% >= Q30bases": float(row.get("PercentQ30", "0")),
-                            "Mean QualityScore": float(row.get("QualityScoreMean", "0")),
-                            "% Perfectbarcode": 100 - float(row.get("PercentMismatch", "0")),
-                            "% One mismatchbarcode": float(row.get("PercentMismatch", "0")),
+                            "Mean QualityScore": float(
+                                row.get("QualityScoreMean", "0")
+                            ),
+                            "% Perfectbarcode": 100
+                            - float(row.get("PercentMismatch", "0")),
+                            "% One mismatchbarcode": float(
+                                row.get("PercentMismatch", "0")
+                            ),
                             "Yield (Mbases)": str(
                                 float(row.get("Yield(Gb)", "0")) * 1000
                             ),
