@@ -18,11 +18,12 @@ def main(lims, args):
     for output in currentStep.all_outputs():
         if output.name == "Driver File":
             driver_file_out = output
-        elif output.output_type == "ResultFile":
-            location_ar = output.location[1].split(":")
-            valid_cols.add(location_ar[0])
-            # idx = (ord(location_ar[0])-65)*12 + int(location_ar[1])-1
-            ar_driver[output.location[1].replace(":", "")] = output.samples[0].name
+        else:
+            if output.location[1]:
+                location_ar = output.location[1].split(":")
+                valid_cols.add(location_ar[0])
+                # idx = (ord(location_ar[0])-65)*12 + int(location_ar[1])-1
+                ar_driver[output.location[1].replace(":", "")] = output.samples[0].name
 
     col_idx = -1
     for column in sorted(list(valid_cols)):
