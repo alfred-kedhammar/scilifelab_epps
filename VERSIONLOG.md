@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240924.2
+
+Update method for fetching AVITI stats in the BCL conversion step
+
 ## 20240924.1
 
 Fix bug with data type in frag_an_driver_gen

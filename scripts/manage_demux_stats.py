@@ -12,7 +12,6 @@ Flags samples as QC PASSED/FAILED based on thresholds
 Written by Isak Sylvin; isak.sylvin@scilifelab.se"""
 
 import csv
-import json
 import logging
 import os
 import re
@@ -817,50 +816,12 @@ def write_demuxfile(process_stats, demux_id):
     return laneBC.sample_data
 
 
-def fetch_project_sample_stats(projects_path):
-    unassigned_dir_name = "Unassigned"
-
-    project_sample_stats = {}
-
-    if os.path.exists(projects_path):
-        projects = os.listdir(projects_path)
-        if unassigned_dir_name in projects:
-            projects.remove(unassigned_dir_name)
-        for project in projects:
-            stats_json_path = os.path.join(
-                projects_path, project, f"{project}_RunStats.json"
-            )
-            if os.path.exists(stats_json_path):
-                with open(stats_json_path) as stats_json:
-                    project_sample_stats_raw = json.load(stats_json)
-                for sample_stats in project_sample_stats_raw["SampleStats"]:
-                    sample_name = sample_stats["SampleName"]
-                    percent_q30 = sample_stats["PercentQ30"]
-                    quality_score_mean = sample_stats["QualityScoreMean"]
-                    percent_mismatch = sample_stats["PercentMismatch"]
-                    sample_yield = sample_stats["Yield"]
-                    project_sample_stats[sample_name] = {
-                        "percent_q30": percent_q30,
-                        "quality_score_mean": quality_score_mean,
-                        "percent_mismatch": percent_mismatch,
-                        "sample_yield": sample_yield,
-                        "project": project,
-                    }
-        return project_sample_stats
-    else:
-        problem_handler(
-            "exit",
-            "The Samples folder is missing for fetching stats",
-        )
-
-
 def write_demuxfile_aviti(process_stats, demux_id):
     """Creates demux_{FCID}.csv and attaches it to process"""
     # Includes windows drive letter support
 
     metadata_dir_name = "ngi-nas-ns"
     instrument_dir_name = "{}_data".format(process_stats["Instrument"])
-    sample_dir_name = "Samples"
 
     lanebc_path = os.path.join(
         os.sep,
@@ -870,17 +831,6 @@ def write_demuxfile_aviti(process_stats, demux_id):
         process_stats["Run ID"],
         "IndexAssignment.csv",
     )
-
-    projects_path = os.path.join(
-        os.sep,
-        "srv",
-        metadata_dir_name,
-        instrument_dir_name,
-        process_stats["Run ID"],
-        sample_dir_name,
-    )
-
-    project_sample_stats = fetch_project_sample_stats(projects_path)
 
     try:
         laneBC = {}
@@ -893,35 +843,19 @@ def write_demuxfile_aviti(process_stats, demux_id):
                     if row.get("I2"):
                         index += "-"
                         index += row["I2"]
-                    if project_sample_stats.get(row.get("SampleName")):
-                        if project_sample_stats[row["SampleName"]].get("percent_q30"):
-                            percent_q30 = project_sample_stats[row["SampleName"]][
-                                "percent_q30"
-                            ]
-                        if project_sample_stats[row["SampleName"]].get(
-                            "quality_score_mean"
-                        ):
-                            quality_score_mean = project_sample_stats[
-                                row["SampleName"]
-                            ]["quality_score_mean"]
-                        if project_sample_stats[row["SampleName"]].get(
-                            "percent_mismatch"
-                        ):
-                            percent_mismatch = project_sample_stats[row["SampleName"]][
-                                "percent_mismatch"
-                            ]
+
                     laneBC["sample_data"].append(
                         {
                             "Lane": row.get("Lane", ""),
                             "Sample": row.get("SampleName", ""),
                             "Project": row.get("Project", ""),
                             "Barcode sequence": index,
-                            "PF Clusters": row.get("NumPoloniesAssigned", "0"),
-                            "% of thelane": row.get("PercentPoloniesAssigned", "0"),
-                            "% >= Q30bases": percent_q30,
-                            "Mean QualityScore": quality_score_mean,
-                            "% Perfectbarcode": 100 - percent_mismatch,
-                            "% One mismatchbarcode": percent_mismatch,
+                            "PF Clusters": int(row.get("NumPoloniesAssigned", "0")),
+                            "% of thelane": float(row.get("PercentPoloniesAssigned", "0")),
+                            "% >= Q30bases": float(row.get("PercentQ30", "0")),
+                            "Mean QualityScore": float(row.get("QualityScoreMean", "0")),
+                            "% Perfectbarcode": 100 - float(row.get("PercentMismatch", "0")),
+                            "% One mismatchbarcode": float(row.get("PercentMismatch", "0")),
                             "Yield (Mbases)": str(
                                 float(row.get("Yield(Gb)", "0")) * 1000
                             ),
