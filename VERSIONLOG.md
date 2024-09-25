@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240925.1
+
+Add 10X steps to comments-to-running-notes config.
+
 ## 20240924.1
 
 Fix bug with data type in frag_an_driver_gen
