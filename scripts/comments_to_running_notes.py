@@ -14,6 +14,15 @@ from write_notes_to_couchdb import write_note_to_couch
 
 def categorization(process_name):
     decision = {
+        "10X Chromium Generic: Pre-GEM Processing": "Workset",
+        "10X Chromium Generic: GEM Generation": "Workset",
+        "10X Chromium Generic: GEM Cleanup": "Workset",
+        "10X Chromium Generic: cDNA QC": "Workset",
+        "10X Chromium Generic: Finish GEM Processing": "Workset",
+        "10X Chromium Generic: Pre-Library Processing": "Workset",
+        "10X Chromium Generic: Library Construction": "Workset",
+        "10X Chromium Generic: Library Purification": "Workset",
+        "10X Chromium Generic: Finish Library Processing": "Workset",
         "Adapter ligation and reverse transcription": "Workset",
         "Aggregate QC (DNA) 4.0": "Workset",
         "Aggregate QC (Library Validation) 4.0": "Workset",
