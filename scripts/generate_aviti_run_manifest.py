@@ -233,7 +233,7 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
         check_distances(rows_to_check)
 
     manifests = []
-    for manifest_type in ["untrimmed", "trimmed", "partitioned"]:
+    for manifest_type in ["untrimmed", "trimmed", "empty", "partitioned"]:
         manifests += make_manifests_by_type(
             df_samples_and_controls, process, manifest_root_name, manifest_type
         )
@@ -307,6 +307,22 @@ def make_manifests_by_type(
         manifest_contents = "\n\n".join(
             [runValues_section, settings_section, samples_section]
         )
+        manifests.append((file_name, manifest_contents))
+
+    elif manifest_type == "empty":
+        file_name = f"{manifest_root_name}_empty.csv"
+
+        runValues_section = "\n".join(
+            [
+                "[RUNVALUES]",
+                "KeyName, Value",
+                f'lims_step_name, "{process.type.name}"',
+                f'lims_step_id, "{process.id}"',
+                f'manifest_file, "{file_name}"',
+            ]
+        )
+
+        manifest_contents = "\n\n".join([runValues_section, settings_section])
         manifests.append((file_name, manifest_contents))
 
     elif manifest_type == "partitioned":
