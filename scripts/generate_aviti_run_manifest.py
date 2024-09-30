@@ -192,6 +192,8 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
                     # Assume long idx2 from recipe + no idx2 from label means idx2 is UMI
                     if int(process.udf.get("Index read 2", 0)) > 12:
                         row["Index2"] = "N" * int(process.udf["Index read 2"])
+                    else:
+                        row["Index2"] = ""
                 row["Lane"] = lane
                 row["Project"] = project
                 row["Recipe"] = seq_setup
