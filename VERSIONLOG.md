@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20240930.1
+
+For AVITI manifest generation, assume idx2 > 12 cycles and no idx2 parsed means idx2 is UMI and add Ns to manifest.
+
 ## 20240925.1
 
 Add 10X steps to comments-to-running-notes config.
