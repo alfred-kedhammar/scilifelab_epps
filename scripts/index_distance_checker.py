@@ -31,6 +31,7 @@ Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 
 # Pre-compile regexes in global scope:
 IDX_PAT = re.compile("([ATCG]{4,}N*)-?([ATCG]*)")
+VALIDBASES_PAT = re.compile(r"^[ATCGN\-]+$")
 TENX_SINGLE_PAT = re.compile("SI-(?:GA|NA)-[A-H][1-9][0-2]?")
 TENX_DUAL_PAT = re.compile("SI-(?:TT|NT|NN|TN|TS)-[A-H][1-9][0-2]?")
 SMARTSEQ_PAT = re.compile("SMARTSEQ[1-9]?-[1-9][0-9]?[A-P]")
@@ -549,14 +550,21 @@ def find_barcode(sample_idxs, sample, process):
                         reagent_label_name = art.reagent_labels[0].upper()
                         if reagent_label_name and reagent_label_name != "NOINDEX":
                             if (
-                                IDX_PAT.findall(reagent_label_name)
-                                and len(IDX_PAT.findall(reagent_label_name)) > 1
-                            ) or (
-                                not (
+                                (
                                     IDX_PAT.findall(reagent_label_name)
-                                    or TENX_SINGLE_PAT.findall(reagent_label_name)
-                                    or TENX_DUAL_PAT.findall(reagent_label_name)
-                                    or SMARTSEQ_PAT.findall(reagent_label_name)
+                                    and len(IDX_PAT.findall(reagent_label_name)) > 1
+                                )
+                                or (
+                                    IDX_PAT.findall(reagent_label_name)
+                                    and not VALIDBASES_PAT.findall(reagent_label_name)
+                                )
+                                or (
+                                    not (
+                                        IDX_PAT.findall(reagent_label_name)
+                                        or TENX_SINGLE_PAT.findall(reagent_label_name)
+                                        or TENX_DUAL_PAT.findall(reagent_label_name)
+                                        or SMARTSEQ_PAT.findall(reagent_label_name)
+                                    )
                                 )
                             ):
                                 sys.stderr.write(
