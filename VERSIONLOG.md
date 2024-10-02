@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241002.1
+
+Fix bug with index checker EPP with preset index sets
+
 ## 20241001.1
 
 Update index checker EPP to capture invalid bases
