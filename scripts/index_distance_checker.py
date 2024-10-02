@@ -548,6 +548,10 @@ def find_barcode(sample_idxs, sample, process):
                         sys.exit(2)
                     else:
                         reagent_label_name = art.reagent_labels[0].upper()
+                        # Capture the format "XXXX (IDX1-IDX2)" that are in the Library Information Sheet
+                        match = re.search(r"\(([^()]*)\)", reagent_label_name)
+                        if match:
+                            reagent_label_name = match.group(1)
                         if reagent_label_name and reagent_label_name != "NOINDEX":
                             if (
                                 (
