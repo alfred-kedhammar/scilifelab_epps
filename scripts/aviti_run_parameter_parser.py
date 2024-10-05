@@ -161,12 +161,14 @@ def set_run_stats(process, run_dir):
     for art in process.all_outputs():
         if "Lane" in art.name:
             lane_nbr = int(art.name.split(" ")[1])
-            lane_stats = run_stats["LaneStats"][lane_nbr-1]
+            lane_stats = run_stats["LaneStats"][lane_nbr - 1]
             for read in lane_stats["Reads"]:
                 read_key = read["Read"]
                 art.udf[f"Reads PF (M) {read_key}"] = lane_stats["PFCount"] / 1000000
                 art.udf[f"%PF {read_key}"] = lane_stats["PercentPF"]
-                art.udf[f"Yield PF (Gb) {read_key}"] = lane_stats["TotalYield"] / 1000000000
+                art.udf[f"Yield PF (Gb) {read_key}"] = (
+                    lane_stats["TotalYield"] / 1000000000
+                )
                 art.udf[f"% Aligned {read_key}"] = read["PhiXAlignmentRate"]
                 art.udf[f"% Bases >=Q30 {read_key}"] = calculate_mean(
                     read["Cycles"], "PercentQ30"
