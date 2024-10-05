@@ -161,7 +161,19 @@ def set_run_stats(process, run_dir):
     for art in process.all_outputs():
         if "Lane" in art.name:
             lane_nbr = int(art.name.split(" ")[1])
-            lane_stats = run_stats["LaneStats"][lane_nbr - 1]
+            lanes = [d["Lane"] for d in run_stats["LaneStats"]]
+            # When there is no runmanifest provided, the Lane number will be displayed as 0
+            # In this case we have to parse the lanes in order
+            if lane_nbr not in lanes:
+                if lane_nbr <= len(run_stats["LaneStats"]):
+                    lane_stats = run_stats["LaneStats"][lane_nbr - 1]
+                else:
+                    sys.stderr.write("Inconsistent lane number detected!")
+                    sys.exit(2)
+            else:
+                lane_stats = next(
+                    d for d in run_stats["LaneStats"] if d["Lane"] == lane_nbr
+                )
             for read in lane_stats["Reads"]:
                 read_key = read["Read"]
                 art.udf[f"Reads PF (M) {read_key}"] = lane_stats["PFCount"] / 1000000

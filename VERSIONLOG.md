@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241006.2
+
+Improve aviti run parameter parser
+
 ## 20241006.1
 
 Fix issue with empty Aviti runmanifest results in Lane nr 0
