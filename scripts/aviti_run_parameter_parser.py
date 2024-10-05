@@ -161,7 +161,13 @@ def set_run_stats(process, run_dir):
     for art in process.all_outputs():
         if "Lane" in art.name:
             lane_nbr = int(art.name.split(" ")[1])
-            lane_stats = run_stats["LaneStats"][lane_nbr - 1]
+            lanes = [d["Lane"] for d in run_stats["LaneStats"]]
+            if lane_nbr not in lanes:
+                lane_stats = run_stats["LaneStats"][lane_nbr - 1]
+            else:
+                lane_stats = next(
+                    d for d in run_stats["LaneStats"] if d["Lane"] == lane_nbr
+                )
             for read in lane_stats["Reads"]:
                 read_key = read["Read"]
                 art.udf[f"Reads PF (M) {read_key}"] = lane_stats["PFCount"] / 1000000
