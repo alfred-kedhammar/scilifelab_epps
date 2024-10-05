@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241006.1
+
+Fix issue with empty Aviti runmanifest results in Lane nr 0
+
 ## 20241002.1
 
 Fix bug with index checker EPP with preset index sets

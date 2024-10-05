@@ -157,14 +157,11 @@ def calculate_mean(input_list, key):
 
 
 def set_run_stats(process, run_dir):
-    global lane_stats
     run_stats = parse_run_stats(run_dir)
     for art in process.all_outputs():
         if "Lane" in art.name:
             lane_nbr = int(art.name.split(" ")[1])
-            lane_stats = next(
-                d for d in run_stats["LaneStats"] if d["Lane"] == lane_nbr
-            )
+            lane_stats = run_stats["LaneStats"][lane_nbr-1]
         for read in lane_stats["Reads"]:
             read_key = read["Read"]
             art.udf[f"Reads PF (M) {read_key}"] = lane_stats["PFCount"] / 1000000
