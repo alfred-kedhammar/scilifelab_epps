@@ -168,7 +168,7 @@ def set_run_stats(process, run_dir):
                 if lane_nbr <= len(run_stats["LaneStats"]):
                     lane_stats = run_stats["LaneStats"][lane_nbr - 1]
                 else:
-                    sys.stderr.write(f"Inconsistent lane number detected!")
+                    sys.stderr.write("Inconsistent lane number detected!")
                     sys.exit(2)
             else:
                 lane_stats = next(
