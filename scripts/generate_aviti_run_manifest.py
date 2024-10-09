@@ -277,11 +277,8 @@ def make_manifest(
     manifest_root_name: str,
     manifest_type: str,
 ) -> tuple[str, str]:
-    # Make copy not to mess up input dataframe
-    df_copy = df_samples_and_controls.copy()
-
-    # Subset columns
-    df = df_copy[
+    # Make copy of input df and subset columns to include in manifest
+    df = df_samples_and_controls[
         [
             "SampleName",
             "Index1",
@@ -293,7 +290,7 @@ def make_manifest(
             "lims_label",
             "settings",
         ]
-    ]
+    ].copy()
 
     file_name = f"{manifest_root_name}_{manifest_type}.csv"
     runValues_section = "\n".join(
