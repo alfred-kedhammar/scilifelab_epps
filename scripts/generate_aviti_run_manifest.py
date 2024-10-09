@@ -286,7 +286,6 @@ def make_manifest(
             "Lane",
             "Project",
             "Recipe",
-            "phix_loaded",
             "lims_label",
             "settings",
         ]
