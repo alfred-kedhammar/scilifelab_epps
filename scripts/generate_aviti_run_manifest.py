@@ -133,6 +133,18 @@ def get_flowcell_id(process: Process) -> str:
     return flowcell_id
 
 
+def dict_to_manifest_col(d: dict) -> str:
+    """Turn a list of key-value pairs into a string fitting into a manifest column."""
+    for k, v in d.items():
+        for char in [",", ":", " "]:
+            assert char not in k, f"Character '{char}' not allowed in manifest columns."
+            assert char not in v, f"Character '{char}' not allowed in manifest columns."
+
+    s = " ".join([f"{k}:{v}" for k, v in d.items()])
+
+    return s
+
+
 def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, str]]:
     """Generate multiple manifests, grouping samples by index multiplicity and length,
     adding PhiX controls of appropriate lengths as needed.
@@ -146,6 +158,7 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
 
     # Assert lanes
     lanes = [art_out.location[1].split(":")[0] for art_out in arts_out]
+    lanes.sort()
     assert set(lanes) == {"1"} or set(lanes) == {
         "1",
         "2",
@@ -199,6 +212,13 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
                 row["Recipe"] = seq_setup
                 row["phix_loaded"] = phix_loaded
                 row["phix_set_name"] = phix_set_name
+                row["lims_label"] = lims_label
+
+                # Add special case settings
+                row_settings = {}
+                if "TAAGGCGA-CTCTCTAT" in lims_label:
+                    row_settings["I1Fastq"] = "True"
+                row["settings"] = dict_to_manifest_col(row_settings)
 
                 sample_rows.append(row)
 
