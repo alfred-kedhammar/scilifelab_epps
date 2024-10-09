@@ -277,27 +277,11 @@ def make_manifest(
     manifest_root_name: str,
     manifest_type: str,
 ) -> tuple[str, str]:
-    df = df_samples_and_controls.copy()
+    # Make copy not to mess up input dataframe
+    df_copy = df_samples_and_controls.copy()
 
-    file_name = f"{manifest_root_name}_{manifest_type}.csv"
-    runValues_section = "\n".join(
-        [
-            "[RUNVALUES]",
-            "KeyName, Value",
-            f'lims_step_name, "{process.type.name}"',
-            f'lims_step_id, "{process.id}"',
-            f'manifest_file, "{file_name}"',
-        ]
-    )
-
-    settings_section = "\n".join(
-        [
-            "[SETTINGS]",
-            "SettingName, Value",
-        ]
-    )
-
-    df_subset_cols = df[
+    # Subset columns
+    df = df_copy[
         [
             "SampleName",
             "Index1",
@@ -311,8 +295,26 @@ def make_manifest(
         ]
     ]
 
+    file_name = f"{manifest_root_name}_{manifest_type}.csv"
+    runValues_section = "\n".join(
+        [
+            "[RUNVALUES]",
+            "KeyName, Value",
+            f"lims_step_name, {process.type.name}",
+            f"lims_step_id, {process.id}",
+            f"manifest_file, {file_name}",
+        ]
+    )
+
+    settings_section = "\n".join(
+        [
+            "[SETTINGS]",
+            "SettingName, Value",
+        ]
+    )
+
     if manifest_type == "untrimmed":
-        samples_section = f"[SAMPLES]\n{df_subset_cols.to_csv(index=None, header=True)}"
+        samples_section = f"[SAMPLES]\n{df.to_csv(index=None, header=True)}"
 
     elif manifest_type == "trimmed":
         min_idx1_len = df["Index1"].apply(len).min()
