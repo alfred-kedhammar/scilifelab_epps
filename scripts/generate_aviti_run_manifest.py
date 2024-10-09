@@ -319,9 +319,7 @@ def make_manifest(
         df["Index1"] = df["Index1"].apply(lambda x: x[:min_idx1_len])
         df["Index2"] = df["Index2"].apply(lambda x: x[:min_idx2_len])
 
-        samples_section = (
-            f"[SAMPLES]\n{df.iloc[:, 0:6].to_csv(index=None, header=True)}"
-        )
+        samples_section = f"[SAMPLES]\n{df.to_csv(index=None, header=True)}"
 
     elif manifest_type == "empty":
         samples_section = ""
