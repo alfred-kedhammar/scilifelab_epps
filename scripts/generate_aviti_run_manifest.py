@@ -216,7 +216,10 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
 
                 # Add special case settings
                 row_settings = {}
-                if "TAAGGCGA-CTCTCTAT" in lims_label:
+                if TENX_SINGLE_PAT.findall(lims_label):
+                    # For 10X 8-mer single indexes (e.g. SI-NA-A1) it is usually required that
+                    #  index 1 sequences shall be written as a separate FastQ file (I1).
+                    # In this case we need the additional option I1Fastq,TRUE.
                     row_settings["I1Fastq"] = "True"
                 row["settings"] = dict_to_manifest_col(row_settings)
 
@@ -254,24 +257,39 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
         rows_to_check = group.to_dict(orient="records")
         check_distances(rows_to_check)
 
-    manifests = []
-    for manifest_type in ["untrimmed", "trimmed", "empty", "partitioned"]:
-        manifests += make_manifests_by_type(
-            df_samples_and_controls, process, manifest_root_name, manifest_type
+    # Start building manifests
+    manifests: list[tuple[str, str]] = []
+    for manifest_type in ["untrimmed", "trimmed", "empty"]:
+        manifest_name, manifest_contents = make_manifest(
+            df_samples_and_controls,
+            process,
+            manifest_root_name,
+            manifest_type,
         )
+        manifests.append((manifest_name, manifest_contents))
 
     return manifests
 
 
-def make_manifests_by_type(
+def make_manifest(
     df_samples_and_controls: pd.DataFrame,
     process: Process,
     manifest_root_name: str,
     manifest_type: str,
-) -> list[tuple[str, str]]:
+) -> tuple[str, str]:
     df = df_samples_and_controls.copy()
 
-    # Settings section is the same across all manifest types
+    file_name = f"{manifest_root_name}_{manifest_type}.csv"
+    runValues_section = "\n".join(
+        [
+            "[RUNVALUES]",
+            "KeyName, Value",
+            f'lims_step_name, "{process.type.name}"',
+            f'lims_step_id, "{process.id}"',
+            f'manifest_file, "{file_name}"',
+        ]
+    )
+
     settings_section = "\n".join(
         [
             "[SETTINGS]",
@@ -279,44 +297,24 @@ def make_manifests_by_type(
         ]
     )
 
-    manifests = []
+    df_subset_cols = df[
+        [
+            "SampleName",
+            "Index1",
+            "Index2",
+            "Lane",
+            "Project",
+            "Recipe",
+            "phix_loaded",
+            "lims_label",
+            "settings",
+        ]
+    ]
+
     if manifest_type == "untrimmed":
-        file_name = f"{manifest_root_name}_untrimmed.csv"
-
-        runValues_section = "\n".join(
-            [
-                "[RUNVALUES]",
-                "KeyName, Value",
-                f'lims_step_name, "{process.type.name}"',
-                f'lims_step_id, "{process.id}"',
-                f'manifest_file, "{file_name}"',
-            ]
-        )
-
-        samples_section = (
-            f"[SAMPLES]\n{df.iloc[:, 0:6].to_csv(index=None, header=True)}"
-        )
-
-        manifest_contents = "\n\n".join(
-            [runValues_section, settings_section, samples_section]
-        )
-
-        manifests.append((file_name, manifest_contents))
+        samples_section = f"[SAMPLES]\n{df_subset_cols.to_csv(index=None, header=True)}"
 
     elif manifest_type == "trimmed":
-        file_name = f"{manifest_root_name}_trimmed.csv"
-
-        runValues_section = "\n".join(
-            [
-                "[RUNVALUES]",
-                "KeyName, Value",
-                f'lims_step_name, "{process.type.name}"',
-                f'lims_step_id, "{process.id}"',
-                f'manifest_file, "{file_name}"',
-            ]
-        )
-
-        # Trim down
         min_idx1_len = df["Index1"].apply(len).min()
         min_idx2_len = df["Index2"].apply(len).min()
         df["Index1"] = df["Index1"].apply(lambda x: x[:min_idx1_len])
@@ -326,92 +324,17 @@ def make_manifests_by_type(
             f"[SAMPLES]\n{df.iloc[:, 0:6].to_csv(index=None, header=True)}"
         )
 
-        manifest_contents = "\n\n".join(
-            [runValues_section, settings_section, samples_section]
-        )
-        manifests.append((file_name, manifest_contents))
-
     elif manifest_type == "empty":
-        file_name = f"{manifest_root_name}_empty.csv"
-
-        runValues_section = "\n".join(
-            [
-                "[RUNVALUES]",
-                "KeyName, Value",
-                f'lims_step_name, "{process.type.name}"',
-                f'lims_step_id, "{process.id}"',
-                f'manifest_file, "{file_name}"',
-            ]
-        )
-
-        manifest_contents = "\n\n".join([runValues_section, settings_section])
-        manifests.append((file_name, manifest_contents))
-
-    elif manifest_type == "partitioned":
-        # Drop PhiX controls, to be re-added by length
-        df = df[df["Project"] != "Control"]
-
-        # Get idx lengths for calculations
-        df.loc[:, "len_idx1"] = df["Index1"].apply(len)
-        df.loc[:, "len_idx2"] = df["Index2"].apply(len)
-
-        # Break down by index lengths and lane, creating composite manifests
-        n = 0
-        for (len_idx1, len_idx2, lane), group in df.groupby(
-            ["len_idx1", "len_idx2", "Lane"]
-        ):
-            file_name = f"{manifest_root_name}_{n}.csv"
-            runValues_section = "\n".join(
-                [
-                    "[RUNVALUES]",
-                    "KeyName, Value",
-                    f'lims_step_name, "{process.type.name}"',
-                    f'lims_step_id, "{process.id}"',
-                    f'manifest_file, "{file_name}"',
-                    f"manifest_group, {n+1}/{len(df.groupby(['len_idx1', 'len_idx2', 'Lane']))}",
-                    f"grouped_by, len_idx1:{len_idx1} len_idx2:{len_idx2} lane:{lane}",
-                ]
-            )
-
-            # Add PhiX stratified by index length
-            if group["phix_loaded"].any():
-                phix_set_name = group["phix_set_name"].iloc[0]
-                phix_set = PHIX_SETS[phix_set_name]
-
-                # Add row for each PhiX index pair
-                for phix_idx_pair in phix_set["indices"]:
-                    row = {}
-                    row["SampleName"] = phix_set["nickname"]
-                    row["Index1"] = fit_seq(phix_idx_pair[0], len_idx1)
-                    row["Index2"] = fit_seq(phix_idx_pair[1], len_idx2)
-                    row["Lane"] = group["Lane"].iloc[0]
-                    row["Project"] = "Control"
-                    row["Recipe"] = "0-0"
-                    row["len_idx1"] = len_idx1
-                    row["len_idx2"] = len_idx2
-
-                    group = pd.concat(
-                        [group, pd.DataFrame([row])],
-                        ignore_index=True,
-                    )
-
-            samples_section = (
-                f"[SAMPLES]\n{group.iloc[:, 0:6].to_csv(index=None, header=True)}"
-            )
-
-            manifest_contents = "\n\n".join(
-                [runValues_section, settings_section, samples_section]
-            )
-
-            manifests.append((file_name, manifest_contents))
-            n += 1
+        samples_section = ""
 
     else:
         raise AssertionError("Invalid manifest type.")
 
-    manifests.sort(key=lambda x: x[0])
+    manifest_contents = "\n\n".join(
+        [runValues_section, settings_section, samples_section]
+    )
 
-    return manifests
+    return (file_name, manifest_contents)
 
 
 def fit_seq(seq: str, length: int, seq_extension: str | None = None) -> str:
@@ -533,7 +456,7 @@ def main(args: Namespace):
     manifest_root_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
 
     # Create manifest(s)
-    manifests = get_manifests(process, manifest_root_name)
+    manifests: list[tuple[str, str]] = get_manifests(process, manifest_root_name)
 
     # Write manifest(s)
     for file, content in manifests:
@@ -542,9 +465,9 @@ def main(args: Namespace):
     # Zip manifest(s)
     zip_file = f"{manifest_root_name}.zip"
     files = [file for file, _ in manifests]
-    with ZipFile(zip_file, "w") as zipf:
+    with ZipFile(zip_file, "w") as zip_stream:
         for file in files:
-            zipf.write(file)
+            zip_stream.write(file)
             os.remove(file)
 
     # Upload manifest(s)
