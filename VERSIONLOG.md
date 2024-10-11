@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241011.1
+
+New project validator EPP
+
 ## 20241009.1
 
 Improve AVITI run manifest generation with sample-level settings. No longer produce submanifests.
