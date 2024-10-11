@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import os
 import re
 import sys
 from argparse import ArgumentParser
@@ -8,9 +7,8 @@ from argparse import ArgumentParser
 import psycopg2
 import yaml
 from genologics.config import BASEURI, PASSWORD, USERNAME
-from genologics.entities import Process, Project
+from genologics.entities import Project
 from genologics.lims import Lims
-
 
 with open("/opt/gls/clarity/users/glsai/config/genosqlrc.yaml") as f:
     config = yaml.safe_load(f)
@@ -37,7 +35,7 @@ def verify_sample_ids(project_id):
         "inner join project on sample.projectid=project.projectid "
         "where project.luid = '{}';"
     )
-    cursor.execute(query.format(idx_set))
+    cursor.execute(query.format(project_id))
     query_output = cursor.fetchall()
 
     for out in query_output:
@@ -59,7 +57,10 @@ def verify_sample_ids(project_id):
 
 
 def main(lims, pid):
+
+    message = []
     project = Project(lims, id=pid)
+    
     # Validate sample IDs
     message += verify_sample_ids(project.id)
 
