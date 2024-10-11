@@ -20,7 +20,7 @@ Author: Chuan Wang, Science for Life Laboratory, Stockholm, Sweden
 # Pre-compile regexes in global scope:
 NGISAMPLE_PAT = re.compile("P[0-9]+_[0-9]+")
 
-
+# Verify sample IDs
 def verify_sample_ids(project_id):
     message = []
     connection = psycopg2.connect(
@@ -39,7 +39,7 @@ def verify_sample_ids(project_id):
     query_output = cursor.fetchall()
 
     for out in query_output:
-        sample_id = out[0][0]
+        sample_id = out[0]
         if not NGISAMPLE_PAT.findall(sample_id):
             message.append(f"SAMPLE NAME WARNING: Bad sample ID format {sample_id}")
         else:
@@ -60,7 +60,7 @@ def main(lims, pid):
 
     message = []
     project = Project(lims, id=pid)
-    
+
     # Validate sample IDs
     message += verify_sample_ids(project.id)
 
