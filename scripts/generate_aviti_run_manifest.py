@@ -259,7 +259,7 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
 
     # Start building manifests
     manifests: list[tuple[str, str]] = []
-    for manifest_type in ["untrimmed", "trimmed", "empty"]:
+    for manifest_type in ["untrimmed", "trimmed", "phix", "empty"]:
         manifest_name, manifest_contents = make_manifest(
             df_samples_and_controls,
             process,
@@ -292,6 +292,7 @@ def make_manifest(
     ].copy()
 
     file_name = f"{manifest_root_name}_{manifest_type}.csv"
+
     runValues_section = "\n".join(
         [
             "[RUNVALUES]",
@@ -318,6 +319,10 @@ def make_manifest(
         df["Index1"] = df["Index1"].apply(lambda x: x[:min_idx1_len])
         df["Index2"] = df["Index2"].apply(lambda x: x[:min_idx2_len])
 
+        samples_section = f"[SAMPLES]\n{df.to_csv(index=None, header=True)}"
+
+    elif manifest_type == "phix":
+        df = df[df["Project"] == "Control"]
         samples_section = f"[SAMPLES]\n{df.to_csv(index=None, header=True)}"
 
     elif manifest_type == "empty":
