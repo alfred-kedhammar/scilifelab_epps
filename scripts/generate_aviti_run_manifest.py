@@ -358,7 +358,7 @@ def check_pair_distance(row, row_comp, check_flips: bool = False, threshold: int
     """
 
     if check_flips:
-        flips: list[tuple[str, str, str]] = []
+        flips: list[tuple[int, str, str]] = []
         for s1i1, s1i1_name in zip(
             [row["Index1"], revcomp(row["Index1"])],
             ["Index1", "Index1_rc"],
