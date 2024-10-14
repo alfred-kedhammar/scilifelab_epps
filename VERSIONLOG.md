@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241014.1
+
+For AVITI manifest generation: make PhiX manifest variant, fix udf typo, remove unused func, clarify var names
+
 ## 20241009.1
 
 Improve AVITI run manifest generation with sample-level settings. No longer produce submanifests.
