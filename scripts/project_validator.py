@@ -62,6 +62,8 @@ def main(lims, pid):
     message += verify_sample_ids(project.id)
 
     if message:
+        print(f"No issue detected for project {pid}")
+    else:
         sys.stderr.write("; ".join(message))
         sys.exit(2)
 
