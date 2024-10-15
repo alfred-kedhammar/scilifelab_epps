@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241015.1
+
+Improve project validator EPP
+
 ## 20241011.1
 
 New project validator EPP

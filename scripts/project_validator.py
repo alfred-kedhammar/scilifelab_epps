@@ -24,21 +24,23 @@ NGISAMPLE_PAT = re.compile("P[0-9]+_[0-9]+")
 # Verify sample IDs
 def verify_sample_ids(project_id):
     message = []
-    connection = psycopg2.connect(
+    # Query sample names with given project luid
+    query = (
+        "select sample.name from sample "
+        "inner join project on sample.projectid=project.projectid "
+        "where project.luid = %s;"
+    )
+    with psycopg2.connect(
         user=config["username"],
         host=config["url"],
         database=config["db"],
         password=config["password"],
-    )
-    cursor = connection.cursor()
-    query = (
-        "select sample.name from sample "
-        "inner join project on sample.projectid=project.projectid "
-        "where project.luid = '{}';"
-    )
-    cursor.execute(query.format(project_id))
-    query_output = cursor.fetchall()
+    ) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query, (project_id,))
+            query_output = cursor.fetchall()
 
+    # Validate sample name format
     for out in query_output:
         sample_id = out[0]
         if not NGISAMPLE_PAT.findall(sample_id):
@@ -48,11 +50,6 @@ def verify_sample_ids(project_id):
                 message.append(
                     f"SAMPLE NAME WARNING: Sample ID {sample_id} does not match project ID {project_id}"
                 )
-
-    # Close connections
-    if connection:
-        cursor.close()
-        connection.close()
 
     return message
 
@@ -65,6 +62,8 @@ def main(lims, pid):
     message += verify_sample_ids(project.id)
 
     if message:
+        print(f"No issue detected for project {pid}")
+    else:
         sys.stderr.write("; ".join(message))
         sys.exit(2)
 
