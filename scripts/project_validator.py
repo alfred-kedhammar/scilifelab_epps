@@ -61,7 +61,7 @@ def main(lims, pid):
     # Validate sample IDs
     message += verify_sample_ids(project.id)
 
-    if message:
+    if not message:
         print(f"No issue detected for project {pid}")
     else:
         sys.stderr.write("; ".join(message))
