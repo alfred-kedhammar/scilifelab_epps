@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241016.1
+
+Remove index orientation checker
+
 ## 20241015.1
 
 Improve project validator EPP
