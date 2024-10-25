@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241025.1
+
+Support MiSeq V2 Micro
+
 ## 20241016.1
 
 Remove index orientation checker
