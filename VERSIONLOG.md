@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241028.1
+
+Additional lane thresholds for AVITI
+
 ## 20241025.1
 
 Support MiSeq V2 Micro

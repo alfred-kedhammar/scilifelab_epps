@@ -39,6 +39,8 @@ class Thresholds:
             "1.5B",
             "25B",
             "AVITI High",
+            "AVITI Med",
+            "AVITI Low",
         ]
 
         if (
@@ -110,12 +112,10 @@ class Thresholds:
 
         # Preliminary values for AVITI
         elif self.instrument == "AVITI":
-            if self.read_length >= 150:
+            if self.read_length >= 250:
                 self.Q30 = 85
-            elif self.read_length >= 100:
+            else:
                 self.Q30 = 90
-            elif self.read_length < 100:
-                self.Q30 = 95
 
         if not self.Q30:
             self.problem_handler(
@@ -169,7 +169,17 @@ class Thresholds:
         # Preliminary values for AVITI
         elif self.instrument == "AVITI":
             if self.chemistry == "AVITI High":
-                self.exp_lane_clust = 300e6
+                if self.read_length >= 250:
+                    self.exp_lane_clust = 300e6
+                else:
+                    self.exp_lane_clust = 500e6
+            elif self.chemistry == "AVITI Med":
+                if self.read_length >= 250:
+                    self.exp_lane_clust = 100e6
+                else:
+                    self.exp_lane_clust = 250e6
+            elif self.chemistry == "AVITI Low":
+                self.exp_lane_clust = 125e6
         else:
             self.problem_handler("exit", "Unknown run type!")
         if not self.exp_lane_clust:
