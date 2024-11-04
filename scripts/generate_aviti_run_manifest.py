@@ -207,8 +207,8 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
                 if isinstance(idx, tuple):
                     row["Index1"], row["Index2"] = idx
                     # Special cases to reverse-complement index2
-                    if user_library or (
-                        not user_library
+                    if not user_library or (
+                        user_library
                         and (
                             TENX_DUAL_PAT.findall(lims_label)
                             or SMARTSEQ_PAT.findall(lims_label)
