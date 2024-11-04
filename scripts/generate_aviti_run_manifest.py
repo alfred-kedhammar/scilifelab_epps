@@ -189,6 +189,12 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
             if sample.project:
                 project = sample.project.name.replace(".", "__").replace(",", "")
                 seq_setup = sample.project.udf.get("Sequencing setup", "0-0")
+                user_library = (
+                    True
+                    if sample.project.udf["Library construction method"]
+                    == "Finished library (by user)"
+                    else False
+                )
             else:
                 project = "Control"
                 seq_setup = "0-0"
@@ -200,6 +206,16 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
                 row["SampleName"] = sample.name
                 if isinstance(idx, tuple):
                     row["Index1"], row["Index2"] = idx
+                    # Special cases to reverse-complement index2
+                    if user_library or (
+                        not user_library
+                        and (
+                            TENX_DUAL_PAT.findall(lims_label)
+                            or SMARTSEQ_PAT.findall(lims_label)
+                        )
+                    ):
+                        logging.info(f"Reverse-complementing index2 of {sample.name}.")
+                        row["Index2"] = revcomp(row["Index2"])
                 else:
                     row["Index1"] = idx
                     # Assume long idx2 from recipe + no idx2 from label means idx2 is UMI
