@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241104.1
+
+Suspected bugfix for BA parsing script.
+
 ## 20241025.1
 
 Support MiSeq V2 Micro
