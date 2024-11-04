@@ -1,8 +1,24 @@
 # Scilifelab_epps Version Log
 
-## 20241014.1
+## 20241104.2
 
-For AVITI manifest generation: make PhiX manifest variant, fix udf typo, remove unused func, clarify var names
+For AVITI manifest generation: make PhiX manifest variant, fix udf typo, remove unused func, clarify var names, add cases to reverse-compliment Index2.
+
+## 20241104.1
+
+Suspected bugfix for BA parsing script.
+
+## 20241025.1
+
+Support MiSeq V2 Micro
+
+## 20241016.1
+
+Remove index orientation checker
+
+## 20241015.1
+
+Improve project validator EPP
 
 ## 20241011.1
 

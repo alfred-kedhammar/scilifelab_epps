@@ -337,6 +337,11 @@ def lims_for_miseq(process, run_dir):
         and runParameters["Setup"]["NumTilesPerSwath"] == "2"
     ):
         process.udf["Run Type"] = "Version2Nano"
+    elif (
+        runParameters["Setup"]["SupportMultipleSurfacesInUI"] == "true"
+        and runParameters["Setup"]["NumTilesPerSwath"] == "4"
+    ):
+        process.udf["Run Type"] = "Version2Micro"
     else:
         process.udf["Run Type"] = "null"
     # Runs with single read return a dict object

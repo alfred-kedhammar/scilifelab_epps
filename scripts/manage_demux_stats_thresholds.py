@@ -25,6 +25,7 @@ class Thresholds:
             "Version3",
             "Version2",
             "Version2Nano",
+            "Version2Micro",
             "SP",
             "S1",
             "S2",
@@ -131,6 +132,8 @@ class Thresholds:
                 self.exp_lane_clust = 10e6
             elif self.chemistry == "Version2Nano":
                 self.exp_lane_clust = 750000
+            elif self.chemistry == "Version2Micro":
+                self.exp_lane_clust = 3000000
             else:
                 if self.read_length >= 76 and self.read_length <= 301:
                     self.exp_lane_clust = 18e6
