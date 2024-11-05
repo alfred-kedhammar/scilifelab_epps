@@ -8,6 +8,10 @@ For AVITI manifest generation: make PhiX manifest variant, fix udf typo, remove 
 
 Suspected bugfix for BA parsing script.
 
+## 20241028.1
+
+Additional lane thresholds for AVITI
+
 ## 20241025.1
 
 Support MiSeq V2 Micro

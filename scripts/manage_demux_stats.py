@@ -850,7 +850,7 @@ def write_demuxfile_aviti(process_stats, demux_id):
                             "Sample": row.get("SampleName", ""),
                             "Project": row.get("Project", ""),
                             "Barcode sequence": index,
-                            "PF Clusters": int(row.get("NumPoloniesAssigned", "0")),
+                            "PF Clusters": str(row.get("NumPoloniesAssigned", "0")),
                             "% of thelane": float(
                                 row.get("PercentPoloniesAssigned", "0")
                             ),
