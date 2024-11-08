@@ -4,6 +4,14 @@
 
 Add col for qPCR dilution vol
 
+## 20241104.2
+
+For AVITI manifest generation: make PhiX manifest variant, fix udf typo, remove unused func, clarify var names, add cases to reverse-compliment Index2.
+
+## 20241104.1
+
+Suspected bugfix for BA parsing script.
+
 ## 20241028.1
 
 Additional lane thresholds for AVITI
