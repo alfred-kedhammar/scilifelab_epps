@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241108.1
+
+Add col for qPCR dilution vol
+
 ## 20241028.1
 
 Additional lane thresholds for AVITI

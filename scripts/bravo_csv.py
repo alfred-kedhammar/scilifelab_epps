@@ -18,6 +18,7 @@ DESC = """EPP used to create csv files for the bravo robot"""
 
 MAX_WARNING_VOLUME = 150.0
 MIN_WARNING_VOLUME = 2.0
+QPCR_DILUTION_VOLUME = 40
 
 # Three values are minimum required conc for setup workset, maximum conc for dilution and minimum volume for dilution
 Dilution_preset = {"Smarter pico": [1.25, 375.0, 10.0]}
@@ -337,8 +338,13 @@ def setup_qpcr(currentStep, lims):
     with open("bravo.csv", "w") as csvContext:
         for s in data:
             csvContext.write(
-                "{},{},{},{},{}\n".format(
-                    s["src_fc_id"], s["src_well"], s["vol"], s["dst_fc"], s["dst_well"]
+                "{},{},{},{},{},{}\n".format(
+                    s["src_fc_id"],
+                    s["src_well"],
+                    s["vol"],
+                    s["dst_fc"],
+                    s["dst_well"],
+                    QPCR_DILUTION_VOLUME,
                 )
             )
     if log:
