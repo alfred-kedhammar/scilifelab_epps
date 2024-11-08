@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241108.1
+
+Add col for qPCR dilution vol
+
 ## 20241104.2
 
 For AVITI manifest generation: make PhiX manifest variant, fix udf typo, remove unused func, clarify var names, add cases to reverse-compliment Index2.
