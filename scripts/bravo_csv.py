@@ -239,7 +239,8 @@ def compute_transfer_volume(currentStep, lims, log):
 def aliquot_fixed_volume(currentStep, lims, volume, log):
     data = []
     for inp, out in currentStep.input_output_maps:
-        if out["output-type"] == "ResultFile":
+        # Only act on output artifacts with a defined location
+        if out["uri"].location != (None, None):
             obj = {}
             obj["src_fc"] = (
                 inp["uri"].location[0].name.replace(",", "_").replace(" ", "_")

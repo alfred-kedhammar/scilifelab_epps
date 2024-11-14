@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241114.1
+
+Bugfix Bravo CSV for qPCR. Needed better logic for isolating physical output artifacts.
+
 ## 20241108.1
 
 Add col for qPCR dilution vol
