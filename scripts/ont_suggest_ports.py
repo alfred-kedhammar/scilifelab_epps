@@ -42,9 +42,7 @@ def main(lims, args):
 
         # Sort ports (a sort of port sort, if you will)
         ports_list = list(ports.items())
-        ports_list.sort(
-            key=lambda x: x[1] + 1000 if x[0][0] == "3" else x[1]
-        )  # Sort by port usage, but send column 3 to the end since it's reserved for Clinical Genomics
+        ports_list.sort(key=lambda x: x[1])
 
         # Collect which ports are already specified in UDFs
         ports_used = []

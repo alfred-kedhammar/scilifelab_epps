@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20241211.1
+
+No longer reserve PromethION column 3 for Clinical Genomics.
+
 ## 20241114.1
 
 Bugfix Bravo CSV for qPCR. Needed better logic for isolating physical output artifacts.
