@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20250108.1
+
+Replace PR Label checker with a less opaque action.
+
 ## 20241211.1
 
 No longer reserve PromethION column 3 for Clinical Genomics.
