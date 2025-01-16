@@ -49,9 +49,9 @@ def main(lims, args):
         for output in outputs:
             try:
                 if output.udf["ONT flow cell position"] != "None":
-                    assert (
-                        output.udf["ONT flow cell position"] in ports.keys()
-                    ), f'{output.udf["ONT flow cell position"]} is not a valid position'
+                    assert output.udf["ONT flow cell position"] in ports.keys(), (
+                        f"{output.udf['ONT flow cell position']} is not a valid position"
+                    )
                     ports_used.append(output.udf["ONT flow cell position"])
             except KeyError:
                 continue
@@ -79,7 +79,7 @@ def main(lims, args):
             ports_used.append(port_tuple[0])
 
         # Print ports to stdout, starting with the least used
-        message = f'Listing ports, from least to most used, down-prioritizing column 3: {", ".join([port[0] for port in ports_list])}'
+        message = f"Listing ports, from least to most used, down-prioritizing column 3: {', '.join([port[0] for port in ports_list])}"
         sys.stdout.write(message)
 
     except AssertionError as e:

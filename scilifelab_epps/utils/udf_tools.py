@@ -236,9 +236,9 @@ def fetch_last(
                 ):
                     matching_tuples.append(pp_tuple)
 
-            assert (
-                len(matching_tuples) == 1
-            ), "Target artifact matches multiple inputs/outputs in previous step."
+            assert len(matching_tuples) == 1, (
+                "Target artifact matches multiple inputs/outputs in previous step."
+            )
 
             # Back-tracking successful, re-assign variables to represent previous step
             currentStep = pp

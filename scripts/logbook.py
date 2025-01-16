@@ -67,7 +67,7 @@ LOGBOOK_COORDINATES = [22, "B", "C", "D", "E"]
 def write_record(content, dest_file):
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
-    discoveryUrl = "https://sheets.googleapis.com/$discovery/rest?" "version=v4"
+    discoveryUrl = "https://sheets.googleapis.com/$discovery/rest?version=v4"
     service = discovery.build(
         "sheets", "v4", http=http, discoveryServiceUrl=discoveryUrl
     )
@@ -172,9 +172,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log",
         dest="log",
-        help=(
-            "File name for standard log file, " "for runtime information and problems."
-        ),
+        help=("File name for standard log file, for runtime information and problems."),
     )
     args = parser.parse_args()
     lims = Lims(BASEURI, USERNAME, PASSWORD)

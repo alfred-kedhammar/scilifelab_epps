@@ -127,24 +127,23 @@ def getArgs():
         "--container_id",
         action="store_true",
         help=(
-            "Print output container id label in both "
-            "barcode format and human readable."
+            "Print output container id label in both barcode format and human readable."
         ),
     )
     parser.add_argument(
         "--operator_and_date",
         action="store_true",
-        help=("Print label with both operator " "and todays date."),
+        help=("Print label with both operator and todays date."),
     )
     parser.add_argument(
         "--container_name",
         action="store_true",
-        help=("Print label with human readable" "container name (user defined)"),
+        help=("Print label with human readablecontainer name (user defined)"),
     )
     parser.add_argument(
         "--process_name",
         action="store_true",
-        help=("Print label with human readable" "process name"),
+        help=("Print label with human readableprocess name"),
     )
     parser.add_argument(
         "--copies",
@@ -162,7 +161,7 @@ def getArgs():
     parser.add_argument(
         "--use_printer",
         action="store_true",
-        help=("Print file on default or " "supplied printer using lp command."),
+        help=("Print file on default or supplied printer using lp command."),
     )
     parser.add_argument("--hostname", help="Hostname for lp CUPS server.")
     parser.add_argument("--destination", help="Name of printer.")

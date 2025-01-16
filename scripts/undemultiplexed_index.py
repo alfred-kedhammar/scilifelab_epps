@@ -149,8 +149,7 @@ class RunQC:
             path_id = cont_name
         try:
             self.file_path = glob.glob(
-                f"/srv/ngi-nas-ns/{data_folder}/*{path_id}/Unaligned/"
-                "Basecall_Stats_*/"
+                f"/srv/ngi-nas-ns/{data_folder}/*{path_id}/Unaligned/Basecall_Stats_*/"
             )[0]
         except:
             sys.exit("Failed to get file path")
@@ -587,9 +586,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log",
         dest="log",
-        help=(
-            "File name for standard log file, " "for runtime information and problems."
-        ),
+        help=("File name for standard log file, for runtime information and problems."),
     )
     parser.add_argument(
         "--file",

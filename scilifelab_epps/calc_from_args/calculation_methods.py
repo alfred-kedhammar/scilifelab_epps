@@ -181,9 +181,9 @@ def summarize_pooling(process: Process, args: Namespace):
                 cols["input_conc_units"] = str(
                     fetch_from_arg(art_tuple, args.conc_units_in, process)
                 )
-                assert (
-                    cols["input_conc_units"] in ["ng/ul", "nM"]
-                ), f'Unsupported conc. units "{cols["input_conc_units"]}" for art {art_in.name}'
+                assert cols["input_conc_units"] in ["ng/ul", "nM"], (
+                    f'Unsupported conc. units "{cols["input_conc_units"]}" for art {art_in.name}'
+                )
             else:
                 # Infer concentration unit
                 if "ng/ul" in args.conc_in["udf"]:
@@ -216,9 +216,9 @@ def summarize_pooling(process: Process, args: Namespace):
         df_pool = pd.DataFrame(pool_data_rows)
         df_pool.index = [art_tuple[0]["uri"].name for art_tuple in pool_tuples]
 
-        assert (
-            df_pool.output_amt_unit.unique().size == 1
-        ), "Inconsistent output amount units."
+        assert df_pool.output_amt_unit.unique().size == 1, (
+            "Inconsistent output amount units."
+        )
 
         # Get a column with consistent concentration units
         df_pool["input_conc_nM"] = df_pool.apply(
@@ -331,9 +331,9 @@ def equimolar_pooling(process: Process, args: Namespace):
                 cols["input_conc_units"] = str(
                     fetch_from_arg(art_tuple, args.conc_units_in, process)
                 )
-                assert (
-                    cols["input_conc_units"] in ["ng/ul", "nM"]
-                ), f'Unsupported conc. units "{cols["input_conc_units"]}" for art {art_in.name}'
+                assert cols["input_conc_units"] in ["ng/ul", "nM"], (
+                    f'Unsupported conc. units "{cols["input_conc_units"]}" for art {art_in.name}'
+                )
             else:
                 # Infer concentration unit
                 if "ng/ul" in args.conc_in["udf"]:
@@ -366,9 +366,9 @@ def equimolar_pooling(process: Process, args: Namespace):
         df_pool = pd.DataFrame(pool_data_rows)
         df_pool.index = [art_tuple[0]["uri"].name for art_tuple in pool_tuples]
 
-        assert (
-            df_pool.output_amt_unit.unique().size == 1
-        ), "Inconsistent output amount units."
+        assert df_pool.output_amt_unit.unique().size == 1, (
+            "Inconsistent output amount units."
+        )
 
         # Get a column with consistent concentration units
         df_pool["input_conc_nM"] = df_pool.apply(

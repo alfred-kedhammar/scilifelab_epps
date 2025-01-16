@@ -51,9 +51,9 @@ def main(lims, args):
 
         # Get current stats
         vol = udf_tools.fetch(art_in, "Volume (ul)")
-        log.append(f"'Volume (ul)': {round(vol,2)}")
+        log.append(f"'Volume (ul)': {round(vol, 2)}")
         conc = udf_tools.fetch(art_in, "Concentration")
-        log.append(f"'Concentration': {round(conc,2)}")
+        log.append(f"'Concentration': {round(conc, 2)}")
         conc_units = udf_tools.fetch(art_in, "Conc. Units")
         log.append(f"'Conc. Units': {conc_units}")
         assert conc_units.lower() in [
@@ -64,7 +64,7 @@ def main(lims, args):
         # Calculate volume to take, based on supplied info
         if udf_tools.is_filled(art_out, "ONT flow cell loading amount (fmol)"):
             log.append(
-                f"Basing calculations on 'ONT flow cell loading amount (fmol)': {round(udf_tools.fetch(art_out, 'ONT flow cell loading amount (fmol)'),2)}"
+                f"Basing calculations on 'ONT flow cell loading amount (fmol)': {round(udf_tools.fetch(art_out, 'ONT flow cell loading amount (fmol)'), 2)}"
             )
             if conc_units.lower() == "nm":
                 vol_to_take = min(
@@ -84,7 +84,7 @@ def main(lims, args):
                 )
         elif udf_tools.is_filled(art_out, "Amount (fmol)"):
             log.append(
-                f"Basing calculations on 'Amount (fmol): {round(udf_tools.fetch(art_out, 'Amount (fmol)'),2)}'"
+                f"Basing calculations on 'Amount (fmol): {round(udf_tools.fetch(art_out, 'Amount (fmol)'), 2)}'"
             )
             if conc_units.lower() == "nm":
                 vol_to_take = min(udf_tools.fetch(art_out, "Amount (fmol)") / conc, vol)
@@ -99,7 +99,7 @@ def main(lims, args):
                 )
         elif udf_tools.is_filled(art_out, "Amount (ng)"):
             log.append(
-                f"Basing calculations on 'Amount (ng)': {round(udf_tools.fetch(art_out, 'Amount (ng)'),2)}"
+                f"Basing calculations on 'Amount (ng)': {round(udf_tools.fetch(art_out, 'Amount (ng)'), 2)}"
             )
             if conc_units.lower() == "ng/ul":
                 vol_to_take = min(udf_tools.fetch(art_out, "Amount (ng)") / conc, vol)
@@ -112,7 +112,7 @@ def main(lims, args):
                 )
         elif udf_tools.is_filled(art_out, "Volume to take (uL)"):
             log.append(
-                f"Basing calculations on 'Volume to take (uL)': {round(udf_tools.fetch(art_out, 'Volume to take (uL)'),2)}"
+                f"Basing calculations on 'Volume to take (uL)': {round(udf_tools.fetch(art_out, 'Volume to take (uL)'), 2)}"
             )
             vol_to_take = min(udf_tools.fetch(art_out, "Volume to take (uL)"), vol)
         else:

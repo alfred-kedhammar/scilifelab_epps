@@ -118,9 +118,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log",
         default=sys.stdout,
-        help=(
-            "File name for standard log file, " "for runtime information and problems."
-        ),
+        help=("File name for standard log file, for runtime information and problems."),
     )
     parser.add_argument(
         "--aggregate",

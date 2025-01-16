@@ -46,16 +46,16 @@ def send_reloading_info_to_db(process: Process):
         rows_matching_run: list[Row] = [
             row
             for row in view.rows
-            if f'{run["run_name"]}' in row.value["TACA_run_path"]
+            if f"{run['run_name']}" in row.value["TACA_run_path"]
         ]
 
         try:
-            assert (
-                len(rows_matching_run) > 0
-            ), f"The database contains no document with run name '{run['run_name']}'. If the run was recently started, wait until it appears in GenStat."
-            assert (
-                len(rows_matching_run) == 1
-            ), f"The database contains multiple documents with run name '{run['run_name']}'. Contact a database administrator."
+            assert len(rows_matching_run) > 0, (
+                f"The database contains no document with run name '{run['run_name']}'. If the run was recently started, wait until it appears in GenStat."
+            )
+            assert len(rows_matching_run) == 1, (
+                f"The database contains multiple documents with run name '{run['run_name']}'. Contact a database administrator."
+            )
 
             doc_id: str = rows_matching_run[0].id
             doc: Document = db[doc_id]
@@ -120,18 +120,20 @@ def parse_run(art: Artifact) -> dict | None:
             and len(fc["reload_times"])
             == len(fc["reload_fmols"])
             == len(fc["reload_lots"])
-        ), "All reload UDFs within a row must have the same number of comma-separated values"
+        ), (
+            "All reload UDFs within a row must have the same number of comma-separated values"
+        )
 
-        assert check_csv_udf_list(
-            r"^\d{1,3}:\d{2}$", fc["reload_times"]
-        ), "Reload run times must be formatted as comma-separated h:mm"
+        assert check_csv_udf_list(r"^\d{1,3}:\d{2}$", fc["reload_times"]), (
+            "Reload run times must be formatted as comma-separated h:mm"
+        )
         check_times_list(fc["reload_times"])
-        assert check_csv_udf_list(
-            r"^[0-9.]+$", fc["reload_fmols"]
-        ), "Invalid flow cell reload amount(s)"
-        assert check_csv_udf_list(
-            r"^[0-9a-zA-Z.-_]+$", fc["reload_lots"]
-        ), "Invalid Reload wash kit"
+        assert check_csv_udf_list(r"^[0-9.]+$", fc["reload_fmols"]), (
+            "Invalid flow cell reload amount(s)"
+        )
+        assert check_csv_udf_list(r"^[0-9a-zA-Z.-_]+$", fc["reload_lots"]), (
+            "Invalid Reload wash kit"
+        )
 
         return fc
 
@@ -145,12 +147,12 @@ def check_times_list(times_list: list[str]):
     for time in times_list:
         _hours, _minutes = time.split(":")
         hours, minutes = int(_hours), int(_minutes)
-        assert hours > prev_hours or (
-            hours == prev_hours and minutes > prev_minutes
-        ), f"Times in field {times_list} are non-sequential."
-        assert (
-            minutes < 60
-        ), f"Field {times_list} contains invalid entries (minutes >= 60)."
+        assert hours > prev_hours or (hours == prev_hours and minutes > prev_minutes), (
+            f"Times in field {times_list} are non-sequential."
+        )
+        assert minutes < 60, (
+            f"Field {times_list} contains invalid entries (minutes >= 60)."
+        )
 
         prev_hours, prev_minutes = hours, minutes
 

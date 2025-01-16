@@ -25,7 +25,7 @@ def pool_fixed_vol(
     # Write log header
     log = []
     for e in [
-        f"LIMS process {currentStep.id}\n" "\n=== Volume constraints ===",
+        f"LIMS process {currentStep.id}\n\n=== Volume constraints ===",
         f"Minimum pipetting volume: {zika_min_vol} ul",
         f"Maximum allowed dst well volume: {well_max_vol} ul",
     ]:
@@ -35,9 +35,9 @@ def pool_fixed_vol(
     fixed_vol_step_udf = "Transfer Volume for Pooling (uL)"
     fixed_vol = currentStep.udf[fixed_vol_step_udf]
     assert type(fixed_vol) in [int, float], f"'{fixed_vol_step_udf}' must be a number."
-    assert (
-        zika_min_vol <= fixed_vol <= well_max_vol
-    ), f"'{fixed_vol_step_udf}' must be between {zika_min_vol} and {well_max_vol} ul."
+    assert zika_min_vol <= fixed_vol <= well_max_vol, (
+        f"'{fixed_vol_step_udf}' must be between {zika_min_vol} and {well_max_vol} ul."
+    )
     log.append(f"Fixed transfer volume: {fixed_vol} ul")
 
     # Get pools
@@ -156,7 +156,7 @@ def pool(
         # Write log header
         log = []
         for e in [
-            f"LIMS process {currentStep.id}\n" "\n=== Volume constraints ===",
+            f"LIMS process {currentStep.id}\n\n=== Volume constraints ===",
             f"Minimum pipetting volume: {zika_min_vol} ul",
             f"Applied dead volume: {well_dead_vol} ul",
             f"Maximum allowed dst well volume: {well_max_vol} ul",
@@ -190,13 +190,13 @@ def pool(
         df_all = zika.utils.fetch_sample_data(currentStep, to_fetch)
 
         # All samples should have accessible volume
-        assert all(
-            df_all.vol > well_dead_vol
-        ), f"The minimum required source volume is {well_dead_vol} ul"
+        assert all(df_all.vol > well_dead_vol), (
+            f"The minimum required source volume is {well_dead_vol} ul"
+        )
 
-        assert all(
-            df_all.target_vol <= well_max_vol
-        ), f"All target volumes must be at or below {well_max_vol} uL"
+        assert all(df_all.target_vol <= well_max_vol), (
+            f"All target volumes must be at or below {well_max_vol} uL"
+        )
 
         # Adjust for dead volume
         df_all["full_vol"] = df_all.vol.copy()
@@ -237,9 +237,9 @@ def pool(
                     conc_unit = "ng/ul"
                 else:
                     raise AssertionError("Could not make sense of input UDFs")
-                assert all(
-                    df_all.conc_units == conc_unit
-                ), "Samples and pools have different conc units"
+                assert all(df_all.conc_units == conc_unit), (
+                    "Samples and pools have different conc units"
+                )
 
                 # Append target parameters to log
                 log.append(f"\n\nPooling {len(df_pool)} samples into {pool.name}...")
@@ -314,10 +314,10 @@ def pool(
                             f"\nERROR: Overflow in {pool.name}. Decrease number of samples or dilute highly concentrated outliers"
                         )
                         log.append(
-                            f"Highest concentrated sample: {highest_conc_sample.sample_name} at {round(highest_conc_sample.conc,2)} {conc_unit}"
+                            f"Highest concentrated sample: {highest_conc_sample.sample_name} at {round(highest_conc_sample.conc, 2)} {conc_unit}"
                         )
                         log.append(
-                            f"Pooling cannot be normalized to less than {round(pool_min_sample_vol,1)} ul"
+                            f"Pooling cannot be normalized to less than {round(pool_min_sample_vol, 1)} ul"
                         )
 
                         errors = True
@@ -327,13 +327,13 @@ def pool(
                         "\nAn even pool can be created within the following parameter ranges:"
                     )
                     log.append(
-                        f" - Amount per sample {round(lowest_common_amount,2)} - {round(pool_max_sample_amt / len(df_pool),2)} {amt_unit}"
+                        f" - Amount per sample {round(lowest_common_amount, 2)} - {round(pool_max_sample_amt / len(df_pool), 2)} {amt_unit}"
                     )
                     log.append(
-                        f" - Pool volume {round(pool_min_sample_vol,1)} - {round(well_max_vol,1)} ul"
+                        f" - Pool volume {round(pool_min_sample_vol, 1)} - {round(well_max_vol, 1)} ul"
                     )
                     log.append(
-                        f" - Pool concentration {round(pool_min_conc,2)} - {round(pool_max_conc,2)} {conc_unit}"
+                        f" - Pool concentration {round(pool_min_conc, 2)} - {round(pool_max_conc, 2)} {conc_unit}"
                     )
 
                     # Nudge conc, if necessary
@@ -380,7 +380,7 @@ def pool(
                     )
                     for i, r in df_low.iterrows():
                         log.append(
-                            f"{r.sample_name} ({round(r.conc,2)} {r.conc_units}, {round(r.vol,2)} uL accessible volume)"
+                            f"{r.sample_name} ({round(r.conc, 2)} {r.conc_units}, {round(r.vol, 2)} uL accessible volume)"
                         )
                     log.append(
                         "The above samples will be depleted and under-represented in the final pool."
@@ -402,10 +402,10 @@ def pool(
                             f"\nERROR: Overflow in {pool.name}. Decrease number of samples or dilute highly concentrated outliers"
                         )
                         log.append(
-                            f"Highest concentrated sample: {highest_conc_sample.sample_name} at {round(highest_conc_sample.conc,2)} {conc_unit}"
+                            f"Highest concentrated sample: {highest_conc_sample.sample_name} at {round(highest_conc_sample.conc, 2)} {conc_unit}"
                         )
                         log.append(
-                            f"Pooling cannot be normalized to less than {round(pool_real_min_sample_vol,1)} ul"
+                            f"Pooling cannot be normalized to less than {round(pool_real_min_sample_vol, 1)} ul"
                         )
 
                         errors = True
@@ -415,13 +415,13 @@ def pool(
                         "\nWill try to create a pool that is as even as possible. Accounting for sample depletion, a pool can be created with the following parameter ranges: "
                     )
                     log.append(
-                        f" - Target amount per sample {round(target_transfer_amt,2)}"
+                        f" - Target amount per sample {round(target_transfer_amt, 2)}"
                     )
                     log.append(
-                        f" - Pool volume {round(pool_real_min_sample_vol,1)}-{round(well_max_vol,1)} ul"
+                        f" - Pool volume {round(pool_real_min_sample_vol, 1)}-{round(well_max_vol, 1)} ul"
                     )
                     log.append(
-                        f" - Pool concentration {round(pool_real_min_conc,2)}-{round(pool_real_max_conc,2)} {conc_unit}"
+                        f" - Pool concentration {round(pool_real_min_conc, 2)}-{round(pool_real_max_conc, 2)} {conc_unit}"
                     )
 
                     # Nudge conc, if necessary
@@ -456,11 +456,11 @@ def pool(
             log.append("\nAdjustments:")
             if round(target_pool_conc, 2) != round(pool_conc, 2):
                 log.append(
-                    f" - WARNING: Target pool concentration is adjusted from {round(target_pool_conc,2)} --> {round(pool_conc,2)} {conc_unit}"
+                    f" - WARNING: Target pool concentration is adjusted from {round(target_pool_conc, 2)} --> {round(pool_conc, 2)} {conc_unit}"
                 )
             if round(target_pool_vol, 1) != round(pool_vol, 1):
                 log.append(
-                    f" - WARNING: Target pool volume is adjusted from {round(target_pool_vol,1)} --> {round(pool_vol,1)} ul"
+                    f" - WARNING: Target pool volume is adjusted from {round(target_pool_vol, 1)} --> {round(pool_vol, 1)} ul"
                 )
             if round(target_pool_conc, 2) == round(pool_conc, 2) and round(
                 target_pool_vol, 1
@@ -468,7 +468,7 @@ def pool(
                 log.append("Pooling OK")
             if round(target_transfer_amt, 2) != round(target_amt_taken, 2):
                 log.append(
-                    f" - INFO: Amount taken per sample is adjusted from {round(target_amt_taken,2)} --> {round(target_transfer_amt,2)} {amt_unit}"
+                    f" - INFO: Amount taken per sample is adjusted from {round(target_amt_taken, 2)} --> {round(target_transfer_amt, 2)} {amt_unit}"
                 )
 
             # Calculate and store pool buffer volume
@@ -480,7 +480,7 @@ def pool(
             )
             buffer_vols[pool.name] = buffer_vol
             log.append(
-                f"\nThe final pool volume is {round(pool_vol,1)} ul ({round(total_sample_vol,1)} ul sample + {round(buffer_vol,1)} ul buffer)"
+                f"\nThe final pool volume is {round(pool_vol, 1)} ul ({round(total_sample_vol, 1)} ul sample + {round(buffer_vol, 1)} ul buffer)"
             )
 
             # === REPORT DEVIATING SAMPLES ===
@@ -498,7 +498,7 @@ def pool(
                 )
                 log.append("Sample\tFraction")
                 for name, frac in outlier_samples.values:
-                    log.append(f" - {name}\t{round(frac,2)}")
+                    log.append(f" - {name}\t{round(frac, 2)}")
 
             df_wl = pd.concat([df_wl, df_pool], axis=0)
 
@@ -535,7 +535,7 @@ def pool(
         for pool in pools:
             if buffer_vols[pool.name] > 0:
                 comments.append(
-                    f"Add {round(buffer_vols[pool.name],1)} ul buffer to pool {pool.name} (well {pool.location[1]})"
+                    f"Add {round(buffer_vols[pool.name], 1)} ul buffer to pool {pool.name} (well {pool.location[1]})"
                 )
 
         # Write the output files
@@ -606,7 +606,7 @@ def norm(
 
         log = []
         for e in [
-            f"LIMS process {currentStep.id}\n" "\n=== Dilution strategy ===",
+            f"LIMS process {currentStep.id}\n\n=== Dilution strategy ===",
             f"Expand volume to obtain target conc: {volume_expansion}",
             f"Base calculations on user measurements: {use_customer_metrics}",
             "\n=== Volume constraints ===",
@@ -623,12 +623,12 @@ def norm(
 
         # Assert required UDFs are populated in step
         for output_name, output in outputs.items():
-            assert is_filled(
-                output, udfs["target_amt"]
-            ), f"UDF '{udfs['target_amt']}' missing for {output.name}"
-            assert is_filled(
-                output, udfs["target_vol"]
-            ), f"UDF '{udfs['target_vol']}' missing for {output.name}"
+            assert is_filled(output, udfs["target_amt"]), (
+                f"UDF '{udfs['target_amt']}' missing for {output.name}"
+            )
+            assert is_filled(output, udfs["target_vol"]), (
+                f"UDF '{udfs['target_vol']}' missing for {output.name}"
+            )
 
         # Fetch sample data
 
@@ -662,13 +662,13 @@ def norm(
         amt_unit = "ng" if conc_unit == "ng/ul" else "fmol"
 
         # Assertions
-        assert all(
-            df.target_vol <= well_max_vol
-        ), f"All target volumes must be at or below {well_max_vol} uL"
+        assert all(df.target_vol <= well_max_vol), (
+            f"All target volumes must be at or below {well_max_vol} uL"
+        )
 
-        assert all(
-            df.vol > well_dead_vol
-        ), f"The minimum required source volume is {well_dead_vol} ul"
+        assert all(df.vol > well_dead_vol), (
+            f"The minimum required source volume is {well_dead_vol} ul"
+        )
         df["full_vol"] = df.vol.copy()
         df.loc[:, "vol"] = df.vol - well_dead_vol
 
@@ -696,7 +696,7 @@ def norm(
         }
         for i, r in df.iterrows():
             log.append(
-                f"\n{r.sample_name} (conc {round(r.conc,2)} {conc_unit}, vol {round(r.vol,1)} ul)"
+                f"\n{r.sample_name} (conc {round(r.conc, 2)} {conc_unit}, vol {round(r.vol, 1)} ul)"
             )
 
             # Cases
@@ -733,7 +733,9 @@ def norm(
                         tot_vol = r.min_transfer_amt / r.target_conc
                     else:
                         tot_vol = well_max_vol
-                    log.append(f"INFO: Expanding total volume to {round(tot_vol,1)} ul")
+                    log.append(
+                        f"INFO: Expanding total volume to {round(tot_vol, 1)} ul"
+                    )
                     sample_vol = zika_min_vol
                     buffer_vol = tot_vol - sample_vol
 
@@ -746,7 +748,7 @@ def norm(
             # Adress cases where buffer volume is lower than the minimum transfer amount
             if 0 < buffer_vol < zika_min_vol:
                 log.append(
-                    f"WARNING: Required buffer volume ({round(buffer_vol,1)} ul) is less than minimum transfer volume {zika_min_vol} ul"
+                    f"WARNING: Required buffer volume ({round(buffer_vol, 1)} ul) is less than minimum transfer volume {zika_min_vol} ul"
                 )
                 log.append("INFO: Omitting buffer")
                 tot_vol -= buffer_vol
@@ -761,7 +763,7 @@ def norm(
             elif round(final_conc_frac, 2) < 1:
                 log.append("WARNING: Final concentration is below target")
             log.append(
-                f"--> Diluting {round(sample_vol,1)} ul ({round(final_amt,2)} {amt_unit}) to {round(tot_vol,1)} ul ({round(final_conc,2)} {conc_unit}, {round(final_conc_frac*100,1)}% of target)"
+                f"--> Diluting {round(sample_vol, 1)} ul ({round(final_amt, 2)} {amt_unit}) to {round(tot_vol, 1)} ul ({round(final_conc, 2)} {conc_unit}, {round(final_conc_frac * 100, 1)}% of target)"
             )
 
             # Append calculation results to dict

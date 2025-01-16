@@ -60,9 +60,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log",
         dest="log",
-        help=(
-            "File name for standard log file, " "for runtime information and problems."
-        ),
+        help=("File name for standard log file, for runtime information and problems."),
     )
     args = parser.parse_args()
 
