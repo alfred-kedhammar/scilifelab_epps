@@ -75,7 +75,7 @@ class AppQC:
         )
         if self.missing_samps:
             self.abstract.append(
-                "The following samples are missing in " "App_QC_file: {}.".format(
+                "The following samples are missing in App_QC_file: {}.".format(
                     ", ".join(self.missing_samps)
                 )
             )
@@ -99,9 +99,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log",
         dest="log",
-        help=(
-            "File name for standard log file, " "for runtime information and problems."
-        ),
+        help=("File name for standard log file, for runtime information and problems."),
     )
     parser.add_argument("--file", dest="file", help=("File path to new App_QC file"))
     args = parser.parse_args()

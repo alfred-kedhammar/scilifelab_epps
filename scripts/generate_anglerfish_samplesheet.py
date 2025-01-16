@@ -31,9 +31,9 @@ def generate_anglerfish_samplesheet(process):
     """
 
     ont_libraries = [art for art in process.all_outputs() if art.type == "Analyte"]
-    assert (
-        len(ont_libraries) == 1
-    ), "Samplesheet can only be generated for a single sequencing library."
+    assert len(ont_libraries) == 1, (
+        "Samplesheet can only be generated for a single sequencing library."
+    )
     ont_library = ont_libraries[0]
 
     df = get_ont_library_contents(

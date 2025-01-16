@@ -90,7 +90,7 @@ class EppLogger:
             )
         except DistributionNotFound as e:
             logging.error(e)
-            logging.error(f"Make sure you have the {self.PACKAGE} " "package installed")
+            logging.error(f"Make sure you have the {self.PACKAGE} package installed")
             sys.exit(-1)
         return self
 
@@ -185,7 +185,7 @@ class EppLogger:
                         f.write("=" * 80 + "\n")
             except HTTPError:  # Probably no artifact found, skip prepending
                 print(
-                    ("No log file artifact found " f"for id: {log_file_name}"),
+                    (f"No log file artifact found for id: {log_file_name}"),
                     file=sys.stderr,
                 )
             except OSError as e:  # Probably some path was wrong in copy
@@ -417,7 +417,7 @@ class CopyField:
         }
 
         logging.info(
-            "Updated {d_elt_type} udf: {d_udf}, from {su} to " "{nv}.".format(**d)
+            "Updated {d_elt_type} udf: {d_udf}, from {su} to {nv}.".format(**d)
         )
 
     def copy_udf(self, changelog_f=None):

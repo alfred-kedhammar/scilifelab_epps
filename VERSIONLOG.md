@@ -1,5 +1,9 @@
 # Scilifelab_epps Version Log
 
+## 20250116.1
+
+Ruff 0.9.2 formatting.
+
 ## 20250108.1
 
 Replace PR Label checker with a less opaque action.

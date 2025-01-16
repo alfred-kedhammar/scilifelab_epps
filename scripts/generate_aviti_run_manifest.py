@@ -152,9 +152,9 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
 
     # Assert output analytes loaded on flowcell
     arts_out = [op for op in process.all_outputs() if op.type == "Analyte"]
-    assert (
-        len(arts_out) == 1 or len(arts_out) == 2
-    ), "Expected one or two output analytes."
+    assert len(arts_out) == 1 or len(arts_out) == 2, (
+        "Expected one or two output analytes."
+    )
 
     # Assert lanes
     lanes = [art_out.location[1].split(":")[0] for art_out in arts_out]
@@ -169,17 +169,17 @@ def get_manifests(process: Process, manifest_root_name: str) -> list[tuple[str, 
     for pool, lane in zip(arts_out, lanes):
         # Get sample-label linkage via database
         sample2label: dict[str, str] = get_pool_sample_label_mapping(pool)
-        assert len(set(pool.reagent_labels)) == len(
-            pool.reagent_labels
-        ), "Detected non-unique reagent labels."
+        assert len(set(pool.reagent_labels)) == len(pool.reagent_labels), (
+            "Detected non-unique reagent labels."
+        )
 
         # Record PhiX UDFs for each output artifact
         phix_loaded: bool = pool.udf["% phiX"] != 0
         phix_set_name = pool.udf.get("Element PhiX Set", None)
         if phix_loaded:
-            assert (
-                phix_set_name is not None
-            ), "PhiX controls loaded but no kit specified."
+            assert phix_set_name is not None, (
+                "PhiX controls loaded but no kit specified."
+            )
         else:
             assert phix_set_name is None, "PhiX controls specified but not loaded."
 
@@ -456,7 +456,7 @@ def main(args: Namespace):
 
     # Create manifest root name
     flowcell_id = get_flowcell_id(process)
-    manifest_root_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ','')}"
+    manifest_root_name = f"AVITI_run_manifest_{flowcell_id}_{process.id}_{TIMESTAMP}_{process.technician.name.replace(' ', '')}"
 
     # Create manifest(s)
     manifests: list[tuple[str, str]] = get_manifests(process, manifest_root_name)

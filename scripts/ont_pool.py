@@ -43,9 +43,9 @@ def main(lims, args):
 
         df = fetch_sample_data(currentStep, to_fetch)
 
-        assert all(
-            [i in ["ng/ul", "nM"] for i in df.conc_units]
-        ), "Some of the pool inputs have invalid concentration units."
+        assert all([i in ["ng/ul", "nM"] for i in df.conc_units]), (
+            "Some of the pool inputs have invalid concentration units."
+        )
 
         df["conc_nM"] = df.apply(
             lambda x: x
@@ -71,7 +71,7 @@ def main(lims, args):
                 pool_target_amt_fmol = pool.udf["Amount (fmol)"]
                 pool_target_vol = None
 
-                log.append(f"Target amt: {round(pool_target_amt_fmol,1)} fmol")
+                log.append(f"Target amt: {round(pool_target_amt_fmol, 1)} fmol")
 
                 target_amt_fmol = pool_target_amt_fmol / len(df_pool)
 
@@ -88,7 +88,7 @@ def main(lims, args):
                 pool_target_amt_fmol = None
                 pool_target_vol = pool.udf["Final Volume (uL)"]
 
-                log.append(f"Target vol: {round(pool_target_vol,1)} uL")
+                log.append(f"Target vol: {round(pool_target_vol, 1)} uL")
 
                 # Apply molar proportions to target volume to get transfer amounts
                 df_pool["transfer_vol_ul"] = minimum(
@@ -127,7 +127,7 @@ def main(lims, args):
             df_to_print = df_to_print.round(1)
             log.append(tabulate(df_to_print, headers="keys"))
             log.append(f"\nFinal amt: {round(pool_transfer_amt, 1)} fmol")
-            log.append(f"Final vol: {round(pool_transfer_vol,1)} uL")
+            log.append(f"Final vol: {round(pool_transfer_vol, 1)} uL")
             log.append("\n")
 
         # Write log

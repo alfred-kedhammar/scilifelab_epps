@@ -137,7 +137,7 @@ def main(lims, pid, epp_logger):
     QiT.assign_QC_flag()
     if QiT.flour_int_missing:
         QiT.abstract.append(
-            f"Fluorescence intensity is missing for {QiT.flour_int_missing} " "samples."
+            f"Fluorescence intensity is missing for {QiT.flour_int_missing} samples."
         )
     if QiT.missing_udfs:
         QiT.abstract.append(
@@ -146,12 +146,11 @@ def main(lims, pid, epp_logger):
         )
     else:
         QiT.abstract.append(
-            f"{QiT.no_failed} out of {len(process.result_files())} samples failed "
-            "QC."
+            f"{QiT.no_failed} out of {len(process.result_files())} samples failed QC."
         )
     if QiT.saturated:
         QiT.abstract.append(
-            f"{QiT.saturated} samples had saturated fluorescence " "intensity."
+            f"{QiT.saturated} samples had saturated fluorescence intensity."
         )
     if QiT.hig_CV_fract:
         QiT.abstract.append(f"{QiT.hig_CV_fract} samples had high %CV.")
@@ -159,7 +158,7 @@ def main(lims, pid, epp_logger):
         QiT.abstract.append(f"{QiT.low_conc} samples had low concentration.")
     if QiT.conc_missing:
         QiT.abstract.append(
-            f"Concentration is missing for {QiT.conc_missing} " "sample(s)."
+            f"Concentration is missing for {QiT.conc_missing} sample(s)."
         )
     QiT.abstract = list(set(QiT.abstract))
     print(" ".join(QiT.abstract), file=sys.stderr)
@@ -173,9 +172,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log",
         dest="log",
-        help=(
-            "File name for standard log file, " "for runtime information and problems."
-        ),
+        help=("File name for standard log file, for runtime information and problems."),
     )
 
     args = parser.parse_args()

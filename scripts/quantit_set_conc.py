@@ -219,13 +219,13 @@ def main(lims, pid, epp_logger):
                     rel_fluor_int = QiT.get_and_set_fluor_int(target_file)
                     QiT.calc_and_set_conc(target_file, rel_fluor_int)
                 QiT.abstract.append(
-                    f"Concentrations uploaded for {QiT.no_samps} " "samples."
+                    f"Concentrations uploaded for {QiT.no_samps} samples."
                 )
             else:
                 QiT.abstract.append("Upload input file(s) for samples.")
         else:
             QiT.abstract.insert(
-                0, f"R2 = {R2}. Problem with standards! Redo " "measurement!"
+                0, f"R2 = {R2}. Problem with standards! Redo measurement!"
             )
     else:
         QiT.missing_udfs.append("Linearity of standards")
@@ -251,9 +251,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log",
         dest="log",
-        help=(
-            "File name for standard log file, " "for runtime information and problems."
-        ),
+        help=("File name for standard log file, for runtime information and problems."),
     )
 
     args = parser.parse_args()

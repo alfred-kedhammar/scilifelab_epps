@@ -92,8 +92,7 @@ def main(lims, args, epp_logger):
     }
 
     abstract = (
-        "Updated {ua} udf(s), out of {ca} in total, "
-        "{warning} with incorrect udf info."
+        "Updated {ua} udf(s), out of {ca} in total, {warning} with incorrect udf info."
     ).format(**d)
 
     print(abstract, file=sys.stderr)  # stderr will be logged and printed in GUI
@@ -105,7 +104,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log",
         help=(
-            "File name for standard log file, " " for runtime information and problems."
+            "File name for standard log file,  for runtime information and problems."
         ),
     )
     parser.add_argument(

@@ -48,9 +48,9 @@ def find_latest_anglerfish_run(run_path: str) -> str:
     logging.info(f"Looking for Anglerfish runs with query {anglerfish_query}")
     anglerfish_glob = glob.glob(anglerfish_query, recursive=True)
 
-    assert (
-        len(anglerfish_glob) != 0
-    ), f"No Anglerfish runs found for query {anglerfish_query}"
+    assert len(anglerfish_glob) != 0, (
+        f"No Anglerfish runs found for query {anglerfish_query}"
+    )
 
     if len(anglerfish_glob) > 1:
         runs_list = "\n".join(anglerfish_glob)
@@ -157,10 +157,11 @@ def fill_udfs(process: Process, df: pd.DataFrame):
             measurements.append(op)
     measurements.sort(key=lambda x: x.name)
 
-    assert (
-        len(measurements)
-        == len(df[df["sample_name"].isin([m.name for m in measurements])])
-    ), "Number of samples demultiplexed in LIMS does not correspond to number of sample rows in Anglerfish results."
+    assert len(measurements) == len(
+        df[df["sample_name"].isin([m.name for m in measurements])]
+    ), (
+        "Number of samples demultiplexed in LIMS does not correspond to number of sample rows in Anglerfish results."
+    )
 
     # Relate UDF names to dataframe column names
     udf2col = {

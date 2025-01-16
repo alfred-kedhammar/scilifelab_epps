@@ -66,15 +66,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log",
         dest="log",
-        help=(
-            "File name for standard log file, " "for runtime information and problems."
-        ),
+        help=("File name for standard log file, for runtime information and problems."),
     )
     parser.add_argument(
         "--aggregate",
         dest="aggregate",
         action="store_true",
-        help=("Use this tag if current Process is an " "aggregate QC step"),
+        help=("Use this tag if current Process is an aggregate QC step"),
     )
     args = parser.parse_args()
 

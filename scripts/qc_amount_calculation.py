@@ -181,7 +181,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--aggregate",
         action="store_true",
-        help=("Use this tag if current Process is an " "aggregate QC step"),
+        help=("Use this tag if current Process is an aggregate QC step"),
     )
     args = parser.parse_args()
 
